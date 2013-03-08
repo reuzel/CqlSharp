@@ -41,11 +41,6 @@
   <ItemGroup>
     <Reference Include="System" />
     <Reference Include="System.Core" />
-    <Reference Include="System.Xml.Linq" />
-    <Reference Include="System.Data.DataSetExtensions" />
-    <Reference Include="Microsoft.CSharp" />
-    <Reference Include="System.Data" />
-    <Reference Include="System.Xml" />
   </ItemGroup>
   <ItemGroup>
     <Compile Include="Program.cs" />
@@ -58,10 +53,6 @@
     <ProjectReference Include="..\CqlSharpTest\CqlSharpTest.csproj">
       <Project>{7F0D1D97-5AC1-4848-9D64-DC88FE63744D}</Project>
       <Name>CqlSharpTest</Name>
-    </ProjectReference>
-    <ProjectReference Include="..\CqlSharp\CqlSharp.csproj">
-      <Project>{45f69fdc-eef6-43da-a457-95ee553c68a1}</Project>
-      <Name>CqlSharp</Name>
     </ProjectReference>
   </ItemGroup>
   <Import Project="$(MSBuildToolsPath)\Microsoft.CSharp.targets" />
