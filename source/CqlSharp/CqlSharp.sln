@@ -1,0 +1,47 @@
+﻿
+Microsoft Visual Studio Solution File, Format Version 12.00
+# Visual Studio 2012
+Project("{FAE04EC0-301F-11D3-BF4B-00C04F79EFBC}") = "CqlSharp", "CqlSharp\CqlSharp.csproj", "{45F69FDC-EEF6-43DA-A457-95EE553C68A1}"
+EndProject
+Project("{FAE04EC0-301F-11D3-BF4B-00C04F79EFBC}") = "CqlSharpTest", "CqlSharpTest\CqlSharpTest.csproj", "{7F0D1D97-5AC1-4848-9D64-DC88FE63744D}"
+EndProject
+Project("{FAE04EC0-301F-11D3-BF4B-00C04F79EFBC}") = "CqlTest", "CqlTest\CqlTest.csproj", "{61D745C9-1B9B-40A2-A9A6-A37A58E6B496}"
+EndProject
+Global
+	GlobalSection(TeamFoundationVersionControl) = preSolution
+		SccNumberOfProjects = 4
+		SccEnterpriseProvider = {4CA58AB2-18FA-4F8D-95D4-32DDF27D184C}
+		SccTeamFoundationServer = https://reuzel.visualstudio.com/defaultcollection
+		SccLocalPath0 = .
+		SccProjectUniqueName1 = CqlSharp\\CqlSharp.csproj
+		SccProjectName1 = CqlSharp
+		SccLocalPath1 = CqlSharp
+		SccProjectUniqueName2 = CqlSharpTest\\CqlSharpTest.csproj
+		SccProjectName2 = CqlSharpTest
+		SccLocalPath2 = CqlSharpTest
+		SccProjectUniqueName3 = CqlTest\\CqlTest.csproj
+		SccProjectName3 = CqlTest
+		SccLocalPath3 = CqlTest
+	EndGlobalSection
+	GlobalSection(SolutionConfigurationPlatforms) = preSolution
+		Debug|Any CPU = Debug|Any CPU
+		Release|Any CPU = Release|Any CPU
+	EndGlobalSection
+	GlobalSection(ProjectConfigurationPlatforms) = postSolution
+		{45F69FDC-EEF6-43DA-A457-95EE553C68A1}.Debug|Any CPU.ActiveCfg = Debug|Any CPU
+		{45F69FDC-EEF6-43DA-A457-95EE553C68A1}.Debug|Any CPU.Build.0 = Debug|Any CPU
+		{45F69FDC-EEF6-43DA-A457-95EE553C68A1}.Release|Any CPU.ActiveCfg = Release|Any CPU
+		{45F69FDC-EEF6-43DA-A457-95EE553C68A1}.Release|Any CPU.Build.0 = Release|Any CPU
+		{7F0D1D97-5AC1-4848-9D64-DC88FE63744D}.Debug|Any CPU.ActiveCfg = Debug|Any CPU
+		{7F0D1D97-5AC1-4848-9D64-DC88FE63744D}.Debug|Any CPU.Build.0 = Debug|Any CPU
+		{7F0D1D97-5AC1-4848-9D64-DC88FE63744D}.Release|Any CPU.ActiveCfg = Release|Any CPU
+		{7F0D1D97-5AC1-4848-9D64-DC88FE63744D}.Release|Any CPU.Build.0 = Release|Any CPU
+		{61D745C9-1B9B-40A2-A9A6-A37A58E6B496}.Debug|Any CPU.ActiveCfg = Debug|Any CPU
+		{61D745C9-1B9B-40A2-A9A6-A37A58E6B496}.Debug|Any CPU.Build.0 = Debug|Any CPU
+		{61D745C9-1B9B-40A2-A9A6-A37A58E6B496}.Release|Any CPU.ActiveCfg = Release|Any CPU
+		{61D745C9-1B9B-40A2-A9A6-A37A58E6B496}.Release|Any CPU.Build.0 = Release|Any CPU
+	EndGlobalSection
+	GlobalSection(SolutionProperties) = preSolution
+		HideSolutionNode = FALSE
+	EndGlobalSection
+EndGlobal
