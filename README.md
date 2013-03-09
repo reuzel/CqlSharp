@@ -1,21 +1,23 @@
 CqlSharp
 ========
 
-CqlSharp is a high performant, asynchronous Cassandra CQL binary protocol driver written in C# offering an ADO.NET like interface.
+CqlSharp is a high performant, asynchronous Cassandra CQL binary protocol driver offering an ADO.NET like interface.
 
 Features
 --------
 
 * CqlSharp is 100% written in C#, and requires .NET 4.5
 * Implements the (new) CQL Binary Protocol and therefore requires Cassandra 1.2 and up
+* Query tracing is supported
 * The API is ADO.NET like. If you are familiar with SqlConnection, SqlCommand, and SqlReader, you should be able to use CqlSharp as well
 * The API is predominately async via TPL. Synchronous alternatives are available as well
 * Supports mapping of objects to query parameters, or select query results to objects. Mapping is tunable by decorating your classes via Table and Column attributes.
 * Configuration is done through connection strings, multiple clusters are supported.
 * Most behavioral aspects of the CqlSharp are configurable: max number of connections, new connection threshold, discovery scope, max connection idle time, etc. etc.
-* Relative Node Discovery: given the seed nodes in your connection string, CqlSharp may find other nodes for you: all nodes in your cluster, nodes in the same datacenter, or the nodes in the same rack
-* Load balanced connection management: you may give your queries a load 'factor' and the client will take that into account when picking connections to send queries over.
+* Relative Node Discovery: given the 'seed' nodes in your connection string, CqlSharp may find other nodes for you: all nodes in your cluster, nodes in the same datacenter, or the nodes in the same rack
+* Load balanced connection management: you can give your queries a load 'factor' and the client will take that into account when picking connections to send queries over.
 * Queries will be retried when connections or nodes fail.
+* Node monitoring: Node failure is detected. Recovery checks occur using a exponential back-off algorithm.
 
 Some non-functionals
 --------------------
