@@ -1,7 +1,7 @@
 CqlSharp
 ========
 
-An efficient Cassandra Client for .NET
+CqlSharp is a high performant, asynchronous Cassandra CQL binary protocol driver written in C# offering an ADO.NET like interface.
 
 Features
 --------
