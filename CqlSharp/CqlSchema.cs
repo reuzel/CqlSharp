@@ -1,12 +1,12 @@
-// CqlSharp
+// CqlSharp - CqlSharp
 // Copyright (c) 2013 Joost Reuzel
-//  
+//   
 // Licensed under the Apache License, Version 2.0 (the "License");
 // you may not use this file except in compliance with the License.
 // You may obtain a copy of the License at
-//  
+//   
 // http://www.apache.org/licenses/LICENSE-2.0
-// 
+//  
 // Unless required by applicable law or agreed to in writing, software
 // distributed under the License is distributed on an "AS IS" BASIS,
 // WITHOUT WARRANTIES OR CONDITIONS OF ANY KIND, either express or implied.
@@ -26,19 +26,19 @@ namespace CqlSharp
     public class CqlSchema : IList<CqlColumn>
     {
         /// <summary>
-        /// The columns
+        ///   The columns
         /// </summary>
         private readonly IList<CqlColumn> _columns;
 
         /// <summary>
-        /// The columns by name. Lazy loaded
+        ///   The columns by name. Lazy loaded
         /// </summary>
         private readonly Lazy<IDictionary<string, CqlColumn>> _columnsByName;
 
         /// <summary>
-        /// Initializes a new instance of the <see cref="CqlSchema" /> class.
+        ///   Initializes a new instance of the <see cref="CqlSchema" /> class.
         /// </summary>
-        /// <param name="columns">The columns.</param>
+        /// <param name="columns"> The columns. </param>
         internal CqlSchema(IEnumerable<CqlColumn> columns)
         {
             _columns = columns as List<CqlColumn> ?? columns.ToList();
@@ -63,16 +63,16 @@ namespace CqlSharp
         }
 
         /// <summary>
-        /// Gets or sets the <see cref="CqlColumn" /> with the specified name. The column name is either
-        /// the {name}, {table}.{name}, or {keyspace}.{table}.{name}.
+        ///   Gets or sets the <see cref="CqlColumn" /> with the specified name. The column name is either
+        ///   the {name}, {table}.{name}, or {keyspace}.{table}.{name}.
         /// </summary>
-        /// <remarks>if the name of the column occurs more often, it is undefined which column is returned.
-        /// In such cases, prepend the column name with the table and/or keyspace name to disambiguate.</remarks>
-        /// <value>
-        /// The <see cref="CqlColumn" />.
-        /// </value>
-        /// <param name="name">The name of the column</param>
-        /// <returns>the column description</returns>
+        /// <remarks>
+        ///   if the name of the column occurs more often, it is undefined which column is returned.
+        ///   In such cases, prepend the column name with the table and/or keyspace name to disambiguate.
+        /// </remarks>
+        /// <value> The <see cref="CqlColumn" /> . </value>
+        /// <param name="name"> The name of the column </param>
+        /// <returns> the column description </returns>
         /// <exception cref="System.NotSupportedException"></exception>
         public CqlColumn this[string name]
         {
@@ -98,13 +98,11 @@ namespace CqlSharp
         }
 
         /// <summary>
-        /// Gets or sets the <see cref="CqlColumn" /> at the specified index.
+        ///   Gets or sets the <see cref="CqlColumn" /> at the specified index.
         /// </summary>
-        /// <value>
-        /// The <see cref="CqlColumn" />.
-        /// </value>
-        /// <param name="index">The index.</param>
-        /// <returns></returns>
+        /// <value> The <see cref="CqlColumn" /> . </value>
+        /// <param name="index"> The index. </param>
+        /// <returns> </returns>
         /// <exception cref="System.NotSupportedException"></exception>
         public CqlColumn this[int index]
         {

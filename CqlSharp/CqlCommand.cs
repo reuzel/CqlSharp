@@ -1,12 +1,12 @@
-// CqlSharp
+// CqlSharp - CqlSharp
 // Copyright (c) 2013 Joost Reuzel
-//  
+//   
 // Licensed under the Apache License, Version 2.0 (the "License");
 // you may not use this file except in compliance with the License.
 // You may obtain a copy of the License at
-//  
+//   
 // http://www.apache.org/licenses/LICENSE-2.0
-// 
+//  
 // Unless required by applicable law or agreed to in writing, software
 // distributed under the License is distributed on an "AS IS" BASIS,
 // WITHOUT WARRANTIES OR CONDITIONS OF ANY KIND, either express or implied.
@@ -43,7 +43,7 @@ namespace CqlSharp
         /// <param name="connection"> The connection. </param>
         /// <param name="cql"> The CQL. </param>
         /// <param name="level"> The level. </param>
-        /// <param name="load"> the load indication of the query. Used for distributing queries over nodes and connections.</param>
+        /// <param name="load"> the load indication of the query. Used for distributing queries over nodes and connections. </param>
         public CqlCommand(CqlConnection connection, string cql, CqlConsistency level, int load)
         {
             _connection = connection;
@@ -55,7 +55,7 @@ namespace CqlSharp
         }
 
         /// <summary>
-        /// Initializes a new instance of the <see cref="CqlCommand" /> class. Uses a default load level of 1
+        ///   Initializes a new instance of the <see cref="CqlCommand" /> class. Uses a default load level of 1
         /// </summary>
         /// <param name="connection"> The connection. </param>
         /// <param name="cql"> The CQL. </param>
@@ -70,7 +70,7 @@ namespace CqlSharp
         /// </summary>
         /// <param name="connection"> The connection. </param>
         /// <param name="cql"> The CQL. </param>
-        /// <param name="load"> the load indication of the query. Used for distributing queries over nodes and connections.</param>
+        /// <param name="load"> the load indication of the query. Used for distributing queries over nodes and connections. </param>
         public CqlCommand(CqlConnection connection, string cql, int load)
             : this(connection, cql, CqlConsistency.LocalQuorum, load)
         {
@@ -103,19 +103,19 @@ namespace CqlSharp
         }
 
         /// <summary>
-        /// Executes the query async.
+        ///   Executes the query async.
         /// </summary>
-        /// <returns>CqlDataReader that can be used to read the results</returns>
+        /// <returns> CqlDataReader that can be used to read the results </returns>
         public Task<CqlDataReader> ExecuteReaderAsync()
         {
             return ExecuteReaderAsync(CqlExecutionOptions.None);
         }
 
         /// <summary>
-        /// Executes the query async.
+        ///   Executes the query async.
         /// </summary>
         /// <param name="options"> The options. </param>
-        /// <returns>CqlDataReader that can be used to read the results</returns>
+        /// <returns> CqlDataReader that can be used to read the results </returns>
         public async Task<CqlDataReader> ExecuteReaderAsync(CqlExecutionOptions options)
         {
             //wait until allowed
@@ -138,21 +138,25 @@ namespace CqlSharp
         }
 
         /// <summary>
-        /// Executes the query.
+        ///   Executes the query.
         /// </summary>
-        /// <remarks>Utility wrapper around ExecuteReaderAsync</remarks>
-        /// <returns>CqlDataReader that can be used to read the results</returns>
+        /// <remarks>
+        ///   Utility wrapper around ExecuteReaderAsync
+        /// </remarks>
+        /// <returns> CqlDataReader that can be used to read the results </returns>
         public CqlDataReader ExecuteReader()
         {
             return ExecuteReader(CqlExecutionOptions.None);
         }
 
         /// <summary>
-        /// Executes the query.
+        ///   Executes the query.
         /// </summary>
-        /// <remarks>Utility wrapper around ExecuteReaderAsync</remarks>
-        /// <param name="options">The options.</param>
-        /// <returns>CqlDataReader that can be used to read the results</returns>
+        /// <remarks>
+        ///   Utility wrapper around ExecuteReaderAsync
+        /// </remarks>
+        /// <param name="options"> The options. </param>
+        /// <returns> CqlDataReader that can be used to read the results </returns>
         public CqlDataReader ExecuteReader(CqlExecutionOptions options)
         {
             try
@@ -168,7 +172,7 @@ namespace CqlSharp
         /// <summary>
         ///   Executes the query async.
         /// </summary>
-        /// <typeparam name="T">class representing the rows returned</typeparam>
+        /// <typeparam name="T"> class representing the rows returned </typeparam>
         /// <param name="options"> The options. </param>
         /// <returns> </returns>
         public Task<CqlDataReader<T>> ExecuteReaderAsync<T>() where T : class, new()
@@ -179,7 +183,7 @@ namespace CqlSharp
         /// <summary>
         ///   Executes the query async.
         /// </summary>
-        /// <typeparam name="T">class representing the rows returned</typeparam>
+        /// <typeparam name="T"> class representing the rows returned </typeparam>
         /// <param name="options"> The options. </param>
         /// <returns> </returns>
         public async Task<CqlDataReader<T>> ExecuteReaderAsync<T>(CqlExecutionOptions options) where T : class, new()
@@ -204,23 +208,27 @@ namespace CqlSharp
         }
 
         /// <summary>
-        /// Executes the query.
+        ///   Executes the query.
         /// </summary>
-        /// <remarks>Utility wrapper around ExecuteReaderAsync</remarks>
-        /// <typeparam name="T">class representing the rows returned</typeparam>
-        /// <returns>CqlDataReader that can be used to read the results</returns>
+        /// <remarks>
+        ///   Utility wrapper around ExecuteReaderAsync
+        /// </remarks>
+        /// <typeparam name="T"> class representing the rows returned </typeparam>
+        /// <returns> CqlDataReader that can be used to read the results </returns>
         public CqlDataReader<T> ExecuteReader<T>() where T : class, new()
         {
             return ExecuteReader<T>(CqlExecutionOptions.None);
         }
 
         /// <summary>
-        /// Executes the query.
+        ///   Executes the query.
         /// </summary>
-        /// <remarks>Utility wrapper around ExecuteReaderAsync</remarks>
-        /// <typeparam name="T">class representing the rows returned</typeparam>
-        /// <param name="options">The options.</param>
-        /// <returns>CqlDataReader that can be used to read the results</returns>
+        /// <remarks>
+        ///   Utility wrapper around ExecuteReaderAsync
+        /// </remarks>
+        /// <typeparam name="T"> class representing the rows returned </typeparam>
+        /// <param name="options"> The options. </param>
+        /// <returns> CqlDataReader that can be used to read the results </returns>
         public CqlDataReader<T> ExecuteReader<T>(CqlExecutionOptions options) where T : class, new()
         {
             try
@@ -236,7 +244,7 @@ namespace CqlSharp
         /// <summary>
         ///   Executes the non-query async.
         /// </summary>
-        /// <returns>A ICqlQueryResult of type rows, Void, SchemaChange or SetKeySpace</returns>
+        /// <returns> A ICqlQueryResult of type rows, Void, SchemaChange or SetKeySpace </returns>
         /// <exception cref="CqlException">Unexpected type of result received</exception>
         public Task<ICqlQueryResult> ExecuteNonQueryAsync()
         {
@@ -247,7 +255,7 @@ namespace CqlSharp
         ///   Executes the non-query async.
         /// </summary>
         /// <param name="options"> The options. </param>
-        /// <returns>A ICqlQueryResult of type rows, Void, SchemaChange or SetKeySpace</returns>
+        /// <returns> A ICqlQueryResult of type rows, Void, SchemaChange or SetKeySpace </returns>
         /// <exception cref="CqlException">Unexpected type of result received</exception>
         public async Task<ICqlQueryResult> ExecuteNonQueryAsync(CqlExecutionOptions options)
         {
@@ -264,7 +272,7 @@ namespace CqlSharp
                         return new CqlDataReader(result);
 
                     case ResultOpcode.Void:
-                        return new CqlVoid { TracingId = result.TracingId };
+                        return new CqlVoid {TracingId = result.TracingId};
 
                     case ResultOpcode.SchemaChange:
                         return new CqlSchemaChange
@@ -293,10 +301,12 @@ namespace CqlSharp
         }
 
         /// <summary>
-        /// Executes the non-query.
+        ///   Executes the non-query.
         /// </summary>
-        /// <remarks>Utility wrapper around ExecuteNonQueryAsync</remarks>
-        /// <returns>A ICqlQueryResult of type rows, Void, SchemaChange or SetKeySpace</returns>
+        /// <remarks>
+        ///   Utility wrapper around ExecuteNonQueryAsync
+        /// </remarks>
+        /// <returns> A ICqlQueryResult of type rows, Void, SchemaChange or SetKeySpace </returns>
         /// <exception cref="CqlException">Unexpected type of result received</exception>
         public ICqlQueryResult ExecuteNonQuery()
         {
@@ -304,11 +314,13 @@ namespace CqlSharp
         }
 
         /// <summary>
-        /// Executes the non-query.
+        ///   Executes the non-query.
         /// </summary>
-        /// <remarks>Utility wrapper around ExecuteNonQueryAsync</remarks>
-        /// <param name="options">The options.</param>
-        /// <returns>A ICqlQueryResult of type rows, Void, SchemaChange or SetKeySpace</returns>
+        /// <remarks>
+        ///   Utility wrapper around ExecuteNonQueryAsync
+        /// </remarks>
+        /// <param name="options"> The options. </param>
+        /// <returns> A ICqlQueryResult of type rows, Void, SchemaChange or SetKeySpace </returns>
         /// <exception cref="CqlException">Unexpected type of result received</exception>
         public ICqlQueryResult ExecuteNonQuery(CqlExecutionOptions options)
         {
@@ -323,7 +335,7 @@ namespace CqlSharp
         }
 
         /// <summary>
-        ///  Prepares the query async.
+        ///   Prepares the query async.
         /// </summary>
         /// <returns> </returns>
         public Task PrepareAsync()
@@ -332,7 +344,7 @@ namespace CqlSharp
         }
 
         /// <summary>
-        ///  Prepares the query async.
+        ///   Prepares the query async.
         /// </summary>
         /// <param name="options"> The options. </param>
         /// <returns> </returns>
@@ -352,10 +364,12 @@ namespace CqlSharp
         }
 
         /// <summary>
-        /// Prepares the query
+        ///   Prepares the query
         /// </summary>
-        /// <remarks>Utility wrapper around PrepareAsync</remarks>
-        /// <returns>A ICqlQueryResult of type rows, Void, SchemaChange or SetKeySpace</returns>
+        /// <remarks>
+        ///   Utility wrapper around PrepareAsync
+        /// </remarks>
+        /// <returns> A ICqlQueryResult of type rows, Void, SchemaChange or SetKeySpace </returns>
         /// <exception cref="CqlException">Unexpected type of result received</exception>
         public void Prepare()
         {
@@ -363,11 +377,13 @@ namespace CqlSharp
         }
 
         /// <summary>
-        /// Prepares the query
+        ///   Prepares the query
         /// </summary>
-        /// <remarks>Utility wrapper around PrepareAsync</remarks>
-        /// <param name="options">The options.</param>
-        /// <returns>A ICqlQueryResult of type rows, Void, SchemaChange or SetKeySpace</returns>
+        /// <remarks>
+        ///   Utility wrapper around PrepareAsync
+        /// </remarks>
+        /// <param name="options"> The options. </param>
+        /// <returns> A ICqlQueryResult of type rows, Void, SchemaChange or SetKeySpace </returns>
         /// <exception cref="CqlException">Unexpected type of result received</exception>
         public void Prepare(CqlExecutionOptions options)
         {
@@ -476,12 +492,12 @@ namespace CqlSharp
 
 
         /// <summary>
-        /// Executes the query async on the given connection
+        ///   Executes the query async on the given connection
         /// </summary>
-        /// <param name="connection">The connection.</param>
-        /// <param name="values">The values provided for the execution of the query.</param>
-        /// <param name="options">The options.</param>
-        /// <returns></returns>
+        /// <param name="connection"> The connection. </param>
+        /// <param name="values"> The values provided for the execution of the query. </param>
+        /// <param name="options"> The options. </param>
+        /// <returns> </returns>
         /// <exception cref="CqlException">Unexpected frame received</exception>
         private async Task<ResultFrame> ExecuteInternalAsync(Connection connection, byte[][] values,
                                                              CqlExecutionOptions options)

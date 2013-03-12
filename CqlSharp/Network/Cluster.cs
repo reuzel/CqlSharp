@@ -1,4 +1,19 @@
-﻿using System.Collections.Generic;
+﻿// CqlSharp - CqlSharp
+// Copyright (c) 2013 Joost Reuzel
+//   
+// Licensed under the Apache License, Version 2.0 (the "License");
+// you may not use this file except in compliance with the License.
+// You may obtain a copy of the License at
+//   
+// http://www.apache.org/licenses/LICENSE-2.0
+//  
+// Unless required by applicable law or agreed to in writing, software
+// distributed under the License is distributed on an "AS IS" BASIS,
+// WITHOUT WARRANTIES OR CONDITIONS OF ANY KIND, either express or implied.
+// See the License for the specific language governing permissions and
+// limitations under the License.
+
+using System.Collections.Generic;
 using System.Linq;
 using System.Net;
 using System.Net.Sockets;
@@ -9,7 +24,7 @@ using CqlSharp.Config;
 namespace CqlSharp.Network
 {
     /// <summary>
-    /// Represents a Cassandra cluster
+    ///   Represents a Cassandra cluster
     /// </summary>
     internal class Cluster : IConnectionProvider
     {
@@ -19,9 +34,9 @@ namespace CqlSharp.Network
         private readonly SemaphoreSlim _throttle;
 
         /// <summary>
-        /// Initializes a new instance of the <see cref="Cluster" /> class.
+        ///   Initializes a new instance of the <see cref="Cluster" /> class.
         /// </summary>
-        /// <param name="config">The config.</param>
+        /// <param name="config"> The config. </param>
         public Cluster(ClusterConfig config)
         {
             //store config
@@ -41,6 +56,9 @@ namespace CqlSharp.Network
                 case ConnectionStrategy.Random:
                     _connectionSelector = new RandomConnectionStrategy(_nodes, config);
                     break;
+                case ConnectionStrategy.Exclusive:
+                    _connectionSelector = new ExclusiveConnectionStrategy(_nodes, _config);
+                    break;
             }
 
             //setup throttle
@@ -51,11 +69,9 @@ namespace CqlSharp.Network
         }
 
         /// <summary>
-        /// Gets the throttle to limit concurrent requests.
+        ///   Gets the throttle to limit concurrent requests.
         /// </summary>
-        /// <value>
-        /// The throttle.
-        /// </value>
+        /// <value> The throttle. </value>
         public SemaphoreSlim Throttle
         {
             get { return _throttle; }
@@ -64,18 +80,18 @@ namespace CqlSharp.Network
         #region IConnectionProvider Members
 
         /// <summary>
-        /// Gets a connection to a node in the cluster
+        ///   Gets a connection to a node in the cluster
         /// </summary>
-        /// <returns></returns>
+        /// <returns> </returns>
         public Task<Connection> GetOrCreateConnectionAsync()
         {
             return _connectionSelector.GetOrCreateConnectionAsync();
         }
 
         /// <summary>
-        /// Returns the connection.
+        ///   Returns the connection.
         /// </summary>
-        /// <param name="connection">The connection.</param>
+        /// <param name="connection"> The connection. </param>
         public void ReturnConnection(Connection connection)
         {
             _connectionSelector.ReturnConnection(connection);
@@ -84,9 +100,9 @@ namespace CqlSharp.Network
         #endregion
 
         /// <summary>
-        /// Creates the nodes from based on the servers value from the config.
+        ///   Creates the nodes from based on the servers value from the config.
         /// </summary>
-        /// <param name="config">The config.</param>
+        /// <param name="config"> The config. </param>
         private void CreateNodesFromConfig(ClusterConfig config)
         {
             foreach (string nameOrAddress in config.Nodes)

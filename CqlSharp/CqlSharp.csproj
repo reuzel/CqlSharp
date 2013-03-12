@@ -51,6 +51,7 @@
     <Compile Include="Config\ConnectionStrategy.cs" />
     <Compile Include="Config\DiscoveryScope.cs" />
     <Compile Include="Network\ConnectionChangeEvent.cs" />
+    <Compile Include="Network\ExclusiveConnectionStrategy.cs" />
     <Compile Include="Network\IConnectionProvider.cs" />
     <Compile Include="Network\IConnectionStrategy.cs" />
     <Compile Include="Network\LoadChangeEvent.cs" />
@@ -110,6 +111,7 @@
     <Compile Include="Protocol\StreamExtensions.cs" />
     <Compile Include="Protocol\ValueSerialization.cs" />
     <Compile Include="Serialization\CqlColumnAttribute.cs" />
+    <Compile Include="Serialization\CqlIgnoreAttribute.cs" />
     <Compile Include="Serialization\CqlTableAttribute.cs" />
     <Compile Include="Serialization\ObjectAccessor.cs" />
     <Compile Include="Serialization\TypeExtensions.cs" />

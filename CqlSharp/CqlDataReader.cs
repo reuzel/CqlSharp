@@ -1,12 +1,12 @@
-// CqlSharp
+// CqlSharp - CqlSharp
 // Copyright (c) 2013 Joost Reuzel
-//  
+//   
 // Licensed under the Apache License, Version 2.0 (the "License");
 // you may not use this file except in compliance with the License.
 // You may obtain a copy of the License at
-//  
+//   
 // http://www.apache.org/licenses/LICENSE-2.0
-// 
+//  
 // Unless required by applicable law or agreed to in writing, software
 // distributed under the License is distributed on an "AS IS" BASIS,
 // WITHOUT WARRANTIES OR CONDITIONS OF ANY KIND, either express or implied.
@@ -61,11 +61,9 @@ namespace CqlSharp
         }
 
         /// <summary>
-        /// Gets the amount of results that can be read from this DataReader
+        ///   Gets the amount of results that can be read from this DataReader
         /// </summary>
-        /// <value>
-        /// The count.
-        /// </value>
+        /// <value> The count. </value>
         public int Count
         {
             get { return _frame.Count; }
@@ -137,7 +135,7 @@ namespace CqlSharp
         #endregion
 
         /// <summary>
-        ///  Forwards the reader to the next row async.
+        ///   Forwards the reader to the next row async.
         /// </summary>
         /// <returns> </returns>
         public virtual async Task<bool> ReadAsync()
@@ -152,7 +150,7 @@ namespace CqlSharp
         }
 
         /// <summary>
-        /// Forwards the reader to the next row.
+        ///   Forwards the reader to the next row.
         /// </summary>
         public bool Read()
         {
@@ -194,29 +192,27 @@ namespace CqlSharp
     /// <summary>
     ///   Provides access to a set of Cql data rows as returned from a query
     /// </summary>
-    /// <typeparam name="T"></typeparam>
+    /// <typeparam name="T"> </typeparam>
     public class CqlDataReader<T> : CqlDataReader, IEnumerable<T> where T : class, new()
     {
         /// <summary>
-        /// The last read (and requested) value
+        ///   The last read (and requested) value
         /// </summary>
         private T _current;
 
         /// <summary>
-        /// Initializes a new instance of the <see cref="CqlDataReader{T}"/> class.
+        ///   Initializes a new instance of the <see cref="CqlDataReader{T}" /> class.
         /// </summary>
-        /// <param name="frame">The frame.</param>
+        /// <param name="frame"> The frame. </param>
         internal CqlDataReader(ResultFrame frame)
             : base(frame)
         {
         }
 
         /// <summary>
-        /// Gets the last read value of this reader instance.
+        ///   Gets the last read value of this reader instance.
         /// </summary>
-        /// <value>
-        /// The current value.
-        /// </value>
+        /// <value> The current value. </value>
         public T Current
         {
             get
@@ -266,9 +262,9 @@ namespace CqlSharp
         #endregion
 
         /// <summary>
-        /// Forwards the reader to the next row async.
+        ///   Forwards the reader to the next row async.
         /// </summary>
-        /// <returns></returns>
+        /// <returns> </returns>
         public override Task<bool> ReadAsync()
         {
             _current = null;

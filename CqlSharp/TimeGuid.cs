@@ -1,12 +1,12 @@
-﻿// CqlSharp
+﻿// CqlSharp - CqlSharp
 // Copyright (c) 2013 Joost Reuzel
-//  
+//   
 // Licensed under the Apache License, Version 2.0 (the "License");
 // you may not use this file except in compliance with the License.
 // You may obtain a copy of the License at
-//  
+//   
 // http://www.apache.org/licenses/LICENSE-2.0
-// 
+//  
 // Unless required by applicable law or agreed to in writing, software
 // distributed under the License is distributed on an "AS IS" BASIS,
 // WITHOUT WARRANTIES OR CONDITIONS OF ANY KIND, either express or implied.
@@ -18,8 +18,10 @@ using System;
 namespace CqlSharp
 {
     /// <summary>
-    /// Helper class to generate Time based GUIDs.
-    /// <remarks>Thanks to <a href="https://github.com/pchalamet/cassandra-sharp">Casssandra-Sharp</a> project.</remarks>
+    ///   Helper class to generate Time based GUIDs.
+    ///   <remarks>
+    ///     Thanks to <a href="https://github.com/pchalamet/cassandra-sharp">Casssandra-Sharp</a> project.
+    ///   </remarks>
     /// </summary>
     public static class TimeGuid
     {

@@ -1,69 +1,69 @@
-﻿// CqlSharp
+﻿// CqlSharp - CqlSharp
 // Copyright (c) 2013 Joost Reuzel
-//  
+//   
 // Licensed under the Apache License, Version 2.0 (the "License");
 // you may not use this file except in compliance with the License.
 // You may obtain a copy of the License at
-//  
+//   
 // http://www.apache.org/licenses/LICENSE-2.0
-// 
+//  
 // Unless required by applicable law or agreed to in writing, software
 // distributed under the License is distributed on an "AS IS" BASIS,
 // WITHOUT WARRANTIES OR CONDITIONS OF ANY KIND, either express or implied.
 // See the License for the specific language governing permissions and
 // limitations under the License.
 
-using CqlSharp.Network;
 using System;
 using System.Collections.Generic;
 using System.IO;
 using System.Net;
 using System.Text;
+using CqlSharp.Network;
 
 namespace CqlSharp.Protocol
 {
     /// <summary>
-    /// Extensions to the Stream class to read and write primitive values as used in the Binary Protocol
+    ///   Extensions to the Stream class to read and write primitive values as used in the Binary Protocol
     /// </summary>
     internal static class StreamExtensions
     {
         /// <summary>
-        /// Writes a short.
+        ///   Writes a short.
         /// </summary>
-        /// <param name="stream">The stream.</param>
-        /// <param name="data">The data.</param>
+        /// <param name="stream"> The stream. </param>
+        /// <param name="data"> The data. </param>
         public static void WriteShort(this Stream stream, short data)
         {
             //byte[] buffer = BitConverter.GetBytes(data);
             //if (BitConverter.IsLittleEndian) Array.Reverse(buffer);
             //stream.Write(buffer, 0, buffer.Length);
 
-            stream.WriteByte((byte)(data >> 8));
-            stream.WriteByte((byte)(data));
+            stream.WriteByte((byte) (data >> 8));
+            stream.WriteByte((byte) (data));
         }
 
         /// <summary>
-        /// Writes an int.
+        ///   Writes an int.
         /// </summary>
-        /// <param name="stream">The stream.</param>
-        /// <param name="data">The data.</param>
+        /// <param name="stream"> The stream. </param>
+        /// <param name="data"> The data. </param>
         public static void WriteInt(this Stream stream, int data)
         {
             //byte[] buffer = BitConverter.GetBytes(data);
             //if (BitConverter.IsLittleEndian) Array.Reverse(buffer);
             //stream.Write(buffer, 0, buffer.Length);
 
-            stream.WriteByte((byte)(data >> 24));
-            stream.WriteByte((byte)(data >> 16));
-            stream.WriteByte((byte)(data >> 8));
-            stream.WriteByte((byte)(data));
+            stream.WriteByte((byte) (data >> 24));
+            stream.WriteByte((byte) (data >> 16));
+            stream.WriteByte((byte) (data >> 8));
+            stream.WriteByte((byte) (data));
         }
 
         /// <summary>
-        /// Writes a string.
+        ///   Writes a string.
         /// </summary>
-        /// <param name="stream">The stream.</param>
-        /// <param name="data">The data.</param>
+        /// <param name="stream"> The stream. </param>
+        /// <param name="data"> The data. </param>
         public static void WriteString(this Stream stream, string data)
         {
             //byte[] bufStr = Encoding.UTF8.GetBytes(data);
@@ -72,7 +72,7 @@ namespace CqlSharp.Protocol
             //stream.Write(bufStr, 0, len);
 
             int len = Encoding.UTF8.GetByteCount(data);
-            stream.WriteShort((short)len);
+            stream.WriteShort((short) len);
 
             byte[] bufStr;
             if (len > MemoryPool.BufferSize)
@@ -90,13 +90,13 @@ namespace CqlSharp.Protocol
         }
 
         /// <summary>
-        /// Writes a list of strings.
+        ///   Writes a list of strings.
         /// </summary>
-        /// <param name="stream">The stream.</param>
-        /// <param name="data">The data.</param>
+        /// <param name="stream"> The stream. </param>
+        /// <param name="data"> The data. </param>
         public static void WriteStringList(this Stream stream, IList<string> data)
         {
-            stream.WriteShort((short)data.Count);
+            stream.WriteShort((short) data.Count);
             foreach (string s in data)
             {
                 stream.WriteString(s);
@@ -104,10 +104,10 @@ namespace CqlSharp.Protocol
         }
 
         /// <summary>
-        /// Writes a long string.
+        ///   Writes a long string.
         /// </summary>
-        /// <param name="stream">The stream.</param>
-        /// <param name="data">The data.</param>
+        /// <param name="stream"> The stream. </param>
+        /// <param name="data"> The data. </param>
         public static void WriteLongString(this Stream stream, string data)
         {
             //byte[] bufStr = Encoding.UTF8.GetBytes(data);
@@ -134,13 +134,13 @@ namespace CqlSharp.Protocol
         }
 
         /// <summary>
-        /// Writes a string map.
+        ///   Writes a string map.
         /// </summary>
-        /// <param name="stream">The stream.</param>
-        /// <param name="dic">The dic.</param>
+        /// <param name="stream"> The stream. </param>
+        /// <param name="dic"> The dic. </param>
         public static void WriteStringMap(this Stream stream, IDictionary<string, string> dic)
         {
-            stream.WriteShort((short)dic.Count);
+            stream.WriteShort((short) dic.Count);
             foreach (var kvp in dic)
             {
                 stream.WriteString(kvp.Key);
@@ -149,22 +149,22 @@ namespace CqlSharp.Protocol
         }
 
         /// <summary>
-        /// Writes a short byte array.
+        ///   Writes a short byte array.
         /// </summary>
-        /// <param name="stream">The stream.</param>
-        /// <param name="data">The data.</param>
+        /// <param name="stream"> The stream. </param>
+        /// <param name="data"> The data. </param>
         public static void WriteShortByteArray(this Stream stream, byte[] data)
         {
-            var len = (short)data.Length;
+            var len = (short) data.Length;
             stream.WriteShort(len);
             stream.Write(data, 0, len);
         }
 
         /// <summary>
-        /// Writes a byte array.
+        ///   Writes a byte array.
         /// </summary>
-        /// <param name="stream">The stream.</param>
-        /// <param name="data">The data.</param>
+        /// <param name="stream"> The stream. </param>
+        /// <param name="data"> The data. </param>
         public static void WriteByteArray(this Stream stream, byte[] data)
         {
             int len = data.Length;
@@ -173,23 +173,23 @@ namespace CqlSharp.Protocol
         }
 
         /// <summary>
-        /// Writes an IP address and port
+        ///   Writes an IP address and port
         /// </summary>
-        /// <param name="stream">The stream.</param>
-        /// <param name="endpoint">The endpoint.</param>
+        /// <param name="stream"> The stream. </param>
+        /// <param name="endpoint"> The endpoint. </param>
         public static void WriteInet(this Stream stream, IPEndPoint endpoint)
         {
             byte[] ip = endpoint.Address.GetAddressBytes();
-            stream.Write(new[] { (byte)ip.Length }, 0, 1);
+            stream.Write(new[] {(byte) ip.Length}, 0, 1);
             stream.Write(ip, 0, ip.Length);
             stream.WriteInt(endpoint.Port);
         }
 
         /// <summary>
-        /// Writes a UUID/GUID.
+        ///   Writes a UUID/GUID.
         /// </summary>
-        /// <param name="stream">The stream.</param>
-        /// <param name="guid">The GUID.</param>
+        /// <param name="stream"> The stream. </param>
+        /// <param name="guid"> The GUID. </param>
         public static void WriteUuid(this Stream stream, Guid guid)
         {
             byte[] buffer = guid.ToByteArray();
@@ -203,21 +203,21 @@ namespace CqlSharp.Protocol
         }
 
         /// <summary>
-        /// Reads the buffer.
+        ///   Reads the buffer.
         /// </summary>
-        /// <param name="stream">The stream.</param>
-        /// <param name="buffer">The buffer.</param>
+        /// <param name="stream"> The stream. </param>
+        /// <param name="buffer"> The buffer. </param>
         private static void ReadBuffer(this Stream stream, byte[] buffer)
         {
             ReadBuffer(stream, buffer, buffer.Length);
         }
 
         /// <summary>
-        /// Reads the buffer up to a specified length
+        ///   Reads the buffer up to a specified length
         /// </summary>
-        /// <param name="stream">The stream.</param>
-        /// <param name="buffer">The buffer.</param>
-        /// <param name="len">The len.</param>
+        /// <param name="stream"> The stream. </param>
+        /// <param name="buffer"> The buffer. </param>
+        /// <param name="len"> The len. </param>
         /// <exception cref="System.IO.IOException">Unexpected end of stream reached.</exception>
         private static void ReadBuffer(this Stream stream, byte[] buffer, int len)
         {
@@ -233,10 +233,10 @@ namespace CqlSharp.Protocol
         }
 
         /// <summary>
-        /// Reads a short.
+        ///   Reads a short.
         /// </summary>
-        /// <param name="stream">The stream.</param>
-        /// <returns></returns>
+        /// <param name="stream"> The stream. </param>
+        /// <returns> </returns>
         /// <exception cref="System.IO.IOException">Unexpected end of stream reached</exception>
         public static short ReadShort(this Stream stream)
         {
@@ -249,14 +249,14 @@ namespace CqlSharp.Protocol
 
                 value = value << 8 + read;
             }
-            return (short)value;
+            return (short) value;
         }
 
         /// <summary>
-        /// Reads an int.
+        ///   Reads an int.
         /// </summary>
-        /// <param name="stream">The stream.</param>
-        /// <returns></returns>
+        /// <param name="stream"> The stream. </param>
+        /// <returns> </returns>
         /// <exception cref="System.IO.IOException">Unexpected end of stream reached</exception>
         public static int ReadInt(this Stream stream)
         {
@@ -273,9 +273,9 @@ namespace CqlSharp.Protocol
         }
 
         /// <summary>
-        /// Reads a string.
+        ///   Reads a string.
         /// </summary>
-        /// <param name="stream">The stream.</param>
+        /// <param name="stream"> The stream. </param>
         /// <returns> </returns>
         public static string ReadString(this Stream stream)
         {
@@ -302,10 +302,10 @@ namespace CqlSharp.Protocol
         }
 
         /// <summary>
-        /// Reads a byte array.
+        ///   Reads a byte array.
         /// </summary>
-        /// <param name="stream">The stream.</param>
-        /// <returns></returns>
+        /// <param name="stream"> The stream. </param>
+        /// <returns> </returns>
         public static byte[] ReadByteArray(this Stream stream)
         {
             int len = stream.ReadInt();
@@ -320,10 +320,10 @@ namespace CqlSharp.Protocol
         }
 
         /// <summary>
-        /// Reads a short byte array.
+        ///   Reads a short byte array.
         /// </summary>
-        /// <param name="stream">The stream.</param>
-        /// <returns></returns>
+        /// <param name="stream"> The stream. </param>
+        /// <returns> </returns>
         public static byte[] ReadShortByteArray(this Stream stream)
         {
             short len = stream.ReadShort();
@@ -338,10 +338,10 @@ namespace CqlSharp.Protocol
         }
 
         /// <summary>
-        /// Reads a list of strings
+        ///   Reads a list of strings
         /// </summary>
-        /// <param name="stream">The stream.</param>
-        /// <returns></returns>
+        /// <param name="stream"> The stream. </param>
+        /// <returns> </returns>
         public static string[] ReadStringList(this Stream stream)
         {
             short len = stream.ReadShort();
@@ -354,10 +354,10 @@ namespace CqlSharp.Protocol
         }
 
         /// <summary>
-        /// Reads a string multimap.
+        ///   Reads a string multimap.
         /// </summary>
-        /// <param name="stream">The stream.</param>
-        /// <returns></returns>
+        /// <param name="stream"> The stream. </param>
+        /// <returns> </returns>
         public static Dictionary<string, string[]> ReadStringMultimap(this Stream stream)
         {
             short len = stream.ReadShort();
@@ -373,10 +373,10 @@ namespace CqlSharp.Protocol
         }
 
         /// <summary>
-        /// Reads an IP-Address and port
+        ///   Reads an IP-Address and port
         /// </summary>
-        /// <param name="stream">The stream.</param>
-        /// <returns></returns>
+        /// <param name="stream"> The stream. </param>
+        /// <returns> </returns>
         /// <exception cref="System.IO.IOException">Unexpected end of stream</exception>
         public static IPEndPoint ReadInet(this Stream stream)
         {
@@ -395,10 +395,10 @@ namespace CqlSharp.Protocol
         }
 
         /// <summary>
-        /// Reads a UUID/GUID.
+        ///   Reads a UUID/GUID.
         /// </summary>
-        /// <param name="stream">The stream.</param>
-        /// <returns></returns>
+        /// <param name="stream"> The stream. </param>
+        /// <returns> </returns>
         public static Guid ReadUuid(this Stream stream)
         {
             var buffer = new byte[16];

@@ -1,4 +1,4 @@
-// CqlSharp - CqlSharp
+﻿// CqlSharp - CqlSharp
 // Copyright (c) 2013 Joost Reuzel
 //   
 // Licensed under the Apache License, Version 2.0 (the "License");
@@ -15,14 +15,13 @@
 
 using System;
 
-namespace CqlSharp.Protocol.Exceptions
+namespace CqlSharp.Serialization
 {
-    [Serializable]
-    public class InvalidException : ProtocolException
+    /// <summary>
+    ///   Annotates a field or property to have it ignored in any CQL-object mapping.
+    /// </summary>
+    [AttributeUsage(AttributeTargets.Property | AttributeTargets.Field)]
+    public class CqlIgnoreAttribute : Attribute
     {
-        public InvalidException(string message)
-            : base(ErrorCode.Invalid, message)
-        {
-        }
     }
 }

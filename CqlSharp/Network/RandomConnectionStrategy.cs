@@ -1,63 +1,67 @@
+// CqlSharp - CqlSharp
+// Copyright (c) 2013 Joost Reuzel
+//   
+// Licensed under the Apache License, Version 2.0 (the "License");
+// you may not use this file except in compliance with the License.
+// You may obtain a copy of the License at
+//   
+// http://www.apache.org/licenses/LICENSE-2.0
+//  
+// Unless required by applicable law or agreed to in writing, software
+// distributed under the License is distributed on an "AS IS" BASIS,
+// WITHOUT WARRANTIES OR CONDITIONS OF ANY KIND, either express or implied.
+// See the License for the specific language governing permissions and
+// limitations under the License.
+
 using System;
-using System.Collections.Concurrent;
 using System.Collections.Generic;
+using System.Linq;
 using System.Threading.Tasks;
 using CqlSharp.Config;
 
 namespace CqlSharp.Network
 {
     /// <summary>
-    /// Connection selection strategy that randomizes the connections over the nodes in the cluster
+    ///   Connection selection strategy that randomizes the connections over the nodes in the cluster
     /// </summary>
     internal class RandomConnectionStrategy : IConnectionStrategy
     {
-        private readonly ConcurrentStack<Connection> _connections;
+        private readonly ClusterConfig _config;
         private readonly List<Node> _nodes;
         private readonly Random _rnd;
-        private ClusterConfig _config;
 
         /// <summary>
-        /// Initializes the strategies with the specified nodes and cluster configuration
+        ///   Initializes the strategies with the specified nodes and cluster configuration
         /// </summary>
-        /// <param name="nodes">The nodes.</param>
-        /// <param name="config">The config.</param>
+        /// <param name="nodes"> The nodes. </param>
+        /// <param name="config"> The config. </param>
         public RandomConnectionStrategy(List<Node> nodes, ClusterConfig config)
         {
             _nodes = nodes;
             _config = config;
-            _connections = new ConcurrentStack<Connection>();
             _rnd = new Random((int) DateTime.Now.Ticks);
         }
 
         #region IConnectionStrategy Members
 
         /// <summary>
-        /// Gets or creates connection to the cluster.
+        ///   Gets or creates connection to the cluster.
         /// </summary>
-        /// <returns></returns>
+        /// <returns> </returns>
         /// <exception cref="CqlException">Can not connect to any node of the cluster! All connectivity to the cluster seems to be lost</exception>
         public async Task<Connection> GetOrCreateConnectionAsync()
         {
+            int count = _nodes.Count;
+            int offset = _rnd.Next(count);
             Connection connection;
 
-            //try to get an unused connection
-            while (_connections.TryPop(out connection))
-            {
-                if (connection.IsConnected)
-                {
-                    return connection;
-                }
-            }
-
-            //iterate over nodes and try to create a new one
-            int count = _nodes.Count;
-            int nodeIndex = _rnd.Next(0, count);
+            //try to get an unused connection from a random node
             for (int i = 0; i < count; i++)
             {
                 try
                 {
-                    connection = await _nodes[nodeIndex + i%count].CreateConnectionAsync();
-                    if (connection != null)
+                    connection = _nodes[(offset + i)%count].GetConnection();
+                    if (connection != null && connection.Load < _config.NewConnectionTreshold)
                         return connection;
                 }
                 catch
@@ -66,10 +70,29 @@ namespace CqlSharp.Network
                 }
             }
 
+            //check if we may create another connection
+            if (_config.MaxConnections <= 0 || _nodes.Sum(n => n.ConnectionCount) < _config.MaxConnections)
+            {
+                //iterate over nodes and try to create a new one
+                for (int i = 0; i < count; i++)
+                {
+                    try
+                    {
+                        connection = await _nodes[(offset + i)%count].CreateConnectionAsync();
+                        if (connection != null)
+                            return connection;
+                    }
+                    catch
+                    {
+                        //ignore, try another node
+                    }
+                }
+            }
+
             //iterate over nodes and get an existing one
             for (int i = 0; i < count; i++)
             {
-                connection = _nodes[nodeIndex + i%count].GetConnection();
+                connection = _nodes[(offset + i)%count].GetConnection();
                 if (connection != null)
                     return connection;
             }
@@ -78,12 +101,12 @@ namespace CqlSharp.Network
         }
 
         /// <summary>
-        /// Invoked when a connection is no longer in use by the application
+        ///   Invoked when a connection is no longer in use by the application
         /// </summary>
-        /// <param name="connection">The connection no longer used.</param>
+        /// <param name="connection"> The connection no longer used. </param>
         public void ReturnConnection(Connection connection)
         {
-            _connections.Push(connection);
+            //no-op
         }
 
         #endregion

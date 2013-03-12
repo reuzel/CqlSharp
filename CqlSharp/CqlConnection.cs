@@ -1,12 +1,12 @@
-﻿// CqlSharp
+﻿// CqlSharp - CqlSharp
 // Copyright (c) 2013 Joost Reuzel
-//  
+//   
 // Licensed under the Apache License, Version 2.0 (the "License");
 // you may not use this file except in compliance with the License.
 // You may obtain a copy of the License at
-//  
+//   
 // http://www.apache.org/licenses/LICENSE-2.0
-// 
+//  
 // Unless required by applicable law or agreed to in writing, software
 // distributed under the License is distributed on an "AS IS" BASIS,
 // WITHOUT WARRANTIES OR CONDITIONS OF ANY KIND, either express or implied.
@@ -23,7 +23,7 @@ using CqlSharp.Network;
 namespace CqlSharp
 {
     /// <summary>
-    /// A connection to a Cassandra cluster
+    ///   A connection to a Cassandra cluster
     /// </summary>
     public class CqlConnection : IDisposable
     {
@@ -41,9 +41,9 @@ namespace CqlSharp
         }
 
         /// <summary>
-        /// Initializes a new instance of the <see cref="CqlConnection" /> class.
+        ///   Initializes a new instance of the <see cref="CqlConnection" /> class.
         /// </summary>
-        /// <param name="connectionString">The connection string.</param>
+        /// <param name="connectionString"> The connection string. </param>
         public CqlConnection(string connectionString)
         {
             //get the cluster config, or add one if none exists
@@ -67,9 +67,9 @@ namespace CqlSharp
         }
 
         /// <summary>
-        /// Initializes a new instance of the <see cref="CqlConnection" /> class.
+        ///   Initializes a new instance of the <see cref="CqlConnection" /> class.
         /// </summary>
-        /// <param name="config">The config.</param>
+        /// <param name="config"> The config. </param>
         public CqlConnection(ClusterConfig config)
         {
             //add the config to the list, or get an existing instance with the same parameters
@@ -86,9 +86,9 @@ namespace CqlSharp
         }
 
         /// <summary>
-        /// Initializes a new instance of the <see cref="CqlConnection" /> class.
+        ///   Initializes a new instance of the <see cref="CqlConnection" /> class.
         /// </summary>
-        /// <param name="node">The node.</param>
+        /// <param name="node"> The node. </param>
         internal CqlConnection(Node node)
         {
             _provider = node;
@@ -96,17 +96,15 @@ namespace CqlSharp
         }
 
         /// <summary>
-        /// Gets or sets the throttle.
+        ///   Gets or sets the throttle.
         /// </summary>
-        /// <value>
-        /// The throttle.
-        /// </value>
+        /// <value> The throttle. </value>
         public SemaphoreSlim Throttle { get; set; }
 
         #region IDisposable Members
 
         /// <summary>
-        /// Performs application-defined tasks associated with freeing, releasing, or resetting unmanaged resources.
+        ///   Performs application-defined tasks associated with freeing, releasing, or resetting unmanaged resources.
         /// </summary>
         public void Dispose()
         {
@@ -117,9 +115,9 @@ namespace CqlSharp
         #endregion
 
         /// <summary>
-        /// Opens the connection.
+        ///   Opens the connection.
         /// </summary>
-        /// <returns></returns>
+        /// <returns> </returns>
         /// <exception cref="System.ObjectDisposedException">CqlConnection</exception>
         public async Task OpenAsync()
         {
@@ -133,7 +131,7 @@ namespace CqlSharp
         }
 
         /// <summary>
-        /// Opens the connection.
+        ///   Opens the connection.
         /// </summary>
         /// <remark>This method is a convenience wrapper around OpenAsync()</remark>
         /// <exception cref="System.ObjectDisposedException">CqlConnection</exception>
@@ -150,9 +148,9 @@ namespace CqlSharp
         }
 
         /// <summary>
-        /// Gets the underlying connection. Will reopen this CqlConnection, if the underlying connection has failed,
+        ///   Gets the underlying connection. Will reopen this CqlConnection, if the underlying connection has failed,
         /// </summary>
-        /// <returns>An open connection</returns>
+        /// <returns> An open connection </returns>
         internal async Task<Connection> GetConnectionAsync(bool newConnection = false)
         {
             if (_disposed == 1)
@@ -181,9 +179,9 @@ namespace CqlSharp
         }
 
         /// <summary>
-        /// Returns the connection. Used when a connection is no longer needed by a command, or when this instance is disposed.
+        ///   Returns the connection. Used when a connection is no longer needed by a command, or when this instance is disposed.
         /// </summary>
-        /// <param name="connection">The connection.</param>
+        /// <param name="connection"> The connection. </param>
         internal void ReturnConnection(Connection connection)
         {
             if (connection != null)
@@ -193,9 +191,9 @@ namespace CqlSharp
         }
 
         /// <summary>
-        /// Releases unmanaged and - optionally - managed resources.
+        ///   Releases unmanaged and - optionally - managed resources.
         /// </summary>
-        /// <param name="disposing"><c>true</c> to release both managed and unmanaged resources; <c>false</c> to release only unmanaged resources.</param>
+        /// <param name="disposing"> <c>true</c> to release both managed and unmanaged resources; <c>false</c> to release only unmanaged resources. </param>
         protected void Dispose(bool disposing)
         {
             if (disposing && (Interlocked.CompareExchange(ref _disposed, 1, 0) == 0))
@@ -207,7 +205,7 @@ namespace CqlSharp
         }
 
         /// <summary>
-        /// Finalizes an instance of the <see cref="CqlConnection" /> class.
+        ///   Finalizes an instance of the <see cref="CqlConnection" /> class.
         /// </summary>
         ~CqlConnection()
         {

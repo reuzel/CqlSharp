@@ -1,12 +1,12 @@
-// CqlSharp
+// CqlSharp - CqlSharp
 // Copyright (c) 2013 Joost Reuzel
-//  
+//   
 // Licensed under the Apache License, Version 2.0 (the "License");
 // you may not use this file except in compliance with the License.
 // You may obtain a copy of the License at
-//  
+//   
 // http://www.apache.org/licenses/LICENSE-2.0
-// 
+//  
 // Unless required by applicable law or agreed to in writing, software
 // distributed under the License is distributed on an "AS IS" BASIS,
 // WITHOUT WARRANTIES OR CONDITIONS OF ANY KIND, either express or implied.
@@ -53,10 +53,10 @@ namespace CqlSharp.Network
 
 
         /// <summary>
-        /// Initializes a new instance of the <see cref="Connection" /> class.
+        ///   Initializes a new instance of the <see cref="Connection" /> class.
         /// </summary>
-        /// <param name="address">The address.</param>
-        /// <param name="config">The config.</param>
+        /// <param name="address"> The address. </param>
+        /// <param name="config"> The config. </param>
         public Connection(IPAddress address, ClusterConfig config)
         {
             _address = address;
@@ -77,24 +77,20 @@ namespace CqlSharp.Network
         }
 
         /// <summary>
-        /// Gets the load.
+        ///   Gets the load.
         /// </summary>
-        /// <value>
-        /// The load.
-        /// </value>
+        /// <value> The load. </value>
         public int Load
         {
             get { return _load; }
         }
 
         /// <summary>
-        /// Gets a value indicating whether this instance is idle. An connection is idle if it
-        /// has failed or was disconnected, or when the load is zero and the last activity is older
-        /// than the configured MaxConnectionIdleTime.
+        ///   Gets a value indicating whether this instance is idle. An connection is idle if it
+        ///   has failed or was disconnected, or when the load is zero and the last activity is older
+        ///   than the configured MaxConnectionIdleTime.
         /// </summary>
-        /// <value>
-        ///   <c>true</c> if this instance is idle; otherwise, <c>false</c>.
-        /// </value>
+        /// <value> <c>true</c> if this instance is idle; otherwise, <c>false</c> . </value>
         public bool IsIdle
         {
             get
@@ -124,30 +120,28 @@ namespace CqlSharp.Network
         }
 
         /// <summary>
-        /// Gets the address.
+        ///   Gets the address.
         /// </summary>
-        /// <value>
-        /// The address.
-        /// </value>
+        /// <value> The address. </value>
         public IPAddress Address
         {
             get { return _address; }
         }
 
         /// <summary>
-        /// Occurs when [on connection change].
+        ///   Occurs when [on connection change].
         /// </summary>
         public event EventHandler<ConnectionChangeEvent> OnConnectionChange;
 
         /// <summary>
-        /// Occurs when [on load change].
+        ///   Occurs when [on load change].
         /// </summary>
         public event EventHandler<LoadChangeEvent> OnLoadChange;
 
         /// <summary>
-        /// Updates the load of this connection, and will trigger a corresponding event
+        ///   Updates the load of this connection, and will trigger a corresponding event
         /// </summary>
-        /// <param name="load">The load.</param>
+        /// <param name="load"> The load. </param>
         private void UpdateLoad(int load)
         {
             Interlocked.Add(ref _load, load);
@@ -170,7 +164,7 @@ namespace CqlSharp.Network
         ///   Releases unmanaged and - optionally - managed resources.
         /// </summary>
         /// <param name="disposing"> <c>true</c> to release both managed and unmanaged resources; <c>false</c> to release only unmanaged resources. </param>
-        /// <param name="error">The error being the reason for the connection disposal</param>
+        /// <param name="error"> The error being the reason for the connection disposal </param>
         protected void Dispose(bool disposing, Exception error = null)
         {
             if (Interlocked.Exchange(ref _connectionState, 2) != 2)
@@ -191,6 +185,9 @@ namespace CqlSharp.Network
 
                 if (OnConnectionChange != null)
                     OnConnectionChange(this, new ConnectionChangeEvent {Exception = error, Connected = false});
+
+                OnConnectionChange = null;
+                OnLoadChange = null;
             }
         }
 
@@ -202,7 +199,7 @@ namespace CqlSharp.Network
             Dispose(false);
         }
 
-        
+
         /// <summary>
         ///   Connects to the provided endpoint
         /// </summary>
@@ -270,7 +267,7 @@ namespace CqlSharp.Network
         ///   Submits a frame, and waits until response is received
         /// </summary>
         /// <param name="frame"> The frame to send. </param>
-        /// <param name="load">the load indication of the request. Used for balancing queries over nodes and connections</param>
+        /// <param name="load"> the load indication of the request. Used for balancing queries over nodes and connections </param>
         /// <returns> </returns>
         internal async Task<Frame> SendRequestAsync(Frame frame, int load = 1)
         {

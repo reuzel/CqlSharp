@@ -1,4 +1,19 @@
-﻿using System;
+﻿// CqlSharp - CqlSharp
+// Copyright (c) 2013 Joost Reuzel
+//   
+// Licensed under the Apache License, Version 2.0 (the "License");
+// you may not use this file except in compliance with the License.
+// You may obtain a copy of the License at
+//   
+// http://www.apache.org/licenses/LICENSE-2.0
+//  
+// Unless required by applicable law or agreed to in writing, software
+// distributed under the License is distributed on an "AS IS" BASIS,
+// WITHOUT WARRANTIES OR CONDITIONS OF ANY KIND, either express or implied.
+// See the License for the specific language governing permissions and
+// limitations under the License.
+
+using System;
 using System.Collections.Concurrent;
 using System.Collections.Generic;
 using System.Reflection;
@@ -6,35 +21,35 @@ using System.Reflection;
 namespace CqlSharp.Serialization
 {
     /// <summary>
-    /// Provides access to object fields and properties based on columnn descriptions.
+    ///   Provides access to object fields and properties based on columnn descriptions.
     /// </summary>
     internal class ObjectAccessor
     {
         /// <summary>
-        /// The translators, cached for every type
+        ///   The translators, cached for every type
         /// </summary>
         private static readonly ConcurrentDictionary<Type, ObjectAccessor> Translators =
             new ConcurrentDictionary<Type, ObjectAccessor>();
 
         /// <summary>
-        /// Read functions to used to read member or property values
+        ///   Read functions to used to read member or property values
         /// </summary>
         private readonly Dictionary<string, ReadFunc> _readFuncs;
 
         /// <summary>
-        /// The type for which this accessor is created
+        ///   The type for which this accessor is created
         /// </summary>
         private readonly Type _type;
 
         /// <summary>
-        /// Write functions to use to set fields or property values.
+        ///   Write functions to use to set fields or property values.
         /// </summary>
         private readonly Dictionary<string, WriteFunc> _writeFuncs;
 
         /// <summary>
-        /// Prevents a default instance of the <see cref="ObjectAccessor" /> class from being created.
+        ///   Prevents a default instance of the <see cref="ObjectAccessor" /> class from being created.
         /// </summary>
-        /// <param name="type">The type.</param>
+        /// <param name="type"> The type. </param>
         private ObjectAccessor(Type type)
         {
             //init fields
@@ -67,6 +82,10 @@ namespace CqlSharp.Serialization
                 //get the column name of the property
                 string name = GetColumnName(prop, table, keyspace);
 
+                //check if we get a proper name
+                if (string.IsNullOrEmpty(name))
+                    continue;
+
                 //add write func if we can write the property
                 if (prop.CanWrite && !prop.SetMethod.IsPrivate)
                 {
@@ -86,6 +105,10 @@ namespace CqlSharp.Serialization
                 //get the column name of the field
                 string name = GetColumnName(field, table, keyspace);
 
+                //check if we get a proper name
+                if (string.IsNullOrEmpty(name))
+                    continue;
+
                 //set getter and setter functions
                 if (!field.IsInitOnly) _writeFuncs[name] = field.SetValue;
                 _readFuncs[name] = field.GetValue;
@@ -93,10 +116,10 @@ namespace CqlSharp.Serialization
         }
 
         /// <summary>
-        /// Gets the accessor for type T.
+        ///   Gets the accessor for type T.
         /// </summary>
-        /// <typeparam name="T">type of the object accessed</typeparam>
-        /// <returns>Accessor for objects of type T</returns>
+        /// <typeparam name="T"> type of the object accessed </typeparam>
+        /// <returns> Accessor for objects of type T </returns>
         public static ObjectAccessor GetAccessor<T>()
         {
             Type type = typeof (T);
@@ -104,15 +127,23 @@ namespace CqlSharp.Serialization
         }
 
         /// <summary>
-        /// Gets the name of the column of the specified member.
+        ///   Gets the name of the column of the specified member.
         /// </summary>
-        /// <param name="member">The member.</param>
-        /// <param name="table">The table.</param>
-        /// <param name="keyspace">The keyspace.</param>
-        /// <returns></returns>
+        /// <param name="member"> The member. </param>
+        /// <param name="table"> The table. </param>
+        /// <param name="keyspace"> The keyspace. </param>
+        /// <returns> </returns>
         private static string GetColumnName(MemberInfo member, string table, string keyspace)
         {
             string cName, cTable, cKeyspace;
+
+            //check for ignore attribute
+            var ignoreAttribute =
+                Attribute.GetCustomAttribute(member, typeof (CqlIgnoreAttribute)) as CqlIgnoreAttribute;
+
+            //return null if ignore attribute is set
+            if (ignoreAttribute != null)
+                return null;
 
             //check for column attribute
             var columnAttribute =
@@ -137,12 +168,12 @@ namespace CqlSharp.Serialization
         }
 
         /// <summary>
-        /// Tries to get a value from the source, based on the column description
+        ///   Tries to get a value from the source, based on the column description
         /// </summary>
-        /// <param name="column">The column.</param>
-        /// <param name="source">The source.</param>
-        /// <param name="value">The value.</param>
-        /// <returns>true, if the value could be distilled from the source</returns>
+        /// <param name="column"> The column. </param>
+        /// <param name="source"> The source. </param>
+        /// <param name="value"> The value. </param>
+        /// <returns> true, if the value could be distilled from the source </returns>
         /// <exception cref="System.ArgumentNullException">column</exception>
         /// <exception cref="System.ArgumentException">Source is not of the correct type!;source</exception>
         public bool TryGetValue(CqlColumn column, object source, out object value)
@@ -184,12 +215,12 @@ namespace CqlSharp.Serialization
         }
 
         /// <summary>
-        /// Tries to set a property or field of the specified object, based on the column description
+        ///   Tries to set a property or field of the specified object, based on the column description
         /// </summary>
-        /// <param name="column">The column.</param>
-        /// <param name="target">The target.</param>
-        /// <param name="value">The value.</param>
-        /// <returns>true if the property or field value is set</returns>
+        /// <param name="column"> The column. </param>
+        /// <param name="target"> The target. </param>
+        /// <param name="value"> The value. </param>
+        /// <returns> true if the property or field value is set </returns>
         /// <exception cref="System.ArgumentNullException">column</exception>
         /// <exception cref="System.ArgumentException">Source is not of the correct type!;target</exception>
         public bool TrySetValue(CqlColumn column, object target, object value)
@@ -232,10 +263,10 @@ namespace CqlSharp.Serialization
         #region Nested type: ReadFunc
 
         /// <summary>
-        /// Read delagate, usable to read fields or properties
+        ///   Read delagate, usable to read fields or properties
         /// </summary>
-        /// <param name="target">The target.</param>
-        /// <returns></returns>
+        /// <param name="target"> The target. </param>
+        /// <returns> </returns>
         private delegate object ReadFunc(Object target);
 
         #endregion
@@ -243,10 +274,10 @@ namespace CqlSharp.Serialization
         #region Nested type: WriteFunc
 
         /// <summary>
-        /// Write delegate, usable to write fields or properties
+        ///   Write delegate, usable to write fields or properties
         /// </summary>
-        /// <param name="target">The target.</param>
-        /// <param name="value">The value.</param>
+        /// <param name="target"> The target. </param>
+        /// <param name="value"> The value. </param>
         private delegate void WriteFunc(Object target, object value);
 
         #endregion

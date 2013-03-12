@@ -1,4 +1,19 @@
-﻿using System;
+﻿// CqlSharp - CqlSharp
+// Copyright (c) 2013 Joost Reuzel
+//   
+// Licensed under the Apache License, Version 2.0 (the "License");
+// you may not use this file except in compliance with the License.
+// You may obtain a copy of the License at
+//   
+// http://www.apache.org/licenses/LICENSE-2.0
+//  
+// Unless required by applicable law or agreed to in writing, software
+// distributed under the License is distributed on an "AS IS" BASIS,
+// WITHOUT WARRANTIES OR CONDITIONS OF ANY KIND, either express or implied.
+// See the License for the specific language governing permissions and
+// limitations under the License.
+
+using System;
 using System.Collections.Concurrent;
 using System.Collections.Generic;
 using System.IO;
@@ -10,7 +25,7 @@ using CqlSharp.Network;
 namespace CqlSharp.Protocol
 {
     /// <summary>
-    /// Reader to read values from a socket. Heavily optimized to reduce task creation and byte array allocation
+    ///   Reader to read values from a socket. Heavily optimized to reduce task creation and byte array allocation
     /// </summary>
     internal class FrameReader : IDisposable
     {
@@ -56,11 +71,9 @@ namespace CqlSharp.Protocol
         #region Stream IO and completion
 
         /// <summary>
-        /// Gets the wait task that completes when all frame data read from the underlying stream
+        ///   Gets the wait task that completes when all frame data read from the underlying stream
         /// </summary>
-        /// <value>
-        /// The wait until frame data read.
-        /// </value>
+        /// <value> The wait until frame data read. </value>
         public Task WaitUntilFrameDataRead
         {
             get { return _waitUntilAllFrameDataRead.Task; }
@@ -143,9 +156,9 @@ namespace CqlSharp.Protocol
         }
 
         /// <summary>
-        /// Releases unmanaged and - optionally - managed resources.
+        ///   Releases unmanaged and - optionally - managed resources.
         /// </summary>
-        /// <param name="disposing"><c>true</c> to release both managed and unmanaged resources; <c>false</c> to release only unmanaged resources.</param>
+        /// <param name="disposing"> <c>true</c> to release both managed and unmanaged resources; <c>false</c> to release only unmanaged resources. </param>
         protected void Dispose(bool disposing)
         {
             if (!_disposed && disposing)
@@ -179,10 +192,10 @@ namespace CqlSharp.Protocol
         #region Data Segment loading
 
         /// <summary>
-        /// Tries to get a array segment of specific size from the buffer.
+        ///   Tries to get a array segment of specific size from the buffer.
         /// </summary>
-        /// <param name="size">The size.</param>
-        /// <returns></returns>
+        /// <param name="size"> The size. </param>
+        /// <returns> </returns>
         private bool TryGetSegmentFromBuffer(int size)
         {
             if (_disposed)
@@ -201,10 +214,10 @@ namespace CqlSharp.Protocol
         }
 
         /// <summary>
-        /// Reads the array segment async.
+        ///   Reads the array segment async.
         /// </summary>
-        /// <param name="size">The size.</param>
-        /// <returns></returns>
+        /// <param name="size"> The size. </param>
+        /// <returns> </returns>
         private async Task ReadSegmentAsync(int size)
         {
             if (_disposed)
@@ -271,9 +284,9 @@ namespace CqlSharp.Protocol
         #endregion
 
         /// <summary>
-        /// Reads the byte async.
+        ///   Reads the byte async.
         /// </summary>
-        /// <returns></returns>
+        /// <returns> </returns>
         public Task<byte> ReadByteAsync()
         {
             if (TryGetSegmentFromBuffer(1))
@@ -289,9 +302,9 @@ namespace CqlSharp.Protocol
         }
 
         /// <summary>
-        /// Reads the byte async, awaiting network operations
+        ///   Reads the byte async, awaiting network operations
         /// </summary>
-        /// <returns></returns>
+        /// <returns> </returns>
         private async Task<byte> ReadByteInternalAsync()
         {
             await ReadSegmentAsync(1);
@@ -300,9 +313,9 @@ namespace CqlSharp.Protocol
 
 
         /// <summary>
-        /// Reads the short async.
+        ///   Reads the short async.
         /// </summary>
-        /// <returns></returns>
+        /// <returns> </returns>
         public Task<short> ReadShortAsync()
         {
             if (TryGetSegmentFromBuffer(2))
@@ -322,9 +335,9 @@ namespace CqlSharp.Protocol
         }
 
         /// <summary>
-        /// Reads the short async, awaiting network operations
+        ///   Reads the short async, awaiting network operations
         /// </summary>
-        /// <returns></returns>
+        /// <returns> </returns>
         private async Task<short> ReadShortInternalAsync()
         {
             await ReadSegmentAsync(2);
@@ -334,9 +347,9 @@ namespace CqlSharp.Protocol
         }
 
         /// <summary>
-        /// Reads the int async.
+        ///   Reads the int async.
         /// </summary>
-        /// <returns></returns>
+        /// <returns> </returns>
         public Task<int> ReadIntAsync()
         {
             if (TryGetSegmentFromBuffer(4))
@@ -356,9 +369,9 @@ namespace CqlSharp.Protocol
         }
 
         /// <summary>
-        /// Reads the int async, awaiting network operations
+        ///   Reads the int async, awaiting network operations
         /// </summary>
-        /// <returns></returns>
+        /// <returns> </returns>
         private async Task<int> ReadIntInternalAsync()
         {
             await ReadSegmentAsync(4);
@@ -368,9 +381,9 @@ namespace CqlSharp.Protocol
         }
 
         /// <summary>
-        /// Reads the string async.
+        ///   Reads the string async.
         /// </summary>
-        /// <returns></returns>
+        /// <returns> </returns>
         public async Task<string> ReadStringAsync()
         {
             //read length
@@ -389,9 +402,9 @@ namespace CqlSharp.Protocol
         }
 
         /// <summary>
-        /// Reads the bytes async.
+        ///   Reads the bytes async.
         /// </summary>
-        /// <returns></returns>
+        /// <returns> </returns>
         public async Task<byte[]> ReadBytesAsync()
         {
             int len = await ReadIntAsync();
@@ -411,9 +424,9 @@ namespace CqlSharp.Protocol
         }
 
         /// <summary>
-        /// Reads the short bytes async.
+        ///   Reads the short bytes async.
         /// </summary>
-        /// <returns></returns>
+        /// <returns> </returns>
         public async Task<byte[]> ReadShortBytesAsync()
         {
             short len = await ReadShortAsync();
@@ -433,9 +446,9 @@ namespace CqlSharp.Protocol
         }
 
         /// <summary>
-        /// Reads the string list async.
+        ///   Reads the string list async.
         /// </summary>
-        /// <returns></returns>
+        /// <returns> </returns>
         public async Task<IList<string>> ReadStringListAsync()
         {
             short len = await ReadShortAsync();
@@ -448,9 +461,9 @@ namespace CqlSharp.Protocol
         }
 
         /// <summary>
-        /// Reads the string multimap async.
+        ///   Reads the string multimap async.
         /// </summary>
-        /// <returns></returns>
+        /// <returns> </returns>
         public async Task<Dictionary<string, IList<string>>> ReadStringMultimapAsync()
         {
             short len = await ReadShortAsync();
@@ -466,9 +479,9 @@ namespace CqlSharp.Protocol
         }
 
         /// <summary>
-        /// Reads the inet async.
+        ///   Reads the inet async.
         /// </summary>
-        /// <returns></returns>
+        /// <returns> </returns>
         public async Task<IPEndPoint> ReadInetAsync()
         {
             byte length = await ReadByteAsync();
@@ -487,9 +500,9 @@ namespace CqlSharp.Protocol
         }
 
         /// <summary>
-        /// Reads the UUID async.
+        ///   Reads the UUID async.
         /// </summary>
-        /// <returns></returns>
+        /// <returns> </returns>
         public async Task<Guid> ReadUuidAsync()
         {
             if (!TryGetSegmentFromBuffer(16))
@@ -507,7 +520,7 @@ namespace CqlSharp.Protocol
         }
 
         /// <summary>
-        /// Ensures the correct byte order for decimal conversions.
+        ///   Ensures the correct byte order for decimal conversions.
         /// </summary>
         private void EnsureCorrectByteOrder()
         {
@@ -518,9 +531,9 @@ namespace CqlSharp.Protocol
         }
 
         /// <summary>
-        /// Copies the segment to a new array.
+        ///   Copies the segment to a new array.
         /// </summary>
-        /// <returns>an array with the latest data</returns>
+        /// <returns> an array with the latest data </returns>
         private byte[] CopySegmentToArray()
         {
             var arr = new byte[_lastReadSegment.Count];

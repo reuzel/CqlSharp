@@ -1,3 +1,18 @@
+// CqlSharp - CqlSharp
+// Copyright (c) 2013 Joost Reuzel
+//   
+// Licensed under the Apache License, Version 2.0 (the "License");
+// you may not use this file except in compliance with the License.
+// You may obtain a copy of the License at
+//   
+// http://www.apache.org/licenses/LICENSE-2.0
+//  
+// Unless required by applicable law or agreed to in writing, software
+// distributed under the License is distributed on an "AS IS" BASIS,
+// WITHOUT WARRANTIES OR CONDITIONS OF ANY KIND, either express or implied.
+// See the License for the specific language governing permissions and
+// limitations under the License.
+
 using System;
 using System.Collections.Generic;
 using System.Linq;
@@ -9,61 +24,61 @@ using CqlSharp.Config;
 namespace CqlSharp.Network
 {
     /// <summary>
-    /// A single node of a Cassandra cluster. Manages a set of connections to that specific node. A node will be marked as down
-    /// when the last connection to that node fails. The node status will be reset to up using a exponantial back-off procedure.
+    ///   A single node of a Cassandra cluster. Manages a set of connections to that specific node. A node will be marked as down
+    ///   when the last connection to that node fails. The node status will be reset to up using a exponantial back-off procedure.
     /// </summary>
     internal class Node : IConnectionProvider
     {
         /// <summary>
-        /// The cluster configuration
+        ///   The cluster configuration
         /// </summary>
         private readonly ClusterConfig _config;
 
         /// <summary>
-        /// lock to make connection creation/getting mutual exclusive
+        ///   lock to make connection creation/getting mutual exclusive
         /// </summary>
         private readonly SemaphoreSlim _connectionLock;
 
         /// <summary>
-        /// The set of connections to the node
+        ///   The set of connections to the node
         /// </summary>
         private readonly List<Connection> _connections;
 
         /// <summary>
-        /// The lock used to coordinate up status
+        ///   The lock used to coordinate up status
         /// </summary>
         private readonly object _statusLock;
 
         /// <summary>
-        /// The connection cleanup timer, used to remove idle connections
+        ///   The connection cleanup timer, used to remove idle connections
         /// </summary>
         private Timer _connectionCleanupTimer;
 
         /// <summary>
-        /// The failure count, used to (exponentially) increase the time before node is returned to up status
+        ///   The failure count, used to (exponentially) increase the time before node is returned to up status
         /// </summary>
         private int _failureCount;
 
         /// <summary>
-        /// The cumulative load of the connections on this node
+        ///   The cumulative load of the connections on this node
         /// </summary>
         private int _load;
 
         /// <summary>
-        /// The number of open/created connections
+        ///   The number of open/created connections
         /// </summary>
         private int _openConnections;
 
         /// <summary>
-        /// The timer used to restore the node to up status
+        ///   The timer used to restore the node to up status
         /// </summary>
         private Timer _reactivateTimer;
 
         /// <summary>
-        /// Initializes a new instance of the <see cref="Node" /> class.
+        ///   Initializes a new instance of the <see cref="Node" /> class.
         /// </summary>
-        /// <param name="address">The address of the node</param>
-        /// <param name="config">The cluster config</param>
+        /// <param name="address"> The address of the node </param>
+        /// <param name="config"> The cluster config </param>
         public Node(IPAddress address, ClusterConfig config)
         {
             _statusLock = new object();
@@ -75,38 +90,30 @@ namespace CqlSharp.Network
         }
 
         /// <summary>
-        /// Gets the address of the node.
+        ///   Gets the address of the node.
         /// </summary>
-        /// <value>
-        /// The address.
-        /// </value>
+        /// <value> The address. </value>
         public IPAddress Address { get; private set; }
 
         /// <summary>
-        /// Gets a value indicating whether this instance is up.
+        ///   Gets a value indicating whether this instance is up.
         /// </summary>
-        /// <value>
-        ///   <c>true</c> if this instance is up; otherwise, <c>false</c>.
-        /// </value>
+        /// <value> <c>true</c> if this instance is up; otherwise, <c>false</c> . </value>
         public bool IsUp { get; private set; }
 
         /// <summary>
-        /// Gets the cumalative load of the connections to this node/
+        ///   Gets the cumalative load of the connections to this node/
         /// </summary>
-        /// <value>
-        /// The load.
-        /// </value>
+        /// <value> The load. </value>
         public int Load
         {
             get { return _load; }
         }
 
         /// <summary>
-        /// Gets the connection count.
+        ///   Gets the connection count.
         /// </summary>
-        /// <value>
-        /// The connection count.
-        /// </value>
+        /// <value> The connection count. </value>
         public int ConnectionCount
         {
             get { return _openConnections; }
@@ -115,9 +122,9 @@ namespace CqlSharp.Network
         #region IConnectionProvider Members
 
         /// <summary>
-        /// Gets an existing connection, or creates one if treshold is reached.
+        ///   Gets an existing connection, or creates one if treshold is reached.
         /// </summary>
-        /// <returns></returns>
+        /// <returns> </returns>
         public async Task<Connection> GetOrCreateConnectionAsync()
         {
             Connection c = GetConnection();
@@ -142,7 +149,7 @@ namespace CqlSharp.Network
         #endregion
 
         /// <summary>
-        /// Fails this instance. Triggers the failure timer
+        ///   Fails this instance. Triggers the failure timer
         /// </summary>
         public void Fail()
         {
@@ -166,9 +173,9 @@ namespace CqlSharp.Network
         }
 
         /// <summary>
-        /// Reactivates this instance. State is required for event handling but ignored
+        ///   Reactivates this instance. State is required for event handling but ignored
         /// </summary>
-        /// <param name="state">Ignored</param>
+        /// <param name="state"> Ignored </param>
         private void Reactivate(object state)
         {
             lock (_statusLock)
@@ -180,9 +187,9 @@ namespace CqlSharp.Network
         }
 
         /// <summary>
-        /// Tries to get a reference to an existing connection to this node.
+        ///   Tries to get a reference to an existing connection to this node.
         /// </summary>
-        /// <returns>true, if a connection is available, null otherwise</returns>
+        /// <returns> true, if a connection is available, null otherwise </returns>
         public Connection GetConnection()
         {
             if (IsUp)
@@ -203,9 +210,9 @@ namespace CqlSharp.Network
         }
 
         /// <summary>
-        /// Tries to create a new connection to this node.
+        ///   Tries to create a new connection to this node.
         /// </summary>
-        /// <returns>a connected connection, or null if not possible.</returns>
+        /// <returns> a connected connection, or null if not possible. </returns>
         public async Task<Connection> CreateConnectionAsync()
         {
             if (IsUp)
@@ -250,9 +257,9 @@ namespace CqlSharp.Network
         }
 
         /// <summary>
-        /// Removes the idle connections.
+        ///   Removes the idle connections.
         /// </summary>
-        /// <param name="state">The state. Unused</param>
+        /// <param name="state"> The state. Unused </param>
         private void RemoveIdleConnections(object state)
         {
             _connectionLock.Wait();
@@ -284,10 +291,10 @@ namespace CqlSharp.Network
 
 
         /// <summary>
-        /// Invoked as handler when the status of a connection changes.
+        ///   Invoked as handler when the status of a connection changes.
         /// </summary>
-        /// <param name="sender">The connection invoking this event handler</param>
-        /// <param name="evt">The event.</param>
+        /// <param name="sender"> The connection invoking this event handler </param>
+        /// <param name="evt"> The event. </param>
         private void ConnectionChange(Object sender, ConnectionChangeEvent evt)
         {
             lock (_statusLock)
@@ -311,10 +318,10 @@ namespace CqlSharp.Network
         }
 
         /// <summary>
-        /// Invoked as event handler when the load of connection changes
+        ///   Invoked as event handler when the load of connection changes
         /// </summary>
-        /// <param name="sender">The sender.</param>
-        /// <param name="evt">The evt.</param>
+        /// <param name="sender"> The sender. </param>
+        /// <param name="evt"> The evt. </param>
         private void LoadChange(Object sender, LoadChangeEvent evt)
         {
             Interlocked.Add(ref _load, evt.LoadDelta);

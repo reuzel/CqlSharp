@@ -1,12 +1,12 @@
-﻿// CqlSharp
+﻿// CqlSharp - CqlSharp
 // Copyright (c) 2013 Joost Reuzel
-//  
+//   
 // Licensed under the Apache License, Version 2.0 (the "License");
 // you may not use this file except in compliance with the License.
 // You may obtain a copy of the License at
-//  
+//   
 // http://www.apache.org/licenses/LICENSE-2.0
-// 
+//  
 // Unless required by applicable law or agreed to in writing, software
 // distributed under the License is distributed on an "AS IS" BASIS,
 // WITHOUT WARRANTIES OR CONDITIONS OF ANY KIND, either express or implied.
@@ -23,9 +23,11 @@ using System.Text;
 namespace CqlSharp.Protocol
 {
     /// <summary>
-    /// Implements (de)serialization of values based on column specifications
+    ///   Implements (de)serialization of values based on column specifications
     /// </summary>
-    /// <remarks>Based on code from <a href="https://github.com/pchalamet/cassandra-sharp">Casssandra-Sharp</a> project.</remarks>
+    /// <remarks>
+    ///   Based on code from <a href="https://github.com/pchalamet/cassandra-sharp">Casssandra-Sharp</a> project.
+    /// </remarks>
     internal static class ValueSerialization
     {
         private static readonly Dictionary<CqlType, Type> ColType2Type = new Dictionary<CqlType, Type>
@@ -55,10 +57,10 @@ namespace CqlSharp.Protocol
                     if (!cqlColumn.CollectionValueType.HasValue)
                         throw new CqlException("CqlColumn collection type must has its value type set");
 
-                    var coll = (ICollection)data;
+                    var coll = (ICollection) data;
                     using (var ms = new MemoryStream())
                     {
-                        ms.WriteShort((short)coll.Count);
+                        ms.WriteShort((short) coll.Count);
                         foreach (object elem in coll)
                         {
                             byte[] rawDataElem = Serialize(cqlColumn.CollectionValueType.Value, elem);
@@ -76,10 +78,10 @@ namespace CqlSharp.Protocol
                     if (!cqlColumn.CollectionValueType.HasValue)
                         throw new CqlException("CqlColumn map type must has its value type set");
 
-                    var map = (IDictionary)data;
+                    var map = (IDictionary) data;
                     using (var ms = new MemoryStream())
                     {
-                        ms.WriteShort((short)map.Count);
+                        ms.WriteShort((short) map.Count);
                         foreach (DictionaryEntry de in map)
                         {
                             byte[] rawDataKey = Serialize(cqlColumn.CollectionKeyType.Value, de.Key);
@@ -114,7 +116,7 @@ namespace CqlSharp.Protocol
                     break;
 
                 case CqlType.Blob:
-                    rawData = (byte[])data;
+                    rawData = (byte[]) data;
                     break;
 
                 case CqlType.Double:
@@ -130,7 +132,7 @@ namespace CqlSharp.Protocol
                 case CqlType.Timestamp:
 
                     if (data is long)
-                        rawData = BitConverter.GetBytes((long)data);
+                        rawData = BitConverter.GetBytes((long) data);
                     else
                         rawData = BitConverter.GetBytes(Convert.ToDateTime(data).ToTimestamp());
 
@@ -155,7 +157,7 @@ namespace CqlSharp.Protocol
 
                 case CqlType.Uuid:
                 case CqlType.Timeuuid:
-                    rawData = ((Guid)data).ToByteArray();
+                    rawData = ((Guid) data).ToByteArray();
                     if (BitConverter.IsLittleEndian)
                     {
                         Array.Reverse(rawData, 0, 4);
@@ -165,7 +167,7 @@ namespace CqlSharp.Protocol
                     break;
 
                 case CqlType.Inet:
-                    rawData = ((IPAddress)data).GetAddressBytes();
+                    rawData = ((IPAddress) data).GetAddressBytes();
                     break;
 
                 default:
@@ -190,8 +192,8 @@ namespace CqlSharp.Protocol
                         throw new CqlException("CqlColumn collection type must has its value type set");
 
                     colType = cqlColumn.CollectionValueType.Value.ToType();
-                    Type typedColl = typeof(List<>).MakeGenericType(colType);
-                    var list = (IList)Activator.CreateInstance(typedColl);
+                    Type typedColl = typeof (List<>).MakeGenericType(colType);
+                    var list = (IList) Activator.CreateInstance(typedColl);
                     using (var ms = new MemoryStream(rawData))
                     {
                         short nbElem = ms.ReadShort();
@@ -210,8 +212,8 @@ namespace CqlSharp.Protocol
                         throw new CqlException("CqlColumn collection type must has its value type set");
 
                     colType = cqlColumn.CollectionValueType.Value.ToType();
-                    Type tempListType = typeof(List<>).MakeGenericType(colType);
-                    var tempList = (IList)Activator.CreateInstance(tempListType);
+                    Type tempListType = typeof (List<>).MakeGenericType(colType);
+                    var tempList = (IList) Activator.CreateInstance(tempListType);
                     using (var ms = new MemoryStream(rawData))
                     {
                         short nbElem = ms.ReadShort();
@@ -222,7 +224,7 @@ namespace CqlSharp.Protocol
                             tempList.Add(elem);
                         }
 
-                        Type typedSet = typeof(HashSet<>).MakeGenericType(colType);
+                        Type typedSet = typeof (HashSet<>).MakeGenericType(colType);
                         data = Activator.CreateInstance(typedSet, tempList);
                     }
                     break;
@@ -236,8 +238,8 @@ namespace CqlSharp.Protocol
 
                     Type keyType = cqlColumn.CollectionKeyType.Value.ToType();
                     colType = cqlColumn.CollectionValueType.Value.ToType();
-                    Type typedDic = typeof(Dictionary<,>).MakeGenericType(keyType, colType);
-                    var dic = (IDictionary)Activator.CreateInstance(typedDic);
+                    Type typedDic = typeof (Dictionary<,>).MakeGenericType(keyType, colType);
+                    var dic = (IDictionary) Activator.CreateInstance(typedDic);
                     using (var ms = new MemoryStream(rawData))
                     {
                         short nbElem = ms.ReadShort();

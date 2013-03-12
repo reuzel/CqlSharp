@@ -1,3 +1,18 @@
+// CqlSharp - CqlSharp
+// Copyright (c) 2013 Joost Reuzel
+//   
+// Licensed under the Apache License, Version 2.0 (the "License");
+// you may not use this file except in compliance with the License.
+// You may obtain a copy of the License at
+//   
+// http://www.apache.org/licenses/LICENSE-2.0
+//  
+// Unless required by applicable law or agreed to in writing, software
+// distributed under the License is distributed on an "AS IS" BASIS,
+// WITHOUT WARRANTIES OR CONDITIONS OF ANY KIND, either express or implied.
+// See the License for the specific language governing permissions and
+// limitations under the License.
+
 using System;
 using System.Collections.Generic;
 using System.Configuration;
@@ -6,7 +21,7 @@ using System.Text;
 namespace CqlSharp.Config
 {
     /// <summary>
-    /// Specifies a Cassandra configuration
+    ///   Specifies a Cassandra configuration
     /// </summary>
     public class ClusterConfig
     {
@@ -25,7 +40,7 @@ namespace CqlSharp.Config
         private static readonly TimeSpan DefaultMaxConnectionIdleTime = TimeSpan.FromSeconds(10);
 
         /// <summary>
-        /// Initializes a new instance of the <see cref="ClusterConfig" /> class.
+        ///   Initializes a new instance of the <see cref="ClusterConfig" /> class.
         /// </summary>
         public ClusterConfig()
         {
@@ -45,9 +60,9 @@ namespace CqlSharp.Config
 
 
         /// <summary>
-        /// Initializes a new instance of the <see cref="ClusterConfig" /> class.
+        ///   Initializes a new instance of the <see cref="ClusterConfig" /> class.
         /// </summary>
-        /// <param name="connectionString">The connection string, or the name of the connectionstring in the connectionstring file</param>
+        /// <param name="connectionString"> The connection string, or the name of the connectionstring in the connectionstring file </param>
         public ClusterConfig(string connectionString)
             : this()
         {
@@ -58,128 +73,100 @@ namespace CqlSharp.Config
 
 
         /// <summary>
-        /// Gets or sets the port Cassandra is configured to listen to Binary Protocol.
+        ///   Gets or sets the port Cassandra is configured to listen to Binary Protocol.
         /// </summary>
-        /// <value>
-        /// The binary protocol port as specified in the Cassandra configuration (yaml). Default 9042
-        /// </value>
+        /// <value> The binary protocol port as specified in the Cassandra configuration (yaml). Default 9042 </value>
         public int Port { get; set; }
 
         /// <summary>
-        /// Gets or sets a comma seperated list node addresses or ip's pointing to nodes in Cassandra cluster.
+        ///   Gets or sets a comma seperated list node addresses or ip's pointing to nodes in Cassandra cluster.
         /// </summary>
-        /// <value>
-        /// The IP-addresses or DNS names of the nodes.
-        /// </value>
+        /// <value> The IP-addresses or DNS names of the nodes. </value>
         public List<string> Nodes { get; set; }
 
         /// <summary>
-        /// Gets or sets the discovery scope. Used to enlarge the list of nodes to which connections can be made
+        ///   Gets or sets the discovery scope. Used to enlarge the list of nodes to which connections can be made
         /// </summary>
-        /// <value>
-        /// The discovery scope. Default: None
-        /// </value>
+        /// <value> The discovery scope. Default: None </value>
         public DiscoveryScope DiscoveryScope { get; set; }
 
 
         /// <summary>
-        /// Gets or sets the connection strategy used to connect to nodes.
+        ///   Gets or sets the connection strategy used to connect to nodes.
         /// </summary>
-        /// <value>
-        /// The connection strategy. Default: Balanced
-        /// </value>
+        /// <value> The connection strategy. Default: Balanced </value>
         public ConnectionStrategy ConnectionStrategy { get; set; }
 
         /// <summary>
-        /// Gets or sets the username used to connect to the Cassandra cluster
+        ///   Gets or sets the username used to connect to the Cassandra cluster
         /// </summary>
-        /// <value>
-        /// The username. Default: null
-        /// </value>
+        /// <value> The username. Default: null </value>
         public string Username { get; set; }
 
 
         /// <summary>
-        /// Gets or sets the password.
+        ///   Gets or sets the password.
         /// </summary>
-        /// <value>
-        /// The password. Default: null
-        /// </value>
+        /// <value> The password. Default: null </value>
         public string Password { get; set; }
 
         /// <summary>
-        /// Gets or sets the CQL version.
+        ///   Gets or sets the CQL version.
         /// </summary>
-        /// <value>
-        /// The CQL version. Default: 3.0.0
-        /// </value>
+        /// <value> The CQL version. Default: 3.0.0 </value>
         public string CqlVersion { get; set; }
 
         /// <summary>
-        /// Gets or sets the max down time of a cassandra node, when connections failed. When a node is marked down,
-        /// no new connection attempts are made.
+        ///   Gets or sets the max down time of a cassandra node, when connections failed. When a node is marked down,
+        ///   no new connection attempts are made.
         /// </summary>
-        /// <value>
-        /// The max down time in ms. Default: 1 hour
-        /// </value>
+        /// <value> The max down time in ms. Default: 1 hour </value>
         public int MaxDownTime { get; set; }
 
 
         /// <summary>
-        /// Gets or sets the min down time of a node when a connection failed. 
+        ///   Gets or sets the min down time of a node when a connection failed.
         /// </summary>
-        /// <value>
-        /// The min down time in ms. Default 500ms
-        /// </value>
+        /// <value> The min down time in ms. Default 500ms </value>
         public int MinDownTime { get; set; }
 
         /// <summary>
-        /// Gets or sets the max connections per node.
+        ///   Gets or sets the max connections per node.
         /// </summary>
-        /// <value>
-        /// The max connections per node. Default 2
-        /// </value>
+        /// <value> The max connections per node. Default 2 </value>
         public int MaxConnectionsPerNode { get; set; }
 
 
         /// <summary>
-        /// Gets or sets the max connections to the cluster.
+        ///   Gets or sets the max connections to the cluster.
         /// </summary>
-        /// <value>
-        /// The max connections. When 0 or negative, no maximum. Default: -1
-        /// </value>
+        /// <value> The max connections. When 0 or negative, no maximum. Default: -1 </value>
         public int MaxConnections { get; set; }
 
         /// <summary>
-        /// Gets or sets the new connection treshold. This threshold defines when a new connection is created
-        /// when other connections are "full"
+        ///   Gets or sets the new connection treshold. This threshold defines when a new connection is created
+        ///   when other connections are "full"
         /// </summary>
-        /// <value>
-        /// The new connection treshold. Default: 10
-        /// </value>
+        /// <value> The new connection treshold. Default: 10 </value>
         public int NewConnectionTreshold { get; set; }
 
         /// <summary>
-        /// Gets or sets the max concurrent queries. Threads attempting to execute a query (whether async or not) will be blocked until
-        /// the number of active queries drops below this number.
+        ///   Gets or sets the max concurrent queries. Threads attempting to execute a query (whether async or not) will be blocked until
+        ///   the number of active queries drops below this number.
         /// </summary>
-        /// <value>
-        /// The max concurrent queries. if 0 or negative, the max will be calculated by the number of found nodes in the cluster * MaxConnectionsPerNode * 2.
-        /// </value>
+        /// <value> The max concurrent queries. if 0 or negative, the max will be calculated by the number of found nodes in the cluster * MaxConnectionsPerNode * 2. </value>
         public int MaxConcurrentQueries { get; set; }
 
         /// <summary>
-        /// Gets or sets the max connection idle time. Any connection that did not perform a query within this timespan is elligable to be closed.
+        ///   Gets or sets the max connection idle time. Any connection that did not perform a query within this timespan is elligable to be closed.
         /// </summary>
-        /// <value>
-        /// The max connection idle time in seconds. Default 10 seconds.
-        /// </value>
+        /// <value> The max connection idle time in seconds. Default 10 seconds. </value>
         public TimeSpan MaxConnectionIdleTime { get; set; }
 
         /// <summary>
-        /// Parses the specified connectionstring.
+        ///   Parses the specified connectionstring.
         /// </summary>
-        /// <param name="connectionstring">The connectionstring.</param>
+        /// <param name="connectionstring"> The connectionstring. </param>
         /// <exception cref="CqlException">Configuration error: Could not split the configuration element in a key and value:  + part</exception>
         private void Parse(string connectionstring)
         {
@@ -279,11 +266,9 @@ namespace CqlSharp.Config
         }
 
         /// <summary>
-        /// Returns a <see cref="System.String" /> that represents this configuration. Usable as Connection String.
+        ///   Returns a <see cref="System.String" /> that represents this configuration. Usable as Connection String.
         /// </summary>
-        /// <returns>
-        /// A <see cref="System.String" /> that represents this instance.
-        /// </returns>
+        /// <returns> A <see cref="System.String" /> that represents this instance. </returns>
         public override string ToString()
         {
             var builder = new StringBuilder();

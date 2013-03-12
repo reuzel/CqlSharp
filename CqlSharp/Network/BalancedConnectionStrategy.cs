@@ -1,3 +1,18 @@
+// CqlSharp - CqlSharp
+// Copyright (c) 2013 Joost Reuzel
+//   
+// Licensed under the Apache License, Version 2.0 (the "License");
+// you may not use this file except in compliance with the License.
+// You may obtain a copy of the License at
+//   
+// http://www.apache.org/licenses/LICENSE-2.0
+//  
+// Unless required by applicable law or agreed to in writing, software
+// distributed under the License is distributed on an "AS IS" BASIS,
+// WITHOUT WARRANTIES OR CONDITIONS OF ANY KIND, either express or implied.
+// See the License for the specific language governing permissions and
+// limitations under the License.
+
 using System.Collections.Generic;
 using System.Linq;
 using System.Threading.Tasks;
@@ -6,11 +21,11 @@ using CqlSharp.Config;
 namespace CqlSharp.Network
 {
     /// <summary>
-    /// This implementation attempts to balance the connections over the cluster based on load. First it will
-    /// try to reuse an existing connection. If no connections exist, or if all connection loads are larger than
-    /// the newConnectionTreshold, a new connection is created at a node with an as low as possible load. If that fails
-    /// (e.g. because the max amount of connections per node is reached), an attempt is made to select the least used
-    /// connection from the least used node.
+    ///   This implementation attempts to balance the connections over the cluster based on load. First it will
+    ///   try to reuse an existing connection. If no connections exist, or if all connection loads are larger than
+    ///   the newConnectionTreshold, a new connection is created at a node with an as low as possible load. If that fails
+    ///   (e.g. because the max amount of connections per node is reached), an attempt is made to select the least used
+    ///   connection from the least used node.
     /// </summary>
     internal class BalancedConnectionStrategy : IConnectionStrategy
     {
@@ -18,10 +33,10 @@ namespace CqlSharp.Network
         private readonly List<Node> _nodes;
 
         /// <summary>
-        /// Initializes the strategy with the specified nodes and cluster configuration
+        ///   Initializes the strategy with the specified nodes and cluster configuration
         /// </summary>
-        /// <param name="nodes">The nodes.</param>
-        /// <param name="config">The config.</param>
+        /// <param name="nodes"> The nodes. </param>
+        /// <param name="config"> The config. </param>
         public BalancedConnectionStrategy(List<Node> nodes, ClusterConfig config)
         {
             _nodes = nodes;
@@ -31,9 +46,9 @@ namespace CqlSharp.Network
         #region IConnectionStrategy Members
 
         /// <summary>
-        /// Gets or creates connection to the cluster.
+        ///   Gets or creates connection to the cluster.
         /// </summary>
-        /// <returns></returns>
+        /// <returns> </returns>
         /// <exception cref="CqlException">Can not connect to any node of the cluster! All connectivity to the cluster seems to be lost</exception>
         public async Task<Connection> GetOrCreateConnectionAsync()
         {
@@ -49,20 +64,24 @@ namespace CqlSharp.Network
             }
 
             //check if we may create another connection
-            foreach (Node node in nodesByLoad)
+            if (_config.MaxConnections <= 0 || nodesByLoad.Sum(n => n.ConnectionCount) < _config.MaxConnections)
             {
-                try
+                //iterate over the nodes, and try to create a connection
+                foreach (Node node in nodesByLoad)
                 {
-                    Connection connection = await node.CreateConnectionAsync();
-                    if (connection != null)
-                        return connection;
+                    try
+                    {
+                        Connection connection = await node.CreateConnectionAsync();
+                        if (connection != null)
+                            return connection;
+                    }
+                        // ReSharper disable EmptyGeneralCatchClause
+                    catch
+                    {
+                        //ignore, errors handled within node, try to create another one at the next node
+                    }
+                    // ReSharper restore EmptyGeneralCatchClause
                 }
-                    // ReSharper disable EmptyGeneralCatchClause
-                catch
-                {
-                    //ignore, errors handled within node, try to create another one at the next node
-                }
-                // ReSharper restore EmptyGeneralCatchClause
             }
 
             //no suitable connection found or created, go to the least used node, and pick its least used open connection...
@@ -78,9 +97,9 @@ namespace CqlSharp.Network
 
 
         /// <summary>
-        /// Invoked when a connection is no longer in use by the application
+        ///   Invoked when a connection is no longer in use by the application
         /// </summary>
-        /// <param name="connection">The connection no longer used.</param>
+        /// <param name="connection"> The connection no longer used. </param>
         public void ReturnConnection(Connection connection)
         {
             //connections are shared, nothing to do here
