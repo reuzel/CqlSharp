@@ -202,11 +202,21 @@ namespace CqlSharp.Network
             Dispose(false);
         }
 
+        
         /// <summary>
         ///   Connects to the provided endpoint
         /// </summary>
         /// <exception cref="ProtocolException">0;Expected Ready frame not received</exception>
-        public async Task ConnectAsync(ExecutionOptions options = ExecutionOptions.None)
+        public Task ConnectAsync()
+        {
+            return ConnectAsync(CqlExecutionOptions.None);
+        }
+
+        /// <summary>
+        ///   Connects to the provided endpoint
+        /// </summary>
+        /// <exception cref="ProtocolException">0;Expected Ready frame not received</exception>
+        public async Task ConnectAsync(CqlExecutionOptions options)
         {
             //switch state to connected if not done so
             int state = Interlocked.CompareExchange(ref _connectionState, 1, 0);
