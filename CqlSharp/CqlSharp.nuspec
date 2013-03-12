@@ -7,7 +7,7 @@
     <authors>Joost Reuzel</authors>
     <owners>Joost Reuzel</owners>
     <licenseUrl>http://www.apache.org/licenses/LICENSE-2.0</licenseUrl>
-    <projectUrl>https://github.com/reuzel/CqlSharp</projectUrl>
+    <projectUrl>https://github.com/reuzel/CqlSharp/wiki</projectUrl>
     <iconUrl>https://raw.github.com/reuzel/CqlSharp/master/logo.png</iconUrl>
     <requireLicenseAcceptance>false</requireLicenseAcceptance>
     <description>CqlSharp is a high performance, asynchronous Cassandra CQL binary protocol driver offering an ADO.NET like interface. See https://github.com/reuzel/CqlSharp/wiki/Features for an extensive feature list.</description>
