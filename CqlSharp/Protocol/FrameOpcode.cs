@@ -15,7 +15,7 @@
 
 namespace CqlSharp.Protocol
 {
-    public enum FrameOpcode : byte
+    internal enum FrameOpcode : byte
     {
         Error = 0x00,
 

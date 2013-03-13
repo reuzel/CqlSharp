@@ -13,12 +13,12 @@
 // See the License for the specific language governing permissions and
 // limitations under the License.
 
+using CqlSharp.Config;
+using CqlSharp.Network;
 using System;
 using System.Collections.Concurrent;
 using System.Threading;
 using System.Threading.Tasks;
-using CqlSharp.Config;
-using CqlSharp.Network;
 
 namespace CqlSharp
 {
@@ -99,7 +99,7 @@ namespace CqlSharp
         ///   Gets or sets the throttle.
         /// </summary>
         /// <value> The throttle. </value>
-        public SemaphoreSlim Throttle { get; set; }
+        internal SemaphoreSlim Throttle { get; set; }
 
         #region IDisposable Members
 

@@ -17,7 +17,7 @@ using System;
 
 namespace CqlSharp.Network
 {
-    public class ConnectionChangeEvent : EventArgs
+    internal class ConnectionChangeEvent : EventArgs
     {
         public bool Connected { get; set; }
 
