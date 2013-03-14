@@ -44,7 +44,7 @@
     <Reference Include="System.Core" />
   </ItemGroup>
   <ItemGroup>
-    <Compile Include="CqlExecutionOptions.cs" />
+    <Compile Include="QueryExecutionState.cs" />
     <Compile Include="Network\BalancedConnectionStrategy.cs" />
     <Compile Include="Network\Cluster.cs" />
     <Compile Include="Config\ClusterConfig.cs" />

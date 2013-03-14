@@ -13,6 +13,10 @@
 // See the License for the specific language governing permissions and
 // limitations under the License.
 
+using CqlSharp.Config;
+using CqlSharp.Protocol;
+using CqlSharp.Protocol.Exceptions;
+using CqlSharp.Protocol.Frames;
 using System;
 using System.Collections.Generic;
 using System.IO;
@@ -21,10 +25,6 @@ using System.Net;
 using System.Net.Sockets;
 using System.Threading;
 using System.Threading.Tasks;
-using CqlSharp.Config;
-using CqlSharp.Protocol;
-using CqlSharp.Protocol.Exceptions;
-using CqlSharp.Protocol.Frames;
 
 namespace CqlSharp.Network
 {
@@ -148,7 +148,7 @@ namespace CqlSharp.Network
             Interlocked.Exchange(ref _lastActivity, DateTime.Now.Ticks);
 
             EventHandler<LoadChangeEvent> handler = OnLoadChange;
-            if (handler != null) handler(this, new LoadChangeEvent {LoadDelta = load});
+            if (handler != null) handler(this, new LoadChangeEvent { LoadDelta = load });
         }
 
         /// <summary>
@@ -184,7 +184,7 @@ namespace CqlSharp.Network
                 }
 
                 if (OnConnectionChange != null)
-                    OnConnectionChange(this, new ConnectionChangeEvent {Exception = error, Connected = false});
+                    OnConnectionChange(this, new ConnectionChangeEvent { Exception = error, Connected = false });
 
                 OnConnectionChange = null;
                 OnLoadChange = null;
@@ -199,21 +199,11 @@ namespace CqlSharp.Network
             Dispose(false);
         }
 
-
         /// <summary>
         ///   Connects to the provided endpoint
         /// </summary>
         /// <exception cref="ProtocolException">0;Expected Ready frame not received</exception>
-        public Task ConnectAsync()
-        {
-            return ConnectAsync(CqlExecutionOptions.None);
-        }
-
-        /// <summary>
-        ///   Connects to the provided endpoint
-        /// </summary>
-        /// <exception cref="ProtocolException">0;Expected Ready frame not received</exception>
-        public async Task ConnectAsync(CqlExecutionOptions options)
+        public async Task ConnectAsync()
         {
             //switch state to connected if not done so
             int state = Interlocked.CompareExchange(ref _connectionState, 1, 0);
@@ -254,7 +244,7 @@ namespace CqlSharp.Network
                     throw new ProtocolException(0, "Expected Ready frame not received");
 
                 if (OnConnectionChange != null)
-                    OnConnectionChange(this, new ConnectionChangeEvent {Connected = true});
+                    OnConnectionChange(this, new ConnectionChangeEvent { Connected = true });
             }
             catch (Exception ex)
             {
@@ -287,7 +277,7 @@ namespace CqlSharp.Network
                 byte id;
                 lock (_availableQueryIds)
                 {
-                    id = (byte) _availableQueryIds.Dequeue();
+                    id = (byte)_availableQueryIds.Dequeue();
                     _openRequests.Add(id, waitTask);
                 }
 

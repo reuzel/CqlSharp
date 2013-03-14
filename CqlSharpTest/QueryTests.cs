@@ -13,13 +13,13 @@
 // See the License for the specific language governing permissions and
 // limitations under the License.
 
-using System.Linq;
-using System.Threading.Tasks;
 using CqlSharp;
 using CqlSharp.Protocol.Exceptions;
 using CqlSharp.Serialization;
 using CqlSharp.Tracing;
 using Microsoft.VisualStudio.TestTools.UnitTesting;
+using System.Linq;
+using System.Threading.Tasks;
 
 namespace CqlSharpTest
 {
@@ -103,7 +103,7 @@ namespace CqlSharpTest
 
                 for (int i = 0; i < insertCount; i++)
                 {
-                    var b = new BasicFlowData {Id = i, Data = "Hallo " + i};
+                    var b = new BasicFlowData { Id = i, Data = "Hallo " + i };
                     cmd.Parameters.Set(b);
 
                     executions[i] = cmd.ExecuteNonQueryAsync();
@@ -113,10 +113,9 @@ namespace CqlSharpTest
 
                 var presence = new bool[insertCount];
 
-                var selectCmd = new CqlCommand(connection, retrieveCql, CqlConsistency.One);
+                var selectCmd = new CqlCommand(connection, retrieveCql, CqlConsistency.One) { TracingEnabled = true };
 
-                var options = new CqlExecutionOptions {TracingEnabled = true};
-                CqlDataReader<BasicFlowData> reader = await selectCmd.ExecuteReaderAsync<BasicFlowData>(options);
+                CqlDataReader<BasicFlowData> reader = await selectCmd.ExecuteReaderAsync<BasicFlowData>();
                 while (await reader.ReadAsync())
                 {
                     BasicFlowData row = reader.Current;
