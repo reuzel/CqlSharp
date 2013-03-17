@@ -135,7 +135,7 @@ namespace CqlSharp.Serialization
         /// <returns> </returns>
         private static string GetColumnName(MemberInfo member, string table, string keyspace)
         {
-            string cName, cTable, cKeyspace;
+            string cName;
 
             //check for ignore attribute
             var ignoreAttribute =
@@ -153,18 +153,14 @@ namespace CqlSharp.Serialization
             {
                 //set column name, table and keyspace based on attribute info
                 cName = columnAttribute.Column;
-                cTable = columnAttribute.Table ?? table;
-                cKeyspace = columnAttribute.KeySpace ?? keyspace;
             }
             else
             {
                 //set column name, table and keyspace info based on property name
                 cName = member.Name;
-                cTable = table;
-                cKeyspace = keyspace;
             }
 
-            return (cKeyspace + "." + cTable + "." + cName).ToLower();
+            return (keyspace + "." + table + "." + cName).ToLower();
         }
 
         /// <summary>

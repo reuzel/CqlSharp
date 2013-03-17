@@ -96,6 +96,16 @@ namespace CqlSharp
         }
 
         /// <summary>
+        ///   Initializes a new instance of the <see cref="CqlConnection" /> class.
+        /// </summary>
+        /// <param name="cluster"> The cluster. </param>
+        internal CqlConnection(Cluster cluster)
+        {
+            _provider = cluster;
+            Throttle = cluster.Throttle;
+        }
+
+        /// <summary>
         ///   Gets or sets the throttle.
         /// </summary>
         /// <value> The throttle. </value>

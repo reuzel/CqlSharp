@@ -14,6 +14,7 @@
 // limitations under the License.
 
 using CqlSharp.Network;
+using CqlSharp.Network.Partition;
 using CqlSharp.Protocol;
 using CqlSharp.Protocol.Exceptions;
 using CqlSharp.Protocol.Frames;
@@ -36,6 +37,7 @@ namespace CqlSharp
         private readonly ConcurrentDictionary<IPAddress, ResultFrame> _prepareResults;
         private CqlParameterCollection _parameters;
         private bool _prepared;
+        private readonly PartitionKey _partitionKey;
 
         /// <summary>
         ///   Initializes a new instance of the <see cref="CqlCommand" /> class.
@@ -52,6 +54,7 @@ namespace CqlSharp
             _prepareResults = new ConcurrentDictionary<IPAddress, ResultFrame>();
             _prepared = false;
             _load = load;
+            _partitionKey = new PartitionKey();
         }
 
         /// <summary>
@@ -112,7 +115,7 @@ namespace CqlSharp
         ///   Gets or sets a value indicating whether tracing enabled should be enabled.
         /// </summary>
         /// <value> <c>true</c> if tracing enabled; otherwise, <c>false</c> . </value>
-        public bool TracingEnabled { get; set; }
+        public bool EnableTracing { get; set; }
 
         /// <summary>
         ///   Gets or sets a value indicating whether the query is allowed to use different connection, than the default connection from the used CqlConnection.
@@ -120,6 +123,16 @@ namespace CqlSharp
         /// <value> <c>true</c> if parallel connections are allowed to be used; otherwise, <c>false</c> . </value>
         public bool UseParallelConnections { get; set; }
 
+        /// <summary>
+        /// The partition key, used to route queries to corresponding nodes in the cluster
+        /// </summary>
+        /// <value>
+        /// The partition key.
+        /// </value>
+        public PartitionKey PartitionKey
+        {
+            get { return _partitionKey; }
+        }
 
         /// <summary>
         ///   Executes the query async.
@@ -130,11 +143,10 @@ namespace CqlSharp
             //wait until allowed
             _connection.Throttle.Wait();
 
-            //capture state
-            QueryExecutionState state = CaptureState();
-
             try
             {
+                //capture state
+                QueryExecutionState state = CaptureState();
 
                 ResultFrame result = await RunWithRetry(ExecuteInternalAsync, state);
 
@@ -211,6 +223,41 @@ namespace CqlSharp
             try
             {
                 return ExecuteReaderAsync<T>().Result;
+            }
+            catch (AggregateException aex)
+            {
+                throw aex.InnerException;
+            }
+        }
+
+        /// <summary>
+        /// Executes the query, and returns the value of the first column of the first row.
+        /// </summary>
+        /// <returns></returns>
+        public async Task<object> ExecuteScalarAsync()
+        {
+            object result = null;
+
+            using (var reader = await ExecuteReaderAsync())
+            {
+                if (await reader.ReadAsync())
+                {
+                    result = reader[0];
+                }
+            }
+
+            return result;
+        }
+
+        /// <summary>
+        /// Executes the query, and returns the value of the first column of the first row.
+        /// </summary>
+        /// <returns></returns>
+        public object ExecuteScalar()
+        {
+            try
+            {
+                return ExecuteScalarAsync().Result;
             }
             catch (AggregateException aex)
             {
@@ -320,9 +367,10 @@ namespace CqlSharp
             var state = new QueryExecutionState
                             {
                                 Values = _parameters == null ? null : _parameters.Values,
-                                TracingEnabled = TracingEnabled,
+                                TracingEnabled = EnableTracing,
                                 UseBuffering = UseBuffering,
-                                UseParallelConnections = UseParallelConnections
+                                UseParallelConnections = UseParallelConnections,
+                                PartitionKey = PartitionKey.Key == null ? null : (byte[])PartitionKey.Key.Clone()
                             };
             return state;
         }

@@ -113,7 +113,7 @@ namespace CqlSharpTest
 
                 var presence = new bool[insertCount];
 
-                var selectCmd = new CqlCommand(connection, retrieveCql, CqlConsistency.One) { TracingEnabled = true };
+                var selectCmd = new CqlCommand(connection, retrieveCql, CqlConsistency.One) { EnableTracing = true };
 
                 CqlDataReader<BasicFlowData> reader = await selectCmd.ExecuteReaderAsync<BasicFlowData>();
                 while (await reader.ReadAsync())
