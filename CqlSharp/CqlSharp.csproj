@@ -45,12 +45,14 @@
     <Reference Include="System.Numerics" />
   </ItemGroup>
   <ItemGroup>
+    <Compile Include="Network\PartitionAwareConnectionStrategy.cs" />
     <Compile Include="Network\Partition\MurmurToken.cs" />
     <Compile Include="Network\Partition\MurmurHash.cs" />
     <Compile Include="Network\Partition\ByteArrayToken.cs" />
     <Compile Include="Network\Partition\MD5Token.cs" />
     <Compile Include="Network\Partition\IToken.cs" />
-    <Compile Include="Network\Partition\TokenMap.cs" />
+    <Compile Include="Network\Partition\PartitionKey.cs" />
+    <Compile Include="Network\Partition\Ring.cs" />
     <Compile Include="QueryExecutionState.cs" />
     <Compile Include="Network\BalancedConnectionStrategy.cs" />
     <Compile Include="Network\Cluster.cs" />

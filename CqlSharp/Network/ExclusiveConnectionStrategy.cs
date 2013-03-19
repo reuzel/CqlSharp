@@ -13,12 +13,12 @@
 // See the License for the specific language governing permissions and
 // limitations under the License.
 
+using CqlSharp.Config;
+using CqlSharp.Network.Partition;
 using System;
 using System.Collections.Concurrent;
-using System.Collections.Generic;
 using System.Linq;
 using System.Threading.Tasks;
-using CqlSharp.Config;
 
 namespace CqlSharp.Network
 {
@@ -33,7 +33,7 @@ namespace CqlSharp.Network
         private readonly ClusterConfig _config;
 
         private readonly ConcurrentStack<Connection> _connections;
-        private readonly List<Node> _nodes;
+        private readonly Ring _nodes;
         private readonly Random _rndGen;
 
         /// <summary>
@@ -41,17 +41,17 @@ namespace CqlSharp.Network
         /// </summary>
         /// <param name="nodes"> The nodes. </param>
         /// <param name="config"> The config. </param>
-        public ExclusiveConnectionStrategy(List<Node> nodes, ClusterConfig config)
+        public ExclusiveConnectionStrategy(Ring nodes, ClusterConfig config)
         {
             _nodes = nodes;
             _config = config;
             _connections = new ConcurrentStack<Connection>();
-            _rndGen = new Random((int) DateTime.Now.Ticks);
+            _rndGen = new Random((int)DateTime.Now.Ticks);
         }
 
         #region IConnectionStrategy Members
 
-        public async Task<Connection> GetOrCreateConnectionAsync()
+        public async Task<Connection> GetOrCreateConnectionAsync(PartitionKey partitionKey)
         {
             Connection connection = null;
 
@@ -70,7 +70,7 @@ namespace CqlSharp.Network
                 int offset = _rndGen.Next(count);
                 for (int i = 0; i < count; i++)
                 {
-                    connection = await _nodes[(offset + i)%count].CreateConnectionAsync();
+                    connection = await _nodes[(offset + i) % count].CreateConnectionAsync();
                     if (connection != null)
                         return connection;
                 }

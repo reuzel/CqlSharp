@@ -14,7 +14,9 @@
 // limitations under the License.
 
 using CqlSharp.Config;
+using CqlSharp.Network.Partition;
 using System;
+using System.Collections;
 using System.Collections.Generic;
 using System.Linq;
 using System.Net;
@@ -27,7 +29,7 @@ namespace CqlSharp.Network
     ///   A single node of a Cassandra cluster. Manages a set of connections to that specific node. A node will be marked as down
     ///   when the last connection to that node fails. The node status will be reset to up using a exponantial back-off procedure.
     /// </summary>
-    internal class Node : IConnectionProvider
+    internal class Node : IConnectionProvider, IEnumerable<Connection>
     {
         /// <summary>
         ///   The cluster configuration
@@ -90,6 +92,22 @@ namespace CqlSharp.Network
         }
 
         /// <summary>
+        /// Returns an enumerator that iterates through the collection.
+        /// </summary>
+        /// <returns>
+        /// A <see cref="T:System.Collections.Generic.IEnumerator`1"/> that can be used to iterate through the collection.
+        /// </returns>
+        /// <filterpriority>1</filterpriority>
+        public IEnumerator<Connection> GetEnumerator()
+        {
+            _connectionLock.Wait();
+            var connections = new List<Connection>(_connections);
+            _connectionLock.Release();
+
+            return ((IEnumerable<Connection>)connections).GetEnumerator();
+        }
+
+        /// <summary>
         /// Determines whether the specified <see cref="System.Object" /> is equal to this instance.
         /// </summary>
         /// <param name="obj">The <see cref="System.Object" /> to compare with this instance.</param>
@@ -126,6 +144,18 @@ namespace CqlSharp.Network
             {
                 return ((Address != null ? Address.GetHashCode() : 0) * 397) ^ _config.Port;
             }
+        }
+
+        /// <summary>
+        /// Returns an enumerator that iterates through a collection.
+        /// </summary>
+        /// <returns>
+        /// An <see cref="T:System.Collections.IEnumerator"/> object that can be used to iterate through the collection.
+        /// </returns>
+        /// <filterpriority>2</filterpriority>
+        IEnumerator IEnumerable.GetEnumerator()
+        {
+            return GetEnumerator();
         }
 
         /// <summary>
@@ -187,8 +217,9 @@ namespace CqlSharp.Network
         /// <summary>
         ///   Gets an existing connection, or creates one if treshold is reached.
         /// </summary>
+        /// <param name="partitionKey">ignored</param>
         /// <returns> </returns>
-        public async Task<Connection> GetOrCreateConnectionAsync()
+        public async Task<Connection> GetOrCreateConnectionAsync(PartitionKey partitionKey)
         {
             Connection c = GetConnection();
 

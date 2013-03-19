@@ -32,9 +32,8 @@ namespace CqlSharp.Network
     {
         private readonly ClusterConfig _config;
         private readonly IConnectionStrategy _connectionSelector;
-        private List<Node> _nodes;
+        private Ring _nodes;
         private readonly SemaphoreSlim _throttle;
-        private readonly Lazy<TokenMap> _tokenMap;
 
         /// <summary>
         ///   Initializes a new instance of the <see cref="Cluster" /> class.
@@ -46,8 +45,7 @@ namespace CqlSharp.Network
             _config = config;
 
             //setup nodes
-            _nodes = new List<Node>();
-            DiscoverMoreNodes();
+            BuildRing();
 
             //setup cluster connection strategy
             switch (_config.ConnectionStrategy)
@@ -61,25 +59,17 @@ namespace CqlSharp.Network
                 case ConnectionStrategy.Exclusive:
                     _connectionSelector = new ExclusiveConnectionStrategy(_nodes, _config);
                     break;
+                case ConnectionStrategy.PartitionAware:
+                    _connectionSelector = new PartitionAwareConnectionStrategy(_nodes, _config);
+                    break;
             }
 
             //setup throttle
-            if (config.MaxConcurrentQueries <= 0)
-                config.MaxConcurrentQueries = _nodes.Count * config.MaxConnectionsPerNode * 256;
+            int concurrent = config.MaxConcurrentQueries <= 0
+                                 ? _nodes.Count * config.MaxConnectionsPerNode * 256
+                                 : config.MaxConcurrentQueries;
 
-            _throttle = new SemaphoreSlim(config.MaxConcurrentQueries);
-
-            _tokenMap = new Lazy<TokenMap>(() =>
-                                               {
-                                                   using (var connection = new CqlConnection(this))
-                                                   {
-                                                       var cmd = new CqlCommand(connection, "select partitioner from system.local", CqlConsistency.One);
-                                                       var partitioner = (string)cmd.ExecuteScalar();
-                                                       return new TokenMap(_nodes, partitioner);
-                                                   }
-                                               });
-
-
+            _throttle = new SemaphoreSlim(concurrent);
         }
 
         /// <summary>
@@ -91,20 +81,16 @@ namespace CqlSharp.Network
             get { return _throttle; }
         }
 
-        internal TokenMap TokenMap
-        {
-            get { return _tokenMap.Value; }
-        }
-
         #region IConnectionProvider Members
 
         /// <summary>
         ///   Gets a connection to a node in the cluster
         /// </summary>
+        /// <param name="partitionKey"> </param>
         /// <returns> </returns>
-        public Task<Connection> GetOrCreateConnectionAsync()
+        public Task<Connection> GetOrCreateConnectionAsync(PartitionKey partitionKey)
         {
-            return _connectionSelector.GetOrCreateConnectionAsync();
+            return _connectionSelector.GetOrCreateConnectionAsync(partitionKey);
         }
 
         /// <summary>
@@ -123,23 +109,28 @@ namespace CqlSharp.Network
         ///   Finds additional nodes to connect to.
         /// </summary>
         /// <exception cref="CqlException">Could not detect datacenter or rack information from the node specified in the config section!</exception>
-        private void DiscoverMoreNodes()
+        private void BuildRing()
         {
-            //get nodes from config first
+            //get the first set of seed-nodes
             var nodes = CreateNodesFromConfig();
+
+            //the partitioner in use
+            string partitioner;
 
             //create list of nodes of which info is found
             var found = new List<Node>();
 
-            foreach (Node node in nodes)
+            using (var connection = new CqlConnection(nodes[0]))
             {
-                //if node is part of already found list, skip...
-                if (found.Contains(node))
-                    continue;
+                var cmd = new CqlCommand(connection, "select partitioner from system.local", CqlConsistency.One);
+                partitioner = (string)cmd.ExecuteScalar();
 
-                //create a connection to the node
-                using (var connection = new CqlConnection(node))
+                foreach (Node node in nodes)
                 {
+                    //if node is part of already found list, skip...
+                    if (found.Contains(node))
+                        continue;
+
                     //get the "local" data center, rack and token
                     var localcmd = new CqlCommand(connection, "select data_center, rack, tokens from system.local",
                                                   CqlConsistency.One);
@@ -163,7 +154,8 @@ namespace CqlSharp.Network
                     found.Add(node);
 
                     //get the peers
-                    var peerscmd = new CqlCommand(connection, "select rpc_address, data_center, rack, tokens from system.peers",
+                    var peerscmd = new CqlCommand(connection,
+                                                  "select rpc_address, data_center, rack, tokens from system.peers",
                                                   CqlConsistency.One);
 
                     using (CqlDataReader reader = peerscmd.ExecuteReader())
@@ -172,11 +164,11 @@ namespace CqlSharp.Network
                         while (reader.Read())
                         {
                             var newNode = new Node((IPAddress)reader["rpc_address"], _config)
-                            {
-                                DataCenter = (string)reader["data_center"],
-                                Rack = (string)reader["rack"],
-                                Tokens = (ISet<string>)reader["tokens"]
-                            };
+                                              {
+                                                  DataCenter = (string)reader["data_center"],
+                                                  Rack = (string)reader["rack"],
+                                                  Tokens = (ISet<string>)reader["tokens"]
+                                              };
 
                             //filter based on scope
                             switch (_config.DiscoveryScope)
@@ -190,13 +182,17 @@ namespace CqlSharp.Network
 
                                 case DiscoveryScope.DataCenter:
                                     //skip if node does not match datacenter
-                                    if (!node.DataCenter.Equals(newNode.DataCenter, StringComparison.InvariantCultureIgnoreCase))
+                                    if (
+                                        !node.DataCenter.Equals(newNode.DataCenter,
+                                                                StringComparison.InvariantCultureIgnoreCase))
                                         continue;
                                     break;
 
                                 case DiscoveryScope.Rack:
                                     //skip if node does not match datacenter
-                                    if (!node.DataCenter.Equals(newNode.DataCenter, StringComparison.InvariantCultureIgnoreCase))
+                                    if (
+                                        !node.DataCenter.Equals(newNode.DataCenter,
+                                                                StringComparison.InvariantCultureIgnoreCase))
                                         continue;
                                     //skipt if node does not match rack
                                     if (!node.Rack.Equals(newNode.Rack, StringComparison.InvariantCultureIgnoreCase))
@@ -214,7 +210,7 @@ namespace CqlSharp.Network
                 }
             }
 
-            _nodes = found;
+            _nodes = new Ring(found, partitioner);
         }
 
         /// <summary>

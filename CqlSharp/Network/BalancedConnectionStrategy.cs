@@ -13,10 +13,11 @@
 // See the License for the specific language governing permissions and
 // limitations under the License.
 
+using CqlSharp.Config;
+using CqlSharp.Network.Partition;
 using System.Collections.Generic;
 using System.Linq;
 using System.Threading.Tasks;
-using CqlSharp.Config;
 
 namespace CqlSharp.Network
 {
@@ -30,14 +31,14 @@ namespace CqlSharp.Network
     internal class BalancedConnectionStrategy : IConnectionStrategy
     {
         private readonly ClusterConfig _config;
-        private readonly List<Node> _nodes;
+        private readonly Ring _nodes;
 
         /// <summary>
         ///   Initializes the strategy with the specified nodes and cluster configuration
         /// </summary>
         /// <param name="nodes"> The nodes. </param>
         /// <param name="config"> The config. </param>
-        public BalancedConnectionStrategy(List<Node> nodes, ClusterConfig config)
+        public BalancedConnectionStrategy(Ring nodes, ClusterConfig config)
         {
             _nodes = nodes;
             _config = config;
@@ -48,34 +49,44 @@ namespace CqlSharp.Network
         /// <summary>
         ///   Gets or creates connection to the cluster.
         /// </summary>
+        /// <param name="partitionKey"> </param>
         /// <returns> </returns>
         /// <exception cref="CqlException">Can not connect to any node of the cluster! All connectivity to the cluster seems to be lost</exception>
-        public async Task<Connection> GetOrCreateConnectionAsync()
+        public async Task<Connection> GetOrCreateConnectionAsync(PartitionKey partitionKey)
         {
-            //Sort the nodes by load (unused first)
-            var nodesByLoad = new List<Node>(_nodes.Where(n => n.IsUp).OrderBy(n => n.Load));
+            //Sort the nodes by load (used first)
+            var nodesByLoad = new List<Node>(_nodes.Where(n => n.IsUp).OrderBy(n => n.ConnectionCount > 0 ? n.Load : int.MaxValue));
+
+            int index = 0;
 
             //find the least used connection per node and see if it can be used
-            foreach (Node node in nodesByLoad)
+            for (; index < nodesByLoad.Count; index++)
             {
-                Connection connection = node.GetConnection();
-                if (connection != null && connection.Load < _config.NewConnectionTreshold)
+                Connection connection = nodesByLoad[index].GetConnection();
+
+                //break when no connection found (nodes with connections come first, thus if no connection available, no more to be expected...)
+                if (connection == null)
+                    break;
+
+                if (connection.Load < _config.NewConnectionTreshold)
                     return connection;
             }
 
             //check if we may create another connection
             if (_config.MaxConnections <= 0 || nodesByLoad.Sum(n => n.ConnectionCount) < _config.MaxConnections)
             {
-                //iterate over the nodes, and try to create a connection
-                foreach (Node node in nodesByLoad)
+                //iterate over the remaining (and initial) nodes, and try to create a connection
+                for (int i = 0; i < nodesByLoad.Count; i++)
                 {
                     try
                     {
+                        Node node = nodesByLoad[(index + i) % nodesByLoad.Count];
                         Connection connection = await node.CreateConnectionAsync();
+
                         if (connection != null)
                             return connection;
                     }
-                        // ReSharper disable EmptyGeneralCatchClause
+                    // ReSharper disable EmptyGeneralCatchClause
                     catch
                     {
                         //ignore, errors handled within node, try to create another one at the next node

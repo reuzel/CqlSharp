@@ -370,7 +370,7 @@ namespace CqlSharp
                                 TracingEnabled = EnableTracing,
                                 UseBuffering = UseBuffering,
                                 UseParallelConnections = UseParallelConnections,
-                                PartitionKey = PartitionKey.Key == null ? null : (byte[])PartitionKey.Key.Clone()
+                                PartitionKey = PartitionKey.Key
                             };
             return state;
         }

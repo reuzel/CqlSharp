@@ -14,6 +14,7 @@
 // limitations under the License.
 
 using System.Threading.Tasks;
+using CqlSharp.Network.Partition;
 
 namespace CqlSharp.Network
 {
@@ -25,8 +26,9 @@ namespace CqlSharp.Network
         /// <summary>
         ///   Gets or creates a network connection to a cassandra node.
         /// </summary>
+        /// <param name="partitionKey"> </param>
         /// <returns> Connection that is ready to use </returns>
-        Task<Connection> GetOrCreateConnectionAsync();
+        Task<Connection> GetOrCreateConnectionAsync(PartitionKey partitionKey);
 
         /// <summary>
         ///   Returns the connection to the provider.

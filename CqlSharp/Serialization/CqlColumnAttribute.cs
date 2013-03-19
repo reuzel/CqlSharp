@@ -47,7 +47,7 @@ namespace CqlSharp.Serialization
         /// <value>
         /// The type of the CQL.
         /// </value>
-        public CqlType CqlType { get; set; }
+        public CqlType? CqlType { get; set; }
 
         /// <summary>
         /// Gets or sets the index of column in the partition key.
@@ -55,6 +55,6 @@ namespace CqlSharp.Serialization
         /// <value>
         /// The index of the partition key.
         /// </value>
-        public int PartitionKeyIndex { get; set; }
+        public int? PartitionKeyIndex { get; set; }
     }
 }

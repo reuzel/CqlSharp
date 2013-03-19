@@ -18,6 +18,7 @@ using System.Collections;
 using System.Collections.Generic;
 using System.IO;
 using System.Net;
+using System.Numerics;
 using System.Text;
 
 namespace CqlSharp.Protocol
@@ -45,6 +46,7 @@ namespace CqlSharp.Protocol
                                                                                  {CqlType.Uuid, typeof (Guid)},
                                                                                  {CqlType.Timeuuid, typeof (Guid)},
                                                                                  {CqlType.Inet, typeof (IPAddress)},
+                                                                                 {CqlType.Varint, typeof (BigInteger)},
                                                                              };
 
         public static byte[] Serialize(this CqlColumn cqlColumn, object data)
@@ -149,6 +151,20 @@ namespace CqlSharp.Protocol
                 case CqlType.Int:
                     rawData = BitConverter.GetBytes(Convert.ToInt32(data));
                     if (BitConverter.IsLittleEndian) Array.Reverse(rawData);
+                    break;
+
+                case CqlType.Varint:
+                    var dataString = data as string;
+                    if (dataString != null)
+                        rawData = BigInteger.Parse(dataString).ToByteArray();
+                    else
+                    {
+                        var integer = (BigInteger)data;
+                        rawData = integer.ToByteArray();
+                    }
+
+                    //to bigendian
+                    Array.Reverse(rawData);
                     break;
 
                 case CqlType.Boolean:
@@ -298,6 +314,12 @@ namespace CqlSharp.Protocol
                 case CqlType.Int:
                     if (BitConverter.IsLittleEndian) Array.Reverse(rawData);
                     data = BitConverter.ToInt32(rawData, 0);
+                    break;
+
+                case CqlType.Varint:
+                    //to little endian
+                    Array.Reverse(rawData);
+                    data = new BigInteger(rawData);
                     break;
 
                 case CqlType.Boolean:
