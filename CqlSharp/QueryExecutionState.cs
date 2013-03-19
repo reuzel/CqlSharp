@@ -30,5 +30,7 @@ namespace CqlSharp
         public byte[][] Values;
 
         public byte[] PartitionKey;
+
+        public int Load;
     }
 }

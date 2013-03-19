@@ -1,7 +1,7 @@
 CqlSharp
 ========
 
-CqlSharp is a high performant, asynchronous Cassandra CQL binary protocol driver offering an ADO.NET like interface.
+CqlSharp is a high performance, asynchronous Cassandra CQL binary protocol driver offering an ADO.NET like interface.
 
 Features
 --------
@@ -33,7 +33,3 @@ Wish list
 * Linq2Cql
 * Alternative retry models (e.g. retry with reduced consistency)
 
-Why another Cassandra Client?
------------------------------
-
-This project started off as an improvement of the quite well written Cassandra-Sharp. I wanted to replace the predominantly synchronous reading and writing with an async version, such that a more efficient client was to be obtained. After some time, I discovered that this was no little change. In fact, the introduction of asynchronous I/O would lead to so much changes that I decided to start a new client from scratch. Well, from scratch... some parts I "borrowed" from Cassandra-Sharp (especially the value serialization bits). Where I did that, you'll see a remark in the XML comments...

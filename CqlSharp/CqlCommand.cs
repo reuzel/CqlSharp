@@ -33,7 +33,6 @@ namespace CqlSharp
         private readonly CqlConnection _connection;
         private readonly string _cql;
         private readonly CqlConsistency _level;
-        private readonly int _load;
         private readonly ConcurrentDictionary<IPAddress, ResultFrame> _prepareResults;
         private CqlParameterCollection _parameters;
         private bool _prepared;
@@ -46,46 +45,24 @@ namespace CqlSharp
         /// <param name="cql"> The CQL. </param>
         /// <param name="level"> The level. </param>
         /// <param name="load"> the load indication of the query. Used for distributing queries over nodes and connections. </param>
-        public CqlCommand(CqlConnection connection, string cql, CqlConsistency level, int load)
+        public CqlCommand(CqlConnection connection, string cql, CqlConsistency level)
         {
             _connection = connection;
             _cql = cql;
             _level = level;
             _prepareResults = new ConcurrentDictionary<IPAddress, ResultFrame>();
             _prepared = false;
-            _load = load;
             _partitionKey = new PartitionKey();
+            Load = 1;
         }
 
         /// <summary>
-        ///   Initializes a new instance of the <see cref="CqlCommand" /> class. Uses a default load level of 1
-        /// </summary>
-        /// <param name="connection"> The connection. </param>
-        /// <param name="cql"> The CQL. </param>
-        /// <param name="level"> The level. </param>
-        public CqlCommand(CqlConnection connection, string cql, CqlConsistency level)
-            : this(connection, cql, level, 1)
-        {
-        }
-
-        /// <summary>
-        ///   Initializes a new instance of the <see cref="CqlCommand" /> class. Uses a default consistency level LocalQuorum
-        /// </summary>
-        /// <param name="connection"> The connection. </param>
-        /// <param name="cql"> The CQL. </param>
-        /// <param name="load"> the load indication of the query. Used for distributing queries over nodes and connections. </param>
-        public CqlCommand(CqlConnection connection, string cql, int load)
-            : this(connection, cql, CqlConsistency.LocalQuorum, load)
-        {
-        }
-
-        /// <summary>
-        ///   Initializes a new instance of the <see cref="CqlCommand" /> class. Uses a default consistency level LocalQuorum, and load factor of 1.
+        ///   Initializes a new instance of the <see cref="CqlCommand" /> class. Uses a default consistency level One
         /// </summary>
         /// <param name="connection"> The connection. </param>
         /// <param name="cql"> The CQL. </param>
         public CqlCommand(CqlConnection connection, string cql)
-            : this(connection, cql, CqlConsistency.LocalQuorum, 1)
+            : this(connection, cql, CqlConsistency.One)
         {
         }
 
@@ -122,6 +99,15 @@ namespace CqlSharp
         /// </summary>
         /// <value> <c>true</c> if parallel connections are allowed to be used; otherwise, <c>false</c> . </value>
         public bool UseParallelConnections { get; set; }
+
+        /// <summary>
+        /// Indication of the load this query generates (e.g. the number of expected returned rows). Used by connection stratagies for balancing
+        /// queries over connections.
+        /// </summary>
+        /// <value>
+        /// The load. Defaults to 1
+        /// </value>
+        public int Load { get; set; }
 
         /// <summary>
         /// The partition key, used to route queries to corresponding nodes in the cluster
@@ -370,7 +356,8 @@ namespace CqlSharp
                                 TracingEnabled = EnableTracing,
                                 UseBuffering = UseBuffering,
                                 UseParallelConnections = UseParallelConnections,
-                                PartitionKey = PartitionKey.Key
+                                PartitionKey = PartitionKey.Key,
+                                Load = Load
                             };
             return state;
         }
@@ -511,7 +498,7 @@ namespace CqlSharp
             if (state.TracingEnabled)
                 query.Flags |= FrameFlags.Tracing;
 
-            Frame response = await connection.SendRequestAsync(query, _load);
+            Frame response = await connection.SendRequestAsync(query, state.Load);
 
             var result = response as ResultFrame;
             if (result != null)
