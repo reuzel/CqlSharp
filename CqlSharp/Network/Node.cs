@@ -89,6 +89,7 @@ namespace CqlSharp.Network
             Address = address;
             _config = config;
             IsUp = true;
+            Tokens = new HashSet<string>();
         }
 
         /// <summary>
