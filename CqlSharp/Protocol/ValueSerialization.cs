@@ -59,15 +59,20 @@ namespace CqlSharp.Protocol
                     if (!cqlColumn.CollectionValueType.HasValue)
                         throw new CqlException("CqlColumn collection type must has its value type set");
 
-                    var coll = (ICollection)data;
+                    var coll = (IEnumerable)data;
                     using (var ms = new MemoryStream())
                     {
-                        ms.WriteShort((short)coll.Count);
+                        //write length placeholder
+                        ms.Position = 2;
+                        short count = 0;
                         foreach (object elem in coll)
                         {
                             byte[] rawDataElem = Serialize(cqlColumn.CollectionValueType.Value, elem);
                             ms.WriteShortByteArray(rawDataElem);
+                            count++;
                         }
+                        ms.Position = 0;
+                        ms.WriteShort(count);
                         rawData = ms.ToArray();
                     }
                     break;
@@ -263,7 +268,7 @@ namespace CqlSharp.Protocol
                         {
                             byte[] elemRawKey = ms.ReadShortByteArray();
                             byte[] elemRawValue = ms.ReadShortByteArray();
-                            object key = Deserialize(cqlColumn.CollectionValueType.Value, elemRawKey);
+                            object key = Deserialize(cqlColumn.CollectionKeyType.Value, elemRawKey);
                             object value = Deserialize(cqlColumn.CollectionValueType.Value, elemRawValue);
                             dic.Add(key, value);
                         }
@@ -281,9 +286,12 @@ namespace CqlSharp.Protocol
             switch (colType)
             {
                 case CqlType.Ascii:
+                    data = Encoding.ASCII.GetString(rawData);
+                    break;
+
                 case CqlType.Text:
                 case CqlType.Varchar:
-                    data = Encoding.ASCII.GetString(rawData);
+                    data = Encoding.UTF8.GetString(rawData);
                     break;
 
                 case CqlType.Blob:
