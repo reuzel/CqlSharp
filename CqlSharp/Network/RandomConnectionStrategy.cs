@@ -13,11 +13,11 @@
 // See the License for the specific language governing permissions and
 // limitations under the License.
 
+using CqlSharp.Config;
+using CqlSharp.Network.Partition;
 using System;
-using System.Collections.Generic;
 using System.Linq;
 using System.Threading.Tasks;
-using CqlSharp.Config;
 
 namespace CqlSharp.Network
 {
@@ -27,7 +27,7 @@ namespace CqlSharp.Network
     internal class RandomConnectionStrategy : IConnectionStrategy
     {
         private readonly ClusterConfig _config;
-        private readonly List<Node> _nodes;
+        private readonly Ring _nodes;
         private readonly Random _rnd;
 
         /// <summary>
@@ -35,11 +35,11 @@ namespace CqlSharp.Network
         /// </summary>
         /// <param name="nodes"> The nodes. </param>
         /// <param name="config"> The config. </param>
-        public RandomConnectionStrategy(List<Node> nodes, ClusterConfig config)
+        public RandomConnectionStrategy(Ring nodes, ClusterConfig config)
         {
             _nodes = nodes;
             _config = config;
-            _rnd = new Random((int) DateTime.Now.Ticks);
+            _rnd = new Random((int)DateTime.Now.Ticks);
         }
 
         #region IConnectionStrategy Members
@@ -47,20 +47,21 @@ namespace CqlSharp.Network
         /// <summary>
         ///   Gets or creates connection to the cluster.
         /// </summary>
+        /// <param name="partitionKey"> </param>
         /// <returns> </returns>
         /// <exception cref="CqlException">Can not connect to any node of the cluster! All connectivity to the cluster seems to be lost</exception>
-        public async Task<Connection> GetOrCreateConnectionAsync()
+        public async Task<Connection> GetOrCreateConnectionAsync(PartitionKey partitionKey)
         {
+            Connection connection;
             int count = _nodes.Count;
             int offset = _rnd.Next(count);
-            Connection connection;
 
             //try to get an unused connection from a random node
             for (int i = 0; i < count; i++)
             {
                 try
                 {
-                    connection = _nodes[(offset + i)%count].GetConnection();
+                    connection = _nodes[(offset + i) % count].GetConnection();
                     if (connection != null && connection.Load < _config.NewConnectionTreshold)
                         return connection;
                 }
@@ -78,7 +79,7 @@ namespace CqlSharp.Network
                 {
                     try
                     {
-                        connection = await _nodes[(offset + i)%count].CreateConnectionAsync();
+                        connection = await _nodes[(offset + i) % count].CreateConnectionAsync();
                         if (connection != null)
                             return connection;
                     }
@@ -92,7 +93,7 @@ namespace CqlSharp.Network
             //iterate over nodes and get an existing one
             for (int i = 0; i < count; i++)
             {
-                connection = _nodes[(offset + i)%count].GetConnection();
+                connection = _nodes[(offset + i) % count].GetConnection();
                 if (connection != null)
                     return connection;
             }

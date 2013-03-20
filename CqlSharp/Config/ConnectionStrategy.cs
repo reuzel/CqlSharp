@@ -33,6 +33,12 @@ namespace CqlSharp.Config
         /// <summary>
         ///   The exclusive strategy. Connections will not be shared between CqlConnection or CqlCommand instances.
         /// </summary>
-        Exclusive
+        Exclusive,
+
+        /// <summary>
+        /// Partition Aware strategy. Nodes and connections are selected based on supplied PartitionKey values. In some use
+        /// cases this may reduce inter-node communication and thereby increase performance.
+        /// </summary>
+        PartitionAware
     }
 }

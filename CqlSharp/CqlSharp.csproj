@@ -42,9 +42,18 @@
     <Reference Include="System" />
     <Reference Include="System.Configuration" />
     <Reference Include="System.Core" />
+    <Reference Include="System.Numerics" />
   </ItemGroup>
   <ItemGroup>
-    <Compile Include="CqlExecutionOptions.cs" />
+    <Compile Include="Network\PartitionAwareConnectionStrategy.cs" />
+    <Compile Include="Network\Partition\MurmurToken.cs" />
+    <Compile Include="Network\Partition\MurmurHash.cs" />
+    <Compile Include="Network\Partition\ByteArrayToken.cs" />
+    <Compile Include="Network\Partition\MD5Token.cs" />
+    <Compile Include="Network\Partition\IToken.cs" />
+    <Compile Include="Network\Partition\PartitionKey.cs" />
+    <Compile Include="Network\Partition\Ring.cs" />
+    <Compile Include="QueryExecutionState.cs" />
     <Compile Include="Network\BalancedConnectionStrategy.cs" />
     <Compile Include="Network\Cluster.cs" />
     <Compile Include="Config\ClusterConfig.cs" />
@@ -56,7 +65,6 @@
     <Compile Include="Network\IConnectionStrategy.cs" />
     <Compile Include="Network\LoadChangeEvent.cs" />
     <Compile Include="Network\MemoryPool.cs" />
-    <Compile Include="Network\NodeDiscovery.cs" />
     <Compile Include="Network\EnumerableExtensions.cs" />
     <Compile Include="Network\Node.cs" />
     <Compile Include="Network\RandomConnectionStrategy.cs" />

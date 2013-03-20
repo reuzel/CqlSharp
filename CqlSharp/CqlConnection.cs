@@ -15,6 +15,7 @@
 
 using CqlSharp.Config;
 using CqlSharp.Network;
+using CqlSharp.Network.Partition;
 using System;
 using System.Collections.Concurrent;
 using System.Threading;
@@ -96,6 +97,16 @@ namespace CqlSharp
         }
 
         /// <summary>
+        ///   Initializes a new instance of the <see cref="CqlConnection" /> class.
+        /// </summary>
+        /// <param name="cluster"> The cluster. </param>
+        internal CqlConnection(Cluster cluster)
+        {
+            _provider = cluster;
+            Throttle = cluster.Throttle;
+        }
+
+        /// <summary>
         ///   Gets or sets the throttle.
         /// </summary>
         /// <value> The throttle. </value>
@@ -124,7 +135,7 @@ namespace CqlSharp
             if (_disposed == 1)
                 throw new ObjectDisposedException("CqlConnection");
 
-            _connection = await _provider.GetOrCreateConnectionAsync();
+            _connection = await _provider.GetOrCreateConnectionAsync(PartitionKey.None);
 
             if (_connection == null)
                 throw new CqlException("Unable to obtain a Cql network connection.");
@@ -151,15 +162,15 @@ namespace CqlSharp
         ///   Gets the underlying connection. Will reopen this CqlConnection, if the underlying connection has failed,
         /// </summary>
         /// <returns> An open connection </returns>
-        internal async Task<Connection> GetConnectionAsync(bool newConnection = false)
+        internal async Task<Connection> GetConnectionAsync(bool newConnection = false, PartitionKey partitionKey = default(PartitionKey))
         {
             if (_disposed == 1)
                 throw new ObjectDisposedException("CqlConnection");
 
             //if new connection requested, get a new one from the provided
-            if (newConnection)
+            if (newConnection || partitionKey.IsSet)
             {
-                Connection connection = await _provider.GetOrCreateConnectionAsync();
+                Connection connection = await _provider.GetOrCreateConnectionAsync(partitionKey);
 
                 if (connection == null)
                     throw new CqlException("Unable to obtain a Cql network connection.");

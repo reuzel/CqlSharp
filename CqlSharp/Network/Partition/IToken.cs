@@ -13,27 +13,25 @@
 // See the License for the specific language governing permissions and
 // limitations under the License.
 
-using System.Threading.Tasks;
-using CqlSharp.Network.Partition;
+using System;
 
-namespace CqlSharp.Network
+namespace CqlSharp.Network.Partition
 {
     /// <summary>
-    ///   Provides access to connections to cassandra node(s)
+    /// Token as used to route a query to a node based on partition key column values.
     /// </summary>
-    internal interface IConnectionProvider
+    interface IToken : IComparable
     {
         /// <summary>
-        ///   Gets or creates a network connection to a cassandra node.
+        ///   Parses the specified token STR.
         /// </summary>
-        /// <param name="partitionKey"> </param>
-        /// <returns> Connection that is ready to use </returns>
-        Task<Connection> GetOrCreateConnectionAsync(PartitionKey partitionKey);
+        /// <param name="tokenStr"> The token STR. </param>
+        void Parse(string tokenStr);
 
         /// <summary>
-        ///   Returns the connection to the provider.
+        ///   Parses the specified partition key.
         /// </summary>
-        /// <param name="connection"> The connection. </param>
-        void ReturnConnection(Connection connection);
+        /// <param name="partitionKey"> The partition key. </param>
+        void Parse(byte[] partitionKey);
     }
 }
