@@ -13,15 +13,15 @@
 // See the License for the specific language governing permissions and
 // limitations under the License.
 
+using System;
+using System.Collections.Concurrent;
+using System.Net;
+using System.Threading.Tasks;
 using CqlSharp.Network;
 using CqlSharp.Network.Partition;
 using CqlSharp.Protocol;
 using CqlSharp.Protocol.Exceptions;
 using CqlSharp.Protocol.Frames;
-using System;
-using System.Collections.Concurrent;
-using System.Net;
-using System.Threading.Tasks;
 
 namespace CqlSharp
 {
@@ -33,10 +33,10 @@ namespace CqlSharp
         private readonly CqlConnection _connection;
         private readonly string _cql;
         private readonly CqlConsistency _level;
+        private readonly PartitionKey _partitionKey;
         private readonly ConcurrentDictionary<IPAddress, ResultFrame> _prepareResults;
         private CqlParameterCollection _parameters;
         private bool _prepared;
-        private readonly PartitionKey _partitionKey;
 
         /// <summary>
         ///   Initializes a new instance of the <see cref="CqlCommand" /> class.
@@ -101,20 +101,16 @@ namespace CqlSharp
         public bool UseParallelConnections { get; set; }
 
         /// <summary>
-        /// Indication of the load this query generates (e.g. the number of expected returned rows). Used by connection stratagies for balancing
-        /// queries over connections.
+        ///   Indication of the load this query generates (e.g. the number of expected returned rows). Used by connection stratagies for balancing
+        ///   queries over connections.
         /// </summary>
-        /// <value>
-        /// The load. Defaults to 1
-        /// </value>
+        /// <value> The load. Defaults to 1 </value>
         public int Load { get; set; }
 
         /// <summary>
-        /// The partition key, used to route queries to corresponding nodes in the cluster
+        ///   The partition key, used to route queries to corresponding nodes in the cluster
         /// </summary>
-        /// <value>
-        /// The partition key.
-        /// </value>
+        /// <value> The partition key. </value>
         public PartitionKey PartitionKey
         {
             get { return _partitionKey; }
@@ -167,7 +163,6 @@ namespace CqlSharp
         }
 
 
-
         /// <summary>
         ///   Executes the query async.
         /// </summary>
@@ -217,9 +212,9 @@ namespace CqlSharp
         }
 
         /// <summary>
-        /// Executes the query, and returns the value of the first column of the first row.
+        ///   Executes the query, and returns the value of the first column of the first row.
         /// </summary>
-        /// <returns></returns>
+        /// <returns> </returns>
         public async Task<object> ExecuteScalarAsync()
         {
             object result = null;
@@ -236,9 +231,9 @@ namespace CqlSharp
         }
 
         /// <summary>
-        /// Executes the query, and returns the value of the first column of the first row.
+        ///   Executes the query, and returns the value of the first column of the first row.
         /// </summary>
-        /// <returns></returns>
+        /// <returns> </returns>
         public object ExecuteScalar()
         {
             try
@@ -273,7 +268,7 @@ namespace CqlSharp
                         return new CqlDataReader(result);
 
                     case ResultOpcode.Void:
-                        return new CqlVoid { TracingId = result.TracingId };
+                        return new CqlVoid {TracingId = result.TracingId};
 
                     case ResultOpcode.SchemaChange:
                         return new CqlSchemaChange
@@ -345,9 +340,9 @@ namespace CqlSharp
         }
 
         /// <summary>
-        /// Captures the state.
+        ///   Captures the state.
         /// </summary>
-        /// <returns></returns>
+        /// <returns> </returns>
         private QueryExecutionState CaptureState()
         {
             var state = new QueryExecutionState
@@ -437,7 +432,7 @@ namespace CqlSharp
         ///   prepared.
         /// </summary>
         /// <param name="connection"> The connection. </param>
-        /// <param name="state">captured state</param>
+        /// <param name="state"> captured state </param>
         /// <returns> </returns>
         /// <exception cref="System.Exception">Unexpected frame received  + response.OpCode</exception>
         private async Task<ResultFrame> PrepareInternalAsync(Connection connection, QueryExecutionState state)

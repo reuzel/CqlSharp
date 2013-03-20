@@ -1,11 +1,26 @@
-﻿using System.Linq;
+﻿// CqlSharp - CqlSharpTest
+// Copyright (c) 2013 Joost Reuzel
+//   
+// Licensed under the Apache License, Version 2.0 (the "License");
+// you may not use this file except in compliance with the License.
+// You may obtain a copy of the License at
+//   
+// http://www.apache.org/licenses/LICENSE-2.0
+//  
+// Unless required by applicable law or agreed to in writing, software
+// distributed under the License is distributed on an "AS IS" BASIS,
+// WITHOUT WARRANTIES OR CONDITIONS OF ANY KIND, either express or implied.
+// See the License for the specific language governing permissions and
+// limitations under the License.
+
+using System;
+using System.Collections.Generic;
+using System.Linq;
+using System.Net;
+using System.Numerics;
 using CqlSharp;
 using CqlSharp.Protocol.Exceptions;
 using Microsoft.VisualStudio.TestTools.UnitTesting;
-using System;
-using System.Collections.Generic;
-using System.Net;
-using System.Numerics;
 
 namespace CqlSharpTest
 {
@@ -39,27 +54,6 @@ namespace CqlSharpTest
 ";
 
         private const string TruncateTableCql = @"truncate Test.Types;";
-
-        public class Types
-        {
-            public int aInt { get; set; }
-            public long aLong { get; set; }
-            public BigInteger aVarint { get; set; }
-            public string aTextString { get; set; }
-            public string aVarcharString { get; set; }
-            public string aASCIIString { get; set; }
-            public byte[] aBlob { get; set; }
-            public bool aBool { get; set; }
-            public double aDouble { get; set; }
-            public float aFloat { get; set; }
-            public DateTime aTimestamp { get; set; }
-            public Guid aTimeUUID { get; set; }
-            public Guid aUUID { get; set; }
-            public IPAddress aInet { get; set; }
-            public List<string> aList { get; set; }
-            public HashSet<int> aSet { get; set; }
-            public Dictionary<long, string> aMap { get; set; }
-        }
 
         [TestInitialize]
         public void Init()
@@ -137,14 +131,14 @@ namespace CqlSharpTest
             {
                 connection.Open();
 
-                var values = new Types()
+                var values = new Types
                                  {
                                      aASCIIString = "hello world!",
-                                     aBlob = new byte[] { 1, 2, 3, 4 },
+                                     aBlob = new byte[] {1, 2, 3, 4},
                                      aBool = true,
                                      aDouble = 1.234,
                                      aFloat = 5.789f,
-                                     aInet = new IPAddress(new byte[] { 127, 0, 0, 1 }),
+                                     aInet = new IPAddress(new byte[] {127, 0, 0, 1}),
                                      aInt = 10,
                                      aLong = 56789012456,
                                      aTextString = "some other text with \u005C unicode",
@@ -153,10 +147,10 @@ namespace CqlSharpTest
                                      aUUID = Guid.NewGuid(),
                                      aTimestamp = DateTime.Now,
                                      aVarint = new BigInteger(12345678901234),
-                                     aList = new List<string>() { "string 1", "string 2" },
-                                     aSet = new HashSet<int>() { 1, 3, 3 },
+                                     aList = new List<string> {"string 1", "string 2"},
+                                     aSet = new HashSet<int> {1, 3, 3},
                                      aMap =
-                                         new Dictionary<long, string>() { { 1, "value 1" }, { 2, "value 2" }, { 3, "value 3" } },
+                                         new Dictionary<long, string> {{1, "value 1"}, {2, "value 2"}, {3, "value 3"}},
                                  };
 
                 var insertCmd = new CqlCommand(connection, insertCql);
@@ -166,9 +160,9 @@ namespace CqlSharpTest
 
                 var selectCmd = new CqlCommand(connection, selectCql);
                 Types result = null;
-                using(var reader = selectCmd.ExecuteReader<Types>())
+                using (var reader = selectCmd.ExecuteReader<Types>())
                 {
-                    if(reader.Read())
+                    if (reader.Read())
                         result = reader.Current;
                 }
 
@@ -190,8 +184,31 @@ namespace CqlSharpTest
                 Assert.IsTrue(result.aList.SequenceEqual(values.aList));
                 Assert.IsTrue(result.aSet.SequenceEqual(values.aSet));
             }
-
-
         }
+
+        #region Nested type: Types
+
+        public class Types
+        {
+            public int aInt { get; set; }
+            public long aLong { get; set; }
+            public BigInteger aVarint { get; set; }
+            public string aTextString { get; set; }
+            public string aVarcharString { get; set; }
+            public string aASCIIString { get; set; }
+            public byte[] aBlob { get; set; }
+            public bool aBool { get; set; }
+            public double aDouble { get; set; }
+            public float aFloat { get; set; }
+            public DateTime aTimestamp { get; set; }
+            public Guid aTimeUUID { get; set; }
+            public Guid aUUID { get; set; }
+            public IPAddress aInet { get; set; }
+            public List<string> aList { get; set; }
+            public HashSet<int> aSet { get; set; }
+            public Dictionary<long, string> aMap { get; set; }
+        }
+
+        #endregion
     }
 }

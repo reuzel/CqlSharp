@@ -13,13 +13,13 @@
 // See the License for the specific language governing permissions and
 // limitations under the License.
 
-using CqlSharp.Config;
-using CqlSharp.Network;
-using CqlSharp.Network.Partition;
 using System;
 using System.Collections.Concurrent;
 using System.Threading;
 using System.Threading.Tasks;
+using CqlSharp.Config;
+using CqlSharp.Network;
+using CqlSharp.Network.Partition;
 
 namespace CqlSharp
 {
@@ -162,7 +162,8 @@ namespace CqlSharp
         ///   Gets the underlying connection. Will reopen this CqlConnection, if the underlying connection has failed,
         /// </summary>
         /// <returns> An open connection </returns>
-        internal async Task<Connection> GetConnectionAsync(bool newConnection = false, PartitionKey partitionKey = default(PartitionKey))
+        internal async Task<Connection> GetConnectionAsync(bool newConnection = false,
+                                                           PartitionKey partitionKey = default(PartitionKey))
         {
             if (_disposed == 1)
                 throw new ObjectDisposedException("CqlConnection");

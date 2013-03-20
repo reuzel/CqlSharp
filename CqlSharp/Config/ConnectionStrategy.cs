@@ -36,8 +36,8 @@ namespace CqlSharp.Config
         Exclusive,
 
         /// <summary>
-        /// Partition Aware strategy. Nodes and connections are selected based on supplied PartitionKey values. In some use
-        /// cases this may reduce inter-node communication and thereby increase performance.
+        ///   Partition Aware strategy. Nodes and connections are selected based on supplied PartitionKey values. In some use
+        ///   cases this may reduce inter-node communication and thereby increase performance.
         /// </summary>
         PartitionAware
     }

@@ -13,12 +13,12 @@
 // See the License for the specific language governing permissions and
 // limitations under the License.
 
-using CqlSharp.Network.Partition;
 using System;
 using System.Collections.Concurrent;
 using System.Collections.Generic;
 using System.Linq;
 using System.Reflection;
+using CqlSharp.Network.Partition;
 
 namespace CqlSharp.Serialization
 {
@@ -34,8 +34,8 @@ namespace CqlSharp.Serialization
             new ConcurrentDictionary<Type, ObjectAccessor>();
 
 
-        private readonly CqlType[] _partitionKeyTypes;
         private readonly ReadFunc[] _partitionKeyReadFuncs;
+        private readonly CqlType[] _partitionKeyTypes;
 
 
         /// <summary>
@@ -75,7 +75,7 @@ namespace CqlSharp.Serialization
                 table = type.Name;
 
             //check for CqlTable attribute
-            var tableAttribute = Attribute.GetCustomAttribute(type, typeof(CqlTableAttribute)) as CqlTableAttribute;
+            var tableAttribute = Attribute.GetCustomAttribute(type, typeof (CqlTableAttribute)) as CqlTableAttribute;
             if (tableAttribute != null)
             {
                 //overwrite keyspace if any
@@ -130,30 +130,32 @@ namespace CqlSharp.Serialization
             keyMembers.Sort((a, b) => a.Item1.CompareTo(b.Item1));
             _partitionKeyReadFuncs = keyMembers.Select(km => km.Item2).ToArray();
             _partitionKeyTypes = keyMembers.Select(km => km.Item3).ToArray();
-
         }
 
         /// <summary>
-        /// Sets the partition key member.
+        ///   Sets the partition key member.
         /// </summary>
-        /// <param name="member">The member.</param>
-        /// <param name="reader">The reader.</param>
+        /// <param name="member"> The member. </param>
+        /// <param name="reader"> The reader. </param>
         /// <exception cref="System.ArgumentException">CqlType must be set on ColumnAttribute if PartitionKeyIndex is set.</exception>
-        private void SetPartitionKeyMember(List<Tuple<int, ReadFunc, CqlType>> keyMembers, MemberInfo member, ReadFunc reader)
+        private void SetPartitionKeyMember(List<Tuple<int, ReadFunc, CqlType>> keyMembers, MemberInfo member,
+                                           ReadFunc reader)
         {
             //check for column attribute
             var columnAttribute =
-                Attribute.GetCustomAttribute(member, typeof(CqlColumnAttribute)) as CqlColumnAttribute;
+                Attribute.GetCustomAttribute(member, typeof (CqlColumnAttribute)) as CqlColumnAttribute;
 
             if (columnAttribute != null)
             {
                 if (columnAttribute.PartitionKeyIndex.HasValue)
                 {
                     if (!columnAttribute.CqlType.HasValue)
-                        throw new ArgumentException("CqlType must be set on ColumnAttribute if PartitionKeyIndex is set.");
+                        throw new ArgumentException(
+                            "CqlType must be set on ColumnAttribute if PartitionKeyIndex is set.");
 
                     //add the member
-                    keyMembers.Add(new Tuple<int, ReadFunc, CqlType>(columnAttribute.PartitionKeyIndex.Value, reader, columnAttribute.CqlType.Value));
+                    keyMembers.Add(new Tuple<int, ReadFunc, CqlType>(columnAttribute.PartitionKeyIndex.Value, reader,
+                                                                     columnAttribute.CqlType.Value));
                 }
             }
         }
@@ -165,7 +167,7 @@ namespace CqlSharp.Serialization
         /// <returns> Accessor for objects of type T </returns>
         public static ObjectAccessor GetAccessor<T>()
         {
-            Type type = typeof(T);
+            Type type = typeof (T);
             return Translators.GetOrAdd(type, (t) => new ObjectAccessor(t));
         }
 
@@ -182,7 +184,7 @@ namespace CqlSharp.Serialization
 
             //check for ignore attribute
             var ignoreAttribute =
-                Attribute.GetCustomAttribute(member, typeof(CqlIgnoreAttribute)) as CqlIgnoreAttribute;
+                Attribute.GetCustomAttribute(member, typeof (CqlIgnoreAttribute)) as CqlIgnoreAttribute;
 
             //return null if ignore attribute is set
             if (ignoreAttribute != null)
@@ -190,7 +192,7 @@ namespace CqlSharp.Serialization
 
             //check for column attribute
             var columnAttribute =
-                Attribute.GetCustomAttribute(member, typeof(CqlColumnAttribute)) as CqlColumnAttribute;
+                Attribute.GetCustomAttribute(member, typeof (CqlColumnAttribute)) as CqlColumnAttribute;
 
             if (columnAttribute != null)
             {

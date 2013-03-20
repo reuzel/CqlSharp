@@ -60,7 +60,7 @@ namespace CqlSharp
 
         internal byte[][] Values
         {
-            get { return (byte[][])_values.Clone(); }
+            get { return (byte[][]) _values.Clone(); }
         }
 
         /// <summary>

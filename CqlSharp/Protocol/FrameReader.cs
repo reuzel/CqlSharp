@@ -262,7 +262,7 @@ namespace CqlSharp.Protocol
                 int read = _remainingInBuffer;
                 while (read < size)
                 {
-                    int actual = await _innerStream.ReadAsync(buf, read, size - read);
+                    int actual = await ReadAsync(buf, read, size - read);
                     if (actual == 0)
                         throw new IOException("Unexpected end of stream reached");
 

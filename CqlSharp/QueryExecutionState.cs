@@ -13,7 +13,6 @@
 // See the License for the specific language governing permissions and
 // limitations under the License.
 
-
 namespace CqlSharp
 {
     /// <summary>
@@ -21,16 +20,13 @@ namespace CqlSharp
     /// </summary>
     internal struct QueryExecutionState
     {
-        public bool UseBuffering;
-
+        public int Load;
+        public byte[] PartitionKey;
         public bool TracingEnabled;
+        public bool UseBuffering;
 
         public bool UseParallelConnections;
 
         public byte[][] Values;
-
-        public byte[] PartitionKey;
-
-        public int Load;
     }
 }

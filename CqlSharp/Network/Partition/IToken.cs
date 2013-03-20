@@ -18,9 +18,9 @@ using System;
 namespace CqlSharp.Network.Partition
 {
     /// <summary>
-    /// Token as used to route a query to a node based on partition key column values.
+    ///   Token as used to route a query to a node based on partition key column values.
     /// </summary>
-    interface IToken : IComparable
+    internal interface IToken : IComparable
     {
         /// <summary>
         ///   Parses the specified token STR.

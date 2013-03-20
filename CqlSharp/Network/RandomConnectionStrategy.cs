@@ -13,11 +13,11 @@
 // See the License for the specific language governing permissions and
 // limitations under the License.
 
-using CqlSharp.Config;
-using CqlSharp.Network.Partition;
 using System;
 using System.Linq;
 using System.Threading.Tasks;
+using CqlSharp.Config;
+using CqlSharp.Network.Partition;
 
 namespace CqlSharp.Network
 {
@@ -39,7 +39,7 @@ namespace CqlSharp.Network
         {
             _nodes = nodes;
             _config = config;
-            _rnd = new Random((int)DateTime.Now.Ticks);
+            _rnd = new Random((int) DateTime.Now.Ticks);
         }
 
         #region IConnectionStrategy Members
@@ -61,7 +61,7 @@ namespace CqlSharp.Network
             {
                 try
                 {
-                    connection = _nodes[(offset + i) % count].GetConnection();
+                    connection = _nodes[(offset + i)%count].GetConnection();
                     if (connection != null && connection.Load < _config.NewConnectionTreshold)
                         return connection;
                 }
@@ -79,7 +79,7 @@ namespace CqlSharp.Network
                 {
                     try
                     {
-                        connection = await _nodes[(offset + i) % count].CreateConnectionAsync();
+                        connection = await _nodes[(offset + i)%count].CreateConnectionAsync();
                         if (connection != null)
                             return connection;
                     }
@@ -93,7 +93,7 @@ namespace CqlSharp.Network
             //iterate over nodes and get an existing one
             for (int i = 0; i < count; i++)
             {
-                connection = _nodes[(offset + i) % count].GetConnection();
+                connection = _nodes[(offset + i)%count].GetConnection();
                 if (connection != null)
                     return connection;
             }
