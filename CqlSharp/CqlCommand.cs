@@ -419,7 +419,7 @@ namespace CqlSharp
                         case ErrorCode.Overloaded:
                         case ErrorCode.Truncate:
                             //IO or node status related error, go for rerun
-                            break;
+                            continue;
                         default:
                             //some other Cql error (syntax ok?), quit
                             throw;
