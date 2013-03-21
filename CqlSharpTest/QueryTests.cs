@@ -26,7 +26,7 @@ namespace CqlSharpTest
     [TestClass]
     public class QueryTests
     {
-        private const string ConnectionString = "server=localhost;throttle=100";
+        private const string ConnectionString = "server=localhost;throttle=100;ConnectionStrategy=PartitionAware";
 
         [TestInitialize]
         public void Init()
@@ -84,8 +84,6 @@ namespace CqlSharpTest
         public async Task BasicFlow()
         {
             //Assume
-
-
             const string insertCql = @"insert into Test.BasicFlow (id,value) values (?,?);";
             const string retrieveCql = @"select * from Test.BasicFlow;";
 
