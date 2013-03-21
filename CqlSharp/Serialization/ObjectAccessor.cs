@@ -147,13 +147,13 @@ namespace CqlSharp.Serialization
 
             if (columnAttribute != null)
             {
-                if (columnAttribute.PartitionKeyIndex.HasValue)
+                if (columnAttribute.PartitionKeyIndex >= 0)
                 {
-                    if (!columnAttribute.CqlType.HasValue)
-                        throw new ArgumentException("CqlType must be set on ColumnAttribute if PartitionKeyIndex is set.");
+                    //if (!columnAttribute.CqlType.HasValue)
+                    //    throw new ArgumentException("CqlType must be set on ColumnAttribute if PartitionKeyIndex is set.");
 
                     //add the member
-                    keyMembers.Add(new Tuple<int, ReadFunc, CqlType>(columnAttribute.PartitionKeyIndex.Value, reader, columnAttribute.CqlType.Value));
+                    keyMembers.Add(new Tuple<int, ReadFunc, CqlType>(columnAttribute.PartitionKeyIndex, reader, columnAttribute.CqlType));
                 }
             }
         }

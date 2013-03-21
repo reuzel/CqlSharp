@@ -1,9 +1,10 @@
-﻿using System.Linq;
-using CqlSharp;
+﻿using CqlSharp;
 using CqlSharp.Protocol.Exceptions;
+using CqlSharp.Serialization;
 using Microsoft.VisualStudio.TestTools.UnitTesting;
 using System;
 using System.Collections.Generic;
+using System.Linq;
 using System.Net;
 using System.Numerics;
 
@@ -12,7 +13,7 @@ namespace CqlSharpTest
     [TestClass]
     public class SerializationTest
     {
-        private const string ConnectionString = "server=localhost;throttle=100;ConnectionStrategy=Exclusive";
+        private const string ConnectionString = "server=localhost;throttle=100;ConnectionStrategy=PartitionAware";
 
         private const string CreateKsCql =
             @"CREATE KEYSPACE Test WITH replication = {'class': 'SimpleStrategy', 'replication_factor' : 1} and durable_writes = 'false';";
@@ -42,6 +43,7 @@ namespace CqlSharpTest
 
         public class Types
         {
+            [CqlColumnAttribute("aint", CqlType = CqlType.Int, PartitionKeyIndex = 0)]
             public int aInt { get; set; }
             public long aLong { get; set; }
             public BigInteger aVarint { get; set; }
@@ -162,13 +164,14 @@ namespace CqlSharpTest
                 var insertCmd = new CqlCommand(connection, insertCql);
                 insertCmd.Prepare();
                 insertCmd.Parameters.Set(values);
+                insertCmd.PartitionKey.Set(values);
                 insertCmd.ExecuteNonQuery();
 
                 var selectCmd = new CqlCommand(connection, selectCql);
                 Types result = null;
-                using(var reader = selectCmd.ExecuteReader<Types>())
+                using (var reader = selectCmd.ExecuteReader<Types>())
                 {
-                    if(reader.Read())
+                    if (reader.Read())
                         result = reader.Current;
                 }
 

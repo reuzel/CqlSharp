@@ -14,6 +14,7 @@
 // limitations under the License.
 
 
+using CqlSharp.Network.Partition;
 namespace CqlSharp
 {
     /// <summary>
@@ -29,7 +30,7 @@ namespace CqlSharp
 
         public byte[][] Values;
 
-        public byte[] PartitionKey;
+        public PartitionKey PartitionKey;
 
         public int Load;
     }

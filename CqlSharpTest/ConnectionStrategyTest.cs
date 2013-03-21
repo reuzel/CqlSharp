@@ -53,6 +53,41 @@ namespace CqlSharpTest
         }
 
         [TestMethod]
+        public async Task BalancedStrategyManyRequestLowMaxConnections()
+        {
+            using (ShimsContext.Create())
+            {
+                //create config
+                var config = new ClusterConfig();
+                config.NewConnectionTreshold = 5;
+                config.MaxConnections = 6;
+
+                //create nodes
+                Node n1 = new Node(IPAddress.Parse("127.0.0.1"), config);
+                Node n2 = new Node(IPAddress.Parse("127.0.0.2"), config);
+                Node n3 = new Node(IPAddress.Parse("127.0.0.3"), config);
+                Node n4 = new Node(IPAddress.Parse("127.0.0.4"), config);
+                var nodes = new Ring(new List<Node>() { n1, n2, n3, n4 }, "RandomPartitioner");
+
+                ShimAllConnections();
+
+                IConnectionStrategy strategy = new BalancedConnectionStrategy(nodes, config);
+
+                int nr = 80;
+
+                for (int i = 0; i < nr; i++)
+                {
+                    var connection = await strategy.GetOrCreateConnectionAsync(PartitionKey.None);
+                    await connection.SendRequestAsync(new QueryFrame("", CqlSharp.CqlConsistency.Any), 10);
+
+                }
+
+                Assert.AreEqual(6, nodes.Sum(nd => nd.ConnectionCount));
+                Assert.IsTrue(nodes.All(n => n.Load == 80 * 10 / 4));
+            }
+        }
+
+        [TestMethod]
         public async Task BalancedStrategyTestMedTreshold()
         {
             using (ShimsContext.Create())
@@ -97,14 +132,13 @@ namespace CqlSharpTest
                 config.NewConnectionTreshold = 200;
 
                 //create nodes
-                Node n = new Node(IPAddress.Parse("127.0.0.1"), config);
+                Node n1 = new Node(IPAddress.Parse("127.0.0.1"), config);
                 Node n2 = new Node(IPAddress.Parse("127.0.0.2"), config);
                 Node n3 = new Node(IPAddress.Parse("127.0.0.3"), config);
                 Node n4 = new Node(IPAddress.Parse("127.0.0.4"), config);
-                var nodes = new Ring(new List<Node>() { n, n2, n3, n4 }, "RandomPartitioner");
+                var nodes = new Ring(new List<Node>() { n1, n2, n3, n4 }, "RandomPartitioner");
 
                 ShimAllConnections();
-
 
                 IConnectionStrategy strategy = new BalancedConnectionStrategy(nodes, config);
 

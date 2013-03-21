@@ -32,7 +32,7 @@ namespace CqlSharp.Network
         public async Task<Connection> GetOrCreateConnectionAsync(PartitionKey partitionKey)
         {
             //try based on partition first
-            if (partitionKey.IsSet)
+            if (partitionKey != null && partitionKey.IsSet)
             {
                 var nodes = _nodes.GetResponsibleNodes(partitionKey).Where(n => n.IsUp).OrderBy(n => n.Load);
 

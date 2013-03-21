@@ -168,7 +168,7 @@ namespace CqlSharp
                 throw new ObjectDisposedException("CqlConnection");
 
             //if new connection requested, get a new one from the provided
-            if (newConnection || partitionKey.IsSet)
+            if (newConnection || (partitionKey != null && partitionKey.IsSet))
             {
                 Connection connection = await _provider.GetOrCreateConnectionAsync(partitionKey);
 

@@ -13,6 +13,7 @@
 // See the License for the specific language governing permissions and
 // limitations under the License.
 
+using CqlSharp.Network;
 using System;
 using System.Collections.Concurrent;
 using System.Collections.Generic;
@@ -20,7 +21,6 @@ using System.IO;
 using System.Net;
 using System.Text;
 using System.Threading.Tasks;
-using CqlSharp.Network;
 
 namespace CqlSharp.Protocol
 {
@@ -29,7 +29,7 @@ namespace CqlSharp.Protocol
     /// </summary>
     internal class FrameReader : IDisposable
     {
-        private const int CacheSize = 2*1024; //cache int and short values up to 2048
+        private const int CacheSize = 2 * 1024; //cache int and short values up to 2048
 
         private static readonly ConcurrentDictionary<byte, Task<byte>> ByteTaskCache =
             new ConcurrentDictionary<byte, Task<byte>>();
@@ -262,7 +262,7 @@ namespace CqlSharp.Protocol
                 int read = _remainingInBuffer;
                 while (read < size)
                 {
-                    int actual = await _innerStream.ReadAsync(buf, read, size - read);
+                    int actual = await ReadAsync(buf, read, size - read);
                     if (actual == 0)
                         throw new IOException("Unexpected end of stream reached");
 

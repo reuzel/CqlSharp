@@ -9,7 +9,7 @@ namespace CqlSharp.Network.Partition
     /// <summary>
     /// Key indicating the storage partition a row belongs to
     /// </summary>
-    public struct PartitionKey
+    public class PartitionKey
     {
         /// <summary>
         /// The none
@@ -30,6 +30,16 @@ namespace CqlSharp.Network.Partition
         internal byte[] Key
         {
             get { return _key == null ? null : (byte[])_key.Clone(); }
+        }
+
+        /// <summary>
+        /// Copies this instance.
+        /// </summary>
+        /// <returns></returns>
+        internal PartitionKey Copy()
+        {
+            byte[] key = Key;
+            return new PartitionKey() { _key = key };
         }
 
         /// <summary>
@@ -126,16 +136,6 @@ namespace CqlSharp.Network.Partition
         public override int GetHashCode()
         {
             return (_key != null ? _key.GetHashCode() : 0);
-        }
-
-        public static bool operator ==(PartitionKey left, PartitionKey right)
-        {
-            return left.Equals(right);
-        }
-
-        public static bool operator !=(PartitionKey left, PartitionKey right)
-        {
-            return !left.Equals(right);
         }
     }
 }

@@ -26,7 +26,7 @@ namespace CqlSharpTest
     [TestClass]
     public class QueryTests
     {
-        private const string ConnectionString = "server=localhost;throttle=100;ConnectionStrategy=Exclusive";
+        private const string ConnectionString = "server=localhost;throttle=100";
 
         [TestInitialize]
         public void Init()
@@ -104,6 +104,7 @@ namespace CqlSharpTest
                 for (int i = 0; i < insertCount; i++)
                 {
                     var b = new BasicFlowData { Id = i, Data = "Hallo " + i };
+                    cmd.PartitionKey.Set(b);
                     cmd.Parameters.Set(b);
 
                     executions[i] = cmd.ExecuteNonQueryAsync();
@@ -137,6 +138,7 @@ namespace CqlSharpTest
         [CqlTable("BasicFlow", Keyspace = "Test")]
         public class BasicFlowData
         {
+            [CqlColumn("id", PartitionKeyIndex = 0, CqlType = CqlType.Int)]
             public int Id;
 
             [CqlColumn("value")]

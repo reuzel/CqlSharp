@@ -36,7 +36,7 @@ namespace CqlSharp
         private readonly ConcurrentDictionary<IPAddress, ResultFrame> _prepareResults;
         private CqlParameterCollection _parameters;
         private bool _prepared;
-        private readonly PartitionKey _partitionKey;
+        private PartitionKey _partitionKey;
 
         /// <summary>
         ///   Initializes a new instance of the <see cref="CqlCommand" /> class.
@@ -52,7 +52,6 @@ namespace CqlSharp
             _level = level;
             _prepareResults = new ConcurrentDictionary<IPAddress, ResultFrame>();
             _prepared = false;
-            _partitionKey = new PartitionKey();
             Load = 1;
         }
 
@@ -117,7 +116,13 @@ namespace CqlSharp
         /// </value>
         public PartitionKey PartitionKey
         {
-            get { return _partitionKey; }
+            get
+            {
+                if (_partitionKey == null)
+                    _partitionKey = new PartitionKey();
+
+                return _partitionKey;
+            }
         }
 
         /// <summary>
@@ -356,7 +361,7 @@ namespace CqlSharp
                                 TracingEnabled = EnableTracing,
                                 UseBuffering = UseBuffering,
                                 UseParallelConnections = UseParallelConnections,
-                                PartitionKey = PartitionKey.Key,
+                                PartitionKey = PartitionKey != null ? PartitionKey.Copy() : null,
                                 Load = Load
                             };
             return state;
@@ -399,7 +404,7 @@ namespace CqlSharp
                 bool newConn = state.UseParallelConnections;
 
                 //get me a connection
-                Connection connection = await _connection.GetConnectionAsync(newConn);
+                Connection connection = await _connection.GetConnectionAsync(newConn, state.PartitionKey);
                 try
                 {
                     ResultFrame result = await executeFunc(connection, state);

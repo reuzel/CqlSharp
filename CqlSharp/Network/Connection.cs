@@ -96,7 +96,7 @@ namespace CqlSharp.Network
             get
             {
                 return _connectionState == 2 ||
-                       (_load == 0 &&
+                       (_readOpsCount == 0 &&
                         (DateTime.Now.Ticks - Interlocked.Read(ref _lastActivity)) > _config.MaxConnectionIdleTime.Ticks);
             }
         }
@@ -367,8 +367,8 @@ namespace CqlSharp.Network
                                                        _openRequests.Remove(req.Key);
                                                        _availableQueryIds.Enqueue(req.Key);
 
-                                                       //finalize response wait task with exception
-                                                       req.Value.SetException(ex);
+                                                       //finalize response wait task with exception (if not completed yet)
+                                                       req.Value.TrySetException(ex);
 
                                                        //decrease operation count
                                                        ops = Interlocked.Decrement(ref _readOpsCount);

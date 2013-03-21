@@ -372,7 +372,7 @@ namespace CqlSharp.Network
                 }
 
                 //remove clean up timer when this node does not have any connections left
-                if (_connections.Count == 0)
+                if (_connections.Count == 0 && _connectionCleanupTimer != null)
                 {
                     _connectionCleanupTimer.Dispose();
                     _connectionCleanupTimer = null;
