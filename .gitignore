@@ -52,6 +52,9 @@ ipch/
 *.sdf
 *.cachefile
 
+#Fakes
+FakesAssemblies/
+
 # Visual Studio profiler
 *.psess
 *.vsp
