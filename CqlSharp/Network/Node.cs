@@ -13,8 +13,6 @@
 // See the License for the specific language governing permissions and
 // limitations under the License.
 
-using CqlSharp.Config;
-using CqlSharp.Network.Partition;
 using System;
 using System.Collections;
 using System.Collections.Generic;
@@ -22,6 +20,8 @@ using System.Linq;
 using System.Net;
 using System.Threading;
 using System.Threading.Tasks;
+using CqlSharp.Config;
+using CqlSharp.Network.Partition;
 
 namespace CqlSharp.Network
 {
@@ -93,100 +93,27 @@ namespace CqlSharp.Network
         }
 
         /// <summary>
-        /// Returns an enumerator that iterates through the collection.
-        /// </summary>
-        /// <returns>
-        /// A <see cref="T:System.Collections.Generic.IEnumerator`1"/> that can be used to iterate through the collection.
-        /// </returns>
-        /// <filterpriority>1</filterpriority>
-        public IEnumerator<Connection> GetEnumerator()
-        {
-            _connectionLock.Wait();
-            var connections = new List<Connection>(_connections);
-            _connectionLock.Release();
-
-            return ((IEnumerable<Connection>)connections).GetEnumerator();
-        }
-
-        /// <summary>
-        /// Determines whether the specified <see cref="System.Object" /> is equal to this instance.
-        /// </summary>
-        /// <param name="obj">The <see cref="System.Object" /> to compare with this instance.</param>
-        /// <returns>
-        ///   <c>true</c> if the specified <see cref="System.Object" /> is equal to this instance; otherwise, <c>false</c>.
-        /// </returns>
-        public override bool Equals(object obj)
-        {
-            if (ReferenceEquals(null, obj)) return false;
-            if (ReferenceEquals(this, obj)) return true;
-            if (obj.GetType() != this.GetType()) return false;
-            return Equals((Node)obj);
-        }
-
-        /// <summary>
-        /// Determines whether the specified <see cref="Node" /> is equal to this instance.
-        /// </summary>
-        /// <param name="other">The other.</param>
-        /// <returns></returns>
-        protected bool Equals(Node other)
-        {
-            return Equals(Address, other.Address) && _config.Port == other._config.Port;
-        }
-
-        /// <summary>
-        /// Returns a hash code for this instance.
-        /// </summary>
-        /// <returns>
-        /// A hash code for this instance, suitable for use in hashing algorithms and data structures like a hash table. 
-        /// </returns>
-        public override int GetHashCode()
-        {
-            unchecked
-            {
-                return ((Address != null ? Address.GetHashCode() : 0) * 397) ^ _config.Port;
-            }
-        }
-
-        /// <summary>
-        /// Returns an enumerator that iterates through a collection.
-        /// </summary>
-        /// <returns>
-        /// An <see cref="T:System.Collections.IEnumerator"/> object that can be used to iterate through the collection.
-        /// </returns>
-        /// <filterpriority>2</filterpriority>
-        IEnumerator IEnumerable.GetEnumerator()
-        {
-            return GetEnumerator();
-        }
-
-        /// <summary>
         ///   Gets the address of the node.
         /// </summary>
         /// <value> The address. </value>
         public IPAddress Address { get; private set; }
 
         /// <summary>
-        /// Gets or sets the data center.
+        ///   Gets or sets the data center.
         /// </summary>
-        /// <value>
-        /// The data center.
-        /// </value>
+        /// <value> The data center. </value>
         public string DataCenter { get; set; }
 
         /// <summary>
-        /// Gets or sets the rack.
+        ///   Gets or sets the rack.
         /// </summary>
-        /// <value>
-        /// The rack.
-        /// </value>
+        /// <value> The rack. </value>
         public string Rack { get; set; }
 
         /// <summary>
-        /// Gets or sets the tokens.
+        ///   Gets or sets the tokens.
         /// </summary>
-        /// <value>
-        /// The tokens.
-        /// </value>
+        /// <value> The tokens. </value>
         public ISet<string> Tokens { get; set; }
 
         /// <summary>
@@ -218,7 +145,7 @@ namespace CqlSharp.Network
         /// <summary>
         ///   Gets an existing connection, or creates one if treshold is reached.
         /// </summary>
-        /// <param name="partitionKey">ignored</param>
+        /// <param name="partitionKey"> ignored </param>
         /// <returns> </returns>
         public async Task<Connection> GetOrCreateConnectionAsync(PartitionKey partitionKey)
         {
@@ -243,6 +170,69 @@ namespace CqlSharp.Network
 
         #endregion
 
+        #region IEnumerable<Connection> Members
+
+        /// <summary>
+        ///   Returns an enumerator that iterates through the collection.
+        /// </summary>
+        /// <returns> A <see cref="T:System.Collections.Generic.IEnumerator`1" /> that can be used to iterate through the collection. </returns>
+        /// <filterpriority>1</filterpriority>
+        public IEnumerator<Connection> GetEnumerator()
+        {
+            _connectionLock.Wait();
+            var connections = new List<Connection>(_connections);
+            _connectionLock.Release();
+
+            return ((IEnumerable<Connection>) connections).GetEnumerator();
+        }
+
+        /// <summary>
+        ///   Returns an enumerator that iterates through a collection.
+        /// </summary>
+        /// <returns> An <see cref="T:System.Collections.IEnumerator" /> object that can be used to iterate through the collection. </returns>
+        /// <filterpriority>2</filterpriority>
+        IEnumerator IEnumerable.GetEnumerator()
+        {
+            return GetEnumerator();
+        }
+
+        #endregion
+
+        /// <summary>
+        ///   Determines whether the specified <see cref="System.Object" /> is equal to this instance.
+        /// </summary>
+        /// <param name="obj"> The <see cref="System.Object" /> to compare with this instance. </param>
+        /// <returns> <c>true</c> if the specified <see cref="System.Object" /> is equal to this instance; otherwise, <c>false</c> . </returns>
+        public override bool Equals(object obj)
+        {
+            if (ReferenceEquals(null, obj)) return false;
+            if (ReferenceEquals(this, obj)) return true;
+            if (obj.GetType() != this.GetType()) return false;
+            return Equals((Node) obj);
+        }
+
+        /// <summary>
+        ///   Determines whether the specified <see cref="Node" /> is equal to this instance.
+        /// </summary>
+        /// <param name="other"> The other. </param>
+        /// <returns> </returns>
+        protected bool Equals(Node other)
+        {
+            return Equals(Address, other.Address) && _config.Port == other._config.Port;
+        }
+
+        /// <summary>
+        ///   Returns a hash code for this instance.
+        /// </summary>
+        /// <returns> A hash code for this instance, suitable for use in hashing algorithms and data structures like a hash table. </returns>
+        public override int GetHashCode()
+        {
+            unchecked
+            {
+                return ((Address != null ? Address.GetHashCode() : 0)*397) ^ _config.Port;
+            }
+        }
+
         /// <summary>
         ///   Fails this instance. Triggers the failure timer
         /// </summary>
@@ -254,7 +244,7 @@ namespace CqlSharp.Network
                 IsUp = false;
 
                 //calculate the time, before retry
-                int due = Math.Min(_config.MaxDownTime, 2 ^ (_failureCount) * _config.MinDownTime);
+                int due = Math.Min(_config.MaxDownTime, 2 ^ (_failureCount)*_config.MinDownTime);
 
                 //next time wait a bit longer before accepting new connections (but not too long)
                 if (due < _config.MaxDownTime) _failureCount++;

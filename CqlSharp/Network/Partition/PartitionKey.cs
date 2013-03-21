@@ -1,35 +1,48 @@
-using CqlSharp.Protocol;
-using CqlSharp.Serialization;
+// CqlSharp - CqlSharp
+// Copyright (c) 2013 Joost Reuzel
+//   
+// Licensed under the Apache License, Version 2.0 (the "License");
+// you may not use this file except in compliance with the License.
+// You may obtain a copy of the License at
+//   
+// http://www.apache.org/licenses/LICENSE-2.0
+//  
+// Unless required by applicable law or agreed to in writing, software
+// distributed under the License is distributed on an "AS IS" BASIS,
+// WITHOUT WARRANTIES OR CONDITIONS OF ANY KIND, either express or implied.
+// See the License for the specific language governing permissions and
+// limitations under the License.
+
 using System;
 using System.IO;
 using System.Linq;
+using CqlSharp.Protocol;
+using CqlSharp.Serialization;
 
 namespace CqlSharp.Network.Partition
 {
     /// <summary>
-    /// Key indicating the storage partition a row belongs to
+    ///   Key indicating the storage partition a row belongs to
     /// </summary>
     public class PartitionKey
     {
         /// <summary>
-        /// The none
+        ///   The none
         /// </summary>
         public static readonly PartitionKey None = default(PartitionKey);
 
         /// <summary>
-        /// The actual partition key value
+        ///   The actual partition key value
         /// </summary>
         private byte[] _key;
 
         /// <summary>
-        /// Gets the partition key value
+        ///   Gets the partition key value
         /// </summary>
-        /// <value>
-        /// The key.
-        /// </value>
+        /// <value> The key. </value>
         internal byte[] Key
         {
-            get { return _key == null ? null : (byte[])_key.Clone(); }
+            get { return _key == null ? null : (byte[]) _key.Clone(); }
         }
 
         /// <summary>
@@ -45,19 +58,17 @@ namespace CqlSharp.Network.Partition
         /// <summary>
         /// Gets a value indicating whether a value is set for this PartitionKey
         /// </summary>
-        /// <value>
-        ///   <c>true</c> if this instance is set; otherwise, <c>false</c>.
-        /// </value>
+        /// <value> <c>true</c> if this instance is set; otherwise, <c>false</c> . </value>
         public bool IsSet
         {
             get { return _key != null; }
         }
 
         /// <summary>
-        /// Sets the partition key to the provided value
+        ///   Sets the partition key to the provided value
         /// </summary>
-        /// <param name="type">The type in which the value is represented in Cassandra.</param>
-        /// <param name="value">The value of the partition key column.</param>
+        /// <param name="type"> The type in which the value is represented in Cassandra. </param>
+        /// <param name="value"> The value of the partition key column. </param>
         public void Set(CqlType type, Object value)
         {
             if (value == null)
@@ -67,10 +78,10 @@ namespace CqlSharp.Network.Partition
         }
 
         /// <summary>
-        /// Sets the partition key based on the provided values. Use this when composite partition keys are used
+        ///   Sets the partition key based on the provided values. Use this when composite partition keys are used
         /// </summary>
-        /// <param name="types">The types in which the values are represented in Cassandra.</param>
-        /// <param name="values">The values of the partition key columns. The values must be given in the same order as the partition key is defined.</param>
+        /// <param name="types"> The types in which the values are represented in Cassandra. </param>
+        /// <param name="values"> The values of the partition key columns. The values must be given in the same order as the partition key is defined. </param>
         public void Set(CqlType[] types, Object[] values)
         {
             if (types == null)
@@ -89,7 +100,7 @@ namespace CqlSharp.Network.Partition
                 rawValues[i] = ValueSerialization.Serialize(types[i], values[i]);
             }
 
-            int length = types.Length * 3 + rawValues.Sum(val => val.Length);
+            int length = types.Length*3 + rawValues.Sum(val => val.Length);
             using (var stream = new MemoryStream(length))
             {
                 foreach (var rawValue in rawValues)
@@ -103,11 +114,11 @@ namespace CqlSharp.Network.Partition
         }
 
         /// <summary>
-        /// Sets the partitionkey based on the provided data object. Use CqlColumnAttribute to mark
-        /// the relevant columns as PartitionKey column.
+        ///   Sets the partitionkey based on the provided data object. Use CqlColumnAttribute to mark
+        ///   the relevant columns as PartitionKey column.
         /// </summary>
-        /// <typeparam name="T"></typeparam>
-        /// <param name="data">The data.</param>
+        /// <typeparam name="T"> </typeparam>
+        /// <param name="data"> The data. </param>
         public void Set<T>(T data)
         {
             var accessor = ObjectAccessor.GetAccessor<T>();
@@ -115,7 +126,7 @@ namespace CqlSharp.Network.Partition
         }
 
         /// <summary>
-        /// Clears this instance.
+        ///   Clears this instance.
         /// </summary>
         public void Clear()
         {
@@ -130,7 +141,7 @@ namespace CqlSharp.Network.Partition
         public override bool Equals(object obj)
         {
             if (ReferenceEquals(null, obj)) return false;
-            return obj is PartitionKey && Equals((PartitionKey)obj);
+            return obj is PartitionKey && Equals((PartitionKey) obj);
         }
 
         public override int GetHashCode()

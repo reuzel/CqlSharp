@@ -13,10 +13,6 @@
 // See the License for the specific language governing permissions and
 // limitations under the License.
 
-using CqlSharp.Config;
-using CqlSharp.Protocol;
-using CqlSharp.Protocol.Exceptions;
-using CqlSharp.Protocol.Frames;
 using System;
 using System.Collections.Generic;
 using System.IO;
@@ -25,6 +21,10 @@ using System.Net;
 using System.Net.Sockets;
 using System.Threading;
 using System.Threading.Tasks;
+using CqlSharp.Config;
+using CqlSharp.Protocol;
+using CqlSharp.Protocol.Exceptions;
+using CqlSharp.Protocol.Frames;
 
 namespace CqlSharp.Network
 {
@@ -43,11 +43,11 @@ namespace CqlSharp.Network
         private readonly IDictionary<int, TaskCompletionSource<Frame>> _openRequests;
 
         private readonly SemaphoreSlim _writeLock;
+        private int _activeRequests;
         private TcpClient _client;
         private int _connectionState; //0=disconnected, 1=connected, 2=failed/closed
         private long _lastActivity;
         private int _load;
-        private int _readOpsCount;
         private Stream _readStream;
         private Stream _writeStream;
 
@@ -71,7 +71,7 @@ namespace CqlSharp.Network
             _frameSubmitLock = new SemaphoreSlim(MaxStreams);
 
             //setup state
-            _readOpsCount = 0;
+            _activeRequests = 0;
             _load = 0;
             _connectionState = 0;
         }
@@ -96,7 +96,7 @@ namespace CqlSharp.Network
             get
             {
                 return _connectionState == 2 ||
-                       (_readOpsCount == 0 &&
+                       (_activeRequests == 0 &&
                         (DateTime.Now.Ticks - Interlocked.Read(ref _lastActivity)) > _config.MaxConnectionIdleTime.Ticks);
             }
         }
@@ -107,7 +107,7 @@ namespace CqlSharp.Network
         /// <value> The active requests. </value>
         public int ActiveRequests
         {
-            get { return _readOpsCount; }
+            get { return _activeRequests; }
         }
 
         /// <summary>
@@ -148,7 +148,7 @@ namespace CqlSharp.Network
             Interlocked.Exchange(ref _lastActivity, DateTime.Now.Ticks);
 
             EventHandler<LoadChangeEvent> handler = OnLoadChange;
-            if (handler != null) handler(this, new LoadChangeEvent { LoadDelta = load });
+            if (handler != null) handler(this, new LoadChangeEvent {LoadDelta = load});
         }
 
         /// <summary>
@@ -184,7 +184,7 @@ namespace CqlSharp.Network
                 }
 
                 if (OnConnectionChange != null)
-                    OnConnectionChange(this, new ConnectionChangeEvent { Exception = error, Connected = false });
+                    OnConnectionChange(this, new ConnectionChangeEvent {Exception = error, Connected = false});
 
                 OnConnectionChange = null;
                 OnLoadChange = null;
@@ -223,6 +223,9 @@ namespace CqlSharp.Network
                 _writeStream = _client.GetStream();
                 _readStream = _client.GetStream();
 
+                //start readloop
+                StartReading();
+
                 //submit startup frame
                 var startup = new StartupFrame(_config.CqlVersion);
                 Frame response = await SendRequestAsync(startup);
@@ -244,7 +247,7 @@ namespace CqlSharp.Network
                     throw new ProtocolException(0, "Expected Ready frame not received");
 
                 if (OnConnectionChange != null)
-                    OnConnectionChange(this, new ConnectionChangeEvent { Connected = true });
+                    OnConnectionChange(this, new ConnectionChangeEvent {Connected = true});
             }
             catch (Exception ex)
             {
@@ -267,6 +270,9 @@ namespace CqlSharp.Network
 
             try
             {
+                //count the operation
+                Interlocked.Increment(ref _activeRequests);
+
                 //wait until allowed to submit a frame
                 await _frameSubmitLock.WaitAsync();
 
@@ -277,7 +283,11 @@ namespace CqlSharp.Network
                 byte id;
                 lock (_availableQueryIds)
                 {
-                    id = (byte)_availableQueryIds.Dequeue();
+                    //final check to make sure we are connected (we may just be killing the connection)
+                    if (_connectionState != 1)
+                        throw new IOException("Not connected");
+
+                    id = (byte) _availableQueryIds.Dequeue();
                     _openRequests.Add(id, waitTask);
                 }
 
@@ -291,9 +301,6 @@ namespace CqlSharp.Network
                     await _writeLock.WaitAsync();
                     await frame.WriteToStream(_writeStream);
                     _writeLock.Release();
-
-                    //start reading responses
-                    StartReading();
 
                     //wait until response is received
                     Frame response = await waitTask.Task;
@@ -310,7 +317,11 @@ namespace CqlSharp.Network
                 }
                 finally
                 {
+                    //allow another frame to be send
+                    _frameSubmitLock.Release();
+
                     //reduce load, we are done
+                    Interlocked.Decrement(ref _activeRequests);
                     UpdateLoad(-load);
                 }
             }
@@ -340,42 +351,12 @@ namespace CqlSharp.Network
         }
 
         /// <summary>
-        ///   Starts a readloop if none is already running.
+        ///   Starts a readloop
         /// </summary>
-        private void StartReading()
-        {
-            int ops = Interlocked.Increment(ref _readOpsCount);
-
-            //start reading if we are the first frame to be received (if not, another task is already reading)
-            if (ops == 1)
-            {
-                Task.Run(async () =>
+        private async void StartReading()
                                    {
-                                       //while packets waiting to be received, do
-                                       while (ops > 0)
-                                       {
-                                           if (_connectionState == 2) //closed or failed
-                                           {
-                                               lock (_availableQueryIds)
-                                               {
-                                                   var ex = new IOException("Connection closed.");
-                                                   List<KeyValuePair<int, TaskCompletionSource<Frame>>> openReqs =
-                                                       _openRequests.ToList();
-                                                   foreach (var req in openReqs)
-                                                   {
-                                                       //remove request
-                                                       _openRequests.Remove(req.Key);
-                                                       _availableQueryIds.Enqueue(req.Key);
-
-                                                       //finalize response wait task with exception (if not completed yet)
-                                                       req.Value.TrySetException(ex);
-
-                                                       //decrease operation count
-                                                       ops = Interlocked.Decrement(ref _readOpsCount);
-                                                   }
-                                               }
-                                           }
-                                           else
+                                       //while connected do
+            while (_connectionState == 1)
                                            {
                                                try
                                                {
@@ -400,23 +381,30 @@ namespace CqlSharp.Network
                                                        _availableQueryIds.Enqueue(id);
                                                        _openRequests.Remove(id);
                                                    }
-
-                                                   //allow another frame to be send
-                                                   _frameSubmitLock.Release();
-
-                                                   //decrease operation count
-                                                   ops = Interlocked.Decrement(ref _readOpsCount);
                                                }
                                                catch (Exception ex)
                                                {
                                                    //error occured during read operaton, assume connection is dead, switch state
                                                    Dispose(true, ex);
-
-                                                   //in next loop round, waiting frames will receive error, allowing them to be rescheduled
                                                }
                                            }
+
+            lock (_availableQueryIds)
+            {
+                var ex = new IOException("Connection closed.");
+
+                //iterate over all requests and have them throw an exception
+                foreach (var req in _openRequests)
+                {
+                    //remove request
+                    _openRequests.Remove(req.Key);
+                    _availableQueryIds.Enqueue(req.Key);
+
+                    //finalize response wait task with exception
+                    TaskCompletionSource<Frame> waitTask = req.Value;
+                    Task failOpenRequestTask =
+                        Task.Run(() => waitTask.TrySetException(ex));
                                        }
-                                   });
             }
         }
     }

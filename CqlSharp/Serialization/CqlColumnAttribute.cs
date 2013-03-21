@@ -32,18 +32,16 @@ namespace CqlSharp.Serialization
         }
 
         /// <summary>
-        /// Gets the name of the column
+        ///   Gets the name of the column
         /// </summary>
-        /// <value>
-        /// The column.
-        /// </value>
+        /// <value> The column. </value>
         public string Column
         {
             get { return _column; }
         }
 
         /// <summary>
-        /// Gets or sets the Cql type of the column (only necessary if it is used as PartitionKey)
+        ///   Gets or sets the Cql type of the column (only necessary if it is used as PartitionKey)
         /// </summary>
         /// <value>
         /// The type of the CQL.
@@ -51,7 +49,7 @@ namespace CqlSharp.Serialization
         public CqlType CqlType { get; set; }
 
         /// <summary>
-        /// Gets or sets the index of column in the partition key.
+        ///   Gets or sets the index of column in the partition key.
         /// </summary>
         /// <value>
         /// The index of the partition key.

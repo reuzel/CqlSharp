@@ -13,11 +13,11 @@
 // See the License for the specific language governing permissions and
 // limitations under the License.
 
-using CqlSharp.Config;
-using CqlSharp.Network.Partition;
 using System.Collections.Generic;
 using System.Linq;
 using System.Threading.Tasks;
+using CqlSharp.Config;
+using CqlSharp.Network.Partition;
 
 namespace CqlSharp.Network
 {
@@ -55,7 +55,8 @@ namespace CqlSharp.Network
         public async Task<Connection> GetOrCreateConnectionAsync(PartitionKey partitionKey)
         {
             //Sort the nodes by load (used first)
-            var nodesByLoad = new List<Node>(_nodes.Where(n => n.IsUp).OrderBy(n => n.ConnectionCount > 0 ? n.Load : int.MaxValue));
+            var nodesByLoad =
+                new List<Node>(_nodes.Where(n => n.IsUp).OrderBy(n => n.ConnectionCount > 0 ? n.Load : int.MaxValue));
 
             int index = 0;
 
@@ -80,13 +81,13 @@ namespace CqlSharp.Network
                 {
                     try
                     {
-                        Node node = nodesByLoad[(index + i) % nodesByLoad.Count];
+                        Node node = nodesByLoad[(index + i)%nodesByLoad.Count];
                         Connection connection = await node.CreateConnectionAsync();
 
                         if (connection != null)
                             return connection;
                     }
-                    // ReSharper disable EmptyGeneralCatchClause
+                        // ReSharper disable EmptyGeneralCatchClause
                     catch
                     {
                         //ignore, errors handled within node, try to create another one at the next node

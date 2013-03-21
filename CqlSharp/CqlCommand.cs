@@ -100,20 +100,16 @@ namespace CqlSharp
         public bool UseParallelConnections { get; set; }
 
         /// <summary>
-        /// Indication of the load this query generates (e.g. the number of expected returned rows). Used by connection stratagies for balancing
-        /// queries over connections.
+        ///   Indication of the load this query generates (e.g. the number of expected returned rows). Used by connection stratagies for balancing
+        ///   queries over connections.
         /// </summary>
-        /// <value>
-        /// The load. Defaults to 1
-        /// </value>
+        /// <value> The load. Defaults to 1 </value>
         public int Load { get; set; }
 
         /// <summary>
-        /// The partition key, used to route queries to corresponding nodes in the cluster
+        ///   The partition key, used to route queries to corresponding nodes in the cluster
         /// </summary>
-        /// <value>
-        /// The partition key.
-        /// </value>
+        /// <value> The partition key. </value>
         public PartitionKey PartitionKey
         {
             get
@@ -222,9 +218,9 @@ namespace CqlSharp
         }
 
         /// <summary>
-        /// Executes the query, and returns the value of the first column of the first row.
+        ///   Executes the query, and returns the value of the first column of the first row.
         /// </summary>
-        /// <returns></returns>
+        /// <returns> </returns>
         public async Task<object> ExecuteScalarAsync()
         {
             object result = null;
@@ -350,7 +346,7 @@ namespace CqlSharp
         }
 
         /// <summary>
-        /// Captures the state.
+        ///   Captures the state.
         /// </summary>
         /// <returns></returns>
         private QueryExecutionState CaptureState()

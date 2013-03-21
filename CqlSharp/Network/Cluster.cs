@@ -13,8 +13,6 @@
 // See the License for the specific language governing permissions and
 // limitations under the License.
 
-using CqlSharp.Config;
-using CqlSharp.Network.Partition;
 using System;
 using System.Collections.Generic;
 using System.Linq;
@@ -22,6 +20,8 @@ using System.Net;
 using System.Net.Sockets;
 using System.Threading;
 using System.Threading.Tasks;
+using CqlSharp.Config;
+using CqlSharp.Network.Partition;
 
 namespace CqlSharp.Network
 {
@@ -32,8 +32,8 @@ namespace CqlSharp.Network
     {
         private readonly ClusterConfig _config;
         private readonly IConnectionStrategy _connectionSelector;
-        private Ring _nodes;
         private readonly SemaphoreSlim _throttle;
+        private Ring _nodes;
 
         /// <summary>
         ///   Initializes a new instance of the <see cref="Cluster" /> class.
@@ -66,7 +66,7 @@ namespace CqlSharp.Network
 
             //setup throttle
             int concurrent = config.MaxConcurrentQueries <= 0
-                                 ? _nodes.Count * config.MaxConnectionsPerNode * 256
+                                 ? _nodes.Count*config.MaxConnectionsPerNode*256
                                  : config.MaxConcurrentQueries;
 
             _throttle = new SemaphoreSlim(concurrent);
@@ -104,7 +104,6 @@ namespace CqlSharp.Network
 
         #endregion
 
-
         /// <summary>
         ///   Finds additional nodes to connect to.
         /// </summary>
@@ -123,7 +122,7 @@ namespace CqlSharp.Network
             using (var connection = new CqlConnection(nodes[0]))
             {
                 var cmd = new CqlCommand(connection, "select partitioner from system.local", CqlConsistency.One);
-                partitioner = (string)cmd.ExecuteScalar();
+                partitioner = (string) cmd.ExecuteScalar();
 
                 foreach (Node node in nodes)
                 {
@@ -139,9 +138,9 @@ namespace CqlSharp.Network
                     {
                         if (reader.Read())
                         {
-                            node.DataCenter = (string)reader["data_center"];
-                            node.Rack = (string)reader["rack"];
-                            node.Tokens = (ISet<string>)reader["tokens"];
+                            node.DataCenter = (string) reader["data_center"];
+                            node.Rack = (string) reader["rack"];
+                            node.Tokens = (ISet<string>) reader["tokens"];
                         }
                     }
 
@@ -163,11 +162,11 @@ namespace CqlSharp.Network
                         //iterate over the peers
                         while (reader.Read())
                         {
-                            var newNode = new Node((IPAddress)reader["rpc_address"], _config)
+                            var newNode = new Node((IPAddress) reader["rpc_address"], _config)
                                               {
-                                                  DataCenter = (string)reader["data_center"],
-                                                  Rack = (string)reader["rack"],
-                                                  Tokens = (ISet<string>)reader["tokens"]
+                                                  DataCenter = (string) reader["data_center"],
+                                                  Rack = (string) reader["rack"],
+                                                  Tokens = (ISet<string>) reader["tokens"]
                                               };
 
                             //filter based on scope
@@ -237,7 +236,8 @@ namespace CqlSharp.Network
                 }
                 catch (Exception ex)
                 {
-                    throw new CqlException("Can not obtain a valid IP-Address from the nodes specified in the configuration", ex);
+                    throw new CqlException(
+                        "Can not obtain a valid IP-Address from the nodes specified in the configuration", ex);
                 }
             }
 
