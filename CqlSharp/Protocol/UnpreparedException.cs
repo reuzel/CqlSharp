@@ -15,18 +15,17 @@
 
 using System;
 
-namespace CqlSharp.Protocol.Exceptions
+namespace CqlSharp.Protocol
 {
     [Serializable]
-    public class ReadTimeOutException : TimeOutException
+    public class UnpreparedException : ProtocolException
     {
-        public ReadTimeOutException(string message, CqlConsistency cqlConsistency, int received, int blockFor,
-                                    bool dataPresent)
-            : base(ErrorCode.ReadTimeout, message, cqlConsistency, received, blockFor)
+        public UnpreparedException(string message, byte[] unknownId)
+            : base(ErrorCode.Unprepared, message)
         {
-            DataPresent = dataPresent;
+            UnknownId = unknownId;
         }
 
-        public bool DataPresent { get; private set; }
+        public byte[] UnknownId { get; private set; }
     }
 }

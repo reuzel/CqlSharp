@@ -13,26 +13,38 @@
 // See the License for the specific language governing permissions and
 // limitations under the License.
 
-using System;
-
-namespace CqlSharp.Protocol.Exceptions
+namespace CqlSharp.Protocol
 {
-    [Serializable]
-    public class TimeOutException : ProtocolException
+    public enum ErrorCode
     {
-        protected TimeOutException(ErrorCode code, string message, CqlConsistency cqlConsistency, int received,
-                                   int blockFor)
-            : base(code, message)
-        {
-            CqlConsistency = cqlConsistency;
-            Received = received;
-            BlockFor = blockFor;
-        }
+        Server = 0x0000,
 
-        public CqlConsistency CqlConsistency { get; private set; }
+        Protocol = 0x000A,
 
-        public int Received { get; private set; }
+        Unavailable = 0x1000,
 
-        public int BlockFor { get; private set; }
+        Overloaded = 0x1001,
+
+        IsBootstrapping = 0x1002,
+
+        Truncate = 0x1003,
+
+        WriteTimeout = 0x1100,
+
+        ReadTimeout = 0x1200,
+
+        Syntax = 0x2000,
+
+        Unauthorized = 0x2100,
+
+        Invalid = 0x2200,
+
+        Config = 0x2300,
+
+        AlreadyExists = 0x2400,
+
+        Unprepared = 0x2500,
+
+        Unknown = 0xFFFF,
     }
 }

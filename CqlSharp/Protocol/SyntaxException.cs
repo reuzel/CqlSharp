@@ -15,17 +15,14 @@
 
 using System;
 
-namespace CqlSharp.Protocol.Exceptions
+namespace CqlSharp.Protocol
 {
     [Serializable]
-    public class UnpreparedException : ProtocolException
+    public class SyntaxException : ProtocolException
     {
-        public UnpreparedException(string message, byte[] unknownId)
-            : base(ErrorCode.Unprepared, message)
+        public SyntaxException(string message)
+            : base(ErrorCode.Syntax, message)
         {
-            UnknownId = unknownId;
         }
-
-        public byte[] UnknownId { get; private set; }
     }
 }

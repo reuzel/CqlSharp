@@ -14,28 +14,15 @@
 // limitations under the License.
 
 using System;
-using System.IO;
-using System.Threading.Tasks;
 
-namespace CqlSharp.Protocol.Frames
+namespace CqlSharp.Protocol
 {
-    internal class OptionsFrame : Frame
+    [Serializable]
+    public class UnauthorizedException : ProtocolException
     {
-        public OptionsFrame()
+        public UnauthorizedException(string message)
+            : base(ErrorCode.Unauthorized, message)
         {
-            Version = FrameVersion.Request | FrameVersion.ProtocolVersion;
-            Flags = FrameFlags.None;
-            Stream = 0;
-            OpCode = FrameOpcode.Options;
-        }
-
-        protected override void WriteData(Stream buffer)
-        {
-        }
-
-        protected override Task InitializeAsync()
-        {
-            throw new NotSupportedException();
         }
     }
 }

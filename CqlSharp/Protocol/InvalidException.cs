@@ -14,24 +14,15 @@
 // limitations under the License.
 
 using System;
-using System.Collections.Generic;
-using System.IO;
-using System.Threading.Tasks;
 
-namespace CqlSharp.Protocol.Frames
+namespace CqlSharp.Protocol
 {
-    internal class SupportedFrame : Frame
+    [Serializable]
+    public class InvalidException : ProtocolException
     {
-        public IDictionary<string, IList<string>> SupportedOptions { get; private set; }
-
-        protected override void WriteData(Stream buffer)
+        public InvalidException(string message)
+            : base(ErrorCode.Invalid, message)
         {
-            throw new NotSupportedException();
-        }
-
-        protected override async Task InitializeAsync()
-        {
-            SupportedOptions = await Reader.ReadStringMultimapAsync();
         }
     }
 }

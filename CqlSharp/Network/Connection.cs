@@ -16,15 +16,15 @@
 using System;
 using System.Collections.Generic;
 using System.IO;
-using System.Linq;
 using System.Net;
 using System.Net.Sockets;
 using System.Threading;
 using System.Threading.Tasks;
 using CqlSharp.Config;
 using CqlSharp.Protocol;
-using CqlSharp.Protocol.Exceptions;
-using CqlSharp.Protocol.Frames;
+
+//suppressing warnings about unobserved tasks
+#pragma warning disable 168
 
 namespace CqlSharp.Network
 {
@@ -37,10 +37,10 @@ namespace CqlSharp.Network
 
         private readonly IPAddress _address;
 
-        private readonly Queue<int> _availableQueryIds;
+        private readonly Queue<sbyte> _availableQueryIds;
         private readonly ClusterConfig _config;
         private readonly SemaphoreSlim _frameSubmitLock;
-        private readonly IDictionary<int, TaskCompletionSource<Frame>> _openRequests;
+        private readonly IDictionary<sbyte, TaskCompletionSource<Frame>> _openRequests;
 
         private readonly SemaphoreSlim _writeLock;
         private int _activeRequests;
@@ -63,8 +63,11 @@ namespace CqlSharp.Network
             _config = config;
 
             //setup support for multiple queries
-            _availableQueryIds = new Queue<int>(Enumerable.Range(1, MaxStreams + 1));
-            _openRequests = new Dictionary<int, TaskCompletionSource<Frame>>();
+            _availableQueryIds = new Queue<sbyte>();
+            for (sbyte i = 0; i < sbyte.MaxValue; i++)
+                _availableQueryIds.Enqueue(i);
+
+            _openRequests = new Dictionary<sbyte, TaskCompletionSource<Frame>>();
 
             //setup locks
             _writeLock = new SemaphoreSlim(1);
@@ -137,6 +140,8 @@ namespace CqlSharp.Network
         ///   Occurs when [on load change].
         /// </summary>
         public event EventHandler<LoadChangeEvent> OnLoadChange;
+
+        public event EventHandler<ClusterChangedEvent> OnClusterChange;
 
         /// <summary>
         ///   Updates the load of this connection, and will trigger a corresponding event
@@ -280,14 +285,14 @@ namespace CqlSharp.Network
                 var waitTask = new TaskCompletionSource<Frame>();
 
                 //get a stream id, and store wait task under that id
-                byte id;
+                sbyte id;
                 lock (_availableQueryIds)
                 {
                     //final check to make sure we are connected (we may just be killing the connection)
                     if (_connectionState != 1)
                         throw new IOException("Not connected");
 
-                    id = (byte) _availableQueryIds.Dequeue();
+                    id = _availableQueryIds.Dequeue();
                     _openRequests.Add(id, waitTask);
                 }
 
@@ -354,40 +359,53 @@ namespace CqlSharp.Network
         ///   Starts a readloop
         /// </summary>
         private async void StartReading()
-                                   {
-                                       //while connected do
+        {
+            //while connected do
             while (_connectionState == 1)
-                                           {
-                                               try
-                                               {
-                                                   //read next frame from stream
-                                                   Frame frame = await Frame.FromStream(_readStream);
+            {
+                try
+                {
+                    //read next frame from stream
+                    Frame frame = await Frame.FromStream(_readStream);
 
-                                                   //signal frame received. As a new task, because task
-                                                   //completions may be continued synchronously, potentially
-                                                   //leading to deadlocks when the continuation sends another request
-                                                   //on this connection.
-                                                   TaskCompletionSource<Frame> openRequest = _openRequests[frame.Stream];
-                                                   Task continueOpenRequestTask =
-                                                       Task.Run(() => openRequest.TrySetResult(frame));
+                    //check if frame is event
+                    if (frame.Stream == -1)
+                    {
+                        var eventFrame = frame as EventFrame;
+                        if (eventFrame == null)
+                            throw new ProtocolException(ErrorCode.Protocol,
+                                                        "A frame is received with StreamId -1, while it is not an EventFrame");
 
-                                                   //wait until all frame data is read (especially important for queries and results)
-                                                   await frame.WaitOnBodyRead();
+                        //run the event logic in its own task, making sure it does not delay further reading
+                        Task eventTask = Task.Run(() => ProcessEvent(eventFrame));
+                        continue;
+                    }
 
-                                                   //return stream id to the pool
-                                                   byte id = frame.Stream;
-                                                   lock (_availableQueryIds)
-                                                   {
-                                                       _availableQueryIds.Enqueue(id);
-                                                       _openRequests.Remove(id);
-                                                   }
-                                               }
-                                               catch (Exception ex)
-                                               {
-                                                   //error occured during read operaton, assume connection is dead, switch state
-                                                   Dispose(true, ex);
-                                               }
-                                           }
+                    //signal frame received. As a new task, because task
+                    //completions may be continued synchronously, potentially
+                    //leading to deadlocks when the continuation sends another request
+                    //on this connection.
+                    TaskCompletionSource<Frame> openRequest = _openRequests[frame.Stream];
+                    Task continueOpenRequestTask =
+                        Task.Run(() => openRequest.TrySetResult(frame));
+
+                    //wait until all frame data is read (especially important for queries and results)
+                    await frame.WaitOnBodyRead();
+
+                    //return stream id to the pool
+                    sbyte id = frame.Stream;
+                    lock (_availableQueryIds)
+                    {
+                        _availableQueryIds.Enqueue(id);
+                        _openRequests.Remove(id);
+                    }
+                }
+                catch (Exception ex)
+                {
+                    //error occured during read operaton, assume connection is dead, switch state
+                    Dispose(true, ex);
+                }
+            }
 
             lock (_availableQueryIds)
             {
@@ -402,9 +420,62 @@ namespace CqlSharp.Network
 
                     //finalize response wait task with exception
                     TaskCompletionSource<Frame> waitTask = req.Value;
+
                     Task failOpenRequestTask =
                         Task.Run(() => waitTask.TrySetException(ex));
-                                       }
+                }
+            }
+        }
+
+        /// <summary>
+        ///   Registers for cluster changes.
+        /// </summary>
+        /// <returns> </returns>
+        /// <exception cref="System.InvalidOperationException">Must be connected before Registration can take place</exception>
+        /// <exception cref="CqlException">Could not register for cluster changes!</exception>
+        public async Task RegisterForClusterChanges()
+        {
+            if (!IsConnected)
+                throw new InvalidOperationException("Must be connected before Registration can take place");
+
+            var registerframe = new RegisterFrame(new List<string> {"TOPOLOGY_CHANGE", "STATUS_CHANGE"});
+            Frame result = await SendRequestAsync(registerframe);
+
+            if (!(result is ReadyFrame))
+                throw new CqlException("Could not register for cluster changes!");
+        }
+
+        /// <summary>
+        ///   Processes the event frame.
+        /// </summary>
+        /// <param name="frame"> The frame. </param>
+        private void ProcessEvent(EventFrame frame)
+        {
+            if (frame.EventType.Equals("TOPOLOGY_CHANGE", StringComparison.InvariantCultureIgnoreCase) ||
+                frame.EventType.Equals("STATUS_CHANGE", StringComparison.InvariantCultureIgnoreCase))
+            {
+                ClusterChange change;
+
+                switch (frame.Change.ToLower())
+                {
+                    case "up":
+                        change = ClusterChange.Up;
+                        break;
+                    case "down":
+                        change = ClusterChange.Down;
+                        break;
+                    case "new_node":
+                        change = ClusterChange.New;
+                        break;
+                    case "removed_node":
+                        change = ClusterChange.Removed;
+                        break;
+                    default:
+                        return;
+                }
+
+                if (OnClusterChange != null)
+                    OnClusterChange(this, new ClusterChangedEvent(change, frame.Node.Address));
             }
         }
     }

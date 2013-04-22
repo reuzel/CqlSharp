@@ -14,33 +14,25 @@
 // limitations under the License.
 
 using System;
-using System.IO;
-using System.Threading.Tasks;
 
-namespace CqlSharp.Protocol.Frames
+namespace CqlSharp.Protocol
 {
-    internal class PrepareFrame : Frame
+    [Serializable]
+    public class TimeOutException : ProtocolException
     {
-        public PrepareFrame(string cql)
+        protected TimeOutException(ErrorCode code, string message, CqlConsistency cqlConsistency, int received,
+                                   int blockFor)
+            : base(code, message)
         {
-            Cql = cql;
-
-            Version = FrameVersion.Request | FrameVersion.ProtocolVersion;
-            Flags = FrameFlags.None;
-            Stream = 0;
-            OpCode = FrameOpcode.Prepare;
+            CqlConsistency = cqlConsistency;
+            Received = received;
+            BlockFor = blockFor;
         }
 
-        public string Cql { get; set; }
+        public CqlConsistency CqlConsistency { get; private set; }
 
-        protected override void WriteData(Stream buffer)
-        {
-            buffer.WriteLongString(Cql);
-        }
+        public int Received { get; private set; }
 
-        protected override Task InitializeAsync()
-        {
-            throw new NotSupportedException();
-        }
+        public int BlockFor { get; private set; }
     }
 }

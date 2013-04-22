@@ -15,14 +15,23 @@
 
 using System;
 
-namespace CqlSharp.Protocol.Exceptions
+namespace CqlSharp.Protocol
 {
     [Serializable]
-    public class SyntaxException : ProtocolException
+    public class UnavailableException : ProtocolException
     {
-        public SyntaxException(string message)
-            : base(ErrorCode.Syntax, message)
+        public UnavailableException(string message, CqlConsistency cqlConsistency, int required, int alive)
+            : base(ErrorCode.Unavailable, message)
         {
+            CqlConsistency = cqlConsistency;
+            Required = required;
+            Alive = alive;
         }
+
+        public CqlConsistency CqlConsistency { get; private set; }
+
+        public int Required { get; private set; }
+
+        public int Alive { get; private set; }
     }
 }

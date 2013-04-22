@@ -14,19 +14,22 @@
 // limitations under the License.
 
 using System;
+using System.Net;
 
-namespace CqlSharp.Protocol.Exceptions
+namespace CqlSharp.Network
 {
-    [Serializable]
-    public class WriteTimeOutException : TimeOutException
+    /// <summary>
+    ///   Event raised when a cluster's topology changes.
+    /// </summary>
+    internal class ClusterChangedEvent : EventArgs
     {
-        public WriteTimeOutException(string message, CqlConsistency cqlConsistency, int received, int blockFor,
-                                     string writeType)
-            : base(ErrorCode.WriteTimeout, message, cqlConsistency, received, blockFor)
+        public ClusterChangedEvent(ClusterChange change, IPAddress node)
         {
-            WriteType = writeType;
+            Node = node;
+            Change = change;
         }
 
-        public string WriteType { get; private set; }
+        public ClusterChange Change { get; private set; }
+        public IPAddress Node { get; private set; }
     }
 }

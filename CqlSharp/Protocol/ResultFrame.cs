@@ -19,7 +19,7 @@ using System.IO;
 using System.Threading;
 using System.Threading.Tasks;
 
-namespace CqlSharp.Protocol.Frames
+namespace CqlSharp.Protocol
 {
     internal class ResultFrame : Frame
     {

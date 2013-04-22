@@ -17,8 +17,6 @@ using System;
 using System.IO;
 using System.Threading;
 using System.Threading.Tasks;
-using CqlSharp.Protocol.Exceptions;
-using CqlSharp.Protocol.Frames;
 
 namespace CqlSharp.Protocol
 {
@@ -50,7 +48,7 @@ namespace CqlSharp.Protocol
         ///   Gets or sets the stream identifier (request response pair)
         /// </summary>
         /// <value> The stream. </value>
-        public byte Stream { get; set; }
+        public sbyte Stream { get; set; }
 
         /// <summary>
         ///   Gets or sets the op code.
@@ -92,7 +90,7 @@ namespace CqlSharp.Protocol
             {
                 buffer.WriteByte((byte) Version);
                 buffer.WriteByte((byte) Flags);
-                buffer.WriteByte(Stream);
+                buffer.WriteByte(unchecked((byte) Stream));
                 buffer.WriteByte((byte) OpCode);
 
                 //write length placeholder
@@ -155,13 +153,16 @@ namespace CqlSharp.Protocol
                 case FrameOpcode.Result:
                     frame = new ResultFrame();
                     break;
+                case FrameOpcode.Event:
+                    frame = new EventFrame();
+                    break;
                 default:
                     throw new ProtocolException(0, "Unexpected OpCode received.");
             }
 
             frame.Version = (FrameVersion) header[0];
             frame.Flags = (FrameFlags) header[1];
-            frame.Stream = header[2];
+            frame.Stream = unchecked((sbyte) header[2]);
             frame.OpCode = (FrameOpcode) header[3];
             frame.Length = length;
 

@@ -13,38 +13,24 @@
 // See the License for the specific language governing permissions and
 // limitations under the License.
 
-namespace CqlSharp.Protocol.Exceptions
+using System;
+
+namespace CqlSharp.Protocol
 {
-    public enum ErrorCode
+    [Serializable]
+    public class ProtocolException : CqlException
     {
-        Server = 0x0000,
+        internal ProtocolException(ErrorCode code, string message)
+            : base(message)
+        {
+            Code = code;
+        }
 
-        Protocol = 0x000A,
+        public ErrorCode Code { get; private set; }
 
-        Unavailable = 0x1000,
-
-        Overloaded = 0x1001,
-
-        IsBootstrapping = 0x1002,
-
-        Truncate = 0x1003,
-
-        WriteTimeout = 0x1100,
-
-        ReadTimeout = 0x1200,
-
-        Syntax = 0x2000,
-
-        Unauthorized = 0x2100,
-
-        Invalid = 0x2200,
-
-        Config = 0x2300,
-
-        AlreadyExists = 0x2400,
-
-        Unprepared = 0x2500,
-
-        Unknown = 0xFFFF,
+        public override string ToString()
+        {
+            return string.Format("code {0} : {1}", Code, base.ToString());
+        }
     }
 }

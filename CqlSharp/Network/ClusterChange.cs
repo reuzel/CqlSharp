@@ -13,24 +13,31 @@
 // See the License for the specific language governing permissions and
 // limitations under the License.
 
-using System;
-
-namespace CqlSharp.Protocol.Exceptions
+namespace CqlSharp.Network
 {
-    [Serializable]
-    public class ProtocolException : CqlException
+    /// <summary>
+    ///   Type of possible evented changes to a cluster
+    /// </summary>
+    internal enum ClusterChange
     {
-        internal ProtocolException(ErrorCode code, string message)
-            : base(message)
-        {
-            Code = code;
-        }
+        /// <summary>
+        ///   a node was restored to active duty
+        /// </summary>
+        Up,
 
-        public ErrorCode Code { get; private set; }
+        /// <summary>
+        ///   A node become unavailable
+        /// </summary>
+        Down,
 
-        public override string ToString()
-        {
-            return string.Format("code {0} : {1}", Code, base.ToString());
-        }
+        /// <summary>
+        ///   A node was added to the cluster
+        /// </summary>
+        New,
+
+        /// <summary>
+        ///   A node was (permanently) removed from the cluster
+        /// </summary>
+        Removed
     }
 }

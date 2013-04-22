@@ -15,14 +15,20 @@
 
 using System;
 
-namespace CqlSharp.Protocol.Exceptions
+namespace CqlSharp.Protocol
 {
     [Serializable]
-    public class UnauthorizedException : ProtocolException
+    public class AlreadyExistsException : ProtocolException
     {
-        public UnauthorizedException(string message)
-            : base(ErrorCode.Unauthorized, message)
+        public AlreadyExistsException(string message, string keyspace, string table)
+            : base(ErrorCode.AlreadyExists, message)
         {
+            Keyspace = keyspace;
+            Table = table;
         }
+
+        public string Keyspace { get; private set; }
+
+        public string Table { get; private set; }
     }
 }

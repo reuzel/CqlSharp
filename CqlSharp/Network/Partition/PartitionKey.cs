@@ -46,22 +46,22 @@ namespace CqlSharp.Network.Partition
         }
 
         /// <summary>
-        /// Copies this instance.
-        /// </summary>
-        /// <returns></returns>
-        internal PartitionKey Copy()
-        {
-            byte[] key = Key;
-            return new PartitionKey() { _key = key };
-        }
-
-        /// <summary>
-        /// Gets a value indicating whether a value is set for this PartitionKey
+        ///   Gets a value indicating whether a value is set for this PartitionKey
         /// </summary>
         /// <value> <c>true</c> if this instance is set; otherwise, <c>false</c> . </value>
         public bool IsSet
         {
             get { return _key != null; }
+        }
+
+        /// <summary>
+        ///   Copies this instance.
+        /// </summary>
+        /// <returns> </returns>
+        internal PartitionKey Copy()
+        {
+            byte[] key = Key;
+            return new PartitionKey {_key = key};
         }
 
         /// <summary>

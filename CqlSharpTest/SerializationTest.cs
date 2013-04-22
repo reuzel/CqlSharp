@@ -19,7 +19,7 @@ using System.Linq;
 using System.Net;
 using System.Numerics;
 using CqlSharp;
-using CqlSharp.Protocol.Exceptions;
+using CqlSharp.Protocol;
 using Microsoft.VisualStudio.TestTools.UnitTesting;
 
 namespace CqlSharpTest

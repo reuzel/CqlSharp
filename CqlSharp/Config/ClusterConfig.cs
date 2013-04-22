@@ -29,14 +29,14 @@ namespace CqlSharp.Config
         private const DiscoveryScope DefaultDiscoveryScope = DiscoveryScope.None;
         private const ConnectionStrategy DefaultConnectionStrategy = ConnectionStrategy.Balanced;
         private const string DefaultCqlVersion = "3.0.0";
-        private const int DefaultMaxDownTime = 60 * 60 * 1000; //max down for 1 hour
+        private const int DefaultMaxDownTime = 60*60*1000; //max down for 1 hour
         private const int DefaultMinDownTime = 500; //min down time for .5 second
         private const int DefaultMaxConnectionsPerNode = 2;
         private const int DefaultMaxConnections = -1; //no total max
         private const int DefaultNewConnectionTreshold = 10; //new connection when 10 parallel queries on one connection
         private const int DefaultMaxConcurrentQueries = -1;
-        private static readonly char[] PartSeperator = new[] { ';' };
-        private static readonly char[] ValueSeperator = new[] { '=' };
+        private static readonly char[] PartSeperator = new[] {';'};
+        private static readonly char[] ValueSeperator = new[] {'='};
         private static readonly TimeSpan DefaultMaxConnectionIdleTime = TimeSpan.FromSeconds(10);
 
         /// <summary>
@@ -178,8 +178,8 @@ namespace CqlSharp.Config
                     throw new CqlException(
                         "Configuration error: Could not split the configuration element in a key and value: " + part);
 
-                string key = kv[0].Trim().Trim(new[] { '\'', '"' }).ToLower();
-                string value = kv[1].Trim().Trim(new[] { '\'', '"' });
+                string key = kv[0].Trim().Trim(new[] {'\'', '"'}).ToLower();
+                string value = kv[1].Trim().Trim(new[] {'\'', '"'});
 
                 switch (key)
                 {
@@ -194,11 +194,11 @@ namespace CqlSharp.Config
                         break;
                     case "discovery scope":
                     case "discoveryscope":
-                        DiscoveryScope = (DiscoveryScope)Enum.Parse(typeof(DiscoveryScope), value, true);
+                        DiscoveryScope = (DiscoveryScope) Enum.Parse(typeof (DiscoveryScope), value, true);
                         break;
                     case "connection strategy":
                     case "connectionstrategy":
-                        ConnectionStrategy = (ConnectionStrategy)Enum.Parse(typeof(ConnectionStrategy), value, true);
+                        ConnectionStrategy = (ConnectionStrategy) Enum.Parse(typeof (ConnectionStrategy), value, true);
                         break;
                     case "cql":
                     case "version":

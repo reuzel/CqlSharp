@@ -18,35 +18,25 @@ using System.Collections.Generic;
 using System.IO;
 using System.Threading.Tasks;
 
-namespace CqlSharp.Protocol.Frames
+namespace CqlSharp.Protocol
 {
-    internal class ExecuteFrame : Frame
+    internal class RegisterFrame : Frame
     {
-        public ExecuteFrame(byte[] queryId, CqlConsistency cqlConsistency, params byte[][] prms)
+        public RegisterFrame(IList<string> eventTypes)
         {
-            QueryId = queryId;
-            CqlConsistency = cqlConsistency;
-            Parameters = prms;
+            EventTypes = eventTypes;
 
             Version = FrameVersion.Request | FrameVersion.ProtocolVersion;
             Flags = FrameFlags.None;
             Stream = 0;
-            OpCode = FrameOpcode.Execute;
+            OpCode = FrameOpcode.Register;
         }
 
-        public byte[] QueryId { get; set; }
-
-        public IList<byte[]> Parameters { get; set; }
-
-        public CqlConsistency CqlConsistency { get; set; }
+        public IList<string> EventTypes { get; set; }
 
         protected override void WriteData(Stream buffer)
         {
-            buffer.WriteShortByteArray(QueryId);
-            buffer.WriteShort((short) Parameters.Count);
-            foreach (var prm in Parameters)
-                buffer.WriteByteArray(prm);
-            buffer.WriteShort((short) CqlConsistency);
+            buffer.WriteStringList(EventTypes);
         }
 
         protected override Task InitializeAsync()

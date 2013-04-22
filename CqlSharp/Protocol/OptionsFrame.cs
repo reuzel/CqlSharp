@@ -17,18 +17,25 @@ using System;
 using System.IO;
 using System.Threading.Tasks;
 
-namespace CqlSharp.Protocol.Frames
+namespace CqlSharp.Protocol
 {
-    internal class ReadyFrame : Frame
+    internal class OptionsFrame : Frame
     {
+        public OptionsFrame()
+        {
+            Version = FrameVersion.Request | FrameVersion.ProtocolVersion;
+            Flags = FrameFlags.None;
+            Stream = 0;
+            OpCode = FrameOpcode.Options;
+        }
+
         protected override void WriteData(Stream buffer)
         {
-            throw new NotSupportedException();
         }
 
         protected override Task InitializeAsync()
         {
-            return Task.FromResult(true);
+            throw new NotSupportedException();
         }
     }
 }

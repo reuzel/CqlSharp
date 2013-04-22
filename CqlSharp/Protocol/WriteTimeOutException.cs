@@ -15,14 +15,18 @@
 
 using System;
 
-namespace CqlSharp.Protocol.Exceptions
+namespace CqlSharp.Protocol
 {
     [Serializable]
-    public class InvalidException : ProtocolException
+    public class WriteTimeOutException : TimeOutException
     {
-        public InvalidException(string message)
-            : base(ErrorCode.Invalid, message)
+        public WriteTimeOutException(string message, CqlConsistency cqlConsistency, int received, int blockFor,
+                                     string writeType)
+            : base(ErrorCode.WriteTimeout, message, cqlConsistency, received, blockFor)
         {
+            WriteType = writeType;
         }
+
+        public string WriteType { get; private set; }
     }
 }

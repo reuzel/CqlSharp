@@ -14,24 +14,23 @@
 // limitations under the License.
 
 using System;
+using System.IO;
+using System.Threading.Tasks;
 
-namespace CqlSharp.Protocol.Exceptions
+namespace CqlSharp.Protocol
 {
-    [Serializable]
-    public class UnavailableException : ProtocolException
+    internal class AuthenticateFrame : Frame
     {
-        public UnavailableException(string message, CqlConsistency cqlConsistency, int required, int alive)
-            : base(ErrorCode.Unavailable, message)
+        public string Authenticator { get; private set; }
+
+        protected override void WriteData(Stream buffer)
         {
-            CqlConsistency = cqlConsistency;
-            Required = required;
-            Alive = alive;
+            throw new NotSupportedException();
         }
 
-        public CqlConsistency CqlConsistency { get; private set; }
-
-        public int Required { get; private set; }
-
-        public int Alive { get; private set; }
+        protected override async Task InitializeAsync()
+        {
+            Authenticator = await Reader.ReadStringAsync();
+        }
     }
 }

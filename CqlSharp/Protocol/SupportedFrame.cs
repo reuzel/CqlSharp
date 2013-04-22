@@ -18,35 +18,20 @@ using System.Collections.Generic;
 using System.IO;
 using System.Threading.Tasks;
 
-namespace CqlSharp.Protocol.Frames
+namespace CqlSharp.Protocol
 {
-    internal class CredentialsFrame : Frame
+    internal class SupportedFrame : Frame
     {
-        public CredentialsFrame(string username, string password)
-        {
-            Username = username;
-            Password = password;
-
-            Version = FrameVersion.Request | FrameVersion.ProtocolVersion;
-            Flags = FrameFlags.None;
-            Stream = 0;
-            OpCode = FrameOpcode.Credentials;
-        }
-
-        public string Username { get; set; }
-
-        public string Password { get; set; }
-
+        public IDictionary<string, IList<string>> SupportedOptions { get; private set; }
 
         protected override void WriteData(Stream buffer)
         {
-            var credentials = new Dictionary<string, string> {{"username", Username}, {"password", Password}};
-            buffer.WriteStringMap(credentials);
+            throw new NotSupportedException();
         }
 
-        protected override Task InitializeAsync()
+        protected override async Task InitializeAsync()
         {
-            throw new NotSupportedException();
+            SupportedOptions = await Reader.ReadStringMultimapAsync();
         }
     }
 }

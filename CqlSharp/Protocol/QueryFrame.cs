@@ -14,29 +14,32 @@
 // limitations under the License.
 
 using System;
-using System.Collections.Generic;
 using System.IO;
 using System.Threading.Tasks;
 
-namespace CqlSharp.Protocol.Frames
+namespace CqlSharp.Protocol
 {
-    internal class StartupFrame : Frame
+    internal class QueryFrame : Frame
     {
-        public StartupFrame(string cqlVersion)
+        public QueryFrame(string cql, CqlConsistency cqlConsistency)
         {
-            Options = new Dictionary<string, string> {{"CQL_VERSION", cqlVersion}};
+            Cql = cql;
+            CqlConsistency = cqlConsistency;
 
             Version = FrameVersion.Request | FrameVersion.ProtocolVersion;
             Flags = FrameFlags.None;
             Stream = 0;
-            OpCode = FrameOpcode.Startup;
+            OpCode = FrameOpcode.Query;
         }
 
-        public IDictionary<string, string> Options { get; private set; }
+        public string Cql { get; set; }
+
+        public CqlConsistency CqlConsistency { get; set; }
 
         protected override void WriteData(Stream buffer)
         {
-            buffer.WriteStringMap(Options);
+            buffer.WriteLongString(Cql);
+            buffer.WriteShort((short) CqlConsistency);
         }
 
         protected override Task InitializeAsync()

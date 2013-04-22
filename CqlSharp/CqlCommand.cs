@@ -13,15 +13,13 @@
 // See the License for the specific language governing permissions and
 // limitations under the License.
 
-using CqlSharp.Network;
-using CqlSharp.Network.Partition;
-using CqlSharp.Protocol;
-using CqlSharp.Protocol.Exceptions;
-using CqlSharp.Protocol.Frames;
 using System;
 using System.Collections.Concurrent;
 using System.Net;
 using System.Threading.Tasks;
+using CqlSharp.Network;
+using CqlSharp.Network.Partition;
+using CqlSharp.Protocol;
 
 namespace CqlSharp
 {
@@ -35,8 +33,8 @@ namespace CqlSharp
         private readonly CqlConsistency _level;
         private readonly ConcurrentDictionary<IPAddress, ResultFrame> _prepareResults;
         private CqlParameterCollection _parameters;
-        private bool _prepared;
         private PartitionKey _partitionKey;
+        private bool _prepared;
 
         /// <summary>
         ///   Initializes a new instance of the <see cref="CqlCommand" /> class.
@@ -168,7 +166,6 @@ namespace CqlSharp
         }
 
 
-
         /// <summary>
         ///   Executes the query async.
         /// </summary>
@@ -237,9 +234,9 @@ namespace CqlSharp
         }
 
         /// <summary>
-        /// Executes the query, and returns the value of the first column of the first row.
+        ///   Executes the query, and returns the value of the first column of the first row.
         /// </summary>
-        /// <returns></returns>
+        /// <returns> </returns>
         public object ExecuteScalar()
         {
             try
@@ -274,7 +271,7 @@ namespace CqlSharp
                         return new CqlDataReader(result);
 
                     case ResultOpcode.Void:
-                        return new CqlVoid { TracingId = result.TracingId };
+                        return new CqlVoid {TracingId = result.TracingId};
 
                     case ResultOpcode.SchemaChange:
                         return new CqlSchemaChange
@@ -348,7 +345,7 @@ namespace CqlSharp
         /// <summary>
         ///   Captures the state.
         /// </summary>
-        /// <returns></returns>
+        /// <returns> </returns>
         private QueryExecutionState CaptureState()
         {
             var state = new QueryExecutionState
@@ -438,7 +435,7 @@ namespace CqlSharp
         ///   prepared.
         /// </summary>
         /// <param name="connection"> The connection. </param>
-        /// <param name="state">captured state</param>
+        /// <param name="state"> captured state </param>
         /// <returns> </returns>
         /// <exception cref="System.Exception">Unexpected frame received  + response.OpCode</exception>
         private async Task<ResultFrame> PrepareInternalAsync(Connection connection, QueryExecutionState state)

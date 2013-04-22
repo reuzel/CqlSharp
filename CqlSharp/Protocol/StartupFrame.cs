@@ -14,23 +14,34 @@
 // limitations under the License.
 
 using System;
+using System.Collections.Generic;
 using System.IO;
 using System.Threading.Tasks;
 
-namespace CqlSharp.Protocol.Frames
+namespace CqlSharp.Protocol
 {
-    internal class AuthenticateFrame : Frame
+    internal class StartupFrame : Frame
     {
-        public string Authenticator { get; private set; }
+        public StartupFrame(string cqlVersion)
+        {
+            Options = new Dictionary<string, string> {{"CQL_VERSION", cqlVersion}};
+
+            Version = FrameVersion.Request | FrameVersion.ProtocolVersion;
+            Flags = FrameFlags.None;
+            Stream = 0;
+            OpCode = FrameOpcode.Startup;
+        }
+
+        public IDictionary<string, string> Options { get; private set; }
 
         protected override void WriteData(Stream buffer)
         {
-            throw new NotSupportedException();
+            buffer.WriteStringMap(Options);
         }
 
-        protected override async Task InitializeAsync()
+        protected override Task InitializeAsync()
         {
-            Authenticator = await Reader.ReadStringAsync();
+            throw new NotSupportedException();
         }
     }
 }

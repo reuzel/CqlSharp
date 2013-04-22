@@ -13,8 +13,8 @@
 // See the License for the specific language governing permissions and
 // limitations under the License.
 
-
 using CqlSharp.Network.Partition;
+
 namespace CqlSharp
 {
     /// <summary>
@@ -22,16 +22,13 @@ namespace CqlSharp
     /// </summary>
     internal struct QueryExecutionState
     {
-        public bool UseBuffering;
-
+        public int Load;
+        public PartitionKey PartitionKey;
         public bool TracingEnabled;
+        public bool UseBuffering;
 
         public bool UseParallelConnections;
 
         public byte[][] Values;
-
-        public PartitionKey PartitionKey;
-
-        public int Load;
     }
 }

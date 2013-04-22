@@ -16,9 +16,8 @@
 using System;
 using System.IO;
 using System.Threading.Tasks;
-using CqlSharp.Protocol.Exceptions;
 
-namespace CqlSharp.Protocol.Frames
+namespace CqlSharp.Protocol
 {
     internal class ErrorFrame : Frame
     {

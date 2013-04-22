@@ -153,7 +153,8 @@ namespace CqlSharp.Serialization
                     //    throw new ArgumentException("CqlType must be set on ColumnAttribute if PartitionKeyIndex is set.");
 
                     //add the member
-                    keyMembers.Add(new Tuple<int, ReadFunc, CqlType>(columnAttribute.PartitionKeyIndex, reader, columnAttribute.CqlType));
+                    keyMembers.Add(new Tuple<int, ReadFunc, CqlType>(columnAttribute.PartitionKeyIndex, reader,
+                                                                     columnAttribute.CqlType));
                 }
             }
         }

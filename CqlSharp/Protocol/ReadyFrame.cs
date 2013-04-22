@@ -14,34 +14,21 @@
 // limitations under the License.
 
 using System;
-using System.Collections.Generic;
 using System.IO;
 using System.Threading.Tasks;
 
-namespace CqlSharp.Protocol.Frames
+namespace CqlSharp.Protocol
 {
-    internal class RegisterFrame : Frame
+    internal class ReadyFrame : Frame
     {
-        public RegisterFrame(IList<string> eventTypes)
-        {
-            EventTypes = eventTypes;
-
-            Version = FrameVersion.Request | FrameVersion.ProtocolVersion;
-            Flags = FrameFlags.None;
-            Stream = 0;
-            OpCode = FrameOpcode.Register;
-        }
-
-        public IList<string> EventTypes { get; set; }
-
         protected override void WriteData(Stream buffer)
         {
-            buffer.WriteStringList(EventTypes);
+            throw new NotSupportedException();
         }
 
         protected override Task InitializeAsync()
         {
-            throw new NotSupportedException();
+            return Task.FromResult(true);
         }
     }
 }

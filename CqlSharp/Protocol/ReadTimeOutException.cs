@@ -15,20 +15,18 @@
 
 using System;
 
-namespace CqlSharp.Protocol.Exceptions
+namespace CqlSharp.Protocol
 {
     [Serializable]
-    public class AlreadyExistsException : ProtocolException
+    public class ReadTimeOutException : TimeOutException
     {
-        public AlreadyExistsException(string message, string keyspace, string table)
-            : base(ErrorCode.AlreadyExists, message)
+        public ReadTimeOutException(string message, CqlConsistency cqlConsistency, int received, int blockFor,
+                                    bool dataPresent)
+            : base(ErrorCode.ReadTimeout, message, cqlConsistency, received, blockFor)
         {
-            Keyspace = keyspace;
-            Table = table;
+            DataPresent = dataPresent;
         }
 
-        public string Keyspace { get; private set; }
-
-        public string Table { get; private set; }
+        public bool DataPresent { get; private set; }
     }
 }

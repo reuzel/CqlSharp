@@ -19,7 +19,6 @@ using System.Collections.Generic;
 using System.Threading;
 using System.Threading.Tasks;
 using CqlSharp.Protocol;
-using CqlSharp.Protocol.Frames;
 using CqlSharp.Serialization;
 
 namespace CqlSharp

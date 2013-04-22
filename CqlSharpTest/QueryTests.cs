@@ -13,13 +13,13 @@
 // See the License for the specific language governing permissions and
 // limitations under the License.
 
+using System.Linq;
+using System.Threading.Tasks;
 using CqlSharp;
-using CqlSharp.Protocol.Exceptions;
+using CqlSharp.Protocol;
 using CqlSharp.Serialization;
 using CqlSharp.Tracing;
 using Microsoft.VisualStudio.TestTools.UnitTesting;
-using System.Linq;
-using System.Threading.Tasks;
 
 namespace CqlSharpTest
 {
@@ -101,7 +101,7 @@ namespace CqlSharpTest
 
                 for (int i = 0; i < insertCount; i++)
                 {
-                    var b = new BasicFlowData { Id = i, Data = "Hallo " + i };
+                    var b = new BasicFlowData {Id = i, Data = "Hallo " + i};
                     cmd.PartitionKey.Set(b);
                     cmd.Parameters.Set(b);
 
@@ -112,7 +112,7 @@ namespace CqlSharpTest
 
                 var presence = new bool[insertCount];
 
-                var selectCmd = new CqlCommand(connection, retrieveCql, CqlConsistency.One) { EnableTracing = true };
+                var selectCmd = new CqlCommand(connection, retrieveCql, CqlConsistency.One) {EnableTracing = true};
 
                 CqlDataReader<BasicFlowData> reader = await selectCmd.ExecuteReaderAsync<BasicFlowData>();
                 while (await reader.ReadAsync())
@@ -136,8 +136,7 @@ namespace CqlSharpTest
         [CqlTable("BasicFlow", Keyspace = "Test")]
         public class BasicFlowData
         {
-            [CqlColumn("id", PartitionKeyIndex = 0, CqlType = CqlType.Int)]
-            public int Id;
+            [CqlColumn("id", PartitionKeyIndex = 0, CqlType = CqlType.Int)] public int Id;
 
             [CqlColumn("value")]
             public string Data { get; set; }
