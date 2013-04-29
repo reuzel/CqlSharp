@@ -3,6 +3,11 @@ CqlSharp
 
 CqlSharp is a high performance, asynchronous Cassandra CQL binary protocol driver offering an ADO.NET like interface.
 
+Installation
+------------
+
+The latest release of CqlSharp can be found as [package on NuGet](http://nuget.org/packages/CqlSharp/). Please install from there.
+
 Features
 --------
 
