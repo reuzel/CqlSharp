@@ -52,12 +52,15 @@ namespace CqlSharp.Network
         /// </summary>
         public Task OpenAsync()
         {
-            if (_openTask == null)
+            if (_openTask == null || _openTask.IsFaulted)
             {
                 lock (_syncLock)
                 {
-                    if (_openTask == null)
+                    if (_openTask == null || _openTask.IsFaulted)
+                    {
+                        //set the openTask
                         _openTask = OpenAsyncInternal();
+                    }
                 }
             }
 
