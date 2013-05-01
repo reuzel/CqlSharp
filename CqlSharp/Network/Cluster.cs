@@ -13,27 +13,28 @@
 // See the License for the specific language governing permissions and
 // limitations under the License.
 
-using System;
+using CqlSharp.Config;
+using CqlSharp.Network.Partition;
+using CqlSharp.Protocol;
 using System.Collections.Generic;
 using System.Linq;
 using System.Net;
-using System.Net.Sockets;
 using System.Threading;
 using System.Threading.Tasks;
-using CqlSharp.Config;
-using CqlSharp.Network.Partition;
 
 namespace CqlSharp.Network
 {
     /// <summary>
     ///   Represents a Cassandra cluster
     /// </summary>
-    internal class Cluster : IConnectionProvider
+    internal class Cluster
     {
         private readonly ClusterConfig _config;
-        private readonly IConnectionStrategy _connectionSelector;
-        private readonly SemaphoreSlim _throttle;
-        private Ring _nodes;
+        private IConnectionStrategy _connectionSelector;
+        private SemaphoreSlim _throttle;
+        private volatile Task _openTask;
+        private readonly object _syncLock = new object();
+        private volatile Ring _nodes;
 
         /// <summary>
         ///   Initializes a new instance of the <see cref="Cluster" /> class.
@@ -43,18 +44,59 @@ namespace CqlSharp.Network
         {
             //store config
             _config = config;
+        }
 
-            //setup nodes
-            BuildRing();
+
+        /// <summary>
+        /// Opens the cluster for queries.
+        /// </summary>
+        public Task OpenAsync()
+        {
+            if (_openTask == null)
+            {
+                lock (_syncLock)
+                {
+                    if (_openTask == null)
+                        _openTask = OpenAsyncInternal();
+                }
+            }
+
+            return _openTask;
+        }
+
+        /// <summary>
+        /// Opens the cluster for queries. Contains actual implementation and will be called only once per cluster
+        /// </summary>
+        /// <returns></returns>
+        /// <exception cref="CqlException">Cannot construct ring from provided seeds!</exception>
+        private async Task OpenAsyncInternal()
+        {
+            //try to connect to the seeds in turn
+            foreach (IPAddress seedAddress in _config.NodeAddresses)
+            {
+                try
+                {
+                    var seed = new Node(seedAddress, _config);
+                    _nodes = await DiscoverNodesAsync(seed);
+                }
+                catch
+                {
+                    //seed not reachable, try next
+                    continue;
+                }
+            }
+
+            if (_nodes == null)
+                throw new CqlException("Cannot construct ring from provided seeds!");
 
             //setup cluster connection strategy
             switch (_config.ConnectionStrategy)
             {
                 case ConnectionStrategy.Balanced:
-                    _connectionSelector = new BalancedConnectionStrategy(_nodes, config);
+                    _connectionSelector = new BalancedConnectionStrategy(_nodes, _config);
                     break;
                 case ConnectionStrategy.Random:
-                    _connectionSelector = new RandomConnectionStrategy(_nodes, config);
+                    _connectionSelector = new RandomConnectionStrategy(_nodes, _config);
                     break;
                 case ConnectionStrategy.Exclusive:
                     _connectionSelector = new ExclusiveConnectionStrategy(_nodes, _config);
@@ -65,9 +107,9 @@ namespace CqlSharp.Network
             }
 
             //setup throttle
-            int concurrent = config.MaxConcurrentQueries <= 0
-                                 ? _nodes.Count*config.MaxConnectionsPerNode*256
-                                 : config.MaxConcurrentQueries;
+            int concurrent = _config.MaxConcurrentQueries <= 0
+                                 ? _nodes.Count * _config.MaxConnectionsPerNode * 256
+                                 : _config.MaxConcurrentQueries;
 
             _throttle = new SemaphoreSlim(concurrent);
         }
@@ -84,7 +126,7 @@ namespace CqlSharp.Network
         #region IConnectionProvider Members
 
         /// <summary>
-        ///   Gets a connection to a node in the cluster
+        ///   Gets a connection to a reference in the cluster
         /// </summary>
         /// <param name="partitionKey"> </param>
         /// <returns> </returns>
@@ -104,144 +146,151 @@ namespace CqlSharp.Network
 
         #endregion
 
-        /// <summary>
-        ///   Finds additional nodes to connect to.
-        /// </summary>
-        /// <exception cref="CqlException">Could not detect datacenter or rack information from the node specified in the config section!</exception>
-        private void BuildRing()
-        {
-            //get the first set of seed-nodes
-            var nodes = CreateNodesFromConfig();
 
-            //the partitioner in use
+
+        /// <summary>
+        /// Gets all nodes that make up the cluster
+        /// </summary>
+        /// <param name="seed">The reference.</param>
+        /// <returns></returns>
+        /// <exception cref="CqlException">Could not detect datacenter or rack information from the reference specified in the config section!</exception>
+        private async Task<Ring> DiscoverNodesAsync(Node seed)
+        {
+            //get a connection
+            Connection c = await seed.GetOrCreateConnectionAsync(null);
+
+            //get partitioner
             string partitioner;
-
-            //create list of nodes of which info is found
-            var found = new List<Node>();
-
-            using (var connection = new CqlConnection(nodes[0]))
+            using (var result = await ExecQuery(c, "select partitioner from system.local"))
             {
-                var cmd = new CqlCommand(connection, "select partitioner from system.local", CqlConsistency.One);
-                partitioner = (string) cmd.ExecuteScalar();
+                if (!await result.ReadAsync())
+                    throw new CqlException("Could not detect the cluster partitioner");
+                partitioner = (string)result[0];
+            }
 
-                foreach (Node node in nodes)
+            //get the "local" data center, rack and token
+            using (var result = await ExecQuery(c, "select data_center, rack, tokens from system.local"))
+            {
+                if (await result.ReadAsync())
                 {
-                    //if node is part of already found list, skip...
-                    if (found.Contains(node))
-                        continue;
-
-                    //get the "local" data center, rack and token
-                    var localcmd = new CqlCommand(connection, "select data_center, rack, tokens from system.local",
-                                                  CqlConsistency.One);
-
-                    using (CqlDataReader reader = localcmd.ExecuteReader())
-                    {
-                        if (reader.Read())
-                        {
-                            node.DataCenter = (string) reader["data_center"];
-                            node.Rack = (string) reader["rack"];
-                            node.Tokens = (ISet<string>) reader["tokens"];
-                        }
-                    }
-
-                    //make sure we actually found a datacenter or rack
-                    if (node.DataCenter == null || node.Rack == null)
-                        throw new CqlException(
-                            "Could not detect datacenter or rack information from the node specified in the config section!");
-
-                    //add this node, now info is complete
-                    found.Add(node);
-
-                    //get the peers
-                    var peerscmd = new CqlCommand(connection,
-                                                  "select rpc_address, data_center, rack, tokens from system.peers",
-                                                  CqlConsistency.One);
-
-                    using (CqlDataReader reader = peerscmd.ExecuteReader())
-                    {
-                        //iterate over the peers
-                        while (reader.Read())
-                        {
-                            var newNode = new Node((IPAddress) reader["rpc_address"], _config)
-                                              {
-                                                  DataCenter = (string) reader["data_center"],
-                                                  Rack = (string) reader["rack"],
-                                                  Tokens = (ISet<string>) reader["tokens"]
-                                              };
-
-                            //filter based on scope
-                            switch (_config.DiscoveryScope)
-                            {
-                                case DiscoveryScope.None:
-                                    //skip if item is not in configured list
-                                    if (!nodes.Contains(newNode))
-                                        continue;
-
-                                    break;
-
-                                case DiscoveryScope.DataCenter:
-                                    //skip if node does not match datacenter
-                                    if (
-                                        !node.DataCenter.Equals(newNode.DataCenter,
-                                                                StringComparison.InvariantCultureIgnoreCase))
-                                        continue;
-                                    break;
-
-                                case DiscoveryScope.Rack:
-                                    //skip if node does not match datacenter
-                                    if (
-                                        !node.DataCenter.Equals(newNode.DataCenter,
-                                                                StringComparison.InvariantCultureIgnoreCase))
-                                        continue;
-                                    //skipt if node does not match rack
-                                    if (!node.Rack.Equals(newNode.Rack, StringComparison.InvariantCultureIgnoreCase))
-                                        continue;
-                                    break;
-                            }
-
-                            //add the node if we did not find it yet
-                            if (!found.Contains(newNode))
-                            {
-                                found.Add(newNode);
-                            }
-                        }
-                    }
+                    seed.DataCenter = (string)result["data_center"];
+                    seed.Rack = (string)result["rack"];
+                    seed.Tokens = (ISet<string>)result["tokens"];
+                }
+                else
+                {
+                    //strange, no local info found?!
+                    throw new CqlException("Could not detect datacenter or rack information from the reference specified in the config section!");
                 }
             }
 
-            _nodes = new Ring(found, partitioner);
+            //create list of nodes that make up the cluster, and add the seed
+            var found = new List<Node> { seed };
+
+            //get the peers
+            using (var result = await ExecQuery(c, "select rpc_address, data_center, rack, tokens from system.peers"))
+            {
+                //iterate over the peers
+                while (await result.ReadAsync())
+                {
+                    //create a new node
+                    var newNode = new Node((IPAddress)result["rpc_address"], _config)
+                                        {
+                                            DataCenter = (string)result["data_center"],
+                                            Rack = (string)result["rack"],
+                                            Tokens = (ISet<string>)result["tokens"]
+                                        };
+
+                    //add it if it is in scope
+                    if (InDiscoveryScope(seed, newNode, _config.DiscoveryScope))
+                        found.Add(newNode);
+                }
+            }
+
+            //return a new Ring of nodes
+            return new Ring(found, partitioner);
         }
 
         /// <summary>
-        ///   Creates the nodes from based on the servers value from the config.
+        /// Executes a query.
         /// </summary>
-        private List<Node> CreateNodesFromConfig()
+        /// <param name="connection">The connection.</param>
+        /// <param name="cql">The CQL.</param>
+        /// <returns>A CqlDataReader that can be used to access the query results</returns>
+        private async Task<CqlDataReader> ExecQuery(Connection connection, string cql)
         {
-            var nodes = new List<Node>();
+            var query = new QueryFrame(cql, CqlConsistency.One);
+            var result = (ResultFrame)await connection.SendRequestAsync(query);
+            return new CqlDataReader(result);
+        }
 
-            foreach (string nameOrAddress in _config.Nodes)
+        /// <summary>
+        /// Checks wether a node is in the discovery scope.
+        /// </summary>
+        /// <param name="reference">The reference node that is known to be in scope</param>
+        /// <param name="target">The target node of which is checked wether it is in scope</param>
+        /// <param name="discoveryScope">The discovery scope.</param>
+        /// <returns></returns>
+        private bool InDiscoveryScope(Node reference, Node target, DiscoveryScope discoveryScope)
+        {
+            //filter based on scope
+            switch (discoveryScope)
             {
-                try
-                {
-                    IPAddress address;
-                    if (!IPAddress.TryParse(nameOrAddress, out address))
-                    {
-                        address =
-                            Dns.GetHostAddresses(nameOrAddress).FirstOrDefault(
-                                addr => addr.AddressFamily == AddressFamily.InterNetwork);
-                    }
+                case DiscoveryScope.None:
+                    //add if item is in configured list
+                    return _config.NodeAddresses.Contains(target.Address);
 
-                    var node = new Node(address, _config);
-                    nodes.Add(node);
-                }
-                catch (Exception ex)
-                {
-                    throw new CqlException(
-                        "Can not obtain a valid IP-Address from the nodes specified in the configuration", ex);
-                }
+                case DiscoveryScope.DataCenter:
+                    //add if in the same datacenter
+                    return target.DataCenter.Equals(reference.DataCenter);
+
+                case DiscoveryScope.Rack:
+                    //add if reference matches datacenter and rack
+                    return target.DataCenter.Equals(reference.DataCenter) && target.Rack.Equals(reference.Rack);
+
+                case DiscoveryScope.Cluster:
+                    //add all
+                    return true;
             }
 
-            return nodes;
+            return false;
         }
+
+        private async void OnClusterChange(object source, ClusterChangedEvent args)
+        {
+            if (args.Change.Equals(ClusterChange.New))
+            {
+                //get the connection from which we received the event
+                var connection = (Connection)source;
+
+                //get the new peer
+                using (var result = await ExecQuery(connection, "select rpc_address, data_center, rack, tokens from system.peers where peer = '" + args.Node + "'"))
+                {
+                    if (await result.ReadAsync())
+                    {
+                        var newNode = new Node((IPAddress)result["rpc_address"], _config)
+                                            {
+                                                DataCenter = (string)result["data_center"],
+                                                Rack = (string)result["rack"],
+                                                Tokens = (ISet<string>)result["tokens"]
+                                            };
+
+
+                        if (InDiscoveryScope(_nodes.First(), newNode, _config.DiscoveryScope))
+                            _nodes.Add(newNode);
+                    }
+                }
+            }
+            else if (args.Change.Equals(ClusterChange.Removed))
+            {
+                Node removedNode = _nodes.FirstOrDefault(node => args.Node.Equals(node.Address));
+                if (removedNode != null)
+                    _nodes.Remove(removedNode);
+            }
+
+
+        }
+
+
     }
 }

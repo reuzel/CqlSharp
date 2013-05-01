@@ -13,13 +13,13 @@
 // See the License for the specific language governing permissions and
 // limitations under the License.
 
+using CqlSharp.Network;
+using CqlSharp.Network.Partition;
+using CqlSharp.Protocol;
 using System;
 using System.Collections.Concurrent;
 using System.Net;
 using System.Threading.Tasks;
-using CqlSharp.Network;
-using CqlSharp.Network.Partition;
-using CqlSharp.Protocol;
 
 namespace CqlSharp
 {
@@ -228,6 +228,10 @@ namespace CqlSharp
                 {
                     result = reader[0];
                 }
+                else
+                {
+                    throw new CqlException("Execute Scalar Query yield no results");
+                }
             }
 
             return result;
@@ -271,7 +275,7 @@ namespace CqlSharp
                         return new CqlDataReader(result);
 
                     case ResultOpcode.Void:
-                        return new CqlVoid {TracingId = result.TracingId};
+                        return new CqlVoid { TracingId = result.TracingId };
 
                     case ResultOpcode.SchemaChange:
                         return new CqlSchemaChange

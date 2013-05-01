@@ -60,6 +60,7 @@ namespace CqlSharpTest
         {
             using (var connection = new CqlConnection(ConnectionString))
             {
+                connection.Open();
                 try
                 {
                     var createKs = new CqlCommand(connection, CreateKsCql);
@@ -90,6 +91,7 @@ namespace CqlSharpTest
 
             using (var connection = new CqlConnection(ConnectionString))
             {
+                connection.Open();
                 try
                 {
                     var drop = new CqlCommand(connection, dropCql);

@@ -16,6 +16,9 @@
 using System;
 using System.Collections.Generic;
 using System.Configuration;
+using System.Linq;
+using System.Net;
+using System.Net.Sockets;
 using System.Text;
 
 namespace CqlSharp.Config
@@ -29,15 +32,17 @@ namespace CqlSharp.Config
         private const DiscoveryScope DefaultDiscoveryScope = DiscoveryScope.None;
         private const ConnectionStrategy DefaultConnectionStrategy = ConnectionStrategy.Balanced;
         private const string DefaultCqlVersion = "3.0.0";
-        private const int DefaultMaxDownTime = 60*60*1000; //max down for 1 hour
+        private const int DefaultMaxDownTime = 60 * 60 * 1000; //max down for 1 hour
         private const int DefaultMinDownTime = 500; //min down time for .5 second
         private const int DefaultMaxConnectionsPerNode = 2;
         private const int DefaultMaxConnections = -1; //no total max
         private const int DefaultNewConnectionTreshold = 10; //new connection when 10 parallel queries on one connection
         private const int DefaultMaxConcurrentQueries = -1;
-        private static readonly char[] PartSeperator = new[] {';'};
-        private static readonly char[] ValueSeperator = new[] {'='};
+        private static readonly char[] PartSeperator = new[] { ';' };
+        private static readonly char[] ValueSeperator = new[] { '=' };
         private static readonly TimeSpan DefaultMaxConnectionIdleTime = TimeSpan.FromSeconds(10);
+
+        private readonly Dictionary<string, IPAddress> _nodeAddresses;
 
         /// <summary>
         ///   Initializes a new instance of the <see cref="ClusterConfig" /> class.
@@ -45,6 +50,7 @@ namespace CqlSharp.Config
         public ClusterConfig()
         {
             Nodes = new List<string>();
+            _nodeAddresses = new Dictionary<string, IPAddress>();
             Port = DefaultPort;
             DiscoveryScope = DefaultDiscoveryScope;
             ConnectionStrategy = DefaultConnectionStrategy;
@@ -83,6 +89,56 @@ namespace CqlSharp.Config
         /// </summary>
         /// <value> The IP-addresses or DNS names of the nodes. </value>
         public List<string> Nodes { get; set; }
+
+
+        /// <summary>
+        /// Gets the node addresses.
+        /// </summary>
+        /// <value>
+        /// The node addresses.
+        /// </value>
+        /// <exception cref="CqlException">Can not obtain a valid IP-Address from a node specified in the configuration</exception>
+        public IEnumerable<IPAddress> NodeAddresses
+        {
+            get
+            {
+                foreach (string nameOrAddress in Nodes)
+                {
+
+                    IPAddress address;
+                    lock (_nodeAddresses)
+                    {
+                        if (!_nodeAddresses.TryGetValue(nameOrAddress, out address))
+                        {
+                            try
+                            {
+                                if (!IPAddress.TryParse(nameOrAddress, out address))
+                                {
+                                    address =
+                                        Dns.GetHostAddresses(
+                                            nameOrAddress).
+                                            FirstOrDefault(
+                                                addr =>
+                                                addr.AddressFamily ==
+                                                AddressFamily.
+                                                    InterNetwork);
+                                }
+
+                                if (address != null)
+                                    _nodeAddresses.Add(nameOrAddress, address);
+                            }
+                            catch (Exception ex)
+                            {
+                                throw new CqlException("Can not obtain a valid IP-Address from a node specified in the configuration", ex);
+                            }
+                        }
+                    }
+
+                    if (address != null)
+                        yield return address;
+                }
+            }
+        }
 
         /// <summary>
         ///   Gets or sets the discovery scope. Used to enlarge the list of nodes to which connections can be made
@@ -178,8 +234,8 @@ namespace CqlSharp.Config
                     throw new CqlException(
                         "Configuration error: Could not split the configuration element in a key and value: " + part);
 
-                string key = kv[0].Trim().Trim(new[] {'\'', '"'}).ToLower();
-                string value = kv[1].Trim().Trim(new[] {'\'', '"'});
+                string key = kv[0].Trim().Trim(new[] { '\'', '"' }).ToLower();
+                string value = kv[1].Trim().Trim(new[] { '\'', '"' });
 
                 switch (key)
                 {
@@ -194,11 +250,11 @@ namespace CqlSharp.Config
                         break;
                     case "discovery scope":
                     case "discoveryscope":
-                        DiscoveryScope = (DiscoveryScope) Enum.Parse(typeof (DiscoveryScope), value, true);
+                        DiscoveryScope = (DiscoveryScope)Enum.Parse(typeof(DiscoveryScope), value, true);
                         break;
                     case "connection strategy":
                     case "connectionstrategy":
-                        ConnectionStrategy = (ConnectionStrategy) Enum.Parse(typeof (ConnectionStrategy), value, true);
+                        ConnectionStrategy = (ConnectionStrategy)Enum.Parse(typeof(ConnectionStrategy), value, true);
                         break;
                     case "cql":
                     case "version":

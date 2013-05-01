@@ -13,6 +13,8 @@
 // See the License for the specific language governing permissions and
 // limitations under the License.
 
+using CqlSharp.Config;
+using CqlSharp.Network.Partition;
 using System;
 using System.Collections;
 using System.Collections.Generic;
@@ -20,8 +22,6 @@ using System.Linq;
 using System.Net;
 using System.Threading;
 using System.Threading.Tasks;
-using CqlSharp.Config;
-using CqlSharp.Network.Partition;
 
 namespace CqlSharp.Network
 {
@@ -29,7 +29,7 @@ namespace CqlSharp.Network
     ///   A single node of a Cassandra cluster. Manages a set of connections to that specific node. A node will be marked as down
     ///   when the last connection to that node fails. The node status will be reset to up using a exponantial back-off procedure.
     /// </summary>
-    internal class Node : IConnectionProvider, IEnumerable<Connection>
+    internal class Node : IEnumerable<Connection>
     {
         /// <summary>
         ///   The cluster configuration
@@ -140,8 +140,6 @@ namespace CqlSharp.Network
             get { return _openConnections; }
         }
 
-        #region IConnectionProvider Members
-
         /// <summary>
         ///   Gets an existing connection, or creates one if treshold is reached.
         /// </summary>
@@ -163,12 +161,6 @@ namespace CqlSharp.Network
             return c;
         }
 
-        public void ReturnConnection(Connection connection)
-        {
-            //no-op
-        }
-
-        #endregion
 
         #region IEnumerable<Connection> Members
 
@@ -183,7 +175,7 @@ namespace CqlSharp.Network
             var connections = new List<Connection>(_connections);
             _connectionLock.Release();
 
-            return ((IEnumerable<Connection>) connections).GetEnumerator();
+            return ((IEnumerable<Connection>)connections).GetEnumerator();
         }
 
         /// <summary>
@@ -207,8 +199,8 @@ namespace CqlSharp.Network
         {
             if (ReferenceEquals(null, obj)) return false;
             if (ReferenceEquals(this, obj)) return true;
-            if (obj.GetType() != this.GetType()) return false;
-            return Equals((Node) obj);
+            if (obj.GetType() != GetType()) return false;
+            return Equals((Node)obj);
         }
 
         /// <summary>
@@ -229,7 +221,7 @@ namespace CqlSharp.Network
         {
             unchecked
             {
-                return ((Address != null ? Address.GetHashCode() : 0)*397) ^ _config.Port;
+                return ((Address != null ? Address.GetHashCode() : 0) * 397) ^ _config.Port;
             }
         }
 
@@ -244,7 +236,7 @@ namespace CqlSharp.Network
                 IsUp = false;
 
                 //calculate the time, before retry
-                int due = Math.Min(_config.MaxDownTime, 2 ^ (_failureCount)*_config.MinDownTime);
+                int due = Math.Min(_config.MaxDownTime, 2 ^ (_failureCount) * _config.MinDownTime);
 
                 //next time wait a bit longer before accepting new connections (but not too long)
                 if (due < _config.MaxDownTime) _failureCount++;

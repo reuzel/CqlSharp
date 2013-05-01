@@ -13,13 +13,13 @@
 // See the License for the specific language governing permissions and
 // limitations under the License.
 
+using CqlSharp.Config;
+using CqlSharp.Network;
+using CqlSharp.Network.Partition;
 using System;
 using System.Collections.Concurrent;
 using System.Threading;
 using System.Threading.Tasks;
-using CqlSharp.Config;
-using CqlSharp.Network;
-using CqlSharp.Network.Partition;
 
 namespace CqlSharp
 {
@@ -32,8 +32,8 @@ namespace CqlSharp
         private static readonly ConcurrentDictionary<ClusterConfig, Cluster> Clusters;
 
         private Connection _connection;
-        private int _disposed;
-        private IConnectionProvider _provider;
+        private int _state;
+        private Cluster _cluster;
 
         static CqlConnection()
         {
@@ -60,11 +60,8 @@ namespace CqlSharp
             //fetch the cluster, or create one
             Cluster cluster = Clusters.GetOrAdd(config, conf => new Cluster(conf));
 
-            //set the throttle to the one from the active cluster
-            Throttle = cluster.Throttle;
-
             //set the connection provider to the cluster
-            _provider = cluster;
+            _cluster = cluster;
         }
 
         /// <summary>
@@ -79,21 +76,9 @@ namespace CqlSharp
             //get the cluster based on the instance
             Cluster cluster = Clusters.GetOrAdd(c, conf => new Cluster(conf));
 
-            //set the throttle of this connection to the one from the cluster
-            Throttle = cluster.Throttle;
-
             //set the connection provider to the found cluster
-            _provider = cluster;
-        }
+            _cluster = cluster;
 
-        /// <summary>
-        ///   Initializes a new instance of the <see cref="CqlConnection" /> class.
-        /// </summary>
-        /// <param name="node"> The node. </param>
-        internal CqlConnection(Node node)
-        {
-            _provider = node;
-            Throttle = new SemaphoreSlim(128);
         }
 
         /// <summary>
@@ -102,15 +87,26 @@ namespace CqlSharp
         /// <param name="cluster"> The cluster. </param>
         internal CqlConnection(Cluster cluster)
         {
-            _provider = cluster;
-            Throttle = cluster.Throttle;
+            _cluster = cluster;
         }
 
         /// <summary>
         ///   Gets or sets the throttle.
         /// </summary>
         /// <value> The throttle. </value>
-        internal SemaphoreSlim Throttle { get; set; }
+        internal SemaphoreSlim Throttle
+        {
+            get
+            {
+                if (_state == 0)
+                    throw new InvalidOperationException("You must invoke Open or OpenAsync on a CqlConnection before other use.");
+
+                if (_state == 2)
+                    throw new ObjectDisposedException("CqlConnection");
+
+                return _cluster.Throttle;
+            }
+        }
 
         #region IDisposable Members
 
@@ -132,10 +128,21 @@ namespace CqlSharp
         /// <exception cref="System.ObjectDisposedException">CqlConnection</exception>
         public async Task OpenAsync()
         {
-            if (_disposed == 1)
+            int state = Interlocked.CompareExchange(ref _state, 1, 0);
+
+            //make sure we are not opened yet
+            if (state == 1)
+                return;
+
+            //make sure we are not disposed
+            if (_state == 2)
                 throw new ObjectDisposedException("CqlConnection");
 
-            _connection = await _provider.GetOrCreateConnectionAsync(PartitionKey.None);
+            //make sure the cluster is open for connections
+            await _cluster.OpenAsync();
+
+            //get or create a connection
+            _connection = await _cluster.GetOrCreateConnectionAsync(PartitionKey.None);
 
             if (_connection == null)
                 throw new CqlException("Unable to obtain a Cql network connection.");
@@ -165,29 +172,35 @@ namespace CqlSharp
         internal async Task<Connection> GetConnectionAsync(bool newConnection = false,
                                                            PartitionKey partitionKey = default(PartitionKey))
         {
-            if (_disposed == 1)
+            if (_state == 0)
+                throw new CqlException("You must invoke Open or OpenAsync on a CqlConnection before other use.");
+
+            if (_state == 2)
                 throw new ObjectDisposedException("CqlConnection");
 
-            //if new connection requested, get a new one from the provided
-            if (newConnection || (partitionKey != null && partitionKey.IsSet))
+            Connection connection;
+
+            //reuse a reserved connection, or get one if it is disconnected or not reserved yet
+            if (_connection != null && _connection.IsConnected)
             {
-                Connection connection = await _provider.GetOrCreateConnectionAsync(partitionKey);
-
-                if (connection == null)
-                    throw new CqlException("Unable to obtain a Cql network connection.");
-
-                return connection;
+                connection = _connection;
+            }
+            else
+            {
+                connection = _connection = await _cluster.GetOrCreateConnectionAsync(null);
             }
 
-            //reuse the reserved connection if it still connected
-            if (_connection != null && _connection.IsConnected)
-                return _connection;
+            //if new connection requested, or a partition key is provided get a new connection
+            if (newConnection || (partitionKey != null && partitionKey.IsSet))
+            {
+                connection = await _cluster.GetOrCreateConnectionAsync(partitionKey);
+            }
 
-            //no connection, re-open
-            await OpenAsync();
 
-            //return connection (if any can be made)
-            return _connection;
+            if (connection == null)
+                throw new CqlException("Unable to obtain a Cql network connection.");
+
+            return connection;
         }
 
         /// <summary>
@@ -198,7 +211,7 @@ namespace CqlSharp
         {
             if (connection != null)
             {
-                _provider.ReturnConnection(connection);
+                _cluster.ReturnConnection(connection);
             }
         }
 
@@ -208,11 +221,11 @@ namespace CqlSharp
         /// <param name="disposing"> <c>true</c> to release both managed and unmanaged resources; <c>false</c> to release only unmanaged resources. </param>
         protected void Dispose(bool disposing)
         {
-            if (disposing && (Interlocked.CompareExchange(ref _disposed, 1, 0) == 0))
+            if (disposing && (Interlocked.Exchange(ref _state, 2) == 1))
             {
                 ReturnConnection(_connection);
                 _connection = null;
-                _provider = null;
+                _cluster = null;
             }
         }
 

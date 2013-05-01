@@ -87,7 +87,6 @@
     <Compile Include="Config\DiscoveryScope.cs" />
     <Compile Include="Network\ConnectionChangeEvent.cs" />
     <Compile Include="Network\ExclusiveConnectionStrategy.cs" />
-    <Compile Include="Network\IConnectionProvider.cs" />
     <Compile Include="Network\IConnectionStrategy.cs" />
     <Compile Include="Network\LoadChangeEvent.cs" />
     <Compile Include="Network\MemoryPool.cs" />

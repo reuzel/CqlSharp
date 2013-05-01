@@ -13,6 +13,8 @@
 // See the License for the specific language governing permissions and
 // limitations under the License.
 
+using CqlSharp.Config;
+using CqlSharp.Protocol;
 using System;
 using System.Collections.Generic;
 using System.IO;
@@ -20,8 +22,6 @@ using System.Net;
 using System.Net.Sockets;
 using System.Threading;
 using System.Threading.Tasks;
-using CqlSharp.Config;
-using CqlSharp.Protocol;
 
 //suppressing warnings about unobserved tasks
 #pragma warning disable 168
@@ -141,6 +141,9 @@ namespace CqlSharp.Network
         /// </summary>
         public event EventHandler<LoadChangeEvent> OnLoadChange;
 
+        /// <summary>
+        /// Occurs when [on cluster change].
+        /// </summary>
         public event EventHandler<ClusterChangedEvent> OnClusterChange;
 
         /// <summary>
@@ -153,7 +156,7 @@ namespace CqlSharp.Network
             Interlocked.Exchange(ref _lastActivity, DateTime.Now.Ticks);
 
             EventHandler<LoadChangeEvent> handler = OnLoadChange;
-            if (handler != null) handler(this, new LoadChangeEvent {LoadDelta = load});
+            if (handler != null) handler(this, new LoadChangeEvent { LoadDelta = load });
         }
 
         /// <summary>
@@ -189,7 +192,7 @@ namespace CqlSharp.Network
                 }
 
                 if (OnConnectionChange != null)
-                    OnConnectionChange(this, new ConnectionChangeEvent {Exception = error, Connected = false});
+                    OnConnectionChange(this, new ConnectionChangeEvent { Exception = error, Connected = false });
 
                 OnConnectionChange = null;
                 OnLoadChange = null;
@@ -252,7 +255,7 @@ namespace CqlSharp.Network
                     throw new ProtocolException(0, "Expected Ready frame not received");
 
                 if (OnConnectionChange != null)
-                    OnConnectionChange(this, new ConnectionChangeEvent {Connected = true});
+                    OnConnectionChange(this, new ConnectionChangeEvent { Connected = true });
             }
             catch (Exception ex)
             {
@@ -438,7 +441,7 @@ namespace CqlSharp.Network
             if (!IsConnected)
                 throw new InvalidOperationException("Must be connected before Registration can take place");
 
-            var registerframe = new RegisterFrame(new List<string> {"TOPOLOGY_CHANGE", "STATUS_CHANGE"});
+            var registerframe = new RegisterFrame(new List<string> { "TOPOLOGY_CHANGE", "STATUS_CHANGE" });
             Frame result = await SendRequestAsync(registerframe);
 
             if (!(result is ReadyFrame))

@@ -13,11 +13,12 @@
 // See the License for the specific language governing permissions and
 // limitations under the License.
 
+using CqlSharp.Network.Partition;
 using System;
 using System.Collections;
 using System.Collections.Generic;
+using System.Linq;
 using System.Threading;
-using CqlSharp.Network.Partition;
 
 namespace CqlSharp.Network
 {
@@ -37,9 +38,9 @@ namespace CqlSharp.Network
         /// </summary>
         /// <param name="nodes"> The nodes. </param>
         /// <param name="partitioner"> </param>
-        public Ring(List<Node> nodes, string partitioner)
+        public Ring(IEnumerable<Node> nodes, string partitioner)
         {
-            _nodes = nodes;
+            _nodes = nodes is List<Node> ? (List<Node>)nodes : new List<Node>(nodes);
             _tokens = new List<IToken>();
             _partitioner = partitioner;
             _nodeLock = new ReaderWriterLockSlim();
