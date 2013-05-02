@@ -255,6 +255,14 @@ namespace CqlSharp.Network
         /// <param name="state"> Ignored </param>
         private void Reactivate(object state)
         {
+            Reactivate();
+        }
+
+        /// <summary>
+        ///   Reactivates this instance.
+        /// </summary>
+        internal void Reactivate()
+        {
             lock (_statusLock)
             {
                 IsUp = true;

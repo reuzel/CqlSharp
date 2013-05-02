@@ -32,7 +32,7 @@ namespace CqlSharp
         private static readonly ConcurrentDictionary<ClusterConfig, Cluster> Clusters;
 
         private Connection _connection;
-        private int _state;
+        private int _state; //0=created; 1=opened; 2=disposed
         private Cluster _cluster;
 
         static CqlConnection()

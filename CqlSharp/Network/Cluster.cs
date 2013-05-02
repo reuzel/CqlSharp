@@ -35,6 +35,7 @@ namespace CqlSharp.Network
         private volatile Task _openTask;
         private readonly object _syncLock = new object();
         private volatile Ring _nodes;
+        private Connection _connection;
 
         /// <summary>
         ///   Initializes a new instance of the <see cref="Cluster" /> class.
@@ -115,6 +116,42 @@ namespace CqlSharp.Network
                                  : _config.MaxConcurrentQueries;
 
             _throttle = new SemaphoreSlim(concurrent);
+
+            //setup maintenance channel
+            SetupMaintenanceChannel();
+        }
+
+        /// <summary>
+        /// Setups the maintenance channel.
+        /// </summary>
+        private async void SetupMaintenanceChannel()
+        {
+            try
+            {
+                if (_connection == null || !_connection.IsConnected)
+                {
+                    //setup maintenance connection
+                    var strategy = new RandomConnectionStrategy(_nodes, _config);
+                    var connection = await strategy.GetOrCreateConnectionAsync(null);
+                    await connection.RegisterForClusterChanges();
+
+                    connection.OnConnectionChange += (src, ev) => SetupMaintenanceChannel();
+                    connection.OnClusterChange += OnClusterChange;
+
+                    //success
+                    _connection = connection;
+                }
+                return;
+            }
+            catch
+            {
+                //temporary disconnect from cluster
+                _connection = null;
+            }
+
+            //wait a moment, try again
+            await Task.Delay(5000);
+            SetupMaintenanceChannel();
         }
 
         /// <summary>
@@ -289,6 +326,13 @@ namespace CqlSharp.Network
                 Node removedNode = _nodes.FirstOrDefault(node => args.Node.Equals(node.Address));
                 if (removedNode != null)
                     _nodes.Remove(removedNode);
+            }
+            else if (args.Change.Equals(ClusterChange.Up))
+            {
+                Node upNode = _nodes.FirstOrDefault(node => args.Node.Equals(node.Address));
+
+                if (upNode != null)
+                    upNode.Reactivate();
             }
 
 

@@ -77,6 +77,7 @@ namespace CqlSharp.Network
             _activeRequests = 0;
             _load = 0;
             _connectionState = 0;
+            _lastActivity = DateTime.Now.Ticks;
         }
 
         /// <summary>
@@ -189,11 +190,11 @@ namespace CqlSharp.Network
                         _client.Close();
                         _client = null;
                     }
+
+                    if (OnConnectionChange != null)
+                        OnConnectionChange(this, new ConnectionChangeEvent { Exception = error, Connected = false });
                 }
-
-                if (OnConnectionChange != null)
-                    OnConnectionChange(this, new ConnectionChangeEvent { Exception = error, Connected = false });
-
+                
                 OnConnectionChange = null;
                 OnLoadChange = null;
             }
@@ -446,6 +447,9 @@ namespace CqlSharp.Network
 
             if (!(result is ReadyFrame))
                 throw new CqlException("Could not register for cluster changes!");
+
+            //increase request count to prevent connection to go in Idle state
+            Interlocked.Increment(ref _activeRequests);
         }
 
         /// <summary>
