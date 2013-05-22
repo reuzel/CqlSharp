@@ -188,6 +188,131 @@ namespace CqlSharpTest
             }
         }
 
+        [TestMethod]
+        public void NullDeserializeTest()
+        {
+            const string insertCql = @"insert into Test.Types(aInt) values (1);";
+
+            const string selectCql = "select * from Test.Types limit 1;";
+
+            using (var connection = new CqlConnection(ConnectionString))
+            {
+                connection.Open();
+                
+                var insertCmd = new CqlCommand(connection, insertCql);
+                insertCmd.ExecuteNonQuery();
+
+                var selectCmd = new CqlCommand(connection, selectCql);
+                Types result = null;
+                using (var reader = selectCmd.ExecuteReader<Types>())
+                {
+                    if (reader.Read())
+                        result = reader.Current;
+                }
+
+                Assert.IsNotNull(result);
+
+                Assert.AreEqual(result.aASCIIString,default(string));
+                Assert.AreEqual(result.aVarcharString, default(string));
+                Assert.AreEqual(result.aVarint, default(BigInteger));
+                Assert.AreEqual(result.aTextString, default(string));
+                Assert.AreEqual(result.aBool, default(bool));
+                Assert.AreEqual(result.aDouble, default(double));
+                Assert.AreEqual(result.aFloat, default(float));
+                Assert.AreEqual(result.aInet, default(IPAddress));
+                Assert.AreEqual(result.aLong, default(long));
+                Assert.AreEqual(result.aTimeUUID, default(Guid));
+                Assert.AreEqual(result.aUUID, default(Guid));
+                Assert.AreEqual(result.aBlob, default(byte[]));
+                Assert.AreEqual(result.aList, default(List<string>));
+                Assert.AreEqual(result.aSet, default(HashSet<int>));
+                Assert.AreEqual(result.aMap, default(Dictionary<long, string>));
+            }
+        }
+
+        [TestMethod]
+        public void NullSerializeTest()
+        {
+            const string insertCql = @"insert into Test.Types(
+                aInt,
+                aLong ,
+                aVarint ,
+                aTextString ,
+                aVarcharString ,
+                aASCIIString ,
+                aBlob ,
+                aBool ,
+                aDouble  , 
+                aFloat  , 
+                aTimestamp ,
+                aTimeUUID ,
+                aUUID ,
+                aInet ,
+                aList,
+                aSet,
+                aMap) 
+                values (?,?,?,?,?,?,?,?,?,?,?,?,?,?,?,?,?);";
+
+            const string selectCql = "select * from Test.Types limit 1;";
+
+            using (var connection = new CqlConnection(ConnectionString))
+            {
+                connection.Open();
+
+                var values = new Types
+                {
+                    aInt = 2,
+                    aASCIIString = default(string),
+                    aBlob = default(byte[]),
+                    aBool = default(bool),
+                    aDouble = default(double),
+                    aFloat = default(float),
+                    aInet = default(IPAddress),
+                    aLong = default(long),
+                    aTextString = default(string),
+                    aVarcharString = default(string),
+                    aTimeUUID = default(Guid),
+                    aUUID = default(Guid),
+                    aTimestamp = default(DateTime),
+                    aVarint = default(BigInteger),
+                    aList = default(List<string>),
+                    aSet = default(HashSet<int>),
+                    aMap = default(Dictionary<long, string>)
+                };
+
+                var insertCmd = new CqlCommand(connection, insertCql);
+                insertCmd.Prepare();
+                insertCmd.Parameters.Set(values);
+                insertCmd.ExecuteNonQuery();
+
+                var selectCmd = new CqlCommand(connection, selectCql);
+                Types result = null;
+                using (var reader = selectCmd.ExecuteReader<Types>())
+                {
+                    if (reader.Read())
+                        result = reader.Current;
+                }
+
+                Assert.IsNotNull(result);
+
+                Assert.AreEqual(result.aASCIIString, default(string));
+                Assert.AreEqual(result.aVarcharString, default(string));
+                Assert.AreEqual(result.aVarint, default(BigInteger));
+                Assert.AreEqual(result.aTextString, default(string));
+                Assert.AreEqual(result.aBool, default(bool));
+                Assert.AreEqual(result.aDouble, default(double));
+                Assert.AreEqual(result.aFloat, default(float));
+                Assert.AreEqual(result.aInet, default(IPAddress));
+                Assert.AreEqual(result.aLong, default(long));
+                Assert.AreEqual(result.aTimeUUID, default(Guid));
+                Assert.AreEqual(result.aUUID, default(Guid));
+                Assert.AreEqual(result.aBlob, default(byte[]));
+                Assert.AreEqual(result.aList, default(List<string>));
+                Assert.AreEqual(result.aSet, default(HashSet<int>));
+                Assert.AreEqual(result.aMap, default(Dictionary<long, string>));
+            }
+        }
+
         #region Nested type: Types
 
         public class Types

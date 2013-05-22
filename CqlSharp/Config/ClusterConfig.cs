@@ -41,6 +41,7 @@ namespace CqlSharp.Config
         private static readonly char[] PartSeperator = new[] { ';' };
         private static readonly char[] ValueSeperator = new[] { '=' };
         private static readonly TimeSpan DefaultMaxConnectionIdleTime = TimeSpan.FromSeconds(10);
+        private const int DefaultMaxQueryRetries = 3;
 
         private readonly Dictionary<string, IPAddress> _nodeAddresses;
 
@@ -62,6 +63,7 @@ namespace CqlSharp.Config
             NewConnectionTreshold = DefaultNewConnectionTreshold;
             MaxConcurrentQueries = DefaultMaxConcurrentQueries;
             MaxConnectionIdleTime = DefaultMaxConnectionIdleTime;
+            MaxQueryRetries = DefaultMaxQueryRetries;
         }
 
 
@@ -220,6 +222,14 @@ namespace CqlSharp.Config
         public TimeSpan MaxConnectionIdleTime { get; set; }
 
         /// <summary>
+        /// Gets or sets the maximum amount of query retries.
+        /// </summary>
+        /// <value>
+        /// The max query retries. Default 3.
+        /// </value>
+        public int MaxQueryRetries { get; set; }
+
+        /// <summary>
         ///   Parses the specified connectionstring.
         /// </summary>
         /// <param name="connectionstring"> The connectionstring. </param>
@@ -314,6 +324,15 @@ namespace CqlSharp.Config
                     case "maxidletime":
                     case "max idle time":
                         MaxConnectionIdleTime = TimeSpan.FromSeconds(int.Parse(value));
+                        break;
+                    case "retries":
+                    case "queryretries":
+                    case "query retries":
+                    case "maxretries":
+                    case "max retries":
+                    case "maxqueryretries":
+                    case "max query retries":
+                        MaxQueryRetries = int.Parse(value);
                         break;
                     default:
                         throw new CqlException("Config error: unknown configuration property: " + key);

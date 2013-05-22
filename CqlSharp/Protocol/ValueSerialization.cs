@@ -15,6 +15,7 @@
 
 using System;
 using System.Collections;
+using System.Collections.Concurrent;
 using System.Collections.Generic;
 using System.IO;
 using System.Net;
@@ -47,10 +48,17 @@ namespace CqlSharp.Protocol
                                                                                  {CqlType.Timeuuid, typeof (Guid)},
                                                                                  {CqlType.Inet, typeof (IPAddress)},
                                                                                  {CqlType.Varint, typeof (BigInteger)},
+                                                                                 {CqlType.Timestamp, typeof (DateTime)},
                                                                              };
+
+        private static readonly ConcurrentDictionary<Type, object> TypeDefaults = new ConcurrentDictionary<Type, object>();
 
         public static byte[] Serialize(this CqlColumn cqlColumn, object data)
         {
+            //null value check
+            if (data == null)
+                return null;
+
             byte[] rawData;
             switch (cqlColumn.CqlType)
             {
@@ -59,7 +67,7 @@ namespace CqlSharp.Protocol
                     if (!cqlColumn.CollectionValueType.HasValue)
                         throw new CqlException("CqlColumn collection type must has its value type set");
 
-                    var coll = (IEnumerable) data;
+                    var coll = (IEnumerable)data;
                     using (var ms = new MemoryStream())
                     {
                         //write length placeholder
@@ -85,10 +93,10 @@ namespace CqlSharp.Protocol
                     if (!cqlColumn.CollectionValueType.HasValue)
                         throw new CqlException("CqlColumn map type must has its value type set");
 
-                    var map = (IDictionary) data;
+                    var map = (IDictionary)data;
                     using (var ms = new MemoryStream())
                     {
-                        ms.WriteShort((short) map.Count);
+                        ms.WriteShort((short)map.Count);
                         foreach (DictionaryEntry de in map)
                         {
                             byte[] rawDataKey = Serialize(cqlColumn.CollectionKeyType.Value, de.Key);
@@ -123,7 +131,7 @@ namespace CqlSharp.Protocol
                     break;
 
                 case CqlType.Blob:
-                    rawData = (byte[]) data;
+                    rawData = (byte[])data;
                     break;
 
                 case CqlType.Double:
@@ -137,9 +145,8 @@ namespace CqlSharp.Protocol
                     break;
 
                 case CqlType.Timestamp:
-
                     if (data is long)
-                        rawData = BitConverter.GetBytes((long) data);
+                        rawData = BitConverter.GetBytes((long)data);
                     else
                         rawData = BitConverter.GetBytes(Convert.ToDateTime(data).ToTimestamp());
 
@@ -164,7 +171,7 @@ namespace CqlSharp.Protocol
                         rawData = BigInteger.Parse(dataString).ToByteArray();
                     else
                     {
-                        var integer = (BigInteger) data;
+                        var integer = (BigInteger)data;
                         rawData = integer.ToByteArray();
                     }
 
@@ -178,17 +185,28 @@ namespace CqlSharp.Protocol
 
                 case CqlType.Uuid:
                 case CqlType.Timeuuid:
-                    rawData = ((Guid) data).ToByteArray();
-                    if (BitConverter.IsLittleEndian)
+                    Guid guid = (Guid)data;
+
+                    if (guid == default(Guid))
                     {
-                        Array.Reverse(rawData, 0, 4);
-                        Array.Reverse(rawData, 4, 2);
-                        Array.Reverse(rawData, 6, 2);
+                        //return null if Guid is a default Guid
+                        rawData = null;
                     }
+                    else
+                    {
+                        rawData = guid.ToByteArray();
+                        if (BitConverter.IsLittleEndian)
+                        {
+                            Array.Reverse(rawData, 0, 4);
+                            Array.Reverse(rawData, 4, 2);
+                            Array.Reverse(rawData, 6, 2);
+                        }
+                    }
+
                     break;
 
                 case CqlType.Inet:
-                    rawData = ((IPAddress) data).GetAddressBytes();
+                    rawData = ((IPAddress)data).GetAddressBytes();
                     break;
 
                 default:
@@ -212,9 +230,13 @@ namespace CqlSharp.Protocol
                     if (!cqlColumn.CollectionValueType.HasValue)
                         throw new CqlException("CqlColumn collection type must has its value type set");
 
+                    //return null if deserializing a null value
+                    if (rawData == null)
+                        return null;
+
                     colType = cqlColumn.CollectionValueType.Value.ToType();
-                    Type typedColl = typeof (List<>).MakeGenericType(colType);
-                    var list = (IList) Activator.CreateInstance(typedColl);
+                    Type typedColl = typeof(List<>).MakeGenericType(colType);
+                    var list = (IList)Activator.CreateInstance(typedColl);
                     using (var ms = new MemoryStream(rawData))
                     {
                         short nbElem = ms.ReadShort();
@@ -232,9 +254,13 @@ namespace CqlSharp.Protocol
                     if (!cqlColumn.CollectionValueType.HasValue)
                         throw new CqlException("CqlColumn collection type must has its value type set");
 
+                    //return null if deserializing a null value
+                    if (rawData == null)
+                        return null;
+
                     colType = cqlColumn.CollectionValueType.Value.ToType();
-                    Type tempListType = typeof (List<>).MakeGenericType(colType);
-                    var tempList = (IList) Activator.CreateInstance(tempListType);
+                    Type tempListType = typeof(List<>).MakeGenericType(colType);
+                    var tempList = (IList)Activator.CreateInstance(tempListType);
                     using (var ms = new MemoryStream(rawData))
                     {
                         short nbElem = ms.ReadShort();
@@ -245,7 +271,7 @@ namespace CqlSharp.Protocol
                             tempList.Add(elem);
                         }
 
-                        Type typedSet = typeof (HashSet<>).MakeGenericType(colType);
+                        Type typedSet = typeof(HashSet<>).MakeGenericType(colType);
                         data = Activator.CreateInstance(typedSet, tempList);
                     }
                     break;
@@ -257,10 +283,14 @@ namespace CqlSharp.Protocol
                     if (!cqlColumn.CollectionValueType.HasValue)
                         throw new CqlException("CqlColumn map type must has its value type set");
 
+                    //return null if deserializing a null value
+                    if (rawData == null)
+                        return null;
+
                     Type keyType = cqlColumn.CollectionKeyType.Value.ToType();
                     colType = cqlColumn.CollectionValueType.Value.ToType();
-                    Type typedDic = typeof (Dictionary<,>).MakeGenericType(keyType, colType);
-                    var dic = (IDictionary) Activator.CreateInstance(typedDic);
+                    Type typedDic = typeof(Dictionary<,>).MakeGenericType(keyType, colType);
+                    var dic = (IDictionary)Activator.CreateInstance(typedDic);
                     using (var ms = new MemoryStream(rawData))
                     {
                         short nbElem = ms.ReadShort();
@@ -282,6 +312,10 @@ namespace CqlSharp.Protocol
 
         public static object Deserialize(CqlType colType, byte[] rawData)
         {
+            //skip parsing and return default value when rawData is null
+            if (rawData == null)
+                return GetDefaultValue(colType);
+
             object data;
             switch (colType)
             {
@@ -366,5 +400,14 @@ namespace CqlSharp.Protocol
 
             throw new ArgumentException("Unsupported type");
         }
+
+
+
+        private static object GetDefaultValue(this CqlType colType)
+        {
+            Type type = colType.ToType();
+            return type.IsValueType ? TypeDefaults.GetOrAdd(type, Activator.CreateInstance) : null;
+        }
+
     }
 }

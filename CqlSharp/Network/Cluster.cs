@@ -47,6 +47,13 @@ namespace CqlSharp.Network
             _config = config;
         }
 
+        /// <summary>
+        /// Gets the config
+        /// </summary>
+        /// <value>
+        /// The config
+        /// </value>
+        public ClusterConfig Config { get { return _config; } }
 
         /// <summary>
         /// Opens the cluster for queries.

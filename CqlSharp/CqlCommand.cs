@@ -394,8 +394,10 @@ namespace CqlSharp
         private async Task<ResultFrame> RunWithRetry(
             Func<Connection, QueryExecutionState, Task<ResultFrame>> executeFunc, QueryExecutionState state)
         {
+            int attempts = _connection.Config.MaxQueryRetries;
+
             //keep trying until faulted
-            while (true)
+            for (int attempt = 0; attempt < attempts; attempt++)
             {
                 //check if this query is to run using its own connection
                 bool newConn = state.UseParallelConnections;
@@ -413,6 +415,9 @@ namespace CqlSharp
                 }
                 catch (ProtocolException pex)
                 {
+                    if (attempt == attempts - 1)
+                        throw;
+
                     switch (pex.Code)
                     {
                         case ErrorCode.Server:
@@ -432,6 +437,9 @@ namespace CqlSharp
                     continue;
                 }
             }
+
+            throw new CqlException("Failed to return query result after max amount of attempts");
+
         }
 
         /// <summary>

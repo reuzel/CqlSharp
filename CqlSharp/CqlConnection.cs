@@ -108,6 +108,17 @@ namespace CqlSharp
             }
         }
 
+        /// <summary>
+        /// Gets the config related to this connection.
+        /// </summary>
+        /// <value>
+        /// The config
+        /// </value>
+        internal ClusterConfig Config
+        {
+            get { return _cluster.Config; }
+        }
+
         #region IDisposable Members
 
         /// <summary>

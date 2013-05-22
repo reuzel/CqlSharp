@@ -13,12 +13,12 @@
 // See the License for the specific language governing permissions and
 // limitations under the License.
 
+using CqlSharp.Network;
 using System;
 using System.Collections.Generic;
 using System.IO;
 using System.Net;
 using System.Text;
-using CqlSharp.Network;
 
 namespace CqlSharp.Protocol
 {
@@ -38,8 +38,8 @@ namespace CqlSharp.Protocol
             //if (BitConverter.IsLittleEndian) Array.Reverse(buffer);
             //stream.Write(buffer, 0, buffer.Length);
 
-            stream.WriteByte((byte) (data >> 8));
-            stream.WriteByte((byte) (data));
+            stream.WriteByte((byte)(data >> 8));
+            stream.WriteByte((byte)(data));
         }
 
         /// <summary>
@@ -53,10 +53,10 @@ namespace CqlSharp.Protocol
             //if (BitConverter.IsLittleEndian) Array.Reverse(buffer);
             //stream.Write(buffer, 0, buffer.Length);
 
-            stream.WriteByte((byte) (data >> 24));
-            stream.WriteByte((byte) (data >> 16));
-            stream.WriteByte((byte) (data >> 8));
-            stream.WriteByte((byte) (data));
+            stream.WriteByte((byte)(data >> 24));
+            stream.WriteByte((byte)(data >> 16));
+            stream.WriteByte((byte)(data >> 8));
+            stream.WriteByte((byte)(data));
         }
 
         /// <summary>
@@ -72,7 +72,7 @@ namespace CqlSharp.Protocol
             //stream.Write(bufStr, 0, len);
 
             int len = Encoding.UTF8.GetByteCount(data);
-            stream.WriteShort((short) len);
+            stream.WriteShort((short)len);
 
             byte[] bufStr;
             if (len > MemoryPool.BufferSize)
@@ -96,7 +96,7 @@ namespace CqlSharp.Protocol
         /// <param name="data"> The data. </param>
         public static void WriteStringList(this Stream stream, IList<string> data)
         {
-            stream.WriteShort((short) data.Count);
+            stream.WriteShort((short)data.Count);
             foreach (string s in data)
             {
                 stream.WriteString(s);
@@ -140,7 +140,7 @@ namespace CqlSharp.Protocol
         /// <param name="dic"> The dic. </param>
         public static void WriteStringMap(this Stream stream, IDictionary<string, string> dic)
         {
-            stream.WriteShort((short) dic.Count);
+            stream.WriteShort((short)dic.Count);
             foreach (var kvp in dic)
             {
                 stream.WriteString(kvp.Key);
@@ -155,9 +155,14 @@ namespace CqlSharp.Protocol
         /// <param name="data"> The data. </param>
         public static void WriteShortByteArray(this Stream stream, byte[] data)
         {
-            var len = (short) data.Length;
-            stream.WriteShort(len);
-            stream.Write(data, 0, len);
+            if (data == null)
+                stream.WriteShort((short)-1);
+            else
+            {
+                var len = (short)data.Length;
+                stream.WriteShort(len);
+                stream.Write(data, 0, len);
+            }
         }
 
         /// <summary>
@@ -167,9 +172,14 @@ namespace CqlSharp.Protocol
         /// <param name="data"> The data. </param>
         public static void WriteByteArray(this Stream stream, byte[] data)
         {
-            int len = data.Length;
-            stream.WriteInt(len);
-            stream.Write(data, 0, len);
+            if (data == null)
+                stream.WriteInt(-1);
+            else
+            {
+                int len = data.Length;
+                stream.WriteInt(len);
+                stream.Write(data, 0, len);
+            }
         }
 
         /// <summary>
@@ -180,7 +190,7 @@ namespace CqlSharp.Protocol
         public static void WriteInet(this Stream stream, IPEndPoint endpoint)
         {
             byte[] ip = endpoint.Address.GetAddressBytes();
-            stream.Write(new[] {(byte) ip.Length}, 0, 1);
+            stream.Write(new[] { (byte)ip.Length }, 0, 1);
             stream.Write(ip, 0, ip.Length);
             stream.WriteInt(endpoint.Port);
         }
@@ -249,7 +259,7 @@ namespace CqlSharp.Protocol
 
                 value = (value << 8) + read;
             }
-            return (short) value;
+            return (short)value;
         }
 
         /// <summary>
