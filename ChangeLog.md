@@ -1,3 +1,8 @@
+## Version 0.12.0
+* Support/fix for null values
+* Support for Nullable types
+* Addition of Max Query Retry configuration parameter
+
 ## Version 0.11.0
 * Several bug fixes
 * CqlSharp now listens to cluster events like Node Up/Down/Add/Remove. Nodes are added and removed while the application is running.
