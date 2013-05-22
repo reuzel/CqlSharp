@@ -13,14 +13,15 @@
 // See the License for the specific language governing permissions and
 // limitations under the License.
 
+using CqlSharp;
+using CqlSharp.Protocol;
+using CqlSharp.Serialization;
+using Microsoft.VisualStudio.TestTools.UnitTesting;
 using System;
 using System.Collections.Generic;
 using System.Linq;
 using System.Net;
 using System.Numerics;
-using CqlSharp;
-using CqlSharp.Protocol;
-using Microsoft.VisualStudio.TestTools.UnitTesting;
 
 namespace CqlSharpTest
 {
@@ -55,8 +56,8 @@ namespace CqlSharpTest
 
         private const string TruncateTableCql = @"truncate Test.Types;";
 
-        [TestInitialize]
-        public void Init()
+        [ClassInitialize]
+        public static void ClassInit(TestContext context)
         {
             using (var connection = new CqlConnection(ConnectionString))
             {
@@ -78,14 +79,25 @@ namespace CqlSharpTest
                 }
                 catch (AlreadyExistsException)
                 {
-                    var truncTable = new CqlCommand(connection, TruncateTableCql);
-                    truncTable.ExecuteNonQuery();
+                    //ignore
                 }
             }
         }
 
-        [TestCleanup]
-        public void Cleanup()
+        [TestInitialize]
+        public void Init()
+        {
+            using (var connection = new CqlConnection(ConnectionString))
+            {
+                connection.Open();
+
+                var truncTable = new CqlCommand(connection, TruncateTableCql);
+                truncTable.ExecuteNonQuery();
+            }
+        }
+
+        [ClassCleanup]
+        public static void Cleanup()
         {
             const string dropCql = @"drop keyspace Test;";
 
@@ -105,7 +117,7 @@ namespace CqlSharpTest
         }
 
         [TestMethod]
-        public void InsertTest()
+        public void SerializeTest()
         {
             const string insertCql = @"insert into Test.Types(
                 aInt,
@@ -136,11 +148,11 @@ namespace CqlSharpTest
                 var values = new Types
                                  {
                                      aASCIIString = "hello world!",
-                                     aBlob = new byte[] {1, 2, 3, 4},
+                                     aBlob = new byte[] { 1, 2, 3, 4 },
                                      aBool = true,
                                      aDouble = 1.234,
                                      aFloat = 5.789f,
-                                     aInet = new IPAddress(new byte[] {127, 0, 0, 1}),
+                                     aInet = new IPAddress(new byte[] { 127, 0, 0, 1 }),
                                      aInt = 10,
                                      aLong = 56789012456,
                                      aTextString = "some other text with \u005C unicode",
@@ -149,10 +161,10 @@ namespace CqlSharpTest
                                      aUUID = Guid.NewGuid(),
                                      aTimestamp = DateTime.Now,
                                      aVarint = new BigInteger(12345678901234),
-                                     aList = new List<string> {"string 1", "string 2"},
-                                     aSet = new HashSet<int> {1, 3, 3},
+                                     aList = new List<string> { "string 1", "string 2" },
+                                     aSet = new HashSet<int> { 1, 3, 3 },
                                      aMap =
-                                         new Dictionary<long, string> {{1, "value 1"}, {2, "value 2"}, {3, "value 3"}},
+                                         new Dictionary<long, string> { { 1, "value 1" }, { 2, "value 2" }, { 3, "value 3" } },
                                  };
 
                 var insertCmd = new CqlCommand(connection, insertCql);
@@ -189,7 +201,7 @@ namespace CqlSharpTest
         }
 
         [TestMethod]
-        public void NullDeserializeTest()
+        public void DefaultDeserializeTest()
         {
             const string insertCql = @"insert into Test.Types(aInt) values (1);";
 
@@ -198,7 +210,7 @@ namespace CqlSharpTest
             using (var connection = new CqlConnection(ConnectionString))
             {
                 connection.Open();
-                
+
                 var insertCmd = new CqlCommand(connection, insertCql);
                 insertCmd.ExecuteNonQuery();
 
@@ -212,7 +224,7 @@ namespace CqlSharpTest
 
                 Assert.IsNotNull(result);
 
-                Assert.AreEqual(result.aASCIIString,default(string));
+                Assert.AreEqual(result.aASCIIString, default(string));
                 Assert.AreEqual(result.aVarcharString, default(string));
                 Assert.AreEqual(result.aVarint, default(BigInteger));
                 Assert.AreEqual(result.aTextString, default(string));
@@ -231,7 +243,7 @@ namespace CqlSharpTest
         }
 
         [TestMethod]
-        public void NullSerializeTest()
+        public void DefaultSerializeTest()
         {
             const string insertCql = @"insert into Test.Types(
                 aInt,
@@ -313,6 +325,131 @@ namespace CqlSharpTest
             }
         }
 
+        [TestMethod]
+        public void NullableSerializeTest()
+        {
+            const string insertCql = @"insert into Test.Types(
+                aInt,
+                aLong ,
+                aVarint ,
+                aTextString ,
+                aVarcharString ,
+                aASCIIString ,
+                aBlob ,
+                aBool ,
+                aDouble  , 
+                aFloat  , 
+                aTimestamp ,
+                aTimeUUID ,
+                aUUID ,
+                aInet ,
+                aList,
+                aSet,
+                aMap) 
+                values (?,?,?,?,?,?,?,?,?,?,?,?,?,?,?,?,?);";
+
+            const string selectCql = "select * from Test.Types limit 1;";
+
+            using (var connection = new CqlConnection(ConnectionString))
+            {
+                connection.Open();
+
+                var values = new NullableTypes
+                {
+                    aInt = 3,
+                    aASCIIString = null,
+                    aBlob = null,
+                    aBool = null,
+                    aDouble = null,
+                    aFloat = null,
+                    aInet = null,
+                    aLong = null,
+                    aTextString = null,
+                    aVarcharString = null,
+                    aTimeUUID = null,
+                    aUUID = null,
+                    aTimestamp = null,
+                    aVarint = null,
+                    aList = null,
+                    aSet = null,
+                    aMap = null
+                };
+
+                var insertCmd = new CqlCommand(connection, insertCql);
+                insertCmd.Prepare();
+                insertCmd.Parameters.Set(values);
+                insertCmd.ExecuteNonQuery();
+
+                var selectCmd = new CqlCommand(connection, selectCql);
+                NullableTypes result = null;
+                using (var reader = selectCmd.ExecuteReader<NullableTypes>())
+                {
+                    if (reader.Read())
+                        result = reader.Current;
+                }
+
+                Assert.IsNotNull(result);
+
+                Assert.IsNull(result.aASCIIString);
+                Assert.IsNull(result.aVarcharString);
+                Assert.IsNull(result.aVarint);
+                Assert.IsNull(result.aTextString);
+                Assert.IsNull(result.aBool);
+                Assert.IsNull(result.aDouble);
+                Assert.IsNull(result.aFloat);
+                Assert.IsNull(result.aInet);
+                Assert.IsNull(result.aLong);
+                Assert.IsNull(result.aTimeUUID);
+                Assert.IsNull(result.aUUID);
+                Assert.IsNull(result.aBlob);
+                Assert.IsNull(result.aList);
+                Assert.IsNull(result.aSet);
+                Assert.IsNull(result.aMap);
+            }
+        }
+
+        [TestMethod]
+        public void NullableDeserializeTest()
+        {
+            const string insertCql = @"insert into Test.Types(aInt) values (4);";
+
+            const string selectCql = "select * from Test.Types limit 1;";
+
+            using (var connection = new CqlConnection(ConnectionString))
+            {
+                connection.Open();
+
+                var insertCmd = new CqlCommand(connection, insertCql);
+                insertCmd.ExecuteNonQuery();
+
+                var selectCmd = new CqlCommand(connection, selectCql);
+                NullableTypes result = null;
+                using (var reader = selectCmd.ExecuteReader<NullableTypes>())
+                {
+                    if (reader.Read())
+                        result = reader.Current;
+                }
+
+                Assert.IsNotNull(result);
+
+                Assert.IsNull(result.aASCIIString);
+                Assert.IsNull(result.aVarcharString);
+                Assert.IsNull(result.aVarint);
+                Assert.IsNull(result.aTextString);
+                Assert.IsNull(result.aBool);
+                Assert.IsNull(result.aDouble);
+                Assert.IsNull(result.aFloat);
+                Assert.IsNull(result.aInet);
+                Assert.IsNull(result.aLong);
+                Assert.IsNull(result.aTimeUUID);
+                Assert.IsNull(result.aUUID);
+                Assert.IsNull(result.aBlob);
+                Assert.IsNull(result.aList);
+                Assert.IsNull(result.aSet);
+                Assert.IsNull(result.aMap);
+            }
+        }
+
         #region Nested type: Types
 
         public class Types
@@ -330,6 +467,28 @@ namespace CqlSharpTest
             public DateTime aTimestamp { get; set; }
             public Guid aTimeUUID { get; set; }
             public Guid aUUID { get; set; }
+            public IPAddress aInet { get; set; }
+            public List<string> aList { get; set; }
+            public HashSet<int> aSet { get; set; }
+            public Dictionary<long, string> aMap { get; set; }
+        }
+
+        [CqlTable("types")]
+        public class NullableTypes
+        {
+            public int aInt { get; set; }
+            public long? aLong { get; set; }
+            public BigInteger? aVarint { get; set; }
+            public string aTextString { get; set; }
+            public string aVarcharString { get; set; }
+            public string aASCIIString { get; set; }
+            public byte[] aBlob { get; set; }
+            public bool? aBool { get; set; }
+            public double? aDouble { get; set; }
+            public float? aFloat { get; set; }
+            public DateTime? aTimestamp { get; set; }
+            public Guid? aTimeUUID { get; set; }
+            public Guid? aUUID { get; set; }
             public IPAddress aInet { get; set; }
             public List<string> aList { get; set; }
             public HashSet<int> aSet { get; set; }
