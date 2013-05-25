@@ -26,7 +26,7 @@ namespace CqlSharpTest
     [TestClass]
     public class QueryTests
     {
-        private const string ConnectionString = "server=localhost;throttle=100;ConnectionStrategy=PartitionAware";
+        private const string ConnectionString = "server=localhost;throttle=1000;ConnectionStrategy=PartitionAware";
 
         [TestInitialize]
         public void Init()
@@ -91,26 +91,27 @@ namespace CqlSharpTest
             const string insertCql = @"insert into Test.BasicFlow (id,value) values (?,?);";
             const string retrieveCql = @"select * from Test.BasicFlow;";
 
-            const int insertCount = 1000;
+            const int insertCount = 10000;
 
             //Act
             using (var connection = new CqlConnection(ConnectionString))
             {
                 await connection.OpenAsync();
 
-                var cmd = new CqlCommand(connection, insertCql, CqlConsistency.One);
-                await cmd.PrepareAsync();
-
                 var executions = new Task<ICqlQueryResult>[insertCount];
 
-                for (int i = 0; i < insertCount; i++)
+                Parallel.For(0, insertCount, (i) =>
                 {
+                    var cmd = new CqlCommand(connection, insertCql, CqlConsistency.One);
+                    cmd.UseParallelConnections = true;
+                    cmd.Prepare();
+
                     var b = new BasicFlowData { Id = i, Data = "Hallo " + i };
                     cmd.PartitionKey.Set(b);
                     cmd.Parameters.Set(b);
 
                     executions[i] = cmd.ExecuteNonQueryAsync();
-                }
+                });
 
                 await Task.WhenAll(executions);
 

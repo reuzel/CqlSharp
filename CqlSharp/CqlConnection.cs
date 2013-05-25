@@ -16,8 +16,10 @@
 using CqlSharp.Config;
 using CqlSharp.Network;
 using CqlSharp.Network.Partition;
+using CqlSharp.Protocol;
 using System;
 using System.Collections.Concurrent;
+using System.Net;
 using System.Threading;
 using System.Threading.Tasks;
 
@@ -246,6 +248,11 @@ namespace CqlSharp
         ~CqlConnection()
         {
             Dispose(false);
+        }
+
+        internal ConcurrentDictionary<IPAddress, ResultFrame> GetPrepareResultsFor(string cql)
+        {
+            return _cluster.GetPrepareResultsFor(cql);
         }
     }
 }

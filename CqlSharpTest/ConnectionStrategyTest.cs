@@ -281,10 +281,10 @@ namespace CqlSharpTest
                                                                        EventHandler<LoadChangeEvent> nodeHandler = null;
 
                                                                        //replace any IO inducing methods
-                                                                       connection.ConnectAsync =
+                                                                       connection.OpenAsync =
                                                                            () => { return Task.FromResult(true); };
-                                                                       connection.SendRequestAsyncFrameInt32 =
-                                                                           (frame, load) =>
+                                                                       connection.SendRequestAsyncFrameInt32Boolean =
+                                                                           (frame, load, connecting) =>
                                                                                {
                                                                                    //update connection load
                                                                                    connLoad += load;

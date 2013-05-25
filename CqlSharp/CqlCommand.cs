@@ -17,8 +17,6 @@ using CqlSharp.Network;
 using CqlSharp.Network.Partition;
 using CqlSharp.Protocol;
 using System;
-using System.Collections.Concurrent;
-using System.Net;
 using System.Threading.Tasks;
 
 namespace CqlSharp
@@ -31,7 +29,6 @@ namespace CqlSharp
         private readonly CqlConnection _connection;
         private readonly string _cql;
         private readonly CqlConsistency _level;
-        private readonly ConcurrentDictionary<IPAddress, ResultFrame> _prepareResults;
         private CqlParameterCollection _parameters;
         private PartitionKey _partitionKey;
         private bool _prepared;
@@ -48,7 +45,6 @@ namespace CqlSharp
             _connection = connection;
             _cql = cql;
             _level = level;
-            _prepareResults = new ConcurrentDictionary<IPAddress, ResultFrame>();
             _prepared = false;
             Load = 1;
         }
@@ -454,7 +450,9 @@ namespace CqlSharp
         {
             //check if already prepared for this connection
             ResultFrame result;
-            if (!_prepareResults.TryGetValue(connection.Address, out result))
+
+            var prepareResults = _connection.GetPrepareResultsFor(_cql);
+            if (!prepareResults.TryGetValue(connection.Address, out result))
             {
                 //create prepare frame
                 var query = new PrepareFrame(_cql);
@@ -470,7 +468,7 @@ namespace CqlSharp
                 if (result == null)
                     throw new CqlException("Unexpected frame received " + response.OpCode);
 
-                _prepareResults[connection.Address] = result;
+                prepareResults[connection.Address] = result;
             }
 
             //set as prepared

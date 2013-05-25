@@ -8,21 +8,6 @@ EndProject
 Project("{FAE04EC0-301F-11D3-BF4B-00C04F79EFBC}") = "CqlTest", "CqlTest\CqlTest.csproj", "{61D745C9-1B9B-40A2-A9A6-A37A58E6B496}"
 EndProject
 Global
-	GlobalSection(TeamFoundationVersionControl) = preSolution
-		SccNumberOfProjects = 4
-		SccEnterpriseProvider = {4CA58AB2-18FA-4F8D-95D4-32DDF27D184C}
-		SccTeamFoundationServer = https://reuzel.visualstudio.com/defaultcollection
-		SccLocalPath0 = .
-		SccProjectUniqueName1 = CqlSharp\\CqlSharp.csproj
-		SccProjectName1 = CqlSharp
-		SccLocalPath1 = CqlSharp
-		SccProjectUniqueName2 = CqlSharpTest\\CqlSharpTest.csproj
-		SccProjectName2 = CqlSharpTest
-		SccLocalPath2 = CqlSharpTest
-		SccProjectUniqueName3 = CqlTest\\CqlTest.csproj
-		SccProjectName3 = CqlTest
-		SccLocalPath3 = CqlTest
-	EndGlobalSection
 	GlobalSection(SolutionConfigurationPlatforms) = preSolution
 		Debug|Any CPU = Debug|Any CPU
 		Release|Any CPU = Release|Any CPU
@@ -43,5 +28,8 @@ Global
 	EndGlobalSection
 	GlobalSection(SolutionProperties) = preSolution
 		HideSolutionNode = FALSE
+	EndGlobalSection
+	GlobalSection(Performance) = preSolution
+		HasPerformanceSessions = true
 	EndGlobalSection
 EndGlobal

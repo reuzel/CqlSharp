@@ -33,8 +33,6 @@ namespace CqlSharp.Network
     /// </summary>
     internal class Connection
     {
-        private const int MaxStreams = 127;
-
         private readonly IPAddress _address;
 
         private readonly Queue<sbyte> _availableQueryIds;
@@ -50,6 +48,9 @@ namespace CqlSharp.Network
         private int _load;
         private Stream _readStream;
         private Stream _writeStream;
+
+        private readonly object _syncLock = new object();
+        private volatile Task _connectTask;
 
 
         /// <summary>
@@ -71,7 +72,7 @@ namespace CqlSharp.Network
 
             //setup locks
             _writeLock = new SemaphoreSlim(1);
-            _frameSubmitLock = new SemaphoreSlim(MaxStreams);
+            _frameSubmitLock = new SemaphoreSlim(sbyte.MaxValue);
 
             //setup state
             _activeRequests = 0;
@@ -194,7 +195,7 @@ namespace CqlSharp.Network
                     if (OnConnectionChange != null)
                         OnConnectionChange(this, new ConnectionChangeEvent { Exception = error, Connected = false });
                 }
-                
+
                 OnConnectionChange = null;
                 OnLoadChange = null;
             }
@@ -208,22 +209,41 @@ namespace CqlSharp.Network
             Dispose(false);
         }
 
+
         /// <summary>
-        ///   Connects to the provided endpoint
+        /// Opens the connection
         /// </summary>
-        /// <exception cref="ProtocolException">0;Expected Ready frame not received</exception>
-        public async Task ConnectAsync()
+        /// <returns>Task that represents the open procedure for this connection</returns>
+        public Task OpenAsync()
         {
-            //switch state to connected if not done so
+            if (_connectTask == null)
+            {
+                lock (_syncLock)
+                {
+                    if (_connectTask == null)
+                    {
+                        _connectTask = OpenAsyncInternal();
+                    }
+                }
+            }
+
+            return _connectTask;
+        }
+
+        /// <summary>
+        ///   Opens the connection
+        /// </summary>
+        public async Task OpenAsyncInternal()
+        {
+            //switch state to connecting if not done so
             int state = Interlocked.CompareExchange(ref _connectionState, 1, 0);
 
             if (state == 1)
-                return; //already connected
+                return;
 
             if (state == 2)
-                throw new IOException("Connection is closed."); //disconnected
+                throw new ObjectDisposedException("Connction disposed before opening!");
 
-            //go connect
             try
             {
                 //create TCP connection
@@ -237,7 +257,7 @@ namespace CqlSharp.Network
 
                 //submit startup frame
                 var startup = new StartupFrame(_config.CqlVersion);
-                Frame response = await SendRequestAsync(startup);
+                Frame response = await SendRequestAsync(startup, 1, true);
 
                 //authenticate if required
                 var auth = response as AuthenticateFrame;
@@ -248,7 +268,7 @@ namespace CqlSharp.Network
                         throw new UnauthorizedException("No credentials provided");
 
                     var cred = new CredentialsFrame(_config.Username, _config.Password);
-                    response = await SendRequestAsync(cred);
+                    response = await SendRequestAsync(cred, 1, true);
                 }
 
                 //check if ready
@@ -257,6 +277,7 @@ namespace CqlSharp.Network
 
                 if (OnConnectionChange != null)
                     OnConnectionChange(this, new ConnectionChangeEvent { Connected = true });
+
             }
             catch (Exception ex)
             {
@@ -270,17 +291,21 @@ namespace CqlSharp.Network
         /// </summary>
         /// <param name="frame"> The frame to send. </param>
         /// <param name="load"> the load indication of the request. Used for balancing queries over nodes and connections </param>
+        /// <param name="isConnecting">indicates if this request is send as part of connection setup protocol</param>
         /// <returns> </returns>
-        internal async Task<Frame> SendRequestAsync(Frame frame, int load = 1)
+        internal async Task<Frame> SendRequestAsync(Frame frame, int load = 1, bool isConnecting = false)
         {
             //make sure we are connected
-            if (_connectionState != 1)
+            if (!IsConnected)
                 throw new IOException("Not connected");
 
             try
             {
                 //count the operation
                 Interlocked.Increment(ref _activeRequests);
+
+                //increase the load
+                UpdateLoad(load);
 
                 //wait until allowed to submit a frame
                 await _frameSubmitLock.WaitAsync();
@@ -292,24 +317,31 @@ namespace CqlSharp.Network
                 sbyte id;
                 lock (_availableQueryIds)
                 {
-                    //final check to make sure we are connected (we may just be killing the connection)
-                    if (_connectionState != 1)
-                        throw new IOException("Not connected");
-
                     id = _availableQueryIds.Dequeue();
                     _openRequests.Add(id, waitTask);
                 }
 
-                //increase the load
-                UpdateLoad(load);
-
                 try
                 {
+                    //make sure we're already connected
+                    if (!isConnecting)
+                        await OpenAsync();
+
                     //send frame
                     frame.Stream = id;
                     await _writeLock.WaitAsync();
-                    await frame.WriteToStream(_writeStream);
-                    _writeLock.Release();
+                    try
+                    {
+                        //final check to make sure we're connected
+                        if (_connectionState != 1)
+                            throw new IOException("Not connected");
+
+                        await frame.WriteToStream(_writeStream);
+                    }
+                    finally
+                    {
+                        _writeLock.Release();
+                    }
 
                     //wait until response is received
                     Frame response = await waitTask.Task;
@@ -326,6 +358,13 @@ namespace CqlSharp.Network
                 }
                 finally
                 {
+                    //return request slot to the pool
+                    lock (_availableQueryIds)
+                    {
+                        _openRequests.Remove(id);
+                        _availableQueryIds.Enqueue(id);
+                    }
+
                     //allow another frame to be send
                     _frameSubmitLock.Release();
 
@@ -377,32 +416,28 @@ namespace CqlSharp.Network
                     {
                         var eventFrame = frame as EventFrame;
                         if (eventFrame == null)
-                            throw new ProtocolException(ErrorCode.Protocol,
-                                                        "A frame is received with StreamId -1, while it is not an EventFrame");
+                            throw new ProtocolException(ErrorCode.Protocol, "A frame is received with StreamId -1, while it is not an EventFrame");
 
                         //run the event logic in its own task, making sure it does not delay further reading
                         Task eventTask = Task.Run(() => ProcessEvent(eventFrame));
                         continue;
                     }
 
+                    //get the request waiting on this response
+                    TaskCompletionSource<Frame> openRequest;
+                    lock (_availableQueryIds)
+                    {
+                        openRequest = _openRequests[frame.Stream];
+                    }
+
                     //signal frame received. As a new task, because task
                     //completions may be continued synchronously, potentially
                     //leading to deadlocks when the continuation sends another request
                     //on this connection.
-                    TaskCompletionSource<Frame> openRequest = _openRequests[frame.Stream];
-                    Task continueOpenRequestTask =
-                        Task.Run(() => openRequest.TrySetResult(frame));
+                    Task continueOpenRequestTask = Task.Run(() => openRequest.TrySetResult(frame));
 
                     //wait until all frame data is read (especially important for queries and results)
                     await frame.WaitOnBodyRead();
-
-                    //return stream id to the pool
-                    sbyte id = frame.Stream;
-                    lock (_availableQueryIds)
-                    {
-                        _availableQueryIds.Enqueue(id);
-                        _openRequests.Remove(id);
-                    }
                 }
                 catch (Exception ex)
                 {
@@ -411,23 +446,18 @@ namespace CqlSharp.Network
                 }
             }
 
+            //we stopped reading, fail all other open requests
+            List<TaskCompletionSource<Frame>> unfinishedRequests;
             lock (_availableQueryIds)
             {
-                var ex = new IOException("Connection closed.");
+                unfinishedRequests = new List<TaskCompletionSource<Frame>>(_openRequests.Values);
+            }
 
-                //iterate over all requests and have them throw an exception
-                foreach (var req in _openRequests)
-                {
-                    //remove request
-                    _openRequests.Remove(req.Key);
-                    _availableQueryIds.Enqueue(req.Key);
-
-                    //finalize response wait task with exception
-                    TaskCompletionSource<Frame> waitTask = req.Value;
-
-                    Task failOpenRequestTask =
-                        Task.Run(() => waitTask.TrySetException(ex));
-                }
+            //iterate over all open request and finish them with an exception
+            var closedException = new IOException("Connection closed before receiving a result.");
+            foreach (var req in unfinishedRequests)
+            {
+                req.TrySetException(closedException);
             }
         }
 

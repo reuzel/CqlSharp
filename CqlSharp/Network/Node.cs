@@ -39,7 +39,7 @@ namespace CqlSharp.Network
         /// <summary>
         ///   lock to make connection creation/getting mutual exclusive
         /// </summary>
-        private readonly SemaphoreSlim _connectionLock;
+        private readonly ReaderWriterLockSlim _connectionLock;
 
         /// <summary>
         ///   The set of connections to the node
@@ -84,7 +84,7 @@ namespace CqlSharp.Network
         public Node(IPAddress address, ClusterConfig config)
         {
             _statusLock = new object();
-            _connectionLock = new SemaphoreSlim(1);
+            _connectionLock = new ReaderWriterLockSlim();
             _connections = new List<Connection>();
             Address = address;
             _config = config;
@@ -161,9 +161,6 @@ namespace CqlSharp.Network
             return c;
         }
 
-
-        #region IEnumerable<Connection> Members
-
         /// <summary>
         ///   Returns an enumerator that iterates through the collection.
         /// </summary>
@@ -171,11 +168,17 @@ namespace CqlSharp.Network
         /// <filterpriority>1</filterpriority>
         public IEnumerator<Connection> GetEnumerator()
         {
-            _connectionLock.Wait();
-            var connections = new List<Connection>(_connections);
-            _connectionLock.Release();
+            _connectionLock.EnterReadLock();
+            try
+            {
+                var connections = new List<Connection>(_connections);
+                return ((IEnumerable<Connection>)connections).GetEnumerator();
+            }
+            finally
+            {
+                _connectionLock.ExitReadLock();
+            }
 
-            return ((IEnumerable<Connection>)connections).GetEnumerator();
         }
 
         /// <summary>
@@ -188,7 +191,150 @@ namespace CqlSharp.Network
             return GetEnumerator();
         }
 
-        #endregion
+        /// <summary>
+        ///   Tries to get a reference to an existing connection to this node.
+        /// </summary>
+        /// <returns> true, if a connection is available, null otherwise </returns>
+        public Connection GetConnection()
+        {
+            if (IsUp)
+            {
+                _connectionLock.EnterReadLock();
+                try
+                {
+                    if (_openConnections > 0)
+                        return _connections.Where(c => c.IsConnected).SmallestOrDefault(c => c.Load);
+                }
+                finally
+                {
+                    _connectionLock.ExitReadLock();
+                }
+            }
+
+            return null;
+        }
+
+        /// <summary>
+        ///   Tries to create a new connection to this node.
+        /// </summary>
+        /// <returns> a connected connection, or null if not possible. </returns>
+        public async Task<Connection> CreateConnectionAsync()
+        {
+            Connection connection = null;
+
+            if (IsUp && _openConnections < _config.MaxConnectionsPerNode)
+            {
+                _connectionLock.EnterWriteLock();
+                try
+                {
+                    //double check, we may have been raced for a new connection
+                    if (IsUp && _openConnections < _config.MaxConnectionsPerNode)
+                    {
+                        //create new connection
+                        connection = new Connection(Address, _config);
+
+                        //register to connection and load changes
+                        connection.OnConnectionChange += ConnectionChange;
+                        connection.OnLoadChange += LoadChange;
+
+                        //assume it will succesfully open (to avoid too many connections to be opened)
+                        _openConnections++;
+
+                        //succesfull connect, add connection to list of open connections
+                        _connections.Add(connection);
+
+                        //create cleanup timer if it does not exist yet
+                        if (_connectionCleanupTimer == null)
+                            _connectionCleanupTimer = new Timer(RemoveIdleConnections, null,
+                                                                _config.MaxConnectionIdleTime,
+                                                                _config.MaxConnectionIdleTime);
+                    }
+                }
+                finally
+                {
+                    _connectionLock.ExitWriteLock();
+                }
+            }
+
+            //connect if we got a new connection
+            if (connection != null)
+                await connection.OpenAsync();
+
+            //return connection (if any)
+            return connection;
+        }
+
+        /// <summary>
+        ///   Removes the idle connections.
+        /// </summary>
+        /// <param name="state"> The state. Unused </param>
+        private void RemoveIdleConnections(object state)
+        {
+            _connectionLock.EnterWriteLock();
+            try
+            {
+                //iterate over connections and remove idle ones
+                var conns = new List<Connection>(_connections);
+                foreach (Connection connection in conns)
+                {
+                    if (connection.IsIdle)
+                    {
+                        connection.Dispose();
+                        _connections.Remove(connection);
+                    }
+                }
+
+                //remove clean up timer when this node does not have any connections left
+                if (_connections.Count == 0 && _connectionCleanupTimer != null)
+                {
+                    _connectionCleanupTimer.Dispose();
+                    _connectionCleanupTimer = null;
+                }
+            }
+            finally
+            {
+                _connectionLock.ExitWriteLock();
+            }
+        }
+
+
+        /// <summary>
+        ///   Invoked as handler when the status of a connection changes.
+        /// </summary>
+        /// <param name="sender"> The connection invoking this event handler </param>
+        /// <param name="evt"> The event. </param>
+        private void ConnectionChange(Object sender, ConnectionChangeEvent evt)
+        {
+            lock (_statusLock)
+            {
+                if (evt.Connected)
+                {
+                    IsUp = true;
+                    _failureCount = 0;
+                }
+                else
+                {
+                    //reduce number of open connections
+                    int active = Interlocked.Decrement(ref _openConnections);
+                    if (active == 0 && evt.Failure)
+                    {
+                        //signal node failure, if this was the last open connection
+                        Fail();
+                    }
+                }
+            }
+        }
+
+        /// <summary>
+        ///   Invoked as event handler when the load of connection changes
+        /// </summary>
+        /// <param name="sender"> The sender. </param>
+        /// <param name="evt"> The evt. </param>
+        private void LoadChange(Object sender, LoadChangeEvent evt)
+        {
+            Interlocked.Add(ref _load, evt.LoadDelta);
+        }
+
 
         /// <summary>
         ///   Determines whether the specified <see cref="System.Object" /> is equal to this instance.
@@ -243,19 +389,10 @@ namespace CqlSharp.Network
 
                 //set the back to live timer
                 if (_reactivateTimer == null)
-                    _reactivateTimer = new Timer(Reactivate, this, due, Timeout.Infinite);
+                    _reactivateTimer = new Timer((state) => Reactivate(), this, due, Timeout.Infinite);
                 else
                     _reactivateTimer.Change(due, Timeout.Infinite);
             }
-        }
-
-        /// <summary>
-        ///   Reactivates this instance. State is required for event handling but ignored
-        /// </summary>
-        /// <param name="state"> Ignored </param>
-        private void Reactivate(object state)
-        {
-            Reactivate();
         }
 
         /// <summary>
@@ -271,145 +408,6 @@ namespace CqlSharp.Network
             }
         }
 
-        /// <summary>
-        ///   Tries to get a reference to an existing connection to this node.
-        /// </summary>
-        /// <returns> true, if a connection is available, null otherwise </returns>
-        public Connection GetConnection()
-        {
-            if (IsUp)
-            {
-                _connectionLock.Wait();
-                try
-                {
-                    if (_openConnections > 0)
-                        return _connections.Where(c => c.IsConnected).SmallestOrDefault(c => c.Load);
-                }
-                finally
-                {
-                    _connectionLock.Release();
-                }
-            }
 
-            return null;
-        }
-
-        /// <summary>
-        ///   Tries to create a new connection to this node.
-        /// </summary>
-        /// <returns> a connected connection, or null if not possible. </returns>
-        public async Task<Connection> CreateConnectionAsync()
-        {
-            if (IsUp)
-            {
-                await _connectionLock.WaitAsync();
-                try
-                {
-                    if (_openConnections < _config.MaxConnectionsPerNode)
-                    {
-                        //create new connection
-                        var connection = new Connection(Address, _config);
-
-                        //increment active connection counter
-                        Interlocked.Increment(ref _openConnections);
-
-                        //register to connection and load changes
-                        connection.OnConnectionChange += ConnectionChange;
-                        connection.OnLoadChange += LoadChange;
-
-                        //attempt to connect
-                        await connection.ConnectAsync();
-
-                        //succesfull connect, add connection to list of open connections
-                        _connections.Add(connection);
-
-                        //create cleanup timer if it does not exist yet
-                        if (_connectionCleanupTimer == null)
-                            _connectionCleanupTimer = new Timer(RemoveIdleConnections, null,
-                                                                _config.MaxConnectionIdleTime,
-                                                                _config.MaxConnectionIdleTime);
-
-                        return connection;
-                    }
-                }
-                finally
-                {
-                    _connectionLock.Release();
-                }
-            }
-
-            return null;
-        }
-
-        /// <summary>
-        ///   Removes the idle connections.
-        /// </summary>
-        /// <param name="state"> The state. Unused </param>
-        private void RemoveIdleConnections(object state)
-        {
-            _connectionLock.Wait();
-            try
-            {
-                //iterate over connections and remove idle ones
-                var conns = new List<Connection>(_connections);
-                foreach (Connection connection in conns)
-                {
-                    if (connection.IsIdle)
-                    {
-                        connection.Dispose();
-                        _connections.Remove(connection);
-                    }
-                }
-
-                //remove clean up timer when this node does not have any connections left
-                if (_connections.Count == 0 && _connectionCleanupTimer != null)
-                {
-                    _connectionCleanupTimer.Dispose();
-                    _connectionCleanupTimer = null;
-                }
-            }
-            finally
-            {
-                _connectionLock.Release();
-            }
-        }
-
-
-        /// <summary>
-        ///   Invoked as handler when the status of a connection changes.
-        /// </summary>
-        /// <param name="sender"> The connection invoking this event handler </param>
-        /// <param name="evt"> The event. </param>
-        private void ConnectionChange(Object sender, ConnectionChangeEvent evt)
-        {
-            lock (_statusLock)
-            {
-                if (evt.Connected)
-                {
-                    IsUp = true;
-                    _failureCount = 0;
-                }
-                else
-                {
-                    //reduce number of connections
-                    int active = Interlocked.Decrement(ref _openConnections);
-                    if (active == 0 && evt.Failure)
-                    {
-                        //signal failure, if this was the last open connection
-                        Fail();
-                    }
-                }
-            }
-        }
-
-        /// <summary>
-        ///   Invoked as event handler when the load of connection changes
-        /// </summary>
-        /// <param name="sender"> The sender. </param>
-        /// <param name="evt"> The evt. </param>
-        private void LoadChange(Object sender, LoadChangeEvent evt)
-        {
-            Interlocked.Add(ref _load, evt.LoadDelta);
-        }
     }
 }

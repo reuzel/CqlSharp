@@ -16,6 +16,7 @@
 using CqlSharp.Config;
 using CqlSharp.Network.Partition;
 using CqlSharp.Protocol;
+using System.Collections.Concurrent;
 using System.Collections.Generic;
 using System.Linq;
 using System.Net;
@@ -35,7 +36,8 @@ namespace CqlSharp.Network
         private volatile Task _openTask;
         private readonly object _syncLock = new object();
         private volatile Ring _nodes;
-        private Connection _connection;
+        private Connection _maintenanceConnection;
+        private ConcurrentDictionary<string, ConcurrentDictionary<IPAddress, ResultFrame>> _prepareResultCache;
 
         /// <summary>
         ///   Initializes a new instance of the <see cref="Cluster" /> class.
@@ -124,41 +126,53 @@ namespace CqlSharp.Network
 
             _throttle = new SemaphoreSlim(concurrent);
 
-            //setup maintenance channel
-            SetupMaintenanceChannel();
+            //setup prepared query cache
+            _prepareResultCache = new ConcurrentDictionary<string, ConcurrentDictionary<IPAddress, ResultFrame>>();
+
+            //setup maintenance connection
+            SetupMaintenanceConnection();
         }
 
         /// <summary>
         /// Setups the maintenance channel.
         /// </summary>
-        private async void SetupMaintenanceChannel()
+        private async void SetupMaintenanceConnection()
         {
             try
             {
-                if (_connection == null || !_connection.IsConnected)
+                if (_maintenanceConnection == null || !_maintenanceConnection.IsConnected)
                 {
                     //setup maintenance connection
-                    var strategy = new RandomConnectionStrategy(_nodes, _config);
-                    var connection = await strategy.GetOrCreateConnectionAsync(null);
-                    await connection.RegisterForClusterChanges();
 
-                    connection.OnConnectionChange += (src, ev) => SetupMaintenanceChannel();
+                    //pick a random node from the list
+                    var strategy = new RandomConnectionStrategy(_nodes, _config);
+
+                    //get or create a connection
+                    var connection = await strategy.GetOrCreateConnectionAsync(null);
+
+                    //setup event handlers
+                    connection.OnConnectionChange += (src, ev) => SetupMaintenanceConnection();
                     connection.OnClusterChange += OnClusterChange;
 
-                    //success
-                    _connection = connection;
+                    //store the new connection
+                    _maintenanceConnection = connection;
+
+                    //register for events
+                    await connection.RegisterForClusterChanges();
                 }
+
+                //all seems right, we're done
                 return;
             }
             catch
             {
-                //temporary disconnect from cluster
-                _connection = null;
+                //temporary disconnect or registration failed, reset maintenance connection
+                _maintenanceConnection = null;
             }
 
             //wait a moment, try again
-            await Task.Delay(5000);
-            SetupMaintenanceChannel();
+            await Task.Delay(2000);
+            SetupMaintenanceConnection();
         }
 
         /// <summary>
@@ -170,7 +184,17 @@ namespace CqlSharp.Network
             get { return _throttle; }
         }
 
-        #region IConnectionProvider Members
+
+        /// <summary>
+        /// Gets the prepare results for the given query
+        /// </summary>
+        /// <param name="cql">The CQL query prepared</param>
+        /// <returns></returns>
+        internal ConcurrentDictionary<IPAddress, ResultFrame> GetPrepareResultsFor(string cql)
+        {
+            return _prepareResultCache.GetOrAdd(cql, (s) => new ConcurrentDictionary<IPAddress, ResultFrame>());
+        }
+
 
         /// <summary>
         ///   Gets a connection to a reference in the cluster
@@ -190,9 +214,6 @@ namespace CqlSharp.Network
         {
             _connectionSelector.ReturnConnection(connection);
         }
-
-        #endregion
-
 
 
         /// <summary>
