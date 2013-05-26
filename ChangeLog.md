@@ -2,6 +2,8 @@
 * Support/fix for null values
 * Support for Nullable types
 * Addition of Max Query Retry configuration parameter
+* Performance improvements (less async, less spinlock where lock is wanted)
+* Fixing some nasty race conditions
 
 ## Version 0.11.0
 * Several bug fixes
