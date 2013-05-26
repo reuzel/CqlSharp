@@ -56,7 +56,7 @@ namespace CqlSharpTest
 
                 for (int i = 0; i < nr; i++)
                 {
-                    var connection = await strategy.GetOrCreateConnectionAsync(PartitionKey.None);
+                    var connection = strategy.GetOrCreateConnection(PartitionKey.None);
                     await connection.SendRequestAsync(new QueryFrame("", CqlConsistency.Any), 10);
                 }
 
@@ -90,7 +90,7 @@ namespace CqlSharpTest
 
                 for (int i = 0; i < nr; i++)
                 {
-                    var connection = await strategy.GetOrCreateConnectionAsync(PartitionKey.None);
+                    var connection = strategy.GetOrCreateConnection(PartitionKey.None);
                     await connection.SendRequestAsync(new QueryFrame("", CqlConsistency.Any), 10);
                 }
 
@@ -124,7 +124,7 @@ namespace CqlSharpTest
 
                 for (int i = 0; i < nr; i++)
                 {
-                    var connection = await strategy.GetOrCreateConnectionAsync(PartitionKey.None);
+                    var connection = strategy.GetOrCreateConnection(PartitionKey.None);
                     await connection.SendRequestAsync(new QueryFrame("", CqlConsistency.Any), 10);
                 }
 
@@ -157,7 +157,7 @@ namespace CqlSharpTest
 
                 for (int i = 0; i < nr; i++)
                 {
-                    var connection = await strategy.GetOrCreateConnectionAsync(PartitionKey.None);
+                    var connection = strategy.GetOrCreateConnection(PartitionKey.None);
                     await connection.SendRequestAsync(new QueryFrame("", CqlConsistency.Any), 10);
                 }
 
@@ -191,7 +191,7 @@ namespace CqlSharpTest
 
                 for (int i = 0; i < nr; i++)
                 {
-                    var connection = await strategy.GetOrCreateConnectionAsync(PartitionKey.None);
+                    var connection = strategy.GetOrCreateConnection(PartitionKey.None);
                     await connection.SendRequestAsync(new QueryFrame("", CqlConsistency.Any), 10);
                 }
 
@@ -225,7 +225,7 @@ namespace CqlSharpTest
 
                 for (int i = 0; i < nr; i++)
                 {
-                    Connection c = await strategy.GetOrCreateConnectionAsync(PartitionKey.None);
+                    Connection c = strategy.GetOrCreateConnection(PartitionKey.None);
                     await c.SendRequestAsync(new QueryFrame("select null", CqlConsistency.Any), 10);
                 }
 
@@ -260,7 +260,7 @@ namespace CqlSharpTest
 
                 for (int i = 0; i < nr; i++)
                 {
-                    Connection c = await strategy.GetOrCreateConnectionAsync(PartitionKey.None);
+                    Connection c = strategy.GetOrCreateConnection(PartitionKey.None);
                     await c.SendRequestAsync(new QueryFrame("select null", CqlConsistency.Any), 10);
                 }
 

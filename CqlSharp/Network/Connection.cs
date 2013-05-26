@@ -121,7 +121,7 @@ namespace CqlSharp.Network
         /// <value> <c>true</c> if this instance is connected; otherwise, <c>false</c> . </value>
         public bool IsConnected
         {
-            get { return _connectionState == 1; }
+            get { return _connectionState == 0 || _connectionState == 1; }
         }
 
         /// <summary>
@@ -295,12 +295,16 @@ namespace CqlSharp.Network
         /// <returns> </returns>
         internal async Task<Frame> SendRequestAsync(Frame frame, int load = 1, bool isConnecting = false)
         {
-            //make sure we are connected
-            if (!IsConnected)
-                throw new IOException("Not connected");
-
             try
             {
+                //make sure we're already connected
+                if (!isConnecting)
+                    await OpenAsync();
+
+                //make sure we are connected
+                if (!IsConnected)
+                    throw new IOException("Not connected");
+
                 //count the operation
                 Interlocked.Increment(ref _activeRequests);
 
@@ -323,10 +327,6 @@ namespace CqlSharp.Network
 
                 try
                 {
-                    //make sure we're already connected
-                    if (!isConnecting)
-                        await OpenAsync();
-
                     //send frame
                     frame.Stream = id;
                     await _writeLock.WaitAsync();
@@ -469,9 +469,6 @@ namespace CqlSharp.Network
         /// <exception cref="CqlException">Could not register for cluster changes!</exception>
         public async Task RegisterForClusterChanges()
         {
-            if (!IsConnected)
-                throw new InvalidOperationException("Must be connected before Registration can take place");
-
             var registerframe = new RegisterFrame(new List<string> { "TOPOLOGY_CHANGE", "STATUS_CHANGE" });
             Frame result = await SendRequestAsync(registerframe);
 

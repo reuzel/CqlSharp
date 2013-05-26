@@ -26,7 +26,7 @@ namespace CqlSharpTest
     [TestClass]
     public class QueryTests
     {
-        private const string ConnectionString = "server=localhost;throttle=1000;ConnectionStrategy=PartitionAware";
+        private const string ConnectionString = "server=localhost;throttle=256;ConnectionStrategy=PartitionAware";
 
         [TestInitialize]
         public void Init()
@@ -91,7 +91,7 @@ namespace CqlSharpTest
             const string insertCql = @"insert into Test.BasicFlow (id,value) values (?,?);";
             const string retrieveCql = @"select * from Test.BasicFlow;";
 
-            const int insertCount = 10000;
+            const int insertCount = 100000;
 
             //Act
             using (var connection = new CqlConnection(ConnectionString))
@@ -100,7 +100,8 @@ namespace CqlSharpTest
 
                 var executions = new Task<ICqlQueryResult>[insertCount];
 
-                Parallel.For(0, insertCount, (i) =>
+                ParallelOptions options = new ParallelOptions() {MaxDegreeOfParallelism = 16};
+                Parallel.For(0, insertCount, options, (i) =>
                 {
                     var cmd = new CqlCommand(connection, insertCql, CqlConsistency.One);
                     cmd.UseParallelConnections = true;

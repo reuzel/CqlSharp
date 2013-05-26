@@ -13,7 +13,6 @@
 // See the License for the specific language governing permissions and
 // limitations under the License.
 
-using System.Threading.Tasks;
 using CqlSharp.Network.Partition;
 
 namespace CqlSharp.Network
@@ -26,7 +25,7 @@ namespace CqlSharp.Network
         /// <param name="partitionKey"> </param>
         /// <returns> </returns>
         /// <exception cref="CqlException">Can not connect to any node of the cluster! All connectivity to the cluster seems to be lost</exception>
-        Task<Connection> GetOrCreateConnectionAsync(PartitionKey partitionKey);
+        Connection GetOrCreateConnection(PartitionKey partitionKey);
 
         /// <summary>
         ///   Invoked when a connection is no longer in use by the application

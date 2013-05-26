@@ -13,11 +13,10 @@
 // See the License for the specific language governing permissions and
 // limitations under the License.
 
-using System;
-using System.Linq;
-using System.Threading.Tasks;
 using CqlSharp.Config;
 using CqlSharp.Network.Partition;
+using System;
+using System.Linq;
 
 namespace CqlSharp.Network
 {
@@ -39,7 +38,7 @@ namespace CqlSharp.Network
         {
             _nodes = nodes;
             _config = config;
-            _rnd = new Random((int) DateTime.Now.Ticks);
+            _rnd = new Random((int)DateTime.Now.Ticks);
         }
 
         #region IConnectionStrategy Members
@@ -50,7 +49,7 @@ namespace CqlSharp.Network
         /// <param name="partitionKey"> </param>
         /// <returns> </returns>
         /// <exception cref="CqlException">Can not connect to any node of the cluster! All connectivity to the cluster seems to be lost</exception>
-        public async Task<Connection> GetOrCreateConnectionAsync(PartitionKey partitionKey)
+        public Connection GetOrCreateConnection(PartitionKey partitionKey)
         {
             Connection connection;
             int count = _nodes.Count;
@@ -61,7 +60,7 @@ namespace CqlSharp.Network
             {
                 try
                 {
-                    connection = _nodes[(offset + i)%count].GetConnection();
+                    connection = _nodes[(offset + i) % count].GetConnection();
                     if (connection != null && connection.Load < _config.NewConnectionTreshold)
                         return connection;
                 }
@@ -79,7 +78,7 @@ namespace CqlSharp.Network
                 {
                     try
                     {
-                        connection = await _nodes[(offset + i)%count].CreateConnectionAsync();
+                        connection = _nodes[(offset + i) % count].CreateConnection();
                         if (connection != null)
                             return connection;
                     }
@@ -93,7 +92,7 @@ namespace CqlSharp.Network
             //iterate over nodes and get an existing one
             for (int i = 0; i < count; i++)
             {
-                connection = _nodes[(offset + i)%count].GetConnection();
+                connection = _nodes[(offset + i) % count].GetConnection();
                 if (connection != null)
                     return connection;
             }

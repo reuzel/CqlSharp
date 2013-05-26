@@ -21,7 +21,6 @@ using System.Collections.Generic;
 using System.Linq;
 using System.Net;
 using System.Threading;
-using System.Threading.Tasks;
 
 namespace CqlSharp.Network
 {
@@ -145,14 +144,14 @@ namespace CqlSharp.Network
         /// </summary>
         /// <param name="partitionKey"> ignored </param>
         /// <returns> </returns>
-        public async Task<Connection> GetOrCreateConnectionAsync(PartitionKey partitionKey)
+        public Connection GetOrCreateConnection(PartitionKey partitionKey)
         {
             Connection c = GetConnection();
 
             //if no connection found, or connection is full
             if (c == null || c.Load > _config.NewConnectionTreshold)
             {
-                Connection newConnection = await CreateConnectionAsync();
+                Connection newConnection = CreateConnection();
 
                 //set connection to new connection if any
                 c = newConnection ?? c;
@@ -218,7 +217,7 @@ namespace CqlSharp.Network
         ///   Tries to create a new connection to this node.
         /// </summary>
         /// <returns> a connected connection, or null if not possible. </returns>
-        public async Task<Connection> CreateConnectionAsync()
+        public Connection CreateConnection()
         {
             Connection connection = null;
 
@@ -256,9 +255,9 @@ namespace CqlSharp.Network
                 }
             }
 
-            //connect if we got a new connection
-            if (connection != null)
-                await connection.OpenAsync();
+            ////connect if we got a new connection
+            //if (connection != null)
+            //    await connection.OpenAsync();
 
             //return connection (if any)
             return connection;

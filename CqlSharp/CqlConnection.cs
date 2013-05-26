@@ -155,7 +155,7 @@ namespace CqlSharp
             await _cluster.OpenAsync();
 
             //get or create a connection
-            _connection = await _cluster.GetOrCreateConnectionAsync(PartitionKey.None);
+            _connection = _cluster.GetOrCreateConnection(PartitionKey.None);
 
             if (_connection == null)
                 throw new CqlException("Unable to obtain a Cql network connection.");
@@ -182,7 +182,7 @@ namespace CqlSharp
         ///   Gets the underlying connection. Will reopen this CqlConnection, if the underlying connection has failed,
         /// </summary>
         /// <returns> An open connection </returns>
-        internal async Task<Connection> GetConnectionAsync(bool newConnection = false,
+        internal Connection GetConnection(bool newConnection = false,
                                                            PartitionKey partitionKey = default(PartitionKey))
         {
             if (_state == 0)
@@ -200,13 +200,13 @@ namespace CqlSharp
             }
             else
             {
-                connection = _connection = await _cluster.GetOrCreateConnectionAsync(null);
+                connection = _connection = _cluster.GetOrCreateConnection(null);
             }
 
             //if new connection requested, or a partition key is provided get a new connection
             if (newConnection || (partitionKey != null && partitionKey.IsSet))
             {
-                connection = await _cluster.GetOrCreateConnectionAsync(partitionKey);
+                connection = _cluster.GetOrCreateConnection(partitionKey);
             }
 
 

@@ -13,10 +13,9 @@
 // See the License for the specific language governing permissions and
 // limitations under the License.
 
-using System.Linq;
-using System.Threading.Tasks;
 using CqlSharp.Config;
 using CqlSharp.Network.Partition;
+using System.Linq;
 
 namespace CqlSharp.Network
 {
@@ -44,7 +43,7 @@ namespace CqlSharp.Network
         /// <param name="partitionKey"> </param>
         /// <returns> </returns>
         /// <exception cref="CqlException">Can not connect to any node of the cluster! All connectivity to the cluster seems to be lost</exception>
-        public async Task<Connection> GetOrCreateConnectionAsync(PartitionKey partitionKey)
+        public Connection GetOrCreateConnection(PartitionKey partitionKey)
         {
             //try based on partition first
             if (partitionKey != null && partitionKey.IsSet)
@@ -53,13 +52,13 @@ namespace CqlSharp.Network
 
                 foreach (Node node in nodes)
                 {
-                    Connection connection = await node.GetOrCreateConnectionAsync(partitionKey);
+                    Connection connection = node.GetOrCreateConnection(partitionKey);
                     if (connection != null)
                         return connection;
                 }
             }
 
-            return await _baseStrategy.GetOrCreateConnectionAsync(partitionKey);
+            return _baseStrategy.GetOrCreateConnection(partitionKey);
         }
 
         /// <summary>

@@ -399,7 +399,7 @@ namespace CqlSharp
                 bool newConn = state.UseParallelConnections;
 
                 //get me a connection
-                Connection connection = await _connection.GetConnectionAsync(newConn, state.PartitionKey);
+                Connection connection = _connection.GetConnection(newConn, state.PartitionKey);
                 try
                 {
                     ResultFrame result = await executeFunc(connection, state);

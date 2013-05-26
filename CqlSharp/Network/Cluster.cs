@@ -148,7 +148,7 @@ namespace CqlSharp.Network
                     var strategy = new RandomConnectionStrategy(_nodes, _config);
 
                     //get or create a connection
-                    var connection = await strategy.GetOrCreateConnectionAsync(null);
+                    var connection = strategy.GetOrCreateConnection(null);
 
                     //setup event handlers
                     connection.OnConnectionChange += (src, ev) => SetupMaintenanceConnection();
@@ -201,9 +201,9 @@ namespace CqlSharp.Network
         /// </summary>
         /// <param name="partitionKey"> </param>
         /// <returns> </returns>
-        public Task<Connection> GetOrCreateConnectionAsync(PartitionKey partitionKey)
+        public Connection GetOrCreateConnection(PartitionKey partitionKey)
         {
-            return _connectionSelector.GetOrCreateConnectionAsync(partitionKey);
+            return _connectionSelector.GetOrCreateConnection(partitionKey);
         }
 
         /// <summary>
@@ -225,7 +225,7 @@ namespace CqlSharp.Network
         private async Task<Ring> DiscoverNodesAsync(Node seed)
         {
             //get a connection
-            Connection c = await seed.GetOrCreateConnectionAsync(null);
+            Connection c = seed.GetOrCreateConnection(null);
 
             //get partitioner
             string partitioner;

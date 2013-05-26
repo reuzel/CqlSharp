@@ -13,12 +13,11 @@
 // See the License for the specific language governing permissions and
 // limitations under the License.
 
+using CqlSharp.Config;
+using CqlSharp.Network.Partition;
 using System;
 using System.Collections.Concurrent;
 using System.Linq;
-using System.Threading.Tasks;
-using CqlSharp.Config;
-using CqlSharp.Network.Partition;
 
 namespace CqlSharp.Network
 {
@@ -46,12 +45,12 @@ namespace CqlSharp.Network
             _nodes = nodes;
             _config = config;
             _connections = new ConcurrentStack<Connection>();
-            _rndGen = new Random((int) DateTime.Now.Ticks);
+            _rndGen = new Random((int)DateTime.Now.Ticks);
         }
 
         #region IConnectionStrategy Members
 
-        public async Task<Connection> GetOrCreateConnectionAsync(PartitionKey partitionKey)
+        public Connection GetOrCreateConnection(PartitionKey partitionKey)
         {
             Connection connection = null;
 
@@ -70,7 +69,7 @@ namespace CqlSharp.Network
                 int offset = _rndGen.Next(count);
                 for (int i = 0; i < count; i++)
                 {
-                    connection = await _nodes[(offset + i)%count].CreateConnectionAsync();
+                    connection = _nodes[(offset + i) % count].CreateConnection();
                     if (connection != null)
                         return connection;
                 }
