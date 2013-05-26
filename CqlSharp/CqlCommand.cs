@@ -122,7 +122,7 @@ namespace CqlSharp
         public async Task<CqlDataReader> ExecuteReaderAsync()
         {
             //wait until allowed
-            _connection.Throttle.Wait();
+            _connection.Throttle.WaitOne();
 
             try
             {
@@ -170,7 +170,7 @@ namespace CqlSharp
         public async Task<CqlDataReader<T>> ExecuteReaderAsync<T>() where T : class, new()
         {
             //wait until allowed
-            _connection.Throttle.Wait();
+            _connection.Throttle.WaitOne();
 
             try
             {
@@ -257,7 +257,7 @@ namespace CqlSharp
         public async Task<ICqlQueryResult> ExecuteNonQueryAsync()
         {
             //wait until allowed
-            _connection.Throttle.Wait();
+            _connection.Throttle.WaitOne();
 
             try
             {
@@ -327,7 +327,7 @@ namespace CqlSharp
         public Task PrepareAsync()
         {
             //wait until allowed
-            _connection.Throttle.Wait();
+            _connection.Throttle.WaitOne();
 
             //capture state
             var state = CaptureState();
