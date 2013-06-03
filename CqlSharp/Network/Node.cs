@@ -14,6 +14,7 @@
 // limitations under the License.
 
 using CqlSharp.Config;
+using CqlSharp.Logging;
 using CqlSharp.Network.Partition;
 using System;
 using System.Collections;
@@ -76,6 +77,11 @@ namespace CqlSharp.Network
         private Timer _reactivateTimer;
 
         /// <summary>
+        /// Counter used to give each connection a unique number (per node)
+        /// </summary>
+        private int _counter;
+
+        /// <summary>
         ///   Initializes a new instance of the <see cref="Node" /> class.
         /// </summary>
         /// <param name="address"> The address of the node </param>
@@ -89,6 +95,7 @@ namespace CqlSharp.Network
             _config = config;
             IsUp = true;
             Tokens = new HashSet<string>();
+            _counter = 0;
         }
 
         /// <summary>
@@ -156,6 +163,9 @@ namespace CqlSharp.Network
                 //set connection to new connection if any
                 c = newConnection ?? c;
             }
+
+            if (c == null && IsUp)
+                Logger.Current.LogWarning("Connection to {0} not available, while node is up!", Address);
 
             return c;
         }
@@ -230,7 +240,7 @@ namespace CqlSharp.Network
                     if (IsUp && _openConnections < _config.MaxConnectionsPerNode)
                     {
                         //create new connection
-                        connection = new Connection(Address, _config);
+                        connection = new Connection(Address, _config, _counter++);
 
                         //register to connection and load changes
                         connection.OnConnectionChange += ConnectionChange;
@@ -255,10 +265,6 @@ namespace CqlSharp.Network
                 }
             }
 
-            ////connect if we got a new connection
-            //if (connection != null)
-            //    await connection.OpenAsync();
-
             //return connection (if any)
             return connection;
         }
@@ -269,30 +275,35 @@ namespace CqlSharp.Network
         /// <param name="state"> The state. Unused </param>
         private void RemoveIdleConnections(object state)
         {
-            _connectionLock.EnterWriteLock();
-            try
+            var logger = LoggerFactory.Create("CqlSharp.Node.IdleTimer");
+            using (logger.ThreadBinding())
             {
-                //iterate over connections and remove idle ones
-                var conns = new List<Connection>(_connections);
-                foreach (Connection connection in conns)
+                _connectionLock.EnterWriteLock();
+                try
                 {
-                    if (connection.IsIdle)
+                    //iterate over connections and remove idle ones
+                    var conns = new List<Connection>(_connections);
+                    foreach (Connection connection in conns)
                     {
-                        connection.Dispose();
-                        _connections.Remove(connection);
+                        if (connection.IsIdle)
+                        {
+                            logger.LogInfo("Closing {0} as it is idle", this);
+                            connection.Dispose();
+                            _connections.Remove(connection);
+                        }
+                    }
+
+                    //remove clean up timer when this node does not have any connections left
+                    if (_connections.Count == 0 && _connectionCleanupTimer != null)
+                    {
+                        _connectionCleanupTimer.Dispose();
+                        _connectionCleanupTimer = null;
                     }
                 }
-
-                //remove clean up timer when this node does not have any connections left
-                if (_connections.Count == 0 && _connectionCleanupTimer != null)
+                finally
                 {
-                    _connectionCleanupTimer.Dispose();
-                    _connectionCleanupTimer = null;
+                    _connectionLock.ExitWriteLock();
                 }
-            }
-            finally
-            {
-                _connectionLock.ExitWriteLock();
             }
         }
 
@@ -308,6 +319,8 @@ namespace CqlSharp.Network
             {
                 if (evt.Connected)
                 {
+                    if (!IsUp) Logger.Current.LogInfo("Node {0} is back online", Address);
+
                     IsUp = true;
                     _failureCount = 0;
                 }
@@ -386,9 +399,11 @@ namespace CqlSharp.Network
                 //next time wait a bit longer before accepting new connections (but not too long)
                 if (due < _config.MaxDownTime) _failureCount++;
 
+                Logger.Current.LogInfo("{0} down, reactivating in {1}ms.", this, due);
+
                 //set the back to live timer
                 if (_reactivateTimer == null)
-                    _reactivateTimer = new Timer((state) => Reactivate(), this, due, Timeout.Infinite);
+                    _reactivateTimer = new Timer(state => Reactivate(), this, due, Timeout.Infinite);
                 else
                     _reactivateTimer.Change(due, Timeout.Infinite);
             }
@@ -401,10 +416,23 @@ namespace CqlSharp.Network
         {
             lock (_statusLock)
             {
+                if (!IsUp) Logger.Current.LogInfo("{0} is assumed to be available again", this);
+
                 IsUp = true;
                 _reactivateTimer.Dispose();
                 _reactivateTimer = null;
             }
+        }
+
+        /// <summary>
+        /// Returns a <see cref="System.String" /> that represents this instance.
+        /// </summary>
+        /// <returns>
+        /// A <see cref="System.String" /> that represents this instance.
+        /// </returns>
+        public override string ToString()
+        {
+            return string.Format("Node {0} (DC:{1} Rack:{2})", Address, DataCenter, Rack);
         }
 
 

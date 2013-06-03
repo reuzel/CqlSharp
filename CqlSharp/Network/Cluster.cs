@@ -14,8 +14,10 @@
 // limitations under the License.
 
 using CqlSharp.Config;
+using CqlSharp.Logging;
 using CqlSharp.Network.Partition;
 using CqlSharp.Protocol;
+using System;
 using System.Collections.Concurrent;
 using System.Collections.Generic;
 using System.Linq;
@@ -60,7 +62,7 @@ namespace CqlSharp.Network
         /// <summary>
         /// Opens the cluster for queries.
         /// </summary>
-        public Task OpenAsync()
+        public Task OpenAsync(Logger logger)
         {
             if (_openTask == null || _openTask.IsFaulted)
             {
@@ -69,7 +71,7 @@ namespace CqlSharp.Network
                     if (_openTask == null || _openTask.IsFaulted)
                     {
                         //set the openTask
-                        _openTask = OpenAsyncInternal();
+                        _openTask = OpenAsyncInternal(logger);
                     }
                 }
             }
@@ -82,25 +84,33 @@ namespace CqlSharp.Network
         /// </summary>
         /// <returns></returns>
         /// <exception cref="CqlException">Cannot construct ring from provided seeds!</exception>
-        private async Task OpenAsyncInternal()
+        private async Task OpenAsyncInternal(Logger logger)
         {
+            logger.LogInfo("Opening Cluster with parameters: {0}", _config.ToString());
+
             //try to connect to the seeds in turn
             foreach (IPAddress seedAddress in _config.NodeAddresses)
             {
                 try
                 {
                     var seed = new Node(seedAddress, _config);
-                    _nodes = await DiscoverNodesAsync(seed);
+                    _nodes = await DiscoverNodesAsync(seed, logger);
                 }
-                catch
+                catch (Exception ex)
                 {
                     //seed not reachable, try next
-                    continue;
+                    logger.LogWarning("Could not discover nodes via seed {0}: {1}", seedAddress, ex);
                 }
             }
 
+            logger.LogInfo("Nodes detected: " + string.Join(", ", _nodes.Select(n => n.Address)));
+
             if (_nodes == null)
-                throw new CqlException("Cannot construct ring from provided seeds!");
+            {
+                var ex = new CqlException("Cannot construct ring from provided seeds!");
+                logger.LogCritical("Unable to setup Cluster based on given configuration: {0}", ex);
+                throw ex;
+            }
 
             //setup cluster connection strategy
             switch (_config.ConnectionStrategy)
@@ -116,6 +126,7 @@ namespace CqlSharp.Network
                     break;
                 case ConnectionStrategy.PartitionAware:
                     _connectionSelector = new PartitionAwareConnectionStrategy(_nodes, _config);
+                    if (_config.DiscoveryScope != DiscoveryScope.Cluster || _config.DiscoveryScope != DiscoveryScope.DataCenter) logger.LogWarning("PartitionAware connection strategy performs best if DiscoveryScope is set to cluster or datacenter");
                     break;
             }
 
@@ -124,25 +135,28 @@ namespace CqlSharp.Network
                                  ? _nodes.Count * _config.MaxConnectionsPerNode * 256
                                  : _config.MaxConcurrentQueries;
 
+            logger.LogInfo("Cluster is configured to allow {0} parallel queries", concurrent);
+
             _throttle = new Semaphore(concurrent, concurrent);
 
             //setup prepared query cache
             _prepareResultCache = new ConcurrentDictionary<string, ConcurrentDictionary<IPAddress, ResultFrame>>();
 
             //setup maintenance connection
-            SetupMaintenanceConnection();
+            SetupMaintenanceConnection(logger);
         }
 
         /// <summary>
         /// Setups the maintenance channel.
         /// </summary>
-        private async void SetupMaintenanceConnection()
+        private async void SetupMaintenanceConnection(Logger logger)
         {
             try
             {
                 if (_maintenanceConnection == null || !_maintenanceConnection.IsConnected)
                 {
                     //setup maintenance connection
+                    logger.LogVerbose("Creating new maintenance connection");
 
                     //pick a random node from the list
                     var strategy = new RandomConnectionStrategy(_nodes, _config);
@@ -151,28 +165,33 @@ namespace CqlSharp.Network
                     var connection = strategy.GetOrCreateConnection(null);
 
                     //setup event handlers
-                    connection.OnConnectionChange += (src, ev) => SetupMaintenanceConnection();
+                    connection.OnConnectionChange += (src, ev) => SetupMaintenanceConnection(logger);
                     connection.OnClusterChange += OnClusterChange;
 
                     //store the new connection
                     _maintenanceConnection = connection;
 
                     //register for events
-                    await connection.RegisterForClusterChanges();
+                    await connection.RegisterForClusterChangesAsync(logger);
+
+                    logger.LogInfo("Registered for cluster changes using {0}", connection);
                 }
 
                 //all seems right, we're done
                 return;
             }
-            catch
+            catch (Exception ex)
             {
+                logger.LogWarning("Failed to setup maintenance connection: {0}", ex);
                 //temporary disconnect or registration failed, reset maintenance connection
                 _maintenanceConnection = null;
             }
 
             //wait a moment, try again
+            logger.LogVerbose("Waiting 2secs before retrying setup maintenance connection");
             await Task.Delay(2000);
-            SetupMaintenanceConnection();
+
+            SetupMaintenanceConnection(logger);
         }
 
         /// <summary>
@@ -192,7 +211,7 @@ namespace CqlSharp.Network
         /// <returns></returns>
         internal ConcurrentDictionary<IPAddress, ResultFrame> GetPrepareResultsFor(string cql)
         {
-            return _prepareResultCache.GetOrAdd(cql, (s) => new ConcurrentDictionary<IPAddress, ResultFrame>());
+            return _prepareResultCache.GetOrAdd(cql, s => new ConcurrentDictionary<IPAddress, ResultFrame>());
         }
 
 
@@ -220,30 +239,39 @@ namespace CqlSharp.Network
         /// Gets all nodes that make up the cluster
         /// </summary>
         /// <param name="seed">The reference.</param>
+        /// <param name="logger">logger used to log progress</param>
         /// <returns></returns>
         /// <exception cref="CqlException">Could not detect datacenter or rack information from the reference specified in the config section!</exception>
-        private async Task<Ring> DiscoverNodesAsync(Node seed)
+        private async Task<Ring> DiscoverNodesAsync(Node seed, Logger logger)
         {
-            //get a connection
-            Connection c = seed.GetOrCreateConnection(null);
+            Connection c;
+            using (logger.ThreadBinding())
+            {
+                //get a connection
+                c = seed.GetOrCreateConnection(null);
+            }
 
             //get partitioner
             string partitioner;
-            using (var result = await ExecQuery(c, "select partitioner from system.local"))
+            using (var result = await ExecQuery(c, "select partitioner from system.local", logger))
             {
                 if (!await result.ReadAsync())
                     throw new CqlException("Could not detect the cluster partitioner");
                 partitioner = (string)result[0];
             }
 
+            logger.LogInfo("Partitioner in use: {0}", partitioner);
+
             //get the "local" data center, rack and token
-            using (var result = await ExecQuery(c, "select data_center, rack, tokens from system.local"))
+            using (var result = await ExecQuery(c, "select data_center, rack, tokens from system.local", logger))
             {
                 if (await result.ReadAsync())
                 {
                     seed.DataCenter = (string)result["data_center"];
                     seed.Rack = (string)result["rack"];
                     seed.Tokens = (ISet<string>)result["tokens"];
+
+                    logger.LogVerbose("Seed info - Address:{0} DataCenter:{1} Rack:{2}", seed.Address, seed.DataCenter, seed.Rack);
                 }
                 else
                 {
@@ -256,7 +284,7 @@ namespace CqlSharp.Network
             var found = new List<Node> { seed };
 
             //get the peers
-            using (var result = await ExecQuery(c, "select rpc_address, data_center, rack, tokens from system.peers"))
+            using (var result = await ExecQuery(c, "select rpc_address, data_center, rack, tokens from system.peers", logger))
             {
                 //iterate over the peers
                 while (await result.ReadAsync())
@@ -284,12 +312,21 @@ namespace CqlSharp.Network
         /// </summary>
         /// <param name="connection">The connection.</param>
         /// <param name="cql">The CQL.</param>
-        /// <returns>A CqlDataReader that can be used to access the query results</returns>
-        private async Task<CqlDataReader> ExecQuery(Connection connection, string cql)
+        /// <param name="logger">The logger.</param>
+        /// <returns>
+        /// A CqlDataReader that can be used to access the query results
+        /// </returns>
+        private async Task<CqlDataReader> ExecQuery(Connection connection, string cql, Logger logger)
         {
+            logger.LogVerbose("Excuting query {0} on {1}", cql, connection);
+
             var query = new QueryFrame(cql, CqlConsistency.One);
-            var result = (ResultFrame)await connection.SendRequestAsync(query);
-            return new CqlDataReader(result);
+            var result = (ResultFrame)await connection.SendRequestAsync(query, logger);
+            var reader = new CqlDataReader(result);
+
+            logger.LogVerbose("Query {0} returned {1} results", cql, reader.Count);
+
+            return reader;
         }
 
         /// <summary>
@@ -326,13 +363,15 @@ namespace CqlSharp.Network
 
         private async void OnClusterChange(object source, ClusterChangedEvent args)
         {
+            var logger = LoggerFactory.Create("CqlSharp.Cluster.Changes");
+
             if (args.Change.Equals(ClusterChange.New))
             {
                 //get the connection from which we received the event
                 var connection = (Connection)source;
 
                 //get the new peer
-                using (var result = await ExecQuery(connection, "select rpc_address, data_center, rack, tokens from system.peers where peer = '" + args.Node + "'"))
+                using (var result = await ExecQuery(connection, "select rpc_address, data_center, rack, tokens from system.peers where peer = '" + args.Node + "'", logger))
                 {
                     if (await result.ReadAsync())
                     {
@@ -345,7 +384,14 @@ namespace CqlSharp.Network
 
 
                         if (InDiscoveryScope(_nodes.First(), newNode, _config.DiscoveryScope))
+                        {
+                            logger.LogInfo("{0} added to the cluster", newNode);
                             _nodes.Add(newNode);
+                        }
+                        else
+                        {
+                            logger.LogVerbose("new {0} is ignored as it does not fit in the discovery scope", newNode);
+                        }
                     }
                 }
             }
@@ -353,19 +399,27 @@ namespace CqlSharp.Network
             {
                 Node removedNode = _nodes.FirstOrDefault(node => args.Node.Equals(node.Address));
                 if (removedNode != null)
+                {
                     _nodes.Remove(removedNode);
+                    logger.LogInfo("{0} was removed from the cluster", removedNode);
+                }
+                else
+                {
+                    logger.LogVerbose("Node with address {0} was removed but not used within the current configuration", args.Node);
+                }
             }
             else if (args.Change.Equals(ClusterChange.Up))
             {
                 Node upNode = _nodes.FirstOrDefault(node => args.Node.Equals(node.Address));
 
                 if (upNode != null)
-                    upNode.Reactivate();
+                {
+                    using (logger.ThreadBinding())
+                    {
+                        upNode.Reactivate();
+                    }
+                }
             }
-
-
         }
-
-
     }
 }

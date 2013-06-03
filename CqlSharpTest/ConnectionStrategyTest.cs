@@ -13,19 +13,20 @@
 // See the License for the specific language governing permissions and
 // limitations under the License.
 
-using System;
-using System.Collections.Generic;
-using System.Linq;
-using System.Net;
-using System.Threading.Tasks;
 using CqlSharp;
 using CqlSharp.Config;
+using CqlSharp.Logging;
 using CqlSharp.Network;
 using CqlSharp.Network.Fakes;
 using CqlSharp.Network.Partition;
 using CqlSharp.Protocol;
 using Microsoft.QualityTools.Testing.Fakes;
 using Microsoft.VisualStudio.TestTools.UnitTesting;
+using System;
+using System.Collections.Generic;
+using System.Linq;
+using System.Net;
+using System.Threading.Tasks;
 
 namespace CqlSharpTest
 {
@@ -46,9 +47,11 @@ namespace CqlSharpTest
                 Node n2 = new Node(IPAddress.Parse("127.0.0.2"), config);
                 Node n3 = new Node(IPAddress.Parse("127.0.0.3"), config);
                 Node n4 = new Node(IPAddress.Parse("127.0.0.4"), config);
-                var nodes = new Ring(new List<Node> {n, n2, n3, n4}, "RandomPartitioner");
+                var nodes = new Ring(new List<Node> { n, n2, n3, n4 }, "RandomPartitioner");
 
                 ShimAllConnections();
+
+                var logger = LoggerFactory.Create("BalancedStrategyLowTresholdTest");
 
                 IConnectionStrategy strategy = new BalancedConnectionStrategy(nodes, config);
 
@@ -56,12 +59,16 @@ namespace CqlSharpTest
 
                 for (int i = 0; i < nr; i++)
                 {
-                    var connection = strategy.GetOrCreateConnection(PartitionKey.None);
-                    await connection.SendRequestAsync(new QueryFrame("", CqlConsistency.Any), 10);
+                    Connection connection;
+
+                    using (logger.ThreadBinding())
+                        connection = strategy.GetOrCreateConnection(PartitionKey.None);
+
+                    await connection.SendRequestAsync(new QueryFrame("", CqlConsistency.Any), logger, 10);
                 }
 
                 Assert.AreEqual(nodes.Sum(nd => nd.ConnectionCount), nr);
-                Assert.IsTrue(nodes.All(nd => nd.ConnectionCount == nr/4));
+                Assert.IsTrue(nodes.All(nd => nd.ConnectionCount == nr / 4));
             }
         }
 
@@ -80,9 +87,11 @@ namespace CqlSharpTest
                 Node n2 = new Node(IPAddress.Parse("127.0.0.2"), config);
                 Node n3 = new Node(IPAddress.Parse("127.0.0.3"), config);
                 Node n4 = new Node(IPAddress.Parse("127.0.0.4"), config);
-                var nodes = new Ring(new List<Node> {n1, n2, n3, n4}, "RandomPartitioner");
+                var nodes = new Ring(new List<Node> { n1, n2, n3, n4 }, "RandomPartitioner");
 
                 ShimAllConnections();
+
+                var logger = LoggerFactory.Create("BalancedStrategyManyRequestLowMaxConnectionsTest");
 
                 IConnectionStrategy strategy = new BalancedConnectionStrategy(nodes, config);
 
@@ -90,12 +99,16 @@ namespace CqlSharpTest
 
                 for (int i = 0; i < nr; i++)
                 {
-                    var connection = strategy.GetOrCreateConnection(PartitionKey.None);
-                    await connection.SendRequestAsync(new QueryFrame("", CqlConsistency.Any), 10);
+                    Connection connection;
+
+                    using(logger.ThreadBinding())
+                        connection = strategy.GetOrCreateConnection(PartitionKey.None);
+                    
+                    await connection.SendRequestAsync(new QueryFrame("", CqlConsistency.Any), logger, 10);
                 }
 
                 Assert.AreEqual(6, nodes.Sum(nd => nd.ConnectionCount));
-                Assert.IsTrue(nodes.All(n => n.Load == 80*10/4));
+                Assert.IsTrue(nodes.All(n => n.Load == 80 * 10 / 4));
             }
         }
 
@@ -113,10 +126,11 @@ namespace CqlSharpTest
                 Node n2 = new Node(IPAddress.Parse("127.0.0.2"), config);
                 Node n3 = new Node(IPAddress.Parse("127.0.0.3"), config);
                 Node n4 = new Node(IPAddress.Parse("127.0.0.4"), config);
-                var nodes = new Ring(new List<Node> {n, n2, n3, n4}, "RandomPartitioner");
+                var nodes = new Ring(new List<Node> { n, n2, n3, n4 }, "RandomPartitioner");
 
                 ShimAllConnections();
 
+                var logger = LoggerFactory.Create("BalancedStrategyTestMedTresholdTest");
 
                 IConnectionStrategy strategy = new BalancedConnectionStrategy(nodes, config);
 
@@ -124,8 +138,12 @@ namespace CqlSharpTest
 
                 for (int i = 0; i < nr; i++)
                 {
-                    var connection = strategy.GetOrCreateConnection(PartitionKey.None);
-                    await connection.SendRequestAsync(new QueryFrame("", CqlConsistency.Any), 10);
+                    Connection connection;
+
+                    using(logger.ThreadBinding())
+                        connection = strategy.GetOrCreateConnection(PartitionKey.None);
+
+                    await connection.SendRequestAsync(new QueryFrame("", CqlConsistency.Any), logger, 10);
                 }
 
                 Assert.AreEqual(4, nodes.Sum(nd => nd.ConnectionCount));
@@ -147,9 +165,11 @@ namespace CqlSharpTest
                 Node n2 = new Node(IPAddress.Parse("127.0.0.2"), config);
                 Node n3 = new Node(IPAddress.Parse("127.0.0.3"), config);
                 Node n4 = new Node(IPAddress.Parse("127.0.0.4"), config);
-                var nodes = new Ring(new List<Node> {n1, n2, n3, n4}, "RandomPartitioner");
+                var nodes = new Ring(new List<Node> { n1, n2, n3, n4 }, "RandomPartitioner");
 
                 ShimAllConnections();
+
+                var logger = LoggerFactory.Create("BalancedStrategyTestHighTresholdTest");
 
                 IConnectionStrategy strategy = new BalancedConnectionStrategy(nodes, config);
 
@@ -157,8 +177,12 @@ namespace CqlSharpTest
 
                 for (int i = 0; i < nr; i++)
                 {
-                    var connection = strategy.GetOrCreateConnection(PartitionKey.None);
-                    await connection.SendRequestAsync(new QueryFrame("", CqlConsistency.Any), 10);
+                    Connection connection;
+
+                    using (logger.ThreadBinding())
+                        connection = strategy.GetOrCreateConnection(PartitionKey.None);
+
+                    await connection.SendRequestAsync(new QueryFrame("", CqlConsistency.Any), logger, 10);
                 }
 
                 Assert.AreEqual(1, nodes.Sum(nd => nd.ConnectionCount));
@@ -181,9 +205,11 @@ namespace CqlSharpTest
                 Node n2 = new Node(IPAddress.Parse("127.0.0.2"), config);
                 Node n3 = new Node(IPAddress.Parse("127.0.0.3"), config);
                 Node n4 = new Node(IPAddress.Parse("127.0.0.4"), config);
-                var nodes = new Ring(new List<Node> {n, n2, n3, n4}, "RandomPartitioner");
+                var nodes = new Ring(new List<Node> { n, n2, n3, n4 }, "RandomPartitioner");
 
                 ShimAllConnections();
+
+                var logger = LoggerFactory.Create("BalancedStrategyTestMaxConnections");
 
                 IConnectionStrategy strategy = new BalancedConnectionStrategy(nodes, config);
 
@@ -191,8 +217,12 @@ namespace CqlSharpTest
 
                 for (int i = 0; i < nr; i++)
                 {
-                    var connection = strategy.GetOrCreateConnection(PartitionKey.None);
-                    await connection.SendRequestAsync(new QueryFrame("", CqlConsistency.Any), 10);
+                    Connection connection;
+
+                    using (logger.ThreadBinding())
+                        connection = strategy.GetOrCreateConnection(PartitionKey.None);
+
+                    await connection.SendRequestAsync(new QueryFrame("", CqlConsistency.Any), logger, 10);
                 }
 
                 Assert.AreEqual(nodes.Sum(nd => nd.ConnectionCount), 6);
@@ -215,9 +245,11 @@ namespace CqlSharpTest
                 Node n2 = new Node(IPAddress.Parse("127.0.0.2"), config);
                 Node n3 = new Node(IPAddress.Parse("127.0.0.3"), config);
                 Node n4 = new Node(IPAddress.Parse("127.0.0.4"), config);
-                var nodes = new Ring(new List<Node> {n, n2, n3, n4}, "RandomPartitioner");
+                var nodes = new Ring(new List<Node> { n, n2, n3, n4 }, "RandomPartitioner");
 
                 ShimAllConnections();
+
+                var logger = LoggerFactory.Create("BalancedStrategyFewRequestsTest");
 
                 IConnectionStrategy strategy = new BalancedConnectionStrategy(nodes, config);
 
@@ -225,8 +257,12 @@ namespace CqlSharpTest
 
                 for (int i = 0; i < nr; i++)
                 {
-                    Connection c = strategy.GetOrCreateConnection(PartitionKey.None);
-                    await c.SendRequestAsync(new QueryFrame("select null", CqlConsistency.Any), 10);
+                    Connection connection;
+
+                    using (logger.ThreadBinding())
+                        connection = strategy.GetOrCreateConnection(PartitionKey.None);
+
+                    await connection.SendRequestAsync(new QueryFrame("", CqlConsistency.Any), logger, 10);
                 }
 
                 Assert.AreEqual(nodes.Sum(nd => nd.ConnectionCount), 4);
@@ -249,10 +285,12 @@ namespace CqlSharpTest
                 Node n2 = new Node(IPAddress.Parse("127.0.0.2"), config);
                 Node n3 = new Node(IPAddress.Parse("127.0.0.3"), config);
                 Node n4 = new Node(IPAddress.Parse("127.0.0.4"), config);
-                var nodes = new Ring(new List<Node> {n, n2, n3, n4}, "RandomPartitioner");
+                var nodes = new Ring(new List<Node> { n, n2, n3, n4 }, "RandomPartitioner");
 
                 ShimAllConnections();
 
+
+                var logger = LoggerFactory.Create("BalancedStrategyManyRequestsTest");
 
                 IConnectionStrategy strategy = new BalancedConnectionStrategy(nodes, config);
 
@@ -260,20 +298,24 @@ namespace CqlSharpTest
 
                 for (int i = 0; i < nr; i++)
                 {
-                    Connection c = strategy.GetOrCreateConnection(PartitionKey.None);
-                    await c.SendRequestAsync(new QueryFrame("select null", CqlConsistency.Any), 10);
+                    Connection connection;
+
+                    using (logger.ThreadBinding())
+                        connection = strategy.GetOrCreateConnection(PartitionKey.None);
+
+                    await connection.SendRequestAsync(new QueryFrame("", CqlConsistency.Any), logger, 10);
                 }
 
                 Assert.AreEqual(nodes.Sum(nd => nd.ConnectionCount), 8);
                 Assert.IsTrue(nodes.All(nd => nd.ConnectionCount == 2));
-                Assert.IsTrue(nodes.SelectMany(nd => nd).All(c => c.Load == (80*10)/4/2));
+                Assert.IsTrue(nodes.SelectMany(nd => nd).All(c => c.Load == (80 * 10) / 4 / 2));
             }
         }
 
         private static void ShimAllConnections()
         {
             //shim connections to avoid network connections...
-            ShimConnection.ConstructorIPAddressClusterConfig = (conn, address, conf) =>
+            ShimConnection.ConstructorIPAddressClusterConfigInt32 = (conn, address, conf, nr) =>
                                                                    {
                                                                        //wrap the new connection in a shim
                                                                        var connection = new ShimConnection(conn);
@@ -281,24 +323,23 @@ namespace CqlSharpTest
                                                                        EventHandler<LoadChangeEvent> nodeHandler = null;
 
                                                                        //replace any IO inducing methods
-                                                                       connection.OpenAsync =
-                                                                           () => { return Task.FromResult(true); };
-                                                                       connection.SendRequestAsyncFrameInt32Boolean =
-                                                                           (frame, load, connecting) =>
-                                                                               {
-                                                                                   //update connection load
-                                                                                   connLoad += load;
-                                                                                   //call load change event handler
-                                                                                   nodeHandler(connection,
-                                                                                               new LoadChangeEvent
-                                                                                                   {LoadDelta = load});
-                                                                                   //done
-                                                                                   return
-                                                                                       Task.FromResult(
-                                                                                           (Frame)
-                                                                                           new ResultFrame
-                                                                                               {Stream = frame.Stream});
-                                                                               };
+                                                                       connection.OpenAsyncLogger =
+                                                                           (log) => { return Task.FromResult(true); };
+
+                                                                       connection.SendRequestAsyncFrameLoggerInt32Boolean =
+                                                                           (frame, log, load, connecting) =>
+                                                                           {
+                                                                               //update connection load
+                                                                               connLoad += load;
+                                                                               //call load change event handler
+                                                                               nodeHandler(connection,
+                                                                                           new LoadChangeEvent { LoadDelta = load });
+                                                                               //done
+                                                                               return
+                                                                                   Task.FromResult(
+                                                                                       (Frame)
+                                                                                       new ResultFrame { Stream = frame.Stream });
+                                                                           };
 
                                                                        //intercept load changed handlers
                                                                        connection.

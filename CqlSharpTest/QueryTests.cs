@@ -91,7 +91,7 @@ namespace CqlSharpTest
             const string insertCql = @"insert into Test.BasicFlow (id,value) values (?,?);";
             const string retrieveCql = @"select * from Test.BasicFlow;";
 
-            const int insertCount = 100000;
+            const int insertCount = 1000;
 
             //Act
             using (var connection = new CqlConnection(ConnectionString))
@@ -100,7 +100,7 @@ namespace CqlSharpTest
 
                 var executions = new Task<ICqlQueryResult>[insertCount];
 
-                ParallelOptions options = new ParallelOptions() {MaxDegreeOfParallelism = 1};
+                ParallelOptions options = new ParallelOptions() { MaxDegreeOfParallelism = 1 };
                 Parallel.For(0, insertCount, options, (i) =>
                 {
                     var cmd = new CqlCommand(connection, insertCql, CqlConsistency.One);

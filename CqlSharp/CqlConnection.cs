@@ -14,6 +14,7 @@
 // limitations under the License.
 
 using CqlSharp.Config;
+using CqlSharp.Logging;
 using CqlSharp.Network;
 using CqlSharp.Network.Partition;
 using CqlSharp.Protocol;
@@ -151,14 +152,21 @@ namespace CqlSharp
             if (_state == 2)
                 throw new ObjectDisposedException("CqlConnection");
 
+            var logger = LoggerFactory.Create("CqlSharp.CqlConnection.Open");
+
             //make sure the cluster is open for connections
-            await _cluster.OpenAsync();
+            await _cluster.OpenAsync(logger);
 
             //get or create a connection
-            _connection = _cluster.GetOrCreateConnection(PartitionKey.None);
+            using (logger.ThreadBinding())
+                _connection = _cluster.GetOrCreateConnection(PartitionKey.None);
 
             if (_connection == null)
-                throw new CqlException("Unable to obtain a Cql network connection.");
+            {
+                var ex = new CqlException("Unable to obtain a connection to a Cassandra node.");
+                logger.LogError("Error opening CqlConnection: {0}", ex);
+                throw ex;
+            }
         }
 
         /// <summary>

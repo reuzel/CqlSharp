@@ -45,6 +45,8 @@
     <Reference Include="System.Numerics" />
   </ItemGroup>
   <ItemGroup>
+    <Compile Include="Logging\Logger.cs" />
+    <Compile Include="Logging\LoggerFactory.cs" />
     <Compile Include="Network\ClusterChange.cs" />
     <Compile Include="Network\ClusterChangedEvent.cs" />
     <Compile Include="Network\PartitionAwareConnectionStrategy.cs" />

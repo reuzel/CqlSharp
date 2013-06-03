@@ -13,6 +13,7 @@
 // See the License for the specific language governing permissions and
 // limitations under the License.
 
+using CqlSharp.Logging;
 using CqlSharp.Network;
 using CqlSharp.Network.Partition;
 using CqlSharp.Protocol;
@@ -39,7 +40,6 @@ namespace CqlSharp
         /// <param name="connection"> The connection. </param>
         /// <param name="cql"> The CQL. </param>
         /// <param name="level"> The level. </param>
-        /// <param name="load"> the load indication of the query. Used for distributing queries over nodes and connections. </param>
         public CqlCommand(CqlConnection connection, string cql, CqlConsistency level)
         {
             _connection = connection;
@@ -121,6 +121,10 @@ namespace CqlSharp
         /// <returns> CqlDataReader that can be used to read the results </returns>
         public async Task<CqlDataReader> ExecuteReaderAsync()
         {
+            var logger = LoggerFactory.Create("CqlSharp.CqlCommand.ExecuteReader");
+
+            logger.LogVerbose("Waiting on Throttle");
+
             //wait until allowed
             _connection.Throttle.WaitOne();
 
@@ -129,12 +133,22 @@ namespace CqlSharp
                 //capture state
                 QueryExecutionState state = CaptureState();
 
-                ResultFrame result = await RunWithRetry(ExecuteInternalAsync, state);
+                logger.LogVerbose("State captured, start executing query");
+
+                ResultFrame result = await RunWithRetry(ExecuteInternalAsync, state, logger);
 
                 if (result.ResultOpcode != ResultOpcode.Rows)
-                    throw new CqlException("Can not create a DataReader for non-select query.");
+                {
+                    var ex = new CqlException("Can not create a DataReader for non-select query.");
+                    logger.LogError("Error executing reader: {0}", ex);
+                    throw ex;
+                }
 
-                return new CqlDataReader(result);
+                var reader = new CqlDataReader(result);
+
+                logger.LogVerbose("Query returned {0} results", reader.Count);
+
+                return reader;
             }
             finally
             {
@@ -169,6 +183,10 @@ namespace CqlSharp
         /// <returns> </returns>
         public async Task<CqlDataReader<T>> ExecuteReaderAsync<T>() where T : class, new()
         {
+            var logger = LoggerFactory.Create("CqlSharp.CqlCommand.ExecuteReader");
+
+            logger.LogVerbose("Waiting on Throttle");
+
             //wait until allowed
             _connection.Throttle.WaitOne();
 
@@ -177,12 +195,21 @@ namespace CqlSharp
                 //capture current command state
                 QueryExecutionState state = CaptureState();
 
-                ResultFrame result = await RunWithRetry(ExecuteInternalAsync, state);
+                logger.LogVerbose("State captured, start executing query");
+
+                ResultFrame result = await RunWithRetry(ExecuteInternalAsync, state, logger);
 
                 if (result.ResultOpcode != ResultOpcode.Rows)
-                    throw new CqlException("Can not create a DataReader for non-select query.");
+                {
+                    var ex = new CqlException("Can not create a DataReader for non-select query.");
+                    logger.LogError("Error executing reader: {0}", ex);
+                    throw ex;
+                }
+                var reader = new CqlDataReader<T>(result);
 
-                return new CqlDataReader<T>(result);
+                logger.LogVerbose("Query returned {0} results", reader.Count);
+
+                return reader;
             }
             finally
             {
@@ -216,7 +243,7 @@ namespace CqlSharp
         /// <returns> </returns>
         public async Task<object> ExecuteScalarAsync()
         {
-            object result = null;
+            object result;
 
             using (var reader = await ExecuteReaderAsync())
             {
@@ -256,6 +283,10 @@ namespace CqlSharp
         /// <exception cref="CqlException">Unexpected type of result received</exception>
         public async Task<ICqlQueryResult> ExecuteNonQueryAsync()
         {
+            var logger = LoggerFactory.Create("CqlSharp.CqlCommand.ExecuteNonQuery");
+
+            logger.LogVerbose("Waiting on Throttle");
+
             //wait until allowed
             _connection.Throttle.WaitOne();
 
@@ -264,7 +295,9 @@ namespace CqlSharp
                 //capture current command state
                 QueryExecutionState state = CaptureState();
 
-                ResultFrame result = await RunWithRetry(ExecuteInternalAsync, state);
+                logger.LogVerbose("State captured, start executing query");
+
+                ResultFrame result = await RunWithRetry(ExecuteInternalAsync, state, logger);
                 switch (result.ResultOpcode)
                 {
                     case ResultOpcode.Rows:
@@ -326,15 +359,20 @@ namespace CqlSharp
         /// <returns> </returns>
         public Task PrepareAsync()
         {
+            var logger = LoggerFactory.Create("CqlSharp.CqlCommand.ExecuteNonQuery");
+
+            logger.LogVerbose("Waiting on Throttle");
+
             //wait until allowed
             _connection.Throttle.WaitOne();
-
-            //capture state
-            var state = CaptureState();
-
             try
             {
-                return RunWithRetry(PrepareInternalAsync, state);
+                //capture state
+                var state = CaptureState();
+
+                logger.LogVerbose("State captured, start executing query");
+
+                return RunWithRetry(PrepareInternalAsync, state, logger);
             }
             finally
             {
@@ -382,13 +420,15 @@ namespace CqlSharp
 
 
         /// <summary>
-        ///   Runs the given function, and retries it on a new connection when I/O or node errors occur
+        /// Runs the given function, and retries it on a new connection when I/O or node errors occur
         /// </summary>
-        /// <param name="executeFunc"> The function to execute. </param>
-        /// <param name="state"> The state. </param>
-        /// <returns> </returns>
+        /// <param name="executeFunc">The function to execute.</param>
+        /// <param name="state">The state.</param>
+        /// <param name="logger">The logger.</param>
+        /// <returns></returns>
+        /// <exception cref="CqlException">Failed to return query result after max amount of attempts</exception>
         private async Task<ResultFrame> RunWithRetry(
-            Func<Connection, QueryExecutionState, Task<ResultFrame>> executeFunc, QueryExecutionState state)
+            Func<Connection, QueryExecutionState, Logger, Task<ResultFrame>> executeFunc, QueryExecutionState state, Logger logger)
         {
             int attempts = _connection.Config.MaxQueryRetries;
 
@@ -399,20 +439,34 @@ namespace CqlSharp
                 bool newConn = state.UseParallelConnections;
 
                 //get me a connection
-                Connection connection = _connection.GetConnection(newConn, state.PartitionKey);
+
+                Connection connection;
+                using (logger.ThreadBinding())
+                {
+                    connection = _connection.GetConnection(newConn, state.PartitionKey);
+
+                }
                 try
                 {
-                    ResultFrame result = await executeFunc(connection, state);
+
+
+                    ResultFrame result = await executeFunc(connection, state, logger);
 
                     if (newConn)
-                        _connection.ReturnConnection(connection);
+                    {
+                        using (logger.ThreadBinding())
+                            _connection.ReturnConnection(connection);
+                    }
 
                     return result;
                 }
                 catch (ProtocolException pex)
                 {
                     if (attempt == attempts - 1)
+                    {
+                        logger.LogError("Query failed after {0} attempts with error {1}", attempts, pex);
                         throw;
+                    }
 
                     switch (pex.Code)
                     {
@@ -421,16 +475,24 @@ namespace CqlSharp
                         case ErrorCode.Overloaded:
                         case ErrorCode.Truncate:
                             //IO or node status related error, go for rerun
+                            logger.LogWarning("Query to {0} failed because server returned {1}, going for retry", connection, pex.Code.ToString());
                             continue;
                         default:
+                            logger.LogWarning("Query failed with {0} error: {1}", pex.Code.ToString(), pex.Message);
                             //some other Cql error (syntax ok?), quit
                             throw;
                     }
                 }
-                catch (Exception)
+                catch (Exception ex)
                 {
-                    //connection collapsed, go an try again
-                    continue;
+                    if (attempt == attempts - 1)
+                    {
+                        logger.LogError("Query failed after {0} attempts with error {1}", attempts, ex);
+                        throw;
+                    }
+
+                    //connection probable collapsed, go an try again
+                    logger.LogWarning("Query to {0} failed, going for retry. {1}", connection, ex);
                 }
             }
 
@@ -439,14 +501,16 @@ namespace CqlSharp
         }
 
         /// <summary>
-        ///   Prepares the query async on the given connection. Returns immediatly if the query is already
-        ///   prepared.
+        /// Prepares the query async on the given connection. Returns immediatly if the query is already
+        /// prepared.
         /// </summary>
-        /// <param name="connection"> The connection. </param>
-        /// <param name="state"> captured state </param>
-        /// <returns> </returns>
+        /// <param name="connection">The connection.</param>
+        /// <param name="state">captured state</param>
+        /// <param name="logger">The logger.</param>
+        /// <returns></returns>
+        /// <exception cref="CqlException">Unexpected frame received  + response.OpCode</exception>
         /// <exception cref="System.Exception">Unexpected frame received  + response.OpCode</exception>
-        private async Task<ResultFrame> PrepareInternalAsync(Connection connection, QueryExecutionState state)
+        private async Task<ResultFrame> PrepareInternalAsync(Connection connection, QueryExecutionState state, Logger logger)
         {
             //check if already prepared for this connection
             ResultFrame result;
@@ -461,14 +525,20 @@ namespace CqlSharp
                 if (state.TracingEnabled)
                     query.Flags |= FrameFlags.Tracing;
 
+                logger.LogVerbose("No prepare results available. Sending prepare {0} using {1}", _cql, connection);
+
                 //send prepare request
-                Frame response = await connection.SendRequestAsync(query);
+                Frame response = await connection.SendRequestAsync(query, logger);
 
                 result = response as ResultFrame;
                 if (result == null)
                     throw new CqlException("Unexpected frame received " + response.OpCode);
 
                 prepareResults[connection.Address] = result;
+            }
+            else
+            {
+                logger.LogVerbose("Reusing cached preparation results");
             }
 
             //set as prepared
@@ -483,37 +553,44 @@ namespace CqlSharp
 
 
         /// <summary>
-        ///   Executes the query async on the given connection
+        /// Executes the query async on the given connection
         /// </summary>
-        /// <param name="connection"> The connection. </param>
-        /// <param name="state"> The state. </param>
-        /// <returns> </returns>
+        /// <param name="connection">The connection.</param>
+        /// <param name="state">The state.</param>
+        /// <param name="logger">The logger.</param>
+        /// <returns></returns>
         /// <exception cref="CqlException">Unexpected frame received</exception>
-        private async Task<ResultFrame> ExecuteInternalAsync(Connection connection, QueryExecutionState state)
+        private async Task<ResultFrame> ExecuteInternalAsync(Connection connection, QueryExecutionState state, Logger logger)
         {
             Frame query;
             if (_prepared)
             {
-                ResultFrame prepareResult = await PrepareInternalAsync(connection, state);
+                ResultFrame prepareResult = await PrepareInternalAsync(connection, state, logger);
                 query = new ExecuteFrame(prepareResult.PreparedQueryId, _level, state.Values);
+                logger.LogVerbose("Sending execute {0} using {1}", _cql, connection);
             }
             else
             {
                 query = new QueryFrame(_cql, _level);
+                logger.LogVerbose("Sending query {0} using {1}", _cql, connection);
             }
 
             //update frame with tracing option if requested
             if (state.TracingEnabled)
                 query.Flags |= FrameFlags.Tracing;
 
-            Frame response = await connection.SendRequestAsync(query, state.Load);
+
+            Frame response = await connection.SendRequestAsync(query, logger, state.Load);
 
             var result = response as ResultFrame;
             if (result != null)
             {
                 //read all the data into a buffer, if requested
                 if (state.UseBuffering)
+                {
+                    logger.LogVerbose("Buffering used, reading all data");
                     await result.BufferDataAsync();
+                }
 
                 return result;
             }
