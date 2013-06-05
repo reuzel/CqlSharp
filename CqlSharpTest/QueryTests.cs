@@ -27,7 +27,7 @@ namespace CqlSharpTest
     [TestClass]
     public class QueryTests
     {
-        private const string ConnectionString = "server=localhost;throttle=256;ConnectionStrategy=PartitionAware";
+        private const string ConnectionString = "server=localhost;throttle=256;ConnectionStrategy=PartitionAware;loggerfactory=console;loglevel=query";
 
         [TestInitialize]
         public void Init()

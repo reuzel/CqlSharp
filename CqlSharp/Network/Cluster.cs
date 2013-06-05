@@ -40,6 +40,7 @@ namespace CqlSharp.Network
         private volatile Ring _nodes;
         private Connection _maintenanceConnection;
         private ConcurrentDictionary<string, ConcurrentDictionary<IPAddress, ResultFrame>> _prepareResultCache;
+        private LoggerManager _loggerManager;
 
         /// <summary>
         ///   Initializes a new instance of the <see cref="Cluster" /> class.
@@ -49,6 +50,8 @@ namespace CqlSharp.Network
         {
             //store config
             _config = config;
+
+            _loggerManager = new LoggerManager(_config.LoggerFactory, _config.LogLevel);
         }
 
         /// <summary>
@@ -93,7 +96,7 @@ namespace CqlSharp.Network
             {
                 try
                 {
-                    var seed = new Node(seedAddress, _config);
+                    var seed = new Node(seedAddress, this);
                     _nodes = await DiscoverNodesAsync(seed, logger).ConfigureAwait(false);
                 }
                 catch (Exception ex)
@@ -203,6 +206,11 @@ namespace CqlSharp.Network
             get { return _throttle; }
         }
 
+        public LoggerManager LoggerManager
+        {
+            get { return _loggerManager; }
+        }
+
 
         /// <summary>
         /// Gets the prepare results for the given query
@@ -290,7 +298,7 @@ namespace CqlSharp.Network
                 while (await result.ReadAsync().ConfigureAwait(false))
                 {
                     //create a new node
-                    var newNode = new Node((IPAddress)result["rpc_address"], _config)
+                    var newNode = new Node((IPAddress)result["rpc_address"], this)
                                         {
                                             DataCenter = (string)result["data_center"],
                                             Rack = (string)result["rack"],
@@ -363,7 +371,7 @@ namespace CqlSharp.Network
 
         private async void OnClusterChange(object source, ClusterChangedEvent args)
         {
-            var logger = LoggerFactory.Create("CqlSharp.Cluster.Changes");
+            var logger = LoggerManager.GetLogger("CqlSharp.Cluster.Changes");
 
             if (args.Change.Equals(ClusterChange.New))
             {
@@ -375,7 +383,7 @@ namespace CqlSharp.Network
                 {
                     if (await result.ReadAsync().ConfigureAwait(false))
                     {
-                        var newNode = new Node((IPAddress)result["rpc_address"], _config)
+                        var newNode = new Node((IPAddress)result["rpc_address"], this)
                                             {
                                                 DataCenter = (string)result["data_center"],
                                                 Rack = (string)result["rack"],

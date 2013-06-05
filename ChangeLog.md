@@ -1,3 +1,8 @@
+## Version 0.13.0
+* ConfigureAwait on all awaits to avoid issues with synchronization contexts
+* Logging! Extendable via MEF by simply implementing and co-deploying ILoggerFactory and ILogger implementations
+* Small bug fixes
+
 ## Version 0.12.0
 * Support/fix for null values
 * Support for Nullable types

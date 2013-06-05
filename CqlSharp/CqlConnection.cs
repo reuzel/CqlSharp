@@ -122,6 +122,17 @@ namespace CqlSharp
             get { return _cluster.Config; }
         }
 
+        /// <summary>
+        /// Gets the logger manager.
+        /// </summary>
+        /// <value>
+        /// The logger manager.
+        /// </value>
+        internal LoggerManager LoggerManager
+        {
+            get { return _cluster.LoggerManager; }
+        }
+
         #region IDisposable Members
 
         /// <summary>
@@ -152,7 +163,7 @@ namespace CqlSharp
             if (_state == 2)
                 throw new ObjectDisposedException("CqlConnection");
 
-            var logger = LoggerFactory.Create("CqlSharp.CqlConnection.Open");
+            var logger = LoggerManager.GetLogger("CqlSharp.CqlConnection.Open");
 
             //make sure the cluster is open for connections
             await _cluster.OpenAsync(logger).ConfigureAwait(false);

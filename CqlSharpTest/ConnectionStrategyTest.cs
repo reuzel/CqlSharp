@@ -38,20 +38,22 @@ namespace CqlSharpTest
         {
             using (ShimsContext.Create())
             {
-                //create config
+                //create cluster
                 var config = new ClusterConfig();
                 config.NewConnectionTreshold = 5;
 
+                Cluster cluster = new Cluster(config);
+
                 //create nodes
-                Node n = new Node(IPAddress.Parse("127.0.0.1"), config);
-                Node n2 = new Node(IPAddress.Parse("127.0.0.2"), config);
-                Node n3 = new Node(IPAddress.Parse("127.0.0.3"), config);
-                Node n4 = new Node(IPAddress.Parse("127.0.0.4"), config);
+                Node n = new Node(IPAddress.Parse("127.0.0.1"), cluster);
+                Node n2 = new Node(IPAddress.Parse("127.0.0.2"), cluster);
+                Node n3 = new Node(IPAddress.Parse("127.0.0.3"), cluster);
+                Node n4 = new Node(IPAddress.Parse("127.0.0.4"), cluster);
                 var nodes = new Ring(new List<Node> { n, n2, n3, n4 }, "RandomPartitioner");
 
                 ShimAllConnections();
 
-                var logger = LoggerFactory.Create("BalancedStrategyLowTresholdTest");
+                var logger = cluster.LoggerManager.GetLogger("BalancedStrategyLowTresholdTest");
 
                 IConnectionStrategy strategy = new BalancedConnectionStrategy(nodes, config);
 
@@ -77,21 +79,23 @@ namespace CqlSharpTest
         {
             using (ShimsContext.Create())
             {
-                //create config
+                //create cluster
                 var config = new ClusterConfig();
                 config.NewConnectionTreshold = 5;
                 config.MaxConnections = 6;
 
+                Cluster cluster = new Cluster(config);
+
                 //create nodes
-                Node n1 = new Node(IPAddress.Parse("127.0.0.1"), config);
-                Node n2 = new Node(IPAddress.Parse("127.0.0.2"), config);
-                Node n3 = new Node(IPAddress.Parse("127.0.0.3"), config);
-                Node n4 = new Node(IPAddress.Parse("127.0.0.4"), config);
+                Node n1 = new Node(IPAddress.Parse("127.0.0.1"), cluster);
+                Node n2 = new Node(IPAddress.Parse("127.0.0.2"), cluster);
+                Node n3 = new Node(IPAddress.Parse("127.0.0.3"), cluster);
+                Node n4 = new Node(IPAddress.Parse("127.0.0.4"), cluster);
                 var nodes = new Ring(new List<Node> { n1, n2, n3, n4 }, "RandomPartitioner");
 
                 ShimAllConnections();
 
-                var logger = LoggerFactory.Create("BalancedStrategyManyRequestLowMaxConnectionsTest");
+                var logger = cluster.LoggerManager.GetLogger("BalancedStrategyManyRequestLowMaxConnectionsTest");
 
                 IConnectionStrategy strategy = new BalancedConnectionStrategy(nodes, config);
 
@@ -117,20 +121,22 @@ namespace CqlSharpTest
         {
             using (ShimsContext.Create())
             {
-                //create config 
+                //create cluster 
                 var config = new ClusterConfig();
                 config.NewConnectionTreshold = 20;
 
+                Cluster cluster = new Cluster(config);
+
                 //create nodes
-                Node n = new Node(IPAddress.Parse("127.0.0.1"), config);
-                Node n2 = new Node(IPAddress.Parse("127.0.0.2"), config);
-                Node n3 = new Node(IPAddress.Parse("127.0.0.3"), config);
-                Node n4 = new Node(IPAddress.Parse("127.0.0.4"), config);
+                Node n = new Node(IPAddress.Parse("127.0.0.1"), cluster);
+                Node n2 = new Node(IPAddress.Parse("127.0.0.2"), cluster);
+                Node n3 = new Node(IPAddress.Parse("127.0.0.3"), cluster);
+                Node n4 = new Node(IPAddress.Parse("127.0.0.4"), cluster);
                 var nodes = new Ring(new List<Node> { n, n2, n3, n4 }, "RandomPartitioner");
 
                 ShimAllConnections();
 
-                var logger = LoggerFactory.Create("BalancedStrategyTestMedTresholdTest");
+                var logger = cluster.LoggerManager.GetLogger("BalancedStrategyTestMedTresholdTest");
 
                 IConnectionStrategy strategy = new BalancedConnectionStrategy(nodes, config);
 
@@ -156,20 +162,22 @@ namespace CqlSharpTest
         {
             using (ShimsContext.Create())
             {
-                //create config 
+                //create cluster 
                 var config = new ClusterConfig();
                 config.NewConnectionTreshold = 200;
 
+                Cluster cluster = new Cluster(config);
+
                 //create nodes
-                Node n1 = new Node(IPAddress.Parse("127.0.0.1"), config);
-                Node n2 = new Node(IPAddress.Parse("127.0.0.2"), config);
-                Node n3 = new Node(IPAddress.Parse("127.0.0.3"), config);
-                Node n4 = new Node(IPAddress.Parse("127.0.0.4"), config);
+                Node n1 = new Node(IPAddress.Parse("127.0.0.1"), cluster);
+                Node n2 = new Node(IPAddress.Parse("127.0.0.2"), cluster);
+                Node n3 = new Node(IPAddress.Parse("127.0.0.3"), cluster);
+                Node n4 = new Node(IPAddress.Parse("127.0.0.4"), cluster);
                 var nodes = new Ring(new List<Node> { n1, n2, n3, n4 }, "RandomPartitioner");
 
                 ShimAllConnections();
 
-                var logger = LoggerFactory.Create("BalancedStrategyTestHighTresholdTest");
+                var logger = cluster.LoggerManager.GetLogger("BalancedStrategyTestHighTresholdTest");
 
                 IConnectionStrategy strategy = new BalancedConnectionStrategy(nodes, config);
 
@@ -195,21 +203,23 @@ namespace CqlSharpTest
         {
             using (ShimsContext.Create())
             {
-                //create config
+                //create cluster
                 var config = new ClusterConfig();
                 config.NewConnectionTreshold = 5;
                 config.MaxConnections = 6;
 
+                Cluster cluster = new Cluster(config);
+
                 //create nodes
-                Node n = new Node(IPAddress.Parse("127.0.0.1"), config);
-                Node n2 = new Node(IPAddress.Parse("127.0.0.2"), config);
-                Node n3 = new Node(IPAddress.Parse("127.0.0.3"), config);
-                Node n4 = new Node(IPAddress.Parse("127.0.0.4"), config);
+                Node n = new Node(IPAddress.Parse("127.0.0.1"), cluster);
+                Node n2 = new Node(IPAddress.Parse("127.0.0.2"), cluster);
+                Node n3 = new Node(IPAddress.Parse("127.0.0.3"), cluster);
+                Node n4 = new Node(IPAddress.Parse("127.0.0.4"), cluster);
                 var nodes = new Ring(new List<Node> { n, n2, n3, n4 }, "RandomPartitioner");
 
                 ShimAllConnections();
 
-                var logger = LoggerFactory.Create("BalancedStrategyTestMaxConnections");
+                var logger = cluster.LoggerManager.GetLogger("BalancedStrategyTestMaxConnections");
 
                 IConnectionStrategy strategy = new BalancedConnectionStrategy(nodes, config);
 
@@ -236,20 +246,22 @@ namespace CqlSharpTest
         {
             using (ShimsContext.Create())
             {
-                //create config 
+                //create cluster 
                 var config = new ClusterConfig();
                 config.NewConnectionTreshold = 20;
 
+                Cluster cluster = new Cluster(config);
+
                 //create nodes
-                Node n = new Node(IPAddress.Parse("127.0.0.1"), config);
-                Node n2 = new Node(IPAddress.Parse("127.0.0.2"), config);
-                Node n3 = new Node(IPAddress.Parse("127.0.0.3"), config);
-                Node n4 = new Node(IPAddress.Parse("127.0.0.4"), config);
+                Node n = new Node(IPAddress.Parse("127.0.0.1"), cluster);
+                Node n2 = new Node(IPAddress.Parse("127.0.0.2"), cluster);
+                Node n3 = new Node(IPAddress.Parse("127.0.0.3"), cluster);
+                Node n4 = new Node(IPAddress.Parse("127.0.0.4"), cluster);
                 var nodes = new Ring(new List<Node> { n, n2, n3, n4 }, "RandomPartitioner");
 
                 ShimAllConnections();
 
-                var logger = LoggerFactory.Create("BalancedStrategyFewRequestsTest");
+                var logger = cluster.LoggerManager.GetLogger("BalancedStrategyFewRequestsTest");
 
                 IConnectionStrategy strategy = new BalancedConnectionStrategy(nodes, config);
 
@@ -276,21 +288,23 @@ namespace CqlSharpTest
         {
             using (ShimsContext.Create())
             {
-                //create config 
+                //create cluster 
                 var config = new ClusterConfig();
                 config.NewConnectionTreshold = 20;
 
+                Cluster cluster = new Cluster(config);
+
                 //create nodes
-                Node n = new Node(IPAddress.Parse("127.0.0.1"), config);
-                Node n2 = new Node(IPAddress.Parse("127.0.0.2"), config);
-                Node n3 = new Node(IPAddress.Parse("127.0.0.3"), config);
-                Node n4 = new Node(IPAddress.Parse("127.0.0.4"), config);
+                Node n = new Node(IPAddress.Parse("127.0.0.1"), cluster);
+                Node n2 = new Node(IPAddress.Parse("127.0.0.2"), cluster);
+                Node n3 = new Node(IPAddress.Parse("127.0.0.3"), cluster);
+                Node n4 = new Node(IPAddress.Parse("127.0.0.4"), cluster);
                 var nodes = new Ring(new List<Node> { n, n2, n3, n4 }, "RandomPartitioner");
 
                 ShimAllConnections();
 
 
-                var logger = LoggerFactory.Create("BalancedStrategyManyRequestsTest");
+                var logger = cluster.LoggerManager.GetLogger("BalancedStrategyManyRequestsTest");
 
                 IConnectionStrategy strategy = new BalancedConnectionStrategy(nodes, config);
 
@@ -315,7 +329,7 @@ namespace CqlSharpTest
         private static void ShimAllConnections()
         {
             //shim connections to avoid network connections...
-            ShimConnection.ConstructorIPAddressClusterConfigInt32 = (conn, address, conf, nr) =>
+            ShimConnection.ConstructorIPAddressClusterInt32 = (conn, address, conf, nr) =>
                                                                    {
                                                                        //wrap the new connection in a shim
                                                                        var connection = new ShimConnection(conn);

@@ -13,7 +13,6 @@
 // See the License for the specific language governing permissions and
 // limitations under the License.
 
-using CqlSharp.Config;
 using CqlSharp.Logging;
 using CqlSharp.Protocol;
 using System;
@@ -37,7 +36,7 @@ namespace CqlSharp.Network
         private readonly IPAddress _address;
 
         private readonly Queue<sbyte> _availableQueryIds;
-        private readonly ClusterConfig _config;
+        private readonly Cluster _cluster;
         private readonly SemaphoreSlim _frameSubmitLock;
         private readonly IDictionary<sbyte, TaskCompletionSource<Frame>> _openRequests;
 
@@ -59,12 +58,12 @@ namespace CqlSharp.Network
         /// Initializes a new instance of the <see cref="Connection" /> class.
         /// </summary>
         /// <param name="address">The address.</param>
-        /// <param name="config">The config.</param>
+        /// <param name="cluster">The cluster.</param>
         /// <param name="nr">The connection nr.</param>
-        public Connection(IPAddress address, ClusterConfig config, int nr)
+        public Connection(IPAddress address, Cluster cluster, int nr)
         {
             _address = address;
-            _config = config;
+            _cluster = cluster;
             _nr = nr;
 
             //setup support for multiple queries
@@ -84,7 +83,7 @@ namespace CqlSharp.Network
             _connectionState = 0;
             _lastActivity = DateTime.Now.Ticks;
 
-            Logger.Current.LogInfo("Connection #{1} to {0} created", address, nr);
+            Logger.Current.LogVerbose("{0} created", this);
         }
 
         /// <summary>
@@ -108,7 +107,7 @@ namespace CqlSharp.Network
             {
                 return _connectionState == 2 ||
                        (_activeRequests == 0 &&
-                        (DateTime.Now.Ticks - Interlocked.Read(ref _lastActivity)) > _config.MaxConnectionIdleTime.Ticks);
+                        (DateTime.Now.Ticks - Interlocked.Read(ref _lastActivity)) > _cluster.Config.MaxConnectionIdleTime.Ticks);
             }
         }
 
@@ -260,7 +259,7 @@ namespace CqlSharp.Network
             {
                 //create TCP connection
                 _client = new TcpClient();
-                await _client.ConnectAsync(_address, _config.Port).ConfigureAwait(false);
+                await _client.ConnectAsync(_address, _cluster.Config.Port).ConfigureAwait(false);
                 _writeStream = _client.GetStream();
                 _readStream = _client.GetStream();
 
@@ -270,7 +269,7 @@ namespace CqlSharp.Network
                 StartReadingAsync();
 
                 //submit startup frame
-                var startup = new StartupFrame(_config.CqlVersion);
+                var startup = new StartupFrame(_cluster.Config.CqlVersion);
                 Frame response = await SendRequestAsync(startup, logger, 1, true).ConfigureAwait(false);
 
                 //authenticate if required
@@ -280,10 +279,10 @@ namespace CqlSharp.Network
                     logger.LogVerbose("Authentication requested, attempting to provide credentials", Address);
 
                     //check if _username is actually set
-                    if (_config.Username == null || _config.Password == null)
+                    if (_cluster.Config.Username == null || _cluster.Config.Password == null)
                         throw new UnauthorizedException("No credentials provided");
 
-                    var cred = new CredentialsFrame(_config.Username, _config.Password);
+                    var cred = new CredentialsFrame(_cluster.Config.Username, _cluster.Config.Password);
                     response = await SendRequestAsync(cred, logger, 1, true).ConfigureAwait(false);
                 }
 
@@ -407,10 +406,8 @@ namespace CqlSharp.Network
             {
                 switch (pex.Code)
                 {
-                    case ErrorCode.Server:
                     case ErrorCode.IsBootstrapping:
                     case ErrorCode.Overloaded:
-                    case ErrorCode.Truncate:
 
                         using (logger.ThreadBinding())
                         {
@@ -440,7 +437,7 @@ namespace CqlSharp.Network
         /// </summary>
         private async void StartReadingAsync()
         {
-            var logger = LoggerFactory.Create("CqlSharp.Connection.ReadLoop");
+            var logger = _cluster.LoggerManager.GetLogger("CqlSharp.Connection.ReadLoop");
 
             //while connected do
             while (_connectionState == 1)

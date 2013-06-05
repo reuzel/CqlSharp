@@ -121,7 +121,7 @@ namespace CqlSharp
         /// <returns> CqlDataReader that can be used to read the results </returns>
         public async Task<CqlDataReader> ExecuteReaderAsync()
         {
-            var logger = LoggerFactory.Create("CqlSharp.CqlCommand.ExecuteReader");
+            var logger = _connection.LoggerManager.GetLogger("CqlSharp.CqlCommand.ExecuteReader");
 
             logger.LogVerbose("Waiting on Throttle");
 
@@ -146,7 +146,7 @@ namespace CqlSharp
 
                 var reader = new CqlDataReader(result);
 
-                logger.LogVerbose("Query returned {0} results", reader.Count);
+                logger.LogQuery("Query {0} returned {1} results", _cql, reader.Count);
 
                 return reader;
             }
@@ -183,7 +183,7 @@ namespace CqlSharp
         /// <returns> </returns>
         public async Task<CqlDataReader<T>> ExecuteReaderAsync<T>() where T : class, new()
         {
-            var logger = LoggerFactory.Create("CqlSharp.CqlCommand.ExecuteReader");
+            var logger = _connection.LoggerManager.GetLogger("CqlSharp.CqlCommand.ExecuteReader");
 
             logger.LogVerbose("Waiting on Throttle");
 
@@ -207,7 +207,7 @@ namespace CqlSharp
                 }
                 var reader = new CqlDataReader<T>(result);
 
-                logger.LogVerbose("Query returned {0} results", reader.Count);
+                logger.LogQuery("Query {0} returned {1} results", _cql, reader.Count);
 
                 return reader;
             }
@@ -283,7 +283,7 @@ namespace CqlSharp
         /// <exception cref="CqlException">Unexpected type of result received</exception>
         public async Task<ICqlQueryResult> ExecuteNonQueryAsync()
         {
-            var logger = LoggerFactory.Create("CqlSharp.CqlCommand.ExecuteNonQuery");
+            var logger = _connection.LoggerManager.GetLogger("CqlSharp.CqlCommand.ExecuteNonQuery");
 
             logger.LogVerbose("Waiting on Throttle");
 
@@ -301,12 +301,16 @@ namespace CqlSharp
                 switch (result.ResultOpcode)
                 {
                     case ResultOpcode.Rows:
-                        return new CqlDataReader(result);
+                        var reader = new CqlDataReader(result);
+                        logger.LogQuery("Query {0} returned {1} results", _cql, reader.Count);
+                        return reader;
 
                     case ResultOpcode.Void:
+                        logger.LogQuery("Query {0} executed succesfully", _cql);
                         return new CqlVoid { TracingId = result.TracingId };
 
                     case ResultOpcode.SchemaChange:
+                        logger.LogQuery("Query {0} resulted in {1}.{2} {3}", _cql, result.Keyspace, result.Table, result.Change);
                         return new CqlSchemaChange
                                    {
                                        TracingId = result.TracingId,
@@ -316,6 +320,7 @@ namespace CqlSharp
                                    };
 
                     case ResultOpcode.SetKeyspace:
+                        logger.LogQuery("Query {0} resulted in keyspace set to {1}", _cql, result.Keyspace);
                         return new CqlSetKeyspace
                                    {
                                        TracingId = result.TracingId,
@@ -357,9 +362,9 @@ namespace CqlSharp
         ///   Prepares the query async.
         /// </summary>
         /// <returns> </returns>
-        public Task PrepareAsync()
+        public async Task PrepareAsync()
         {
-            var logger = LoggerFactory.Create("CqlSharp.CqlCommand.ExecuteNonQuery");
+            var logger = _connection.LoggerManager.GetLogger("CqlSharp.CqlCommand.Prepare");
 
             logger.LogVerbose("Waiting on Throttle");
 
@@ -372,7 +377,9 @@ namespace CqlSharp
 
                 logger.LogVerbose("State captured, start executing query");
 
-                return RunWithRetry(PrepareInternalAsync, state, logger);
+                await RunWithRetry(PrepareInternalAsync, state, logger).ConfigureAwait(false);
+
+                logger.LogQuery("Prepared query {0}", _cql);
             }
             finally
             {
@@ -470,10 +477,8 @@ namespace CqlSharp
 
                     switch (pex.Code)
                     {
-                        case ErrorCode.Server:
                         case ErrorCode.IsBootstrapping:
                         case ErrorCode.Overloaded:
-                        case ErrorCode.Truncate:
                             //IO or node status related error, go for rerun
                             logger.LogWarning("Query to {0} failed because server returned {1}, going for retry", connection, pex.Code.ToString());
                             continue;

@@ -40,6 +40,8 @@ namespace CqlTest
             test.Cleanup();
 
             Console.WriteLine("Done in {0}", st.Elapsed);
+
+            Console.ReadLine();
         }
     }
 }

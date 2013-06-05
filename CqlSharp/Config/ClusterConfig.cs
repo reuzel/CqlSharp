@@ -13,6 +13,7 @@
 // See the License for the specific language governing permissions and
 // limitations under the License.
 
+using CqlSharp.Logging;
 using System;
 using System.Collections.Generic;
 using System.Configuration;
@@ -42,8 +43,9 @@ namespace CqlSharp.Config
         private static readonly char[] ValueSeperator = new[] { '=' };
         private static readonly TimeSpan DefaultMaxConnectionIdleTime = TimeSpan.FromSeconds(10);
         private const int DefaultMaxQueryRetries = 3;
-
+        private const string DefaultLoggerFactory = "Null";
         private readonly Dictionary<string, IPAddress> _nodeAddresses;
+        private const LogLevel DefaultLogLevel = LogLevel.Info;
 
         /// <summary>
         ///   Initializes a new instance of the <see cref="ClusterConfig" /> class.
@@ -64,6 +66,8 @@ namespace CqlSharp.Config
             MaxConcurrentQueries = DefaultMaxConcurrentQueries;
             MaxConnectionIdleTime = DefaultMaxConnectionIdleTime;
             MaxQueryRetries = DefaultMaxQueryRetries;
+            LoggerFactory = DefaultLoggerFactory;
+            LogLevel = DefaultLogLevel;
         }
 
 
@@ -230,6 +234,22 @@ namespace CqlSharp.Config
         public int MaxQueryRetries { get; set; }
 
         /// <summary>
+        /// Gets or sets the name of the to be used logger factory.
+        /// </summary>
+        /// <value>
+        /// The logger factory.
+        /// </value>
+        public string LoggerFactory { get; set; }
+
+        /// <summary>
+        /// Gets or sets the log level.
+        /// </summary>
+        /// <value>
+        /// The log level.
+        /// </value>
+        public LogLevel LogLevel { get; set; }
+
+        /// <summary>
         ///   Parses the specified connectionstring.
         /// </summary>
         /// <param name="connectionstring"> The connectionstring. </param>
@@ -333,6 +353,17 @@ namespace CqlSharp.Config
                     case "maxqueryretries":
                     case "max query retries":
                         MaxQueryRetries = int.Parse(value);
+                        break;
+                    case "logger":
+                    case "loggerfactory":
+                    case "logger factory":
+                        LoggerFactory = value;
+                        break;
+                    case "loglevel":
+                    case "level":
+                    case "log level":
+                    case "log":
+                        LogLevel = (LogLevel)Enum.Parse(typeof(LogLevel), value, true);
                         break;
                     default:
                         throw new CqlException("Config error: unknown configuration property: " + key);
@@ -439,6 +470,20 @@ namespace CqlSharp.Config
             {
                 builder.Append("MaxConnectionIdleTime=");
                 builder.Append(MaxConnectionIdleTime.TotalSeconds);
+                builder.Append(";");
+            }
+
+            if (!LoggerFactory.Equals(DefaultLoggerFactory, StringComparison.InvariantCultureIgnoreCase))
+            {
+                builder.Append("LoggerFactory=");
+                builder.Append(LoggerFactory);
+                builder.Append(";");
+            }
+
+            if (!LogLevel.Equals(DefaultLogLevel))
+            {
+                builder.Append("LogLevel=");
+                builder.Append(LogLevel);
                 builder.Append(";");
             }
 

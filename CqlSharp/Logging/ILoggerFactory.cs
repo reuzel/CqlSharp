@@ -15,16 +15,20 @@
 
 namespace CqlSharp.Logging
 {
-    internal static class LoggerFactory
+    public interface ILoggerFactory
     {
         /// <summary>
-        /// Creates a logger instance with the specified name.
+        ///   Gets the name for this logger implementation. E.g. Null, Debug, Log4Net
         /// </summary>
-        /// <param name="name">The name.</param>
-        /// <returns></returns>
-        public static Logger Create(string name)
-        {
-            return new Logger(name);
-        }
+        /// <value> The name </value>
+        string Name { get; }
+
+
+        /// <summary>
+        ///   Creates a logger implementation.
+        /// </summary>
+        /// <param name="name"> The name. </param>
+        /// <returns> </returns>
+        ILogger CreateLogger(string name);
     }
 }

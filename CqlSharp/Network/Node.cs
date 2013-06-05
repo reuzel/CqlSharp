@@ -34,7 +34,7 @@ namespace CqlSharp.Network
         /// <summary>
         ///   The cluster configuration
         /// </summary>
-        private readonly ClusterConfig _config;
+        private readonly Cluster _cluster;
 
         /// <summary>
         ///   lock to make connection creation/getting mutual exclusive
@@ -85,14 +85,14 @@ namespace CqlSharp.Network
         ///   Initializes a new instance of the <see cref="Node" /> class.
         /// </summary>
         /// <param name="address"> The address of the node </param>
-        /// <param name="config"> The cluster config </param>
-        public Node(IPAddress address, ClusterConfig config)
+        /// <param name="cluster"> The cluster </param>
+        public Node(IPAddress address, Cluster cluster)
         {
             _statusLock = new object();
             _connectionLock = new ReaderWriterLockSlim();
             _connections = new List<Connection>();
             Address = address;
-            _config = config;
+            _cluster = cluster;
             IsUp = true;
             Tokens = new HashSet<string>();
             _counter = 0;
@@ -156,7 +156,7 @@ namespace CqlSharp.Network
             Connection c = GetConnection();
 
             //if no connection found, or connection is full
-            if (c == null || c.Load > _config.NewConnectionTreshold)
+            if (c == null || c.Load > _cluster.Config.NewConnectionTreshold)
             {
                 Connection newConnection = CreateConnection();
 
@@ -231,16 +231,16 @@ namespace CqlSharp.Network
         {
             Connection connection = null;
 
-            if (IsUp && _openConnections < _config.MaxConnectionsPerNode)
+            if (IsUp && _openConnections < _cluster.Config.MaxConnectionsPerNode)
             {
                 _connectionLock.EnterWriteLock();
                 try
                 {
                     //double check, we may have been raced for a new connection
-                    if (IsUp && _openConnections < _config.MaxConnectionsPerNode)
+                    if (IsUp && _openConnections < _cluster.Config.MaxConnectionsPerNode)
                     {
                         //create new connection
-                        connection = new Connection(Address, _config, _counter++);
+                        connection = new Connection(Address, _cluster, _counter++);
 
                         //register to connection and load changes
                         connection.OnConnectionChange += ConnectionChange;
@@ -255,8 +255,8 @@ namespace CqlSharp.Network
                         //create cleanup timer if it does not exist yet
                         if (_connectionCleanupTimer == null)
                             _connectionCleanupTimer = new Timer(RemoveIdleConnections, null,
-                                                                _config.MaxConnectionIdleTime,
-                                                                _config.MaxConnectionIdleTime);
+                                                                _cluster.Config.MaxConnectionIdleTime,
+                                                                _cluster.Config.MaxConnectionIdleTime);
                     }
                 }
                 finally
@@ -275,7 +275,7 @@ namespace CqlSharp.Network
         /// <param name="state"> The state. Unused </param>
         private void RemoveIdleConnections(object state)
         {
-            var logger = LoggerFactory.Create("CqlSharp.Node.IdleTimer");
+            var logger = _cluster.LoggerManager.GetLogger("CqlSharp.Node.IdleTimer");
             using (logger.ThreadBinding())
             {
                 _connectionLock.EnterWriteLock();
@@ -368,7 +368,7 @@ namespace CqlSharp.Network
         /// <returns> </returns>
         protected bool Equals(Node other)
         {
-            return Equals(Address, other.Address) && _config.Port == other._config.Port;
+            return Equals(Address, other.Address) && _cluster.Config.Port == other._cluster.Config.Port;
         }
 
         /// <summary>
@@ -379,7 +379,7 @@ namespace CqlSharp.Network
         {
             unchecked
             {
-                return ((Address != null ? Address.GetHashCode() : 0) * 397) ^ _config.Port;
+                return ((Address != null ? Address.GetHashCode() : 0) * 397) ^ _cluster.Config.Port;
             }
         }
 
@@ -394,10 +394,10 @@ namespace CqlSharp.Network
                 IsUp = false;
 
                 //calculate the time, before retry
-                int due = Math.Min(_config.MaxDownTime, 2 ^ (_failureCount) * _config.MinDownTime);
+                int due = Math.Min(_cluster.Config.MaxDownTime, 2 ^ (_failureCount) * _cluster.Config.MinDownTime);
 
                 //next time wait a bit longer before accepting new connections (but not too long)
-                if (due < _config.MaxDownTime) _failureCount++;
+                if (due < _cluster.Config.MaxDownTime) _failureCount++;
 
                 Logger.Current.LogInfo("{0} down, reactivating in {1}ms.", this, due);
 
@@ -414,7 +414,7 @@ namespace CqlSharp.Network
         /// </summary>
         internal void Reactivate()
         {
-            var logger = LoggerFactory.Create("CqlSharp.Node.Reactivate");
+            var logger = _cluster.LoggerManager.GetLogger("CqlSharp.Node.Reactivate");
             lock (_statusLock)
             {
                 if (!IsUp) logger.LogInfo("{0} is assumed to be available again", this);

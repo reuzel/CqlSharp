@@ -14,15 +14,14 @@
 // limitations under the License.
 
 using System;
-using System.Diagnostics;
 using System.Threading;
 
 namespace CqlSharp.Logging
 {
     /// <summary>
-    /// Represents a logger for a single logical flow through the library
+    ///   Represents a logger for a single logical flow through the library
     /// </summary>
-    internal class Logger
+    internal struct Logger
     {
         /// <summary>
         ///   Thread local storage of the currently active logger.
@@ -36,12 +35,29 @@ namespace CqlSharp.Logging
         private static readonly LoggerBinding Binding = new LoggerBinding();
 
         /// <summary>
+        ///   reference to the actual logger implementation
+        /// </summary>
+        private readonly ILogger _logger;
+
+        /// <summary>
+        ///   The id of the active trace
+        /// </summary>
+        private readonly Guid _traceId;
+
+        /// <summary>
+        /// The log level
+        /// </summary>
+        private LogLevel _logLevel;
+
+        /// <summary>
         ///   Initializes a new instance of the <see cref="Logger" /> class.
         /// </summary>
-        /// <param name="name"> The name. </param>
-        public Logger(string name)
+        /// <param name="logger"> The logger. </param>
+        public Logger(ILogger logger, LogLevel logLevel)
         {
-            Name = name;
+            _logger = logger;
+            _traceId = Guid.NewGuid();
+            _logLevel = logLevel;
         }
 
         /// <summary>
@@ -52,12 +68,6 @@ namespace CqlSharp.Logging
         {
             get { return ThreadLocalLogger.Value; }
         }
-
-        /// <summary>
-        ///   Gets or sets the name.
-        /// </summary>
-        /// <value> The name. </value>
-        public string Name { get; set; }
 
         /// <summary>
         ///   Binds this instance to the current thread, such that it becomes available via Logger.Current
@@ -71,27 +81,38 @@ namespace CqlSharp.Logging
 
         public void LogVerbose(string format, params object[] values)
         {
-            //Debug.WriteLine(format, values);
+            if (_logLevel == LogLevel.Verbose)
+                _logger.LogVerbose(_traceId, format, values);
+        }
+
+        public void LogQuery(string format, params object[] values)
+        {
+            if (_logLevel <= LogLevel.Query)
+                _logger.LogQuery(_traceId, format, values);
         }
 
         public void LogInfo(string format, params object[] values)
         {
-            Debug.WriteLine(format, values);
+            if (_logLevel <= LogLevel.Info)
+                _logger.LogInfo(_traceId, format, values);
         }
 
         public void LogWarning(string format, params object[] values)
         {
-            Debug.WriteLine(format, values);
+            if (_logLevel <= LogLevel.Warning)
+                _logger.LogWarning(_traceId, format, values);
         }
 
         public void LogError(string format, params object[] values)
         {
-            Debug.WriteLine(format, values);
+            if (_logLevel <= LogLevel.Error)
+                _logger.LogError(_traceId, format, values);
         }
 
         public void LogCritical(string format, params object[] values)
         {
-            Debug.WriteLine(format, values);
+            if (_logLevel <= LogLevel.Critical)
+                _logger.LogCritical(_traceId, format, values);
         }
 
         #region Nested type: LoggerBinding
@@ -109,7 +130,7 @@ namespace CqlSharp.Logging
             /// <filterpriority>2</filterpriority>
             public void Dispose()
             {
-                ThreadLocalLogger.Value = null;
+                ThreadLocalLogger.Value = default(Logger);
             }
 
             #endregion
