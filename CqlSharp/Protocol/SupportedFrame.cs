@@ -31,7 +31,7 @@ namespace CqlSharp.Protocol
 
         protected override async Task InitializeAsync()
         {
-            SupportedOptions = await Reader.ReadStringMultimapAsync();
+            SupportedOptions = await Reader.ReadStringMultimapAsync().ConfigureAwait(false);
         }
     }
 }

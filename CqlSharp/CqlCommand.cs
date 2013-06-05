@@ -135,7 +135,7 @@ namespace CqlSharp
 
                 logger.LogVerbose("State captured, start executing query");
 
-                ResultFrame result = await RunWithRetry(ExecuteInternalAsync, state, logger);
+                ResultFrame result = await RunWithRetry(ExecuteInternalAsync, state, logger).ConfigureAwait(false);
 
                 if (result.ResultOpcode != ResultOpcode.Rows)
                 {
@@ -197,7 +197,7 @@ namespace CqlSharp
 
                 logger.LogVerbose("State captured, start executing query");
 
-                ResultFrame result = await RunWithRetry(ExecuteInternalAsync, state, logger);
+                ResultFrame result = await RunWithRetry(ExecuteInternalAsync, state, logger).ConfigureAwait(false);
 
                 if (result.ResultOpcode != ResultOpcode.Rows)
                 {
@@ -245,9 +245,9 @@ namespace CqlSharp
         {
             object result;
 
-            using (var reader = await ExecuteReaderAsync())
+            using (var reader = await ExecuteReaderAsync().ConfigureAwait(false))
             {
-                if (await reader.ReadAsync())
+                if (await reader.ReadAsync().ConfigureAwait(false))
                 {
                     result = reader[0];
                 }
@@ -297,7 +297,7 @@ namespace CqlSharp
 
                 logger.LogVerbose("State captured, start executing query");
 
-                ResultFrame result = await RunWithRetry(ExecuteInternalAsync, state, logger);
+                ResultFrame result = await RunWithRetry(ExecuteInternalAsync, state, logger).ConfigureAwait(false);
                 switch (result.ResultOpcode)
                 {
                     case ResultOpcode.Rows:
@@ -450,7 +450,7 @@ namespace CqlSharp
                 {
 
 
-                    ResultFrame result = await executeFunc(connection, state, logger);
+                    ResultFrame result = await executeFunc(connection, state, logger).ConfigureAwait(false);
 
                     if (newConn)
                     {
@@ -528,7 +528,7 @@ namespace CqlSharp
                 logger.LogVerbose("No prepare results available. Sending prepare {0} using {1}", _cql, connection);
 
                 //send prepare request
-                Frame response = await connection.SendRequestAsync(query, logger);
+                Frame response = await connection.SendRequestAsync(query, logger).ConfigureAwait(false);
 
                 result = response as ResultFrame;
                 if (result == null)
@@ -565,7 +565,7 @@ namespace CqlSharp
             Frame query;
             if (_prepared)
             {
-                ResultFrame prepareResult = await PrepareInternalAsync(connection, state, logger);
+                ResultFrame prepareResult = await PrepareInternalAsync(connection, state, logger).ConfigureAwait(false);
                 query = new ExecuteFrame(prepareResult.PreparedQueryId, _level, state.Values);
                 logger.LogVerbose("Sending execute {0} using {1}", _cql, connection);
             }
@@ -580,7 +580,7 @@ namespace CqlSharp
                 query.Flags |= FrameFlags.Tracing;
 
 
-            Frame response = await connection.SendRequestAsync(query, logger, state.Load);
+            Frame response = await connection.SendRequestAsync(query, logger, state.Load).ConfigureAwait(false);
 
             var result = response as ResultFrame;
             if (result != null)
@@ -589,7 +589,7 @@ namespace CqlSharp
                 if (state.UseBuffering)
                 {
                     logger.LogVerbose("Buffering used, reading all data");
-                    await result.BufferDataAsync();
+                    await result.BufferDataAsync().ConfigureAwait(false);
                 }
 
                 return result;

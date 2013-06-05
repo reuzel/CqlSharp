@@ -13,13 +13,13 @@
 // See the License for the specific language governing permissions and
 // limitations under the License.
 
+using CqlSharp.Protocol;
+using CqlSharp.Serialization;
 using System;
 using System.Collections;
 using System.Collections.Generic;
 using System.Threading;
 using System.Threading.Tasks;
-using CqlSharp.Protocol;
-using CqlSharp.Serialization;
 
 namespace CqlSharp
 {
@@ -141,7 +141,7 @@ namespace CqlSharp
         {
             if (_frame.Count > 0)
             {
-                CurrentValues = await _frame.ReadNextDataRowAsync();
+                CurrentValues = await _frame.ReadNextDataRowAsync().ConfigureAwait(false);
                 return true;
             }
 

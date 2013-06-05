@@ -155,7 +155,7 @@ namespace CqlSharp
             var logger = LoggerFactory.Create("CqlSharp.CqlConnection.Open");
 
             //make sure the cluster is open for connections
-            await _cluster.OpenAsync(logger);
+            await _cluster.OpenAsync(logger).ConfigureAwait(false);
 
             //get or create a connection
             using (logger.ThreadBinding())

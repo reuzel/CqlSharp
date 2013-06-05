@@ -48,9 +48,9 @@ namespace CqlSharp.Tracing
             var sessionCmd = new CqlCommand(_connection,
                                             "select * from system_traces.sessions where session_id=" +
                                             _tracingId.ToString() + ";", CqlConsistency.One);
-            using (CqlDataReader<TracingSession> reader = await sessionCmd.ExecuteReaderAsync<TracingSession>())
+            using (CqlDataReader<TracingSession> reader = await sessionCmd.ExecuteReaderAsync<TracingSession>().ConfigureAwait(false))
             {
-                if (await reader.ReadAsync())
+                if (await reader.ReadAsync().ConfigureAwait(false))
                 {
                     session = reader.Current;
                 }
@@ -61,10 +61,10 @@ namespace CqlSharp.Tracing
             var eventsCmd = new CqlCommand(_connection,
                                            "select * from system_traces.events where session_id=" +
                                            _tracingId.ToString() + ";", CqlConsistency.One);
-            using (CqlDataReader<TracingEvent> reader = await eventsCmd.ExecuteReaderAsync<TracingEvent>())
+            using (CqlDataReader<TracingEvent> reader = await eventsCmd.ExecuteReaderAsync<TracingEvent>().ConfigureAwait(false))
             {
                 var events = new List<TracingEvent>(reader.Count);
-                while (await reader.ReadAsync())
+                while (await reader.ReadAsync().ConfigureAwait(false))
                 {
                     events.Add(reader.Current);
                 }

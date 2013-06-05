@@ -13,6 +13,7 @@
 // See the License for the specific language governing permissions and
 // limitations under the License.
 
+using CqlSharp.Network;
 using System;
 using System.Collections.Concurrent;
 using System.Collections.Generic;
@@ -20,7 +21,6 @@ using System.IO;
 using System.Net;
 using System.Text;
 using System.Threading.Tasks;
-using CqlSharp.Network;
 
 namespace CqlSharp.Protocol
 {
@@ -29,7 +29,7 @@ namespace CqlSharp.Protocol
     /// </summary>
     internal class FrameReader : IDisposable
     {
-        private const int CacheSize = 2*1024; //cache int and short values up to 2048
+        private const int CacheSize = 2 * 1024; //cache int and short values up to 2048
 
         private static readonly ConcurrentDictionary<byte, Task<byte>> ByteTaskCache =
             new ConcurrentDictionary<byte, Task<byte>>();
@@ -97,7 +97,7 @@ namespace CqlSharp.Protocol
                 int max = Math.Min(count, _unreadFromStream);
 
                 //read
-                int read = await _innerStream.ReadAsync(buffer, offset, max);
+                int read = await _innerStream.ReadAsync(buffer, offset, max).ConfigureAwait(false);
 
                 //update remaining
                 _unreadFromStream -= read;
@@ -151,7 +151,7 @@ namespace CqlSharp.Protocol
             //load all remaining frame data
             while (_unreadFromStream > 0)
             {
-                _remainingInBuffer += await ReadAsync(newBuffer, _remainingInBuffer, newSize - _remainingInBuffer);
+                _remainingInBuffer += await ReadAsync(newBuffer, _remainingInBuffer, newSize - _remainingInBuffer).ConfigureAwait(false);
             }
         }
 
@@ -242,7 +242,7 @@ namespace CqlSharp.Protocol
                     }
 
                     //fill up the buffer with more data
-                    int extra = await ReadAsync(_buffer, _remainingInBuffer, _buffer.Length - _remainingInBuffer);
+                    int extra = await ReadAsync(_buffer, _remainingInBuffer, _buffer.Length - _remainingInBuffer).ConfigureAwait(false);
                     if (extra == 0)
                         throw new IOException("Unexpected end of stream reached");
 
@@ -262,7 +262,7 @@ namespace CqlSharp.Protocol
                 int read = _remainingInBuffer;
                 while (read < size)
                 {
-                    int actual = await ReadAsync(buf, read, size - read);
+                    int actual = await ReadAsync(buf, read, size - read).ConfigureAwait(false);
                     if (actual == 0)
                         throw new IOException("Unexpected end of stream reached");
 
@@ -307,7 +307,7 @@ namespace CqlSharp.Protocol
         /// <returns> </returns>
         private async Task<byte> ReadByteInternalAsync()
         {
-            await ReadSegmentAsync(1);
+            await ReadSegmentAsync(1).ConfigureAwait(false);
             return _lastReadSegment.Array[_lastReadSegment.Offset];
         }
 
@@ -340,7 +340,7 @@ namespace CqlSharp.Protocol
         /// <returns> </returns>
         private async Task<short> ReadShortInternalAsync()
         {
-            await ReadSegmentAsync(2);
+            await ReadSegmentAsync(2).ConfigureAwait(false);
             EnsureCorrectByteOrder();
             short value = BitConverter.ToInt16(_lastReadSegment.Array, _lastReadSegment.Offset);
             return value;
@@ -374,7 +374,7 @@ namespace CqlSharp.Protocol
         /// <returns> </returns>
         private async Task<int> ReadIntInternalAsync()
         {
-            await ReadSegmentAsync(4);
+            await ReadSegmentAsync(4).ConfigureAwait(false);
             EnsureCorrectByteOrder();
             int value = BitConverter.ToInt32(_lastReadSegment.Array, _lastReadSegment.Offset);
             return value;
@@ -387,7 +387,7 @@ namespace CqlSharp.Protocol
         public async Task<string> ReadStringAsync()
         {
             //read length
-            short len = await ReadShortAsync();
+            short len = await ReadShortAsync().ConfigureAwait(false);
             if (0 == len)
             {
                 return string.Empty;
@@ -395,7 +395,7 @@ namespace CqlSharp.Protocol
 
             //read the string segment
             if (!TryGetSegmentFromBuffer(len))
-                await ReadSegmentAsync(len);
+                await ReadSegmentAsync(len).ConfigureAwait(false);
 
             //return parsed string
             return Encoding.UTF8.GetString(_lastReadSegment.Array, _lastReadSegment.Offset, _lastReadSegment.Count);
@@ -407,7 +407,7 @@ namespace CqlSharp.Protocol
         /// <returns> </returns>
         public async Task<byte[]> ReadBytesAsync()
         {
-            int len = await ReadIntAsync();
+            int len = await ReadIntAsync().ConfigureAwait(false);
             if (-1 == len)
             {
                 return null;
@@ -415,7 +415,7 @@ namespace CqlSharp.Protocol
 
             //read the string segment
             if (!TryGetSegmentFromBuffer(len))
-                await ReadSegmentAsync(len);
+                await ReadSegmentAsync(len).ConfigureAwait(false);
 
             //copy data from buffer into new array if necessary
             byte[] data = _lastReadSegment.Array == _buffer ? CopySegmentToArray() : _lastReadSegment.Array;
@@ -429,7 +429,7 @@ namespace CqlSharp.Protocol
         /// <returns> </returns>
         public async Task<byte[]> ReadShortBytesAsync()
         {
-            short len = await ReadShortAsync();
+            short len = await ReadShortAsync().ConfigureAwait(false);
             if (-1 == len)
             {
                 return null;
@@ -437,7 +437,7 @@ namespace CqlSharp.Protocol
 
             //read the data segment
             if (!TryGetSegmentFromBuffer(len))
-                await ReadSegmentAsync(len);
+                await ReadSegmentAsync(len).ConfigureAwait(false);
 
             //copy data from buffer into new array if necessary
             byte[] data = _lastReadSegment.Array == _buffer ? CopySegmentToArray() : _lastReadSegment.Array;
@@ -451,11 +451,11 @@ namespace CqlSharp.Protocol
         /// <returns> </returns>
         public async Task<IList<string>> ReadStringListAsync()
         {
-            short len = await ReadShortAsync();
+            short len = await ReadShortAsync().ConfigureAwait(false);
             var data = new string[len];
             for (int i = 0; i < len; ++i)
             {
-                data[i] = await ReadStringAsync();
+                data[i] = await ReadStringAsync().ConfigureAwait(false);
             }
             return data;
         }
@@ -466,12 +466,12 @@ namespace CqlSharp.Protocol
         /// <returns> </returns>
         public async Task<Dictionary<string, IList<string>>> ReadStringMultimapAsync()
         {
-            short len = await ReadShortAsync();
+            short len = await ReadShortAsync().ConfigureAwait(false);
             var data = new Dictionary<string, IList<string>>(len);
             for (int i = 0; i < len; ++i)
             {
-                string key = await ReadStringAsync();
-                IList<string> value = await ReadStringListAsync();
+                string key = await ReadStringAsync().ConfigureAwait(false);
+                IList<string> value = await ReadStringListAsync().ConfigureAwait(false);
                 data.Add(key, value);
             }
 
@@ -484,15 +484,15 @@ namespace CqlSharp.Protocol
         /// <returns> </returns>
         public async Task<IPEndPoint> ReadInetAsync()
         {
-            byte length = await ReadByteAsync();
+            byte length = await ReadByteAsync().ConfigureAwait(false);
 
             if (!TryGetSegmentFromBuffer(length))
-                await ReadSegmentAsync(length);
+                await ReadSegmentAsync(length).ConfigureAwait(false);
 
             byte[] address = CopySegmentToArray();
             var ipAddress = new IPAddress(address);
 
-            int port = await ReadIntAsync();
+            int port = await ReadIntAsync().ConfigureAwait(false);
 
             var endpoint = new IPEndPoint(ipAddress, port);
 
@@ -506,7 +506,7 @@ namespace CqlSharp.Protocol
         public async Task<Guid> ReadUuidAsync()
         {
             if (!TryGetSegmentFromBuffer(16))
-                await ReadSegmentAsync(16);
+                await ReadSegmentAsync(16).ConfigureAwait(false);
 
             byte[] data = CopySegmentToArray();
             if (BitConverter.IsLittleEndian)

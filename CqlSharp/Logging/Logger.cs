@@ -71,7 +71,7 @@ namespace CqlSharp.Logging
 
         public void LogVerbose(string format, params object[] values)
         {
-            Debug.WriteLine(format, values);
+            //Debug.WriteLine(format, values);
         }
 
         public void LogInfo(string format, params object[] values)

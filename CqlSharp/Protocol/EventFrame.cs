@@ -65,19 +65,19 @@ namespace CqlSharp.Protocol
         /// </summary>
         protected override async Task InitializeAsync()
         {
-            EventType = await Reader.ReadStringAsync();
+            EventType = await Reader.ReadStringAsync().ConfigureAwait(false);
 
             if (EventType.Equals("TOPOLOGY_CHANGE", StringComparison.InvariantCultureIgnoreCase) ||
                 EventType.Equals("STATUS_CHANGE", StringComparison.InvariantCultureIgnoreCase))
             {
-                Change = await Reader.ReadStringAsync();
-                Node = await Reader.ReadInetAsync();
+                Change = await Reader.ReadStringAsync().ConfigureAwait(false);
+                Node = await Reader.ReadInetAsync().ConfigureAwait(false);
             }
             else if (EventType.Equals("TOPOLOGY_CHANGE", StringComparison.InvariantCultureIgnoreCase))
             {
-                Change = await Reader.ReadStringAsync();
-                KeySpace = await Reader.ReadStringAsync();
-                Table = await Reader.ReadStringAsync();
+                Change = await Reader.ReadStringAsync().ConfigureAwait(false);
+                KeySpace = await Reader.ReadStringAsync().ConfigureAwait(false);
+                Table = await Reader.ReadStringAsync().ConfigureAwait(false);
             }
         }
     }

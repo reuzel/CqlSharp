@@ -52,31 +52,31 @@ namespace CqlSharp.Protocol
         {
             FrameReader reader = Reader;
 
-            ResultOpcode = (ResultOpcode) await reader.ReadIntAsync();
+            ResultOpcode = (ResultOpcode)await reader.ReadIntAsync().ConfigureAwait(false);
             switch (ResultOpcode)
             {
                 case ResultOpcode.Void:
                     break;
 
                 case ResultOpcode.Rows:
-                    Schema = await ReadCqlSchemaAsync();
-                    _count = await reader.ReadIntAsync();
+                    Schema = await ReadCqlSchemaAsync().ConfigureAwait(false);
+                    _count = await reader.ReadIntAsync().ConfigureAwait(false);
                     _readLock = new SemaphoreSlim(1);
                     break;
 
                 case ResultOpcode.SetKeyspace:
-                    Keyspace = await reader.ReadStringAsync();
+                    Keyspace = await reader.ReadStringAsync().ConfigureAwait(false);
                     break;
 
                 case ResultOpcode.SchemaChange:
-                    Change = await reader.ReadStringAsync();
-                    Keyspace = await reader.ReadStringAsync();
-                    Table = await reader.ReadStringAsync();
+                    Change = await reader.ReadStringAsync().ConfigureAwait(false);
+                    Keyspace = await reader.ReadStringAsync().ConfigureAwait(false);
+                    Table = await reader.ReadStringAsync().ConfigureAwait(false);
                     break;
 
                 case ResultOpcode.Prepared:
-                    PreparedQueryId = await reader.ReadShortBytesAsync();
-                    Schema = await ReadCqlSchemaAsync();
+                    PreparedQueryId = await reader.ReadShortBytesAsync().ConfigureAwait(false);
+                    Schema = await ReadCqlSchemaAsync().ConfigureAwait(false);
                     break;
 
                 default:
@@ -89,12 +89,12 @@ namespace CqlSharp.Protocol
             if (_count == 0)
                 return null;
 
-            await _readLock.WaitAsync();
+            await _readLock.WaitAsync().ConfigureAwait(false);
 
 
             var valueBytes = new byte[Schema.Count][];
             for (int i = 0; i < Schema.Count; i++)
-                valueBytes[i] = await Reader.ReadBytesAsync();
+                valueBytes[i] = await Reader.ReadBytesAsync().ConfigureAwait(false);
 
             //reduce the amount of available rows
             _count--;
@@ -110,25 +110,25 @@ namespace CqlSharp.Protocol
 
         public async Task BufferDataAsync()
         {
-            await _readLock.WaitAsync();
-            await Reader.BufferRemainingData();
+            await _readLock.WaitAsync().ConfigureAwait(false);
+            await Reader.BufferRemainingData().ConfigureAwait(false);
             _readLock.Release();
         }
 
         internal async Task<CqlSchema> ReadCqlSchemaAsync()
         {
             FrameReader reader = Reader;
-            var flags = (MetadataFlags) await reader.ReadIntAsync();
+            var flags = (MetadataFlags)await reader.ReadIntAsync().ConfigureAwait(false);
             bool globalTablesSpec = 0 != (flags & MetadataFlags.GlobalTablesSpec);
 
-            int colCount = await reader.ReadIntAsync();
+            int colCount = await reader.ReadIntAsync().ConfigureAwait(false);
 
             string keyspace = null;
             string table = null;
             if (globalTablesSpec)
             {
-                keyspace = await reader.ReadStringAsync();
-                table = await reader.ReadStringAsync();
+                keyspace = await reader.ReadStringAsync().ConfigureAwait(false);
+                table = await reader.ReadStringAsync().ConfigureAwait(false);
             }
 
             var columnSpecs = new List<CqlColumn>(colCount);
@@ -138,28 +138,28 @@ namespace CqlSharp.Protocol
                 string colTable = table;
                 if (!globalTablesSpec)
                 {
-                    colKeyspace = await reader.ReadStringAsync();
-                    colTable = await reader.ReadStringAsync();
+                    colKeyspace = await reader.ReadStringAsync().ConfigureAwait(false);
+                    colTable = await reader.ReadStringAsync().ConfigureAwait(false);
                 }
-                string colName = await reader.ReadStringAsync();
-                var colType = (CqlType) await reader.ReadShortAsync();
+                string colName = await reader.ReadStringAsync().ConfigureAwait(false);
+                var colType = (CqlType)await reader.ReadShortAsync().ConfigureAwait(false);
                 string colCustom = null;
                 CqlType? colKeyType = null;
                 CqlType? colValueType = null;
                 switch (colType)
                 {
                     case CqlType.Custom:
-                        colCustom = await reader.ReadStringAsync();
+                        colCustom = await reader.ReadStringAsync().ConfigureAwait(false);
                         break;
 
                     case CqlType.List:
                     case CqlType.Set:
-                        colValueType = (CqlType) await reader.ReadShortAsync();
+                        colValueType = (CqlType)await reader.ReadShortAsync().ConfigureAwait(false);
                         break;
 
                     case CqlType.Map:
-                        colKeyType = (CqlType) await reader.ReadShortAsync();
-                        colValueType = (CqlType) await reader.ReadShortAsync();
+                        colKeyType = (CqlType)await reader.ReadShortAsync().ConfigureAwait(false);
+                        colValueType = (CqlType)await reader.ReadShortAsync().ConfigureAwait(false);
                         break;
                 }
 

@@ -19,6 +19,7 @@ using CqlSharp.Serialization;
 using CqlSharp.Tracing;
 using Microsoft.VisualStudio.TestTools.UnitTesting;
 using System.Linq;
+using System.Threading;
 using System.Threading.Tasks;
 
 namespace CqlSharpTest
@@ -135,6 +136,13 @@ namespace CqlSharpTest
 
                 Assert.IsNotNull(session);
             }
+        }
+
+        [TestMethod]
+        public async Task BasicFlowOnSynchronizationContext()
+        {
+            SynchronizationContext.SetSynchronizationContext(new STASynchronizationContext());
+            await BasicFlow();
         }
 
         #region Nested type: BasicFlowData

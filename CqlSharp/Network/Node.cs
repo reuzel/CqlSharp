@@ -414,9 +414,10 @@ namespace CqlSharp.Network
         /// </summary>
         internal void Reactivate()
         {
+            var logger = LoggerFactory.Create("CqlSharp.Node.Reactivate");
             lock (_statusLock)
             {
-                if (!IsUp) Logger.Current.LogInfo("{0} is assumed to be available again", this);
+                if (!IsUp) logger.LogInfo("{0} is assumed to be available again", this);
 
                 IsUp = true;
                 _reactivateTimer.Dispose();

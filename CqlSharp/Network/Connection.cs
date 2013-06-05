@@ -260,7 +260,7 @@ namespace CqlSharp.Network
             {
                 //create TCP connection
                 _client = new TcpClient();
-                await _client.ConnectAsync(_address, _config.Port);
+                await _client.ConnectAsync(_address, _config.Port).ConfigureAwait(false);
                 _writeStream = _client.GetStream();
                 _readStream = _client.GetStream();
 
@@ -271,7 +271,7 @@ namespace CqlSharp.Network
 
                 //submit startup frame
                 var startup = new StartupFrame(_config.CqlVersion);
-                Frame response = await SendRequestAsync(startup, logger, 1, true);
+                Frame response = await SendRequestAsync(startup, logger, 1, true).ConfigureAwait(false);
 
                 //authenticate if required
                 var auth = response as AuthenticateFrame;
@@ -284,7 +284,7 @@ namespace CqlSharp.Network
                         throw new UnauthorizedException("No credentials provided");
 
                     var cred = new CredentialsFrame(_config.Username, _config.Password);
-                    response = await SendRequestAsync(cred, logger, 1, true);
+                    response = await SendRequestAsync(cred, logger, 1, true).ConfigureAwait(false);
                 }
 
                 //check if ready
@@ -323,7 +323,7 @@ namespace CqlSharp.Network
             {
                 //make sure we're already connected
                 if (!isConnecting)
-                    await OpenAsync(logger);
+                    await OpenAsync(logger).ConfigureAwait(false);
 
                 //make sure we are connected
                 if (!IsConnected)
@@ -338,7 +338,7 @@ namespace CqlSharp.Network
                 logger.LogVerbose("Waiting for connection lock on {0}...", this);
 
                 //wait until allowed to submit a frame
-                await _frameSubmitLock.WaitAsync();
+                await _frameSubmitLock.WaitAsync().ConfigureAwait(false);
 
                 //get a task that gets completed when a response is received
                 var waitTask = new TaskCompletionSource<Frame>();
@@ -355,7 +355,7 @@ namespace CqlSharp.Network
                 {
                     //send frame
                     frame.Stream = id;
-                    await _writeLock.WaitAsync();
+                    await _writeLock.WaitAsync().ConfigureAwait(false);
                     try
                     {
                         //final check to make sure we're connected
@@ -364,7 +364,7 @@ namespace CqlSharp.Network
 
                         logger.LogVerbose("Sending {0} Frame with Id {1}, to {2}", frame.OpCode, id, this);
 
-                        await frame.WriteToStream(_writeStream);
+                        await frame.WriteToStream(_writeStream).ConfigureAwait(false);
                     }
                     finally
                     {
@@ -372,7 +372,7 @@ namespace CqlSharp.Network
                     }
 
                     //wait until response is received
-                    Frame response = await waitTask.Task;
+                    Frame response = await waitTask.Task.ConfigureAwait(false);
 
                     logger.LogVerbose("{0} response for frame with Id {1} received from {2}", response.OpCode, id, Address);
 
@@ -450,7 +450,7 @@ namespace CqlSharp.Network
                     logger.LogVerbose("Waiting for new frame to arrive on {0}", this);
 
                     //read next frame from stream
-                    Frame frame = await Frame.FromStream(_readStream);
+                    Frame frame = await Frame.FromStream(_readStream).ConfigureAwait(false);
 
                     //check if frame is event
                     if (frame.Stream == -1)
@@ -482,7 +482,7 @@ namespace CqlSharp.Network
                     logger.LogVerbose("Waiting for frame content to be read from {0}", this);
 
                     //wait until all frame data is read (especially important for queries and results)
-                    await frame.WaitOnBodyRead();
+                    await frame.WaitOnBodyRead().ConfigureAwait(false);
                 }
                 catch (Exception ex)
                 {
@@ -520,7 +520,7 @@ namespace CqlSharp.Network
         public async Task RegisterForClusterChangesAsync(Logger logger)
         {
             var registerframe = new RegisterFrame(new List<string> { "TOPOLOGY_CHANGE", "STATUS_CHANGE" });
-            Frame result = await SendRequestAsync(registerframe, logger);
+            Frame result = await SendRequestAsync(registerframe, logger).ConfigureAwait(false);
 
             if (!(result is ReadyFrame))
                 throw new CqlException("Could not register for cluster changes!");
