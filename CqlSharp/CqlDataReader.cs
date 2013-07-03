@@ -219,7 +219,7 @@ namespace CqlSharp
                 if (CurrentValues != null && _current == null)
                 {
                     var value = new T();
-                    ObjectAccessor accessor = ObjectAccessor.GetAccessor<T>();
+                    ObjectAccessor<T> accessor = ObjectAccessor<T>.Instance;
 
                     foreach (CqlColumn column in Schema)
                     {

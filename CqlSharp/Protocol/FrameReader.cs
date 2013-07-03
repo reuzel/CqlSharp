@@ -14,8 +14,8 @@
 // limitations under the License.
 
 using CqlSharp.Network;
+using CqlSharp.Network.Snappy;
 using System;
-using System.Collections.Concurrent;
 using System.Collections.Generic;
 using System.IO;
 using System.Net;
@@ -29,16 +29,7 @@ namespace CqlSharp.Protocol
     /// </summary>
     internal class FrameReader : IDisposable
     {
-        private const int CacheSize = 2 * 1024; //cache int and short values up to 2048
-
-        private static readonly ConcurrentDictionary<byte, Task<byte>> ByteTaskCache =
-            new ConcurrentDictionary<byte, Task<byte>>();
-
-        private static readonly ConcurrentDictionary<short, Task<short>> ShortTaskCache =
-            new ConcurrentDictionary<short, Task<short>>();
-
-        private static readonly ConcurrentDictionary<int, Task<int>> IntTaskCache =
-            new ConcurrentDictionary<int, Task<int>>();
+        private static readonly SnappyDecompressor Decompressor = new SnappyDecompressor();
 
         private readonly TaskCompletionSource<bool> _waitUntilAllFrameDataRead;
 
@@ -124,6 +115,11 @@ namespace CqlSharp.Protocol
 
         public async Task BufferRemainingData()
         {
+            //ignore if all data has been read
+            if (_unreadFromStream <= 0)
+                return;
+
+            //new buffer size
             int newSize = _remainingInBuffer + _unreadFromStream;
 
             //allocate new buffer if necessary
@@ -153,6 +149,23 @@ namespace CqlSharp.Protocol
             {
                 _remainingInBuffer += await ReadAsync(newBuffer, _remainingInBuffer, newSize - _remainingInBuffer).ConfigureAwait(false);
             }
+        }
+
+        /// <summary>
+        /// Decompresses the frame contents async.
+        /// </summary>
+        public async Task DecompressAsync()
+        {
+            //load all remaining frame data
+            await BufferRemainingData();
+
+            //decompress the data into a new buffer
+            byte[] newBuffer;
+            Decompressor.Decompress(_buffer, _remainingInBuffer, out newBuffer, out _remainingInBuffer);
+
+            //replace existing buffer
+            MemoryPool.Instance.Return(_buffer);
+            _buffer = newBuffer;
         }
 
         /// <summary>
@@ -294,7 +307,7 @@ namespace CqlSharp.Protocol
                 byte b = _lastReadSegment.Array[_lastReadSegment.Offset];
 
                 //return task from cache
-                return ByteTaskCache.GetOrAdd(b, (val) => Task.FromResult(val));
+                return b.AsTask();
             }
 
             //byte could not be obtained from cache, go the long route
@@ -321,14 +334,10 @@ namespace CqlSharp.Protocol
             if (TryGetSegmentFromBuffer(2))
             {
                 //reverse the value if necessary
-                EnsureCorrectByteOrder();
-                short value = BitConverter.ToInt16(_lastReadSegment.Array, _lastReadSegment.Offset);
+                short value = _lastReadSegment.Array.ToShort(_lastReadSegment.Offset);
 
                 //return cached int value if possible
-                if (value < CacheSize)
-                    return ShortTaskCache.GetOrAdd(value, (v) => Task.FromResult(v));
-
-                return Task.FromResult(value);
+                return value.AsTask();
             }
 
             return ReadShortInternalAsync();
@@ -341,8 +350,9 @@ namespace CqlSharp.Protocol
         private async Task<short> ReadShortInternalAsync()
         {
             await ReadSegmentAsync(2).ConfigureAwait(false);
-            EnsureCorrectByteOrder();
-            short value = BitConverter.ToInt16(_lastReadSegment.Array, _lastReadSegment.Offset);
+
+            short value = _lastReadSegment.Array.ToShort(_lastReadSegment.Offset);
+
             return value;
         }
 
@@ -354,15 +364,10 @@ namespace CqlSharp.Protocol
         {
             if (TryGetSegmentFromBuffer(4))
             {
-                EnsureCorrectByteOrder();
-                int value = BitConverter.ToInt32(_lastReadSegment.Array, _lastReadSegment.Offset);
+                int value = _lastReadSegment.Array.ToInt(_lastReadSegment.Offset);
 
                 //return cached int value if possible
-                if (value < CacheSize)
-                    return IntTaskCache.GetOrAdd(value, (v) => Task.FromResult(v));
-
-                //return normal FromResult value
-                return Task.FromResult(value);
+                return value.AsTask();
             }
 
             return ReadIntInternalAsync();
@@ -375,8 +380,9 @@ namespace CqlSharp.Protocol
         private async Task<int> ReadIntInternalAsync()
         {
             await ReadSegmentAsync(4).ConfigureAwait(false);
-            EnsureCorrectByteOrder();
-            int value = BitConverter.ToInt32(_lastReadSegment.Array, _lastReadSegment.Offset);
+
+            int value = _lastReadSegment.Array.ToInt(_lastReadSegment.Offset);
+
             return value;
         }
 
@@ -508,15 +514,7 @@ namespace CqlSharp.Protocol
             if (!TryGetSegmentFromBuffer(16))
                 await ReadSegmentAsync(16).ConfigureAwait(false);
 
-            byte[] data = CopySegmentToArray();
-            if (BitConverter.IsLittleEndian)
-            {
-                Array.Reverse(data, 0, 4);
-                Array.Reverse(data, 4, 2);
-                Array.Reverse(data, 6, 2);
-            }
-
-            return new Guid(data);
+            return _lastReadSegment.Array.ToGuid(_lastReadSegment.Offset);
         }
 
         /// <summary>

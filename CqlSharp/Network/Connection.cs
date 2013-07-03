@@ -52,6 +52,7 @@ namespace CqlSharp.Network
         private readonly object _syncLock = new object();
         private volatile Task _connectTask;
         private readonly int _nr;
+        private bool _allowCompression;
 
 
         /// <summary>
@@ -260,7 +261,7 @@ namespace CqlSharp.Network
                 //create TCP connection
                 _client = new TcpClient();
                 await _client.ConnectAsync(_address, _cluster.Config.Port).ConfigureAwait(false);
-                _writeStream = _client.GetStream();
+                _writeStream = new SingleThreadStream(_client.GetStream());
                 _readStream = _client.GetStream();
 
                 logger.LogVerbose("TCP connection to {0} is opened", Address);
@@ -268,8 +269,35 @@ namespace CqlSharp.Network
                 //start readloop
                 StartReadingAsync();
 
+                //get compression option
+                _allowCompression = false; //assume false unless
+                if (_cluster.Config.AllowCompression)
+                {
+                    //check wether compression is supported by getting compression options from server
+                    var options = new OptionsFrame();
+                    var supported =
+                        await SendRequestAsync(options, logger, 1, true).ConfigureAwait(false) as SupportedFrame;
+
+                    if (supported == null)
+                        throw new ProtocolException(0, "Expected Supported frame not received");
+
+                    IList<string> compressionOptions;
+                    //check if options contain compression
+                    if (supported.SupportedOptions.TryGetValue("COMPRESSION", out compressionOptions))
+                    {
+                        //check wether snappy is supported
+                        _allowCompression = compressionOptions.Contains("snappy");
+                    }
+
+                    //dispose supported frame
+                    supported.Dispose();
+                }
+
                 //submit startup frame
                 var startup = new StartupFrame(_cluster.Config.CqlVersion);
+                if (_allowCompression)
+                    startup.Options["COMPRESSION"] = "snappy";
+
                 Frame response = await SendRequestAsync(startup, logger, 1, true).ConfigureAwait(false);
 
                 //authenticate if required
@@ -282,6 +310,9 @@ namespace CqlSharp.Network
                     if (_cluster.Config.Username == null || _cluster.Config.Password == null)
                         throw new UnauthorizedException("No credentials provided");
 
+                    //dispose AuthenticateFrame
+                    response.Dispose();
+
                     var cred = new CredentialsFrame(_cluster.Config.Username, _cluster.Config.Password);
                     response = await SendRequestAsync(cred, logger, 1, true).ConfigureAwait(false);
                 }
@@ -289,6 +320,9 @@ namespace CqlSharp.Network
                 //check if ready
                 if (!(response is ReadyFrame))
                     throw new ProtocolException(0, "Expected Ready frame not received");
+
+                //dispose ready frame
+                response.Dispose();
 
                 using (logger.ThreadBinding())
                 {
@@ -354,6 +388,10 @@ namespace CqlSharp.Network
                 {
                     //send frame
                     frame.Stream = id;
+
+                    //serialize frame outside lock
+                    byte[] frameBytes = frame.GetFrameBytes(_allowCompression);
+
                     await _writeLock.WaitAsync().ConfigureAwait(false);
                     try
                     {
@@ -363,7 +401,7 @@ namespace CqlSharp.Network
 
                         logger.LogVerbose("Sending {0} Frame with Id {1}, to {2}", frame.OpCode, id, this);
 
-                        await frame.WriteToStream(_writeStream).ConfigureAwait(false);
+                        await _writeStream.WriteAsync(frameBytes, 0, frameBytes.Length).ConfigureAwait(false);
                     }
                     finally
                     {
@@ -467,7 +505,16 @@ namespace CqlSharp.Network
                     TaskCompletionSource<Frame> openRequest;
                     lock (_availableQueryIds)
                     {
-                        openRequest = _openRequests[frame.Stream];
+                        if (!_openRequests.TryGetValue(frame.Stream, out openRequest))
+                        {
+                            if (frame.OpCode == FrameOpcode.Error)
+                            {
+                                var error = (ErrorFrame)frame;
+                                throw error.Exception;
+                            }
+
+                            throw new ProtocolException(ErrorCode.Protocol, "Frame with unknown Stream received");
+                        }
                     }
 
                     //signal frame received. As a new task, because task

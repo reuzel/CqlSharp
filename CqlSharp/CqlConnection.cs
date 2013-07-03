@@ -97,7 +97,7 @@ namespace CqlSharp
         ///   Gets or sets the throttle.
         /// </summary>
         /// <value> The throttle. </value>
-        internal Semaphore Throttle
+        internal SemaphoreSlim Throttle
         {
             get
             {

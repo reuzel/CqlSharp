@@ -60,7 +60,7 @@ namespace CqlSharp
 
         internal byte[][] Values
         {
-            get { return (byte[][]) _values.Clone(); }
+            get { return (byte[][])_values.Clone(); }
         }
 
         /// <summary>
@@ -70,7 +70,7 @@ namespace CqlSharp
         /// <param name="source"> The object holding the parameter values. </param>
         public void Set<T>(T source)
         {
-            ObjectAccessor accessor = ObjectAccessor.GetAccessor<T>();
+            ObjectAccessor<T> accessor = ObjectAccessor<T>.Instance;
             foreach (CqlColumn column in _schema)
             {
                 object value;

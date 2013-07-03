@@ -61,7 +61,6 @@ namespace CqlSharp.Protocol
                 case ResultOpcode.Rows:
                     Schema = await ReadCqlSchemaAsync().ConfigureAwait(false);
                     _count = await reader.ReadIntAsync().ConfigureAwait(false);
-                    _readLock = new SemaphoreSlim(1);
                     break;
 
                 case ResultOpcode.SetKeyspace:
@@ -82,6 +81,8 @@ namespace CqlSharp.Protocol
                 default:
                     throw new ArgumentException("Unexpected ResultOpcode");
             }
+
+            //_readLock = new SemaphoreSlim(1);
         }
 
         public async Task<byte[][]> ReadNextDataRowAsync()
@@ -89,7 +90,7 @@ namespace CqlSharp.Protocol
             if (_count == 0)
                 return null;
 
-            await _readLock.WaitAsync().ConfigureAwait(false);
+            //await _readLock.WaitAsync().ConfigureAwait(false);
 
 
             var valueBytes = new byte[Schema.Count][];
@@ -103,16 +104,17 @@ namespace CqlSharp.Protocol
             if (_count == 0)
                 Reader.Dispose();
 
-            _readLock.Release();
+            //_readLock.Release();
 
             return valueBytes;
         }
 
-        public async Task BufferDataAsync()
+        public Task BufferDataAsync()
         {
-            await _readLock.WaitAsync().ConfigureAwait(false);
-            await Reader.BufferRemainingData().ConfigureAwait(false);
-            _readLock.Release();
+            //await _readLock.WaitAsync().ConfigureAwait(false);
+            //await Reader.BufferRemainingData().ConfigureAwait(false);
+            //_readLock.Release();
+            return Reader.BufferRemainingData();
         }
 
         internal async Task<CqlSchema> ReadCqlSchemaAsync()

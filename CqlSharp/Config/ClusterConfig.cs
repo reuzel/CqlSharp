@@ -46,6 +46,8 @@ namespace CqlSharp.Config
         private const string DefaultLoggerFactory = "Null";
         private readonly Dictionary<string, IPAddress> _nodeAddresses;
         private const LogLevel DefaultLogLevel = LogLevel.Info;
+        private const bool DefaultUseBuffering = true;
+        private const bool DefaultAllowCompression = true;
 
         /// <summary>
         ///   Initializes a new instance of the <see cref="ClusterConfig" /> class.
@@ -68,6 +70,8 @@ namespace CqlSharp.Config
             MaxQueryRetries = DefaultMaxQueryRetries;
             LoggerFactory = DefaultLoggerFactory;
             LogLevel = DefaultLogLevel;
+            UseBuffering = DefaultUseBuffering;
+            AllowCompression = DefaultAllowCompression;
         }
 
 
@@ -250,6 +254,22 @@ namespace CqlSharp.Config
         public LogLevel LogLevel { get; set; }
 
         /// <summary>
+        /// Gets or sets a value indicating whether to use buffering to load query responses.
+        /// </summary>
+        /// <value>
+        ///   <c>true</c> if [use buffering]; otherwise, <c>false</c>.
+        /// </value>
+        public bool UseBuffering { get; set; }
+
+        /// <summary>
+        /// Gets or sets a value indicating whether to [allow compression].
+        /// </summary>
+        /// <value>
+        ///   <c>true</c> if [allow compression]; otherwise, <c>false</c>.
+        /// </value>
+        public bool AllowCompression { get; set; }
+
+        /// <summary>
         ///   Parses the specified connectionstring.
         /// </summary>
         /// <param name="connectionstring"> The connectionstring. </param>
@@ -365,6 +385,20 @@ namespace CqlSharp.Config
                     case "log":
                         LogLevel = (LogLevel)Enum.Parse(typeof(LogLevel), value, true);
                         break;
+                    case "buffering":
+                    case "use buffering":
+                    case "usebuffering":
+                        UseBuffering = bool.Parse(value);
+                        break;
+                    case "compression":
+                    case "allow compression":
+                    case "enable compression":
+                    case "support compression":
+                    case "allowcompression":
+                    case "enablecompression":
+                    case "supportcompression":
+                        AllowCompression = bool.Parse(value);
+                        break;
                     default:
                         throw new CqlException("Config error: unknown configuration property: " + key);
                 }
@@ -470,6 +504,20 @@ namespace CqlSharp.Config
             {
                 builder.Append("MaxConnectionIdleTime=");
                 builder.Append(MaxConnectionIdleTime.TotalSeconds);
+                builder.Append(";");
+            }
+
+            if (UseBuffering != DefaultUseBuffering)
+            {
+                builder.Append("UseBuffering=");
+                builder.Append(UseBuffering);
+                builder.Append(";");
+            }
+
+            if (AllowCompression != DefaultAllowCompression)
+            {
+                builder.Append("AllowCompression=");
+                builder.Append(AllowCompression);
                 builder.Append(";");
             }
 

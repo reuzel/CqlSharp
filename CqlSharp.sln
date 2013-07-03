@@ -3,7 +3,7 @@ Microsoft Visual Studio Solution File, Format Version 12.00
 # Visual Studio 2012
 Project("{FAE04EC0-301F-11D3-BF4B-00C04F79EFBC}") = "CqlSharp", "CqlSharp\CqlSharp.csproj", "{45F69FDC-EEF6-43DA-A457-95EE553C68A1}"
 EndProject
-Project("{FAE04EC0-301F-11D3-BF4B-00C04F79EFBC}") = "CqlSharpTest", "CqlSharpTest\CqlSharpTest.csproj", "{7F0D1D97-5AC1-4848-9D64-DC88FE63744D}"
+Project("{FAE04EC0-301F-11D3-BF4B-00C04F79EFBC}") = "CqlSharp.Test", "CqlSharpTest\CqlSharp.Test.csproj", "{7F0D1D97-5AC1-4848-9D64-DC88FE63744D}"
 EndProject
 Project("{FAE04EC0-301F-11D3-BF4B-00C04F79EFBC}") = "CqlTest", "CqlTest\CqlTest.csproj", "{61D745C9-1B9B-40A2-A9A6-A37A58E6B496}"
 EndProject

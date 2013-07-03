@@ -47,6 +47,7 @@ namespace CqlSharp
             _level = level;
             _prepared = false;
             Load = 1;
+            UseBuffering = connection.Config.UseBuffering;
         }
 
         /// <summary>
@@ -126,7 +127,7 @@ namespace CqlSharp
             logger.LogVerbose("Waiting on Throttle");
 
             //wait until allowed
-            _connection.Throttle.WaitOne();
+            _connection.Throttle.Wait();
 
             try
             {
@@ -188,7 +189,7 @@ namespace CqlSharp
             logger.LogVerbose("Waiting on Throttle");
 
             //wait until allowed
-            _connection.Throttle.WaitOne();
+            _connection.Throttle.Wait();
 
             try
             {
@@ -288,7 +289,7 @@ namespace CqlSharp
             logger.LogVerbose("Waiting on Throttle");
 
             //wait until allowed
-            _connection.Throttle.WaitOne();
+            _connection.Throttle.Wait();
 
             try
             {
@@ -369,7 +370,7 @@ namespace CqlSharp
             logger.LogVerbose("Waiting on Throttle");
 
             //wait until allowed
-            _connection.Throttle.WaitOne();
+            _connection.Throttle.Wait();
             try
             {
                 //capture state
@@ -583,7 +584,6 @@ namespace CqlSharp
             //update frame with tracing option if requested
             if (state.TracingEnabled)
                 query.Flags |= FrameFlags.Tracing;
-
 
             Frame response = await connection.SendRequestAsync(query, logger, state.Load).ConfigureAwait(false);
 

@@ -20,6 +20,10 @@ namespace CqlSharp
     /// </summary>
     public class CqlColumn
     {
+        private string _ksTableName;
+        private string _tableName;
+        private string _name;
+
         /// <summary>
         ///   Initializes a new instance of the <see cref="CqlColumn" /> class.
         /// </summary>
@@ -59,5 +63,38 @@ namespace CqlSharp
         public CqlType? CollectionKeyType { get; private set; }
 
         public CqlType? CollectionValueType { get; private set; }
+
+        internal string KsTableNameNormalized
+        {
+            get
+            {
+                if (_ksTableName == null)
+                    _ksTableName = (Keyspace + "." + Table + "." + Name).ToLower();
+
+                return _ksTableName;
+            }
+        }
+
+        internal string TableNameNormalized
+        {
+            get
+            {
+                if (_tableName == null)
+                    _tableName = ("." + Table + "." + Name).ToLower();
+
+                return _tableName;
+            }
+        }
+
+        internal string NameNormalized
+        {
+            get
+            {
+                if (_name == null)
+                    _name = (".." + Name).ToLower();
+
+                return _name;
+            }
+        }
     }
 }

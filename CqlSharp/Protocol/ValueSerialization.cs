@@ -54,8 +54,10 @@ namespace CqlSharp.Protocol
                                                                                  {CqlType.Map, typeof (Dictionary<,>)}
                                                                              };
 
-        private static readonly ConcurrentDictionary<Type, object> TypeDefaults =
-            new ConcurrentDictionary<Type, object>();
+        private static readonly ConcurrentDictionary<CqlType, object> TypeDefaults =
+            new ConcurrentDictionary<CqlType, object>();
+
+        private static readonly bool IsLittleEndian = BitConverter.IsLittleEndian;
 
         public static byte[] Serialize(this CqlColumn cqlColumn, object data)
         {
@@ -144,12 +146,12 @@ namespace CqlSharp.Protocol
 
                 case CqlType.Double:
                     rawData = BitConverter.GetBytes(Convert.ToDouble(data));
-                    if (BitConverter.IsLittleEndian) Array.Reverse(rawData);
+                    if (IsLittleEndian) Array.Reverse(rawData);
                     break;
 
                 case CqlType.Float:
                     rawData = BitConverter.GetBytes(Convert.ToSingle(data));
-                    if (BitConverter.IsLittleEndian) Array.Reverse(rawData);
+                    if (IsLittleEndian) Array.Reverse(rawData);
                     break;
 
                 case CqlType.Timestamp:
@@ -158,19 +160,19 @@ namespace CqlSharp.Protocol
                     else
                         rawData = BitConverter.GetBytes(Convert.ToDateTime(data).ToTimestamp());
 
-                    if (BitConverter.IsLittleEndian) Array.Reverse(rawData);
+                    if (IsLittleEndian) Array.Reverse(rawData);
 
                     break;
 
                 case CqlType.Bigint:
                 case CqlType.Counter:
                     rawData = BitConverter.GetBytes(Convert.ToInt64(data));
-                    if (BitConverter.IsLittleEndian) Array.Reverse(rawData);
+                    if (IsLittleEndian) Array.Reverse(rawData);
                     break;
 
                 case CqlType.Int:
                     rawData = BitConverter.GetBytes(Convert.ToInt32(data));
-                    if (BitConverter.IsLittleEndian) Array.Reverse(rawData);
+                    if (IsLittleEndian) Array.Reverse(rawData);
                     break;
 
                 case CqlType.Varint:
@@ -203,7 +205,7 @@ namespace CqlSharp.Protocol
                     else
                     {
                         rawData = guid.ToByteArray();
-                        if (BitConverter.IsLittleEndian)
+                        if (IsLittleEndian)
                         {
                             Array.Reverse(rawData, 0, 4);
                             Array.Reverse(rawData, 4, 2);
@@ -330,29 +332,26 @@ namespace CqlSharp.Protocol
                     break;
 
                 case CqlType.Double:
-                    if (BitConverter.IsLittleEndian) Array.Reverse(rawData);
+                    if (IsLittleEndian) Array.Reverse(rawData);
                     data = BitConverter.ToDouble(rawData, 0);
                     break;
 
                 case CqlType.Float:
-                    if (BitConverter.IsLittleEndian) Array.Reverse(rawData);
+                    if (IsLittleEndian) Array.Reverse(rawData);
                     data = BitConverter.ToSingle(rawData, 0);
                     break;
 
                 case CqlType.Timestamp:
-                    if (BitConverter.IsLittleEndian) Array.Reverse(rawData);
-                    data = BitConverter.ToInt64(rawData, 0).ToDateTime();
+                    data = rawData.ToLong().ToDateTime();
                     break;
 
                 case CqlType.Bigint:
                 case CqlType.Counter:
-                    if (BitConverter.IsLittleEndian) Array.Reverse(rawData);
-                    data = BitConverter.ToInt64(rawData, 0);
+                    data = rawData.ToLong();
                     break;
 
                 case CqlType.Int:
-                    if (BitConverter.IsLittleEndian) Array.Reverse(rawData);
-                    data = BitConverter.ToInt32(rawData, 0);
+                    data = rawData.ToInt();
                     break;
 
                 case CqlType.Varint:
@@ -367,13 +366,7 @@ namespace CqlSharp.Protocol
 
                 case CqlType.Uuid:
                 case CqlType.Timeuuid:
-                    if (BitConverter.IsLittleEndian)
-                    {
-                        Array.Reverse(rawData, 0, 4);
-                        Array.Reverse(rawData, 4, 2);
-                        Array.Reverse(rawData, 6, 2);
-                    }
-                    data = new Guid(rawData);
+                    return rawData.ToGuid();
                     break;
 
                 case CqlType.Inet:
@@ -407,18 +400,19 @@ namespace CqlSharp.Protocol
         /// <returns>null if the CqlType is represented by a c# class, or Nullable if CqlType is represented by a struct</returns>
         private static object GetNullValue(this CqlType colType)
         {
-            Type type = colType.ToType();
-            if (type.IsValueType)
-            {
-                return TypeDefaults.GetOrAdd(type, t =>
+            return TypeDefaults.GetOrAdd(colType, t =>
                                                        {
-                                                           Type nullableGeneric = typeof(Nullable<>);
-                                                           Type nullableType = nullableGeneric.MakeGenericType(t);
-                                                           return Activator.CreateInstance(nullableType);
-                                                       });
-            }
+                                                           Type type = t.ToType();
+                                                           if (type.IsValueType)
+                                                           {
+                                                               Type nullableGeneric = typeof(Nullable<>);
+                                                               Type nullableType = nullableGeneric.MakeGenericType(type);
+                                                               return Activator.CreateInstance(nullableType);
+                                                           }
 
-            return null;
+                                                           return null;
+                                                       });
+
 
         }
     }

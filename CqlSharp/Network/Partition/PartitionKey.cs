@@ -121,7 +121,7 @@ namespace CqlSharp.Network.Partition
         /// <param name="data"> The data. </param>
         public void Set<T>(T data)
         {
-            var accessor = ObjectAccessor.GetAccessor<T>();
+            var accessor = ObjectAccessor<T>.Instance;
             accessor.SetPartitionKey(this, data);
         }
 

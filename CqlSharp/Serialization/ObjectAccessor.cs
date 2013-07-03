@@ -13,73 +13,69 @@
 // See the License for the specific language governing permissions and
 // limitations under the License.
 
+using CqlSharp.Network.Partition;
 using System;
-using System.Collections.Concurrent;
 using System.Collections.Generic;
 using System.Linq;
+using System.Linq.Expressions;
 using System.Reflection;
-using CqlSharp.Network.Partition;
 
 namespace CqlSharp.Serialization
 {
     /// <summary>
     ///   Provides access to object fields and properties based on columnn descriptions.
     /// </summary>
-    internal class ObjectAccessor
+    internal class ObjectAccessor<T>
     {
         /// <summary>
-        ///   The translators, cached for every type
+        /// SingleTon instance
         /// </summary>
-        private static readonly ConcurrentDictionary<Type, ObjectAccessor> Translators =
-            new ConcurrentDictionary<Type, ObjectAccessor>();
+        public static readonly ObjectAccessor<T> Instance = new ObjectAccessor<T>();
 
-
-        private readonly ReadFunc[] _partitionKeyReadFuncs;
+        private readonly Func<T, object>[] _partitionKeyReadFuncs;
         private readonly CqlType[] _partitionKeyTypes;
-
+        private readonly bool _keySpaceSet;
+        private readonly bool _tableSet;
 
         /// <summary>
         ///   Read functions to used to read member or property values
         /// </summary>
-        private readonly Dictionary<string, ReadFunc> _readFuncs;
-
-        /// <summary>
-        ///   The type for which this accessor is created
-        /// </summary>
-        private readonly Type _type;
+        private readonly Dictionary<string, Func<T, object>> _readFuncs;
 
         /// <summary>
         ///   Write functions to use to set fields or property values.
         /// </summary>
-        private readonly Dictionary<string, WriteFunc> _writeFuncs;
+        private readonly Dictionary<string, Action<T, object>> _writeFuncs;
 
         /// <summary>
-        ///   Prevents a default instance of the <see cref="ObjectAccessor" /> class from being created.
+        /// Prevents a default instance of the <see cref="ObjectAccessor{T}" /> class from being created.
         /// </summary>
-        /// <param name="type"> The type. </param>
-        private ObjectAccessor(Type type)
+        private ObjectAccessor()
         {
             //init fields
-            _writeFuncs = new Dictionary<string, WriteFunc>();
-            _readFuncs = new Dictionary<string, ReadFunc>();
-            _type = type;
+            _writeFuncs = new Dictionary<string, Action<T, object>>();
+            _readFuncs = new Dictionary<string, Func<T, object>>();
 
-            var keyMembers = new List<Tuple<int, ReadFunc, CqlType>>();
+            var keyMembers = new List<Tuple<int, Func<T, object>, CqlType>>();
 
             //set default keyspace and table name to empty strings (nothing)
             string keyspace = "";
             string table = "";
 
             //set default table name to class name if table is not anonymous
-            if (!type.IsAnonymous())
+            Type type = typeof(T);
+            _tableSet = !type.IsAnonymous();
+            if (_tableSet)
                 table = type.Name;
 
             //check for CqlTable attribute
-            var tableAttribute = Attribute.GetCustomAttribute(type, typeof (CqlTableAttribute)) as CqlTableAttribute;
+            var tableAttribute = Attribute.GetCustomAttribute(type, typeof(CqlTableAttribute)) as CqlTableAttribute;
             if (tableAttribute != null)
             {
                 //overwrite keyspace if any
-                keyspace = tableAttribute.Keyspace ?? keyspace;
+                _keySpaceSet = tableAttribute.Keyspace != null;
+                if (_keySpaceSet)
+                    keyspace = tableAttribute.Keyspace;
 
                 //set default table name
                 table = tableAttribute.Table ?? table;
@@ -98,14 +94,14 @@ namespace CqlSharp.Serialization
                 //add write func if we can write the property
                 if (prop.CanWrite && !prop.SetMethod.IsPrivate)
                 {
-                    _writeFuncs[name] = prop.SetValue;
+                    _writeFuncs[name] = MakeSetterDelegate(prop);
                 }
 
                 //add the read func if we can read the property
                 if (prop.CanRead && !prop.GetMethod.IsPrivate)
                 {
-                    _readFuncs[name] = prop.GetValue;
-                    SetPartitionKeyMember(keyMembers, prop, prop.GetValue);
+                    _readFuncs[name] = MakeGetterDelegate(prop);
+                    SetPartitionKeyMember(keyMembers, prop, _readFuncs[name]);
                 }
             }
 
@@ -119,11 +115,15 @@ namespace CqlSharp.Serialization
                 if (string.IsNullOrEmpty(name))
                     continue;
 
-                //set getter and setter functions
-                if (!field.IsInitOnly) _writeFuncs[name] = field.SetValue;
 
-                _readFuncs[name] = field.GetValue;
-                SetPartitionKeyMember(keyMembers, field, field.GetValue);
+                //set getter and setter functions
+                if (!field.IsInitOnly)
+                {
+                    _writeFuncs[name] = MakeFieldSetterDelegate(field);
+                }
+
+                _readFuncs[name] = MakeFieldGetterDelegate(field);
+                SetPartitionKeyMember(keyMembers, field, _readFuncs[name]);
             }
 
             //sort keyMembers on partitionIndex
@@ -138,12 +138,11 @@ namespace CqlSharp.Serialization
         /// <param name="member"> The member. </param>
         /// <param name="reader"> The reader. </param>
         /// <exception cref="System.ArgumentException">CqlType must be set on ColumnAttribute if PartitionKeyIndex is set.</exception>
-        private void SetPartitionKeyMember(List<Tuple<int, ReadFunc, CqlType>> keyMembers, MemberInfo member,
-                                           ReadFunc reader)
+        private void SetPartitionKeyMember(List<Tuple<int, Func<T, object>, CqlType>> keyMembers, MemberInfo member, Func<T, object> reader)
         {
             //check for column attribute
             var columnAttribute =
-                Attribute.GetCustomAttribute(member, typeof (CqlColumnAttribute)) as CqlColumnAttribute;
+                Attribute.GetCustomAttribute(member, typeof(CqlColumnAttribute)) as CqlColumnAttribute;
 
             if (columnAttribute != null)
             {
@@ -153,21 +152,10 @@ namespace CqlSharp.Serialization
                     //    throw new ArgumentException("CqlType must be set on ColumnAttribute if PartitionKeyIndex is set.");
 
                     //add the member
-                    keyMembers.Add(new Tuple<int, ReadFunc, CqlType>(columnAttribute.PartitionKeyIndex, reader,
+                    keyMembers.Add(new Tuple<int, Func<T, object>, CqlType>(columnAttribute.PartitionKeyIndex, reader,
                                                                      columnAttribute.CqlType));
                 }
             }
-        }
-
-        /// <summary>
-        ///   Gets the accessor for type T.
-        /// </summary>
-        /// <typeparam name="T"> type of the object accessed </typeparam>
-        /// <returns> Accessor for objects of type T </returns>
-        public static ObjectAccessor GetAccessor<T>()
-        {
-            Type type = typeof (T);
-            return Translators.GetOrAdd(type, (t) => new ObjectAccessor(t));
         }
 
         /// <summary>
@@ -183,7 +171,7 @@ namespace CqlSharp.Serialization
 
             //check for ignore attribute
             var ignoreAttribute =
-                Attribute.GetCustomAttribute(member, typeof (CqlIgnoreAttribute)) as CqlIgnoreAttribute;
+                Attribute.GetCustomAttribute(member, typeof(CqlIgnoreAttribute)) as CqlIgnoreAttribute;
 
             //return null if ignore attribute is set
             if (ignoreAttribute != null)
@@ -191,7 +179,7 @@ namespace CqlSharp.Serialization
 
             //check for column attribute
             var columnAttribute =
-                Attribute.GetCustomAttribute(member, typeof (CqlColumnAttribute)) as CqlColumnAttribute;
+                Attribute.GetCustomAttribute(member, typeof(CqlColumnAttribute)) as CqlColumnAttribute;
 
             if (columnAttribute != null)
             {
@@ -216,7 +204,7 @@ namespace CqlSharp.Serialization
         /// <returns> true, if the value could be distilled from the source </returns>
         /// <exception cref="System.ArgumentNullException">column</exception>
         /// <exception cref="System.ArgumentException">Source is not of the correct type!;source</exception>
-        public bool TryGetValue(CqlColumn column, object source, out object value)
+        public bool TryGetValue(CqlColumn column, T source, out object value)
         {
             if (column == null)
                 throw new ArgumentNullException("column");
@@ -224,27 +212,28 @@ namespace CqlSharp.Serialization
             if (source == null)
                 throw new ArgumentNullException("source");
 
-            if (source.GetType() != _type)
+            if (source.GetType() != typeof(T))
                 throw new ArgumentException("Source is not of the correct type!", "source");
 
-            ReadFunc func;
+            Func<T, object> func;
 
-            string name = column.Keyspace + "." + column.Table + "." + column.Name;
-            if (_readFuncs.TryGetValue(name.ToLower(), out func))
+            if (_keySpaceSet && _tableSet)
             {
-                value = func(source);
-                return true;
+                if (_readFuncs.TryGetValue(column.KsTableNameNormalized, out func))
+                {
+                    value = func(source);
+                    return true;
+                }
             }
-
-            name = "." + column.Table + "." + column.Name;
-            if (_readFuncs.TryGetValue(name.ToLower(), out func))
+            else if (_tableSet)
             {
-                value = func(source);
-                return true;
+                if (_readFuncs.TryGetValue(column.TableNameNormalized, out func))
+                {
+                    value = func(source);
+                    return true;
+                }
             }
-
-            name = ".." + column.Name;
-            if (_readFuncs.TryGetValue(name.ToLower(), out func))
+            else if (_readFuncs.TryGetValue(column.NameNormalized, out func))
             {
                 value = func(source);
                 return true;
@@ -263,44 +252,38 @@ namespace CqlSharp.Serialization
         /// <returns> true if the property or field value is set </returns>
         /// <exception cref="System.ArgumentNullException">column</exception>
         /// <exception cref="System.ArgumentException">Source is not of the correct type!;target</exception>
-        public bool TrySetValue(CqlColumn column, object target, object value)
+        public bool TrySetValue(CqlColumn column, T target, object value)
         {
-            if (column == null)
-                throw new ArgumentNullException("column");
+            Action<T, object> func;
 
-            if (target == null)
-                throw new ArgumentNullException("target");
-
-            if (target.GetType() != _type)
-                throw new ArgumentException("Source is not of the correct type!", "target");
-
-            WriteFunc func;
-
-            string name = column.Keyspace + "." + column.Table + "." + column.Name;
-            if (_writeFuncs.TryGetValue(name.ToLower(), out func))
+            if (_keySpaceSet && _tableSet)
             {
-                func(target, value);
-                return true;
+                if (_writeFuncs.TryGetValue(column.KsTableNameNormalized, out func))
+                {
+                    func(target, value);
+                    return true;
+                }
             }
-
-            name = "." + column.Table + "." + column.Name;
-            if (_writeFuncs.TryGetValue(name.ToLower(), out func))
+            else if (_tableSet)
             {
-                func(target, value);
-                return true;
+                if (_writeFuncs.TryGetValue(column.TableNameNormalized, out func))
+                {
+                    func(target, value);
+
+                    return true;
+                }
             }
-
-            name = ".." + column.Name;
-            if (_writeFuncs.TryGetValue(name.ToLower(), out func))
+            else if (_writeFuncs.TryGetValue(column.NameNormalized, out func))
             {
                 func(target, value);
+
                 return true;
             }
 
             return false;
         }
 
-        public void SetPartitionKey(PartitionKey key, object value)
+        public void SetPartitionKey(PartitionKey key, T value)
         {
             int length = _partitionKeyReadFuncs.Length;
             if (length > 0)
@@ -315,26 +298,43 @@ namespace CqlSharp.Serialization
             }
         }
 
-        #region Nested type: ReadFunc
 
-        /// <summary>
-        ///   Read delagate, usable to read fields or properties
-        /// </summary>
-        /// <param name="target"> The target. </param>
-        /// <returns> </returns>
-        private delegate object ReadFunc(Object target);
+        static Func<T, object> MakeGetterDelegate(PropertyInfo property)
+        {
+            MethodInfo getMethod = property.GetGetMethod();
+            var target = Expression.Parameter(typeof(T));
+            var body = Expression.Convert(Expression.Call(target, getMethod), typeof(object));
+            return Expression.Lambda<Func<T, object>>(body, target)
+                .Compile();
+        }
 
-        #endregion
+        static Action<T, object> MakeSetterDelegate(PropertyInfo property)
+        {
+            MethodInfo setMethod = property.GetSetMethod();
+            var target = Expression.Parameter(typeof(T));
+            var value = Expression.Parameter(typeof(object));
+            var body = Expression.Call(target, setMethod, Expression.Convert(value, property.PropertyType));
+            return Expression.Lambda<Action<T, object>>(body, target, value)
+                .Compile();
+        }
 
-        #region Nested type: WriteFunc
+        static Func<T, object> MakeFieldGetterDelegate(FieldInfo property)
+        {
+            var target = Expression.Parameter(typeof(T));
+            var body = Expression.Convert(Expression.Field(target, property), typeof(object));
+            return Expression.Lambda<Func<T, object>>(body, target).Compile();
+        }
 
-        /// <summary>
-        ///   Write delegate, usable to write fields or properties
-        /// </summary>
-        /// <param name="target"> The target. </param>
-        /// <param name="value"> The value. </param>
-        private delegate void WriteFunc(Object target, object value);
-
-        #endregion
+        static Action<T, object> MakeFieldSetterDelegate(FieldInfo property)
+        {
+            var target = Expression.Parameter(typeof(T));
+            var field = Expression.Field(target, property);
+            var value = Expression.Parameter(typeof(object));
+            var body = Expression.Assign(field, Expression.Convert(value, property.FieldType));
+            return Expression.Lambda<Action<T, object>>(body, target).Compile();
+        }
     }
+
+
+
 }

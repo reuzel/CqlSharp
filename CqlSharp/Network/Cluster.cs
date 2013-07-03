@@ -34,7 +34,7 @@ namespace CqlSharp.Network
     {
         private readonly ClusterConfig _config;
         private IConnectionStrategy _connectionSelector;
-        private Semaphore _throttle;
+        private SemaphoreSlim _throttle;
         private volatile Task _openTask;
         private readonly object _syncLock = new object();
         private volatile Ring _nodes;
@@ -140,7 +140,7 @@ namespace CqlSharp.Network
 
             logger.LogInfo("Cluster is configured to allow {0} parallel queries", concurrent);
 
-            _throttle = new Semaphore(concurrent, concurrent);
+            _throttle = new SemaphoreSlim(concurrent, concurrent);
 
             //setup prepared query cache
             _prepareResultCache = new ConcurrentDictionary<string, ConcurrentDictionary<IPAddress, ResultFrame>>();
@@ -201,7 +201,7 @@ namespace CqlSharp.Network
         ///   Gets the throttle to limit concurrent requests.
         /// </summary>
         /// <value> The throttle. </value>
-        public Semaphore Throttle
+        public SemaphoreSlim Throttle
         {
             get { return _throttle; }
         }

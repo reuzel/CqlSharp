@@ -13,6 +13,7 @@
 // See the License for the specific language governing permissions and
 // limitations under the License.
 
+using CqlSharp.Network.Snappy;
 using System;
 using System.IO;
 using System.Threading;
@@ -31,6 +32,7 @@ namespace CqlSharp.Protocol
         protected FrameReader Reader;
 
         private int _disposed; //0 not disposed, 1 disposed
+        private static readonly SnappyCompressor Compressor = new SnappyCompressor();
 
         /// <summary>
         ///   Gets or sets the version.
@@ -80,11 +82,10 @@ namespace CqlSharp.Protocol
         #endregion
 
         /// <summary>
-        ///   Writes this packet to a stream.
+        /// Gets the frame bytes.
         /// </summary>
-        /// <param name="stream"> To stream. </param>
-        /// <returns> </returns>
-        public Task WriteToStream(Stream stream)
+        /// <returns></returns>
+        public byte[] GetFrameBytes(bool compress)
         {
             using (var buffer = new MemoryStream())
             {
@@ -97,6 +98,35 @@ namespace CqlSharp.Protocol
                 buffer.WriteInt(0);
 
                 //write the actual data
+                //if (compress)
+                //{
+                //    using (var uncompressed = new MemoryStream())
+                //    {
+                //        WriteData(uncompressed);
+                //        byte[] uncompressedData = uncompressed.ToArray();
+                //        if (uncompressed.Length > 128)
+                //        {
+                //            int maxSize = Compressor.MaxCompressedLength(uncompressedData.Length);
+                //            var compressedData = maxSize <= MemoryPool.BufferSize
+                //                                     ? MemoryPool.Instance.Take()
+                //                                     : new byte[maxSize];
+                //            int compressedSize = Compressor.Compress(uncompressedData, 0, uncompressedData.Length,
+                //                                                     compressedData);
+                //            buffer.Write(compressedData, 0, compressedSize);
+                //            MemoryPool.Instance.Return(compressedData);
+
+                //            //add compression to flags
+                //            Flags |= FrameFlags.Compression;
+                //            buffer.Position = 1;
+                //            buffer.WriteByte((byte)Flags);
+                //        }
+                //        else
+                //        {
+                //            buffer.Write(uncompressedData, 0, uncompressedData.Length);
+                //        }
+                //    }
+                //}
+                //else
                 WriteData(buffer);
 
                 //overwrite length with real value
@@ -108,7 +138,7 @@ namespace CqlSharp.Protocol
 
                 //copy to the stream async
                 byte[] data = buffer.ToArray();
-                return stream.WriteAsync(data, 0, data.Length);
+                return data;
             }
         }
 
@@ -170,6 +200,11 @@ namespace CqlSharp.Protocol
             var reader = new FrameReader(stream, length);
             frame.Reader = reader;
 
+            //decompress the contents of the frame (implicity loads the entire frame body!)
+            if (frame.Flags.HasFlag(FrameFlags.Compression))
+                await reader.DecompressAsync();
+
+            //read tracing id if set
             if (frame.Flags.HasFlag(FrameFlags.Tracing))
                 frame.TracingId = await reader.ReadUuidAsync().ConfigureAwait(false);
 
@@ -201,7 +236,7 @@ namespace CqlSharp.Protocol
                 if (disposing)
                 {
                     Reader.Dispose();
-                    Reader = null;
+                    //Reader = null;
                 }
             }
         }
