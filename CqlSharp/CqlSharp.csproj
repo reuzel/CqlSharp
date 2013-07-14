@@ -67,11 +67,15 @@
     <Compile Include="Network\Partition\IToken.cs" />
     <Compile Include="Network\Partition\PartitionKey.cs" />
     <Compile Include="Network\Partition\Ring.cs" />
-    <Compile Include="Network\SingleThreadStream.cs" />
-    <Compile Include="Network\Snappy\Snappy.cs" />
-    <Compile Include="Network\Snappy\SnappyCompressor.cs" />
-    <Compile Include="Network\Snappy\SnappyDecompressor.cs" />
-    <Compile Include="Network\Snappy\Utilities.cs" />
+    <Compile Include="Network\nSnappy\Compressor.cs" />
+    <Compile Include="Network\nSnappy\CompressorConstants.cs" />
+    <Compile Include="Network\nSnappy\CompressorTag.cs" />
+    <Compile Include="Network\nSnappy\Decompressor.cs" />
+    <Compile Include="Network\nSnappy\HashTable.cs" />
+    <Compile Include="Network\nSnappy\IntEncoder.cs" />
+    <Compile Include="Network\nSnappy\Pointer.cs" />
+    <Compile Include="Network\nSnappy\VarInt32.cs" />
+    <Compile Include="Network\nSnappy\Writer.cs" />
     <Compile Include="Protocol\AlreadyExistsException.cs" />
     <Compile Include="Protocol\AuthenticateFrame.cs" />
     <Compile Include="Protocol\CredentialsFrame.cs" />
@@ -149,6 +153,7 @@
     <Compile Include="Tracing\TracingSession.cs" />
   </ItemGroup>
   <ItemGroup>
+    <Content Include="Network\nSnappy\readme.txt" />
     <Content Include="Properties\logo.ico" />
   </ItemGroup>
   <ItemGroup>

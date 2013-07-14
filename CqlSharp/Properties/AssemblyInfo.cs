@@ -55,3 +55,4 @@ using System.Runtime.InteropServices;
 [assembly: AssemblyFileVersion("0.13.0.0")]
 [assembly: InternalsVisibleTo("CqlSharp.Fakes")]
 [assembly: InternalsVisibleTo("CqlSharp.Test")]
+[assembly: InternalsVisibleTo("CqlTest")]

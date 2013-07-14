@@ -15,6 +15,7 @@
 
 using System;
 using System.Collections.Concurrent;
+using System.Text;
 
 namespace CqlSharp.Network
 {
@@ -23,15 +24,17 @@ namespace CqlSharp.Network
     /// </summary>
     internal class MemoryPool
     {
-        /// <summary>
-        ///   The buffer size
-        /// </summary>
-        public const int BufferSize = 4*1024;
+        private readonly byte[] _emptyArray = new byte[0];
 
         /// <summary>
-        ///   The max buffer pool size
+        /// Number of pools, each pool in exponential size
         /// </summary>
-        private const int MaxBufferPoolSize = 512;
+        private const int MaxPools = 7;
+
+        /// <summary>
+        ///   The max buffer pool items, per size
+        /// </summary>
+        private const int MaxBufferPoolItems = 32;
 
         /// <summary>
         ///   The singleton instance
@@ -39,16 +42,23 @@ namespace CqlSharp.Network
         private static readonly Lazy<MemoryPool> TheInstance = new Lazy<MemoryPool>(() => new MemoryPool());
 
         /// <summary>
-        ///   The buffer pool
+        ///   The buffer pools
         /// </summary>
-        private readonly ConcurrentBag<byte[]> _bufferPool;
+        private readonly ConcurrentBag<byte[]>[] _bufferPools;
+        private readonly int[] _sizes;
 
         /// <summary>
         ///   Initializes a new instance of the <see cref="MemoryPool" /> class.
         /// </summary>
         protected MemoryPool()
         {
-            _bufferPool = new ConcurrentBag<byte[]>();
+            _bufferPools = new ConcurrentBag<byte[]>[MaxPools];
+            _sizes = new int[MaxPools];
+            for (int i = 0; i < MaxPools; i++)
+            {
+                _bufferPools[i] = new ConcurrentBag<byte[]>();
+                _sizes[i] = (int)Math.Pow(2, i) * 1024;
+            }
         }
 
         /// <summary>
@@ -61,15 +71,26 @@ namespace CqlSharp.Network
         }
 
         /// <summary>
-        ///   Takes a buffer from the pool, or creates one if the pool is empty
+        ///   Takes a buffer from the pool, or creates one if the pool is empty, or requested size is larger than BufferSize
         /// </summary>
         /// <returns> a buffer </returns>
-        public byte[] Take()
+        public byte[] Take(int size)
         {
+            if (size == 0)
+                return _emptyArray;
+
             byte[] buffer;
-            if (!_bufferPool.TryTake(out buffer))
+
+            int bufferIndex = Array.BinarySearch(_sizes, size);
+            bufferIndex = bufferIndex < 0 ? ~bufferIndex : bufferIndex;
+
+            if (bufferIndex >= MaxPools)
             {
-                buffer = new byte[BufferSize];
+                buffer = new byte[size];
+            }
+            else if (!_bufferPools[bufferIndex].TryTake(out buffer))
+            {
+                buffer = new byte[_sizes[bufferIndex]];
             }
 
             return buffer;
@@ -81,13 +102,27 @@ namespace CqlSharp.Network
         /// <param name="buffer"> The buffer. </param>
         public void Return(byte[] buffer)
         {
-            if (buffer == null || buffer.Length != BufferSize)
-                return;
+            int bufferIndex = Array.BinarySearch(_sizes, buffer.Length);
+            if (bufferIndex >= 0 && _bufferPools[bufferIndex].Count < MaxBufferPoolItems)
+            {
+                _bufferPools[bufferIndex].Add(buffer);
+            }
+        }
 
-            if (_bufferPool.Count > MaxBufferPoolSize)
-                return;
-
-            _bufferPool.Add(buffer);
+        public override string ToString()
+        {
+            var builder = new StringBuilder();
+            builder.Append("MemoryPool(");
+            for (int i = 0; i < MaxPools; i++)
+            {
+                builder.Append(_sizes[i]);
+                builder.Append(":");
+                builder.Append(_bufferPools[i].Count);
+                if (i < MaxPools - 1)
+                    builder.Append("; ");
+            }
+            builder.Append(")");
+            return builder.ToString();
         }
     }
 }

@@ -261,7 +261,7 @@ namespace CqlSharp.Network
                 //create TCP connection
                 _client = new TcpClient();
                 await _client.ConnectAsync(_address, _cluster.Config.Port).ConfigureAwait(false);
-                _writeStream = new SingleThreadStream(_client.GetStream());
+                _writeStream = _client.GetStream();
                 _readStream = _client.GetStream();
 
                 logger.LogVerbose("TCP connection to {0} is opened", Address);

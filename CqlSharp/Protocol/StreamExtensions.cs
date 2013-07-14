@@ -74,19 +74,10 @@ namespace CqlSharp.Protocol
             int len = Encoding.UTF8.GetByteCount(data);
             stream.WriteShort((short)len);
 
-            byte[] bufStr;
-            if (len > MemoryPool.BufferSize)
-            {
-                bufStr = Encoding.UTF8.GetBytes(data);
-                stream.Write(bufStr, 0, len);
-            }
-            else
-            {
-                bufStr = MemoryPool.Instance.Take();
-                Encoding.UTF8.GetBytes(data, 0, data.Length, bufStr, 0);
-                stream.Write(bufStr, 0, len);
-                MemoryPool.Instance.Return(bufStr);
-            }
+            byte[] bufStr = MemoryPool.Instance.Take(len);
+            Encoding.UTF8.GetBytes(data, 0, data.Length, bufStr, 0);
+            stream.Write(bufStr, 0, len);
+            MemoryPool.Instance.Return(bufStr);
         }
 
         /// <summary>
@@ -118,19 +109,10 @@ namespace CqlSharp.Protocol
             int len = Encoding.UTF8.GetByteCount(data);
             stream.WriteInt(len);
 
-            byte[] bufStr;
-            if (len > MemoryPool.BufferSize)
-            {
-                bufStr = Encoding.UTF8.GetBytes(data);
-                stream.Write(bufStr, 0, len);
-            }
-            else
-            {
-                bufStr = MemoryPool.Instance.Take();
-                Encoding.UTF8.GetBytes(data, 0, data.Length, bufStr, 0);
-                stream.Write(bufStr, 0, len);
-                MemoryPool.Instance.Return(bufStr);
-            }
+            byte[] bufStr = MemoryPool.Instance.Take(len);
+            Encoding.UTF8.GetBytes(data, 0, data.Length, bufStr, 0);
+            stream.Write(bufStr, 0, len);
+            MemoryPool.Instance.Return(bufStr);
         }
 
         /// <summary>
@@ -156,7 +138,7 @@ namespace CqlSharp.Protocol
         public static void WriteShortByteArray(this Stream stream, byte[] data)
         {
             if (data == null)
-                stream.WriteShort((short)-1);
+                stream.WriteShort(-1);
             else
             {
                 var len = (short)data.Length;
@@ -295,20 +277,12 @@ namespace CqlSharp.Protocol
                 return string.Empty;
             }
 
-            if (len < MemoryPool.BufferSize)
-            {
-                byte[] bufStr = MemoryPool.Instance.Take();
-                stream.ReadBuffer(bufStr, len);
-                string data = Encoding.UTF8.GetString(bufStr, 0, len);
-                return data;
-            }
-            else
-            {
-                var bufStr = new byte[len];
-                stream.ReadBuffer(bufStr);
-                string data = Encoding.UTF8.GetString(bufStr);
-                return data;
-            }
+            byte[] bufStr = MemoryPool.Instance.Take(len);
+            stream.ReadBuffer(bufStr, len);
+            string data = Encoding.UTF8.GetString(bufStr, 0, len);
+            MemoryPool.Instance.Return(bufStr);
+
+            return data;
         }
 
         /// <summary>

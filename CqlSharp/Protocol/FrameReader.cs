@@ -14,7 +14,7 @@
 // limitations under the License.
 
 using CqlSharp.Network;
-using CqlSharp.Network.Snappy;
+using NSnappy;
 using System;
 using System.Collections.Generic;
 using System.IO;
@@ -29,8 +29,6 @@ namespace CqlSharp.Protocol
     /// </summary>
     internal class FrameReader : IDisposable
     {
-        private static readonly SnappyDecompressor Decompressor = new SnappyDecompressor();
-
         private readonly TaskCompletionSource<bool> _waitUntilAllFrameDataRead;
 
         private byte[] _buffer;
@@ -44,7 +42,8 @@ namespace CqlSharp.Protocol
 
         public FrameReader(Stream innerStream, int length)
         {
-            _buffer = MemoryPool.Instance.Take();
+            int bufferSize = Math.Min(4 * 1024, length);
+            _buffer = MemoryPool.Instance.Take(bufferSize);
 
             _remainingInBuffer = 0;
             _position = 0;
@@ -95,7 +94,7 @@ namespace CqlSharp.Protocol
 
                 //signal EOS when window reached
                 if (_unreadFromStream <= 0)
-                    _waitUntilAllFrameDataRead.SetResult(true);
+                    Task.Run(() => _waitUntilAllFrameDataRead.SetResult(true));
 
                 //return actual read count
                 return read;
@@ -123,7 +122,7 @@ namespace CqlSharp.Protocol
             int newSize = _remainingInBuffer + _unreadFromStream;
 
             //allocate new buffer if necessary
-            byte[] newBuffer = newSize > _buffer.Length ? new byte[_remainingInBuffer + _unreadFromStream] : _buffer;
+            byte[] newBuffer = newSize > _buffer.Length ? MemoryPool.Instance.Take(newSize) : _buffer;
 
             //copy/move existing buffer data
             if (_remainingInBuffer > 0)
@@ -159,9 +158,9 @@ namespace CqlSharp.Protocol
             //load all remaining frame data
             await BufferRemainingData();
 
-            //decompress the data into a new buffer
+            //decompress into new buffer
             byte[] newBuffer;
-            Decompressor.Decompress(_buffer, _remainingInBuffer, out newBuffer, out _remainingInBuffer);
+            _remainingInBuffer = Decompressor.Decompress(_buffer, _remainingInBuffer, out newBuffer);
 
             //replace existing buffer
             MemoryPool.Instance.Return(_buffer);
@@ -239,58 +238,37 @@ namespace CqlSharp.Protocol
             if (_remainingInBuffer + _unreadFromStream < size)
                 throw new IOException("Trying to read beyond frame length!");
 
-            while (true)
+            if (size > _buffer.Length)
             {
-                if (TryGetSegmentFromBuffer(size))
-                    return;
-
-                //check if it would fit in the current buffer
-                if (size <= _buffer.Length)
-                {
-                    //shift remaining buffer content to start if necessary
-                    if (_position > 0)
-                    {
-                        Buffer.BlockCopy(_buffer, _position, _buffer, 0, _remainingInBuffer);
-                        _position = 0;
-                    }
-
-                    //fill up the buffer with more data
-                    int extra = await ReadAsync(_buffer, _remainingInBuffer, _buffer.Length - _remainingInBuffer).ConfigureAwait(false);
-                    if (extra == 0)
-                        throw new IOException("Unexpected end of stream reached");
-
-                    _remainingInBuffer += extra;
-
-                    //loop to try again
-                    continue;
-                }
-
-                //doesn't fit (typically a large array), allocate a new array and read the whole thing in there
-                var buf = new byte[size];
+                //size does not fit in current buffer. Get a larger one
+                var buf = MemoryPool.Instance.Take(size);
 
                 //copy already read bytes
                 Buffer.BlockCopy(_buffer, _position, buf, 0, _remainingInBuffer);
 
-                //read remaining bytes
-                int read = _remainingInBuffer;
-                while (read < size)
-                {
-                    int actual = await ReadAsync(buf, read, size - read).ConfigureAwait(false);
-                    if (actual == 0)
-                        throw new IOException("Unexpected end of stream reached");
-
-                    read += actual;
-                }
-
-                //set _lastReadSegment
-                _lastReadSegment = new ArraySegment<byte>(buf);
-
-                //reset read positions
+                //return old buffer, replace it with new
+                MemoryPool.Instance.Return(_buffer);
+                _buffer = buf;
                 _position = 0;
-                _remainingInBuffer = 0;
+            }
 
-                //done
-                return;
+            //shift remaining buffer content to start if necessary
+            if (_position + size > _buffer.Length)
+            {
+                Buffer.BlockCopy(_buffer, _position, _buffer, 0, _remainingInBuffer);
+                _position = 0;
+            }
+
+            while (!TryGetSegmentFromBuffer(size))
+            {
+
+                //fill up the buffer with more data
+                int offset = _position + _remainingInBuffer;
+                int extra = await ReadAsync(_buffer, offset, _buffer.Length - offset).ConfigureAwait(false);
+                if (extra == 0)
+                    throw new IOException("Unexpected end of stream reached");
+
+                _remainingInBuffer += extra;
             }
         }
 

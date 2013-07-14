@@ -13,6 +13,7 @@
 // See the License for the specific language governing permissions and
 // limitations under the License.
 
+using CqlSharp.Network;
 using System;
 using System.Collections.Concurrent;
 using System.Collections.Generic;
@@ -155,7 +156,7 @@ namespace CqlTest
             _times = new ConcurrentDictionary<string, LinkedList<long>>();
             _stopwatch = new Stopwatch();
             _count = 0;
-            _groups = Enumerable.Range(1, 9).Select(n => "group_" + n).ToArray();
+            _groups = Enumerable.Range(0, 9).Select(n => "group_" + n).ToArray();
 
 
             //pregenerate carts
@@ -192,6 +193,7 @@ namespace CqlTest
 
             //print results
             Console.WriteLine("Total tasks run: {0} in {1} ({2} req/s)", _count, _stopwatch.Elapsed, DoubleString((double)queries / _stopwatch.ElapsedMilliseconds * 1000));
+            Console.WriteLine(MemoryPool.Instance);
             Console.WriteLine();
             WriteRow("", "Calls", "Avg", "Median", "Min", "Max");
             WriteStatistics("Total", _times.SelectMany(vls => vls.Value));

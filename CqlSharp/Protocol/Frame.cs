@@ -13,7 +13,8 @@
 // See the License for the specific language governing permissions and
 // limitations under the License.
 
-using CqlSharp.Network.Snappy;
+using CqlSharp.Network;
+using NSnappy;
 using System;
 using System.IO;
 using System.Threading;
@@ -32,8 +33,7 @@ namespace CqlSharp.Protocol
         protected FrameReader Reader;
 
         private int _disposed; //0 not disposed, 1 disposed
-        private static readonly SnappyCompressor Compressor = new SnappyCompressor();
-
+        
         /// <summary>
         ///   Gets or sets the version.
         /// </summary>
@@ -98,36 +98,35 @@ namespace CqlSharp.Protocol
                 buffer.WriteInt(0);
 
                 //write the actual data
-                //if (compress)
-                //{
-                //    using (var uncompressed = new MemoryStream())
-                //    {
-                //        WriteData(uncompressed);
-                //        byte[] uncompressedData = uncompressed.ToArray();
-                //        if (uncompressed.Length > 128)
-                //        {
-                //            int maxSize = Compressor.MaxCompressedLength(uncompressedData.Length);
-                //            var compressedData = maxSize <= MemoryPool.BufferSize
-                //                                     ? MemoryPool.Instance.Take()
-                //                                     : new byte[maxSize];
-                //            int compressedSize = Compressor.Compress(uncompressedData, 0, uncompressedData.Length,
-                //                                                     compressedData);
-                //            buffer.Write(compressedData, 0, compressedSize);
-                //            MemoryPool.Instance.Return(compressedData);
+                if (compress)
+                {
+                    //write data to temporary stream
+                    using (var uncompressed = new MemoryStream())
+                    {
+                        WriteData(uncompressed);
+                        uncompressed.Position = 0;
 
-                //            //add compression to flags
-                //            Flags |= FrameFlags.Compression;
-                //            buffer.Position = 1;
-                //            buffer.WriteByte((byte)Flags);
-                //        }
-                //        else
-                //        {
-                //            buffer.Write(uncompressedData, 0, uncompressedData.Length);
-                //        }
-                //    }
-                //}
-                //else
-                WriteData(buffer);
+                        //only compress if length > 128 (lower it typically makes no sense to compress)
+                        if (uncompressed.Length > 128)
+                        {
+                            //compress the data to the buffer
+                            Compressor.Compress(uncompressed,buffer);
+
+                            //add compression to flags
+                            Flags |= FrameFlags.Compression;
+                            buffer.Position = 1;
+                            buffer.WriteByte((byte)Flags);
+                        }
+                        else
+                        {
+                            //write uncompressed to buffer
+                            uncompressed.CopyTo(buffer);
+                        }
+                    }
+                }
+                else
+                    //no compression, write data directly
+                    WriteData(buffer);
 
                 //overwrite length with real value
                 buffer.Position = 4;
@@ -136,7 +135,7 @@ namespace CqlSharp.Protocol
                 //reset buffer position
                 buffer.Position = 0;
 
-                //copy to the stream async
+                //get the array
                 byte[] data = buffer.ToArray();
                 return data;
             }
