@@ -35,6 +35,11 @@ namespace CqlSharp.Logging
         private static readonly LoggerBinding Binding = new LoggerBinding();
 
         /// <summary>
+        ///   The log level
+        /// </summary>
+        private readonly LogLevel _logLevel;
+
+        /// <summary>
         ///   reference to the actual logger implementation
         /// </summary>
         private readonly ILogger _logger;
@@ -43,11 +48,6 @@ namespace CqlSharp.Logging
         ///   The id of the active trace
         /// </summary>
         private readonly Guid _traceId;
-
-        /// <summary>
-        /// The log level
-        /// </summary>
-        private LogLevel _logLevel;
 
         /// <summary>
         ///   Initializes a new instance of the <see cref="Logger" /> class.

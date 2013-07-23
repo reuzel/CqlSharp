@@ -133,10 +133,11 @@ namespace CqlSharp.Serialization
         }
 
         /// <summary>
-        ///   Sets the partition key member.
+        /// Sets the partition key member.
         /// </summary>
-        /// <param name="member"> The member. </param>
-        /// <param name="reader"> The reader. </param>
+        /// <param name="keyMembers">The key members.</param>
+        /// <param name="member">The member.</param>
+        /// <param name="reader">The reader.</param>
         /// <exception cref="System.ArgumentException">CqlType must be set on ColumnAttribute if PartitionKeyIndex is set.</exception>
         private void SetPartitionKeyMember(List<Tuple<int, Func<T, object>, CqlType>> keyMembers, MemberInfo member, Func<T, object> reader)
         {
@@ -167,8 +168,6 @@ namespace CqlSharp.Serialization
         /// <returns> </returns>
         private static string GetColumnName(MemberInfo member, string table, string keyspace)
         {
-            string cName;
-
             //check for ignore attribute
             var ignoreAttribute =
                 Attribute.GetCustomAttribute(member, typeof(CqlIgnoreAttribute)) as CqlIgnoreAttribute;
@@ -181,16 +180,7 @@ namespace CqlSharp.Serialization
             var columnAttribute =
                 Attribute.GetCustomAttribute(member, typeof(CqlColumnAttribute)) as CqlColumnAttribute;
 
-            if (columnAttribute != null)
-            {
-                //set column name, table and keyspace based on attribute info
-                cName = columnAttribute.Column;
-            }
-            else
-            {
-                //set column name, table and keyspace info based on property name
-                cName = member.Name;
-            }
+            string cName = columnAttribute != null ? columnAttribute.Column : member.Name;
 
             return (keyspace + "." + table + "." + cName).ToLower();
         }
@@ -209,7 +199,9 @@ namespace CqlSharp.Serialization
             if (column == null)
                 throw new ArgumentNullException("column");
 
+            // ReSharper disable CompareNonConstrainedGenericWithNull
             if (source == null)
+                // ReSharper restore CompareNonConstrainedGenericWithNull
                 throw new ArgumentNullException("source");
 
             if (source.GetType() != typeof(T))
@@ -313,7 +305,11 @@ namespace CqlSharp.Serialization
             MethodInfo setMethod = property.GetSetMethod();
             var target = Expression.Parameter(typeof(T));
             var value = Expression.Parameter(typeof(object));
-            var body = Expression.Call(target, setMethod, Expression.Convert(value, property.PropertyType));
+            var valueOrDefault = Expression.Condition(
+                Expression.Equal(value, Expression.Constant(null)),
+                Expression.Default(property.PropertyType),
+                Expression.Convert(value, property.PropertyType));
+            var body = Expression.Call(target, setMethod, valueOrDefault);
             return Expression.Lambda<Action<T, object>>(body, target, value)
                 .Compile();
         }
@@ -330,8 +326,12 @@ namespace CqlSharp.Serialization
             var target = Expression.Parameter(typeof(T));
             var field = Expression.Field(target, property);
             var value = Expression.Parameter(typeof(object));
-            var body = Expression.Assign(field, Expression.Convert(value, property.FieldType));
-            return Expression.Lambda<Action<T, object>>(body, target).Compile();
+            var valueOrDefault = Expression.Condition(
+                Expression.Equal(value, Expression.Constant(null)),
+                Expression.Default(property.FieldType),
+                Expression.Convert(value, property.FieldType));
+            var body = Expression.Assign(field, valueOrDefault);
+            return Expression.Lambda<Action<T, object>>(body, target, value).Compile();
         }
     }
 

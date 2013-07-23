@@ -23,7 +23,7 @@ using System.Linq;
 using System.Net;
 using System.Numerics;
 
-namespace CqlSharpTest
+namespace CqlSharp.Test
 {
     [TestClass]
     public class SerializationTest

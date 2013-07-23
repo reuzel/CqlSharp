@@ -28,7 +28,7 @@ using System.Linq;
 using System.Net;
 using System.Threading.Tasks;
 
-namespace CqlSharpTest
+namespace CqlSharp.Test
 {
     [TestClass]
     public class ConnectionStrategyTest

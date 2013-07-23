@@ -1,13 +1,28 @@
-﻿using System;
+﻿// CqlSharp - CqlSharp
+// Copyright (c) 2013 Joost Reuzel
+//   
+// Licensed under the Apache License, Version 2.0 (the "License");
+// you may not use this file except in compliance with the License.
+// You may obtain a copy of the License at
+//   
+// http://www.apache.org/licenses/LICENSE-2.0
+//  
+// Unless required by applicable law or agreed to in writing, software
+// distributed under the License is distributed on an "AS IS" BASIS,
+// WITHOUT WARRANTIES OR CONDITIONS OF ANY KIND, either express or implied.
+// See the License for the specific language governing permissions and
+// limitations under the License.
+
+using System;
 using System.Diagnostics;
 using System.Threading.Tasks;
 
-namespace CqlSharp.Protocol
+namespace CqlSharp.Memory
 {
     /// <summary>
-    /// Supporting class containing cached Tasks, removing the need for the creation of many...
+    ///   Supporting class containing cached Tasks, removing the need for the creation of many...
     /// </summary>
-    static class TaskCache
+    internal static class TaskCache
     {
         private const int CacheSize = 2 * 1024; //cache int and short values up to 2048
 
@@ -16,6 +31,8 @@ namespace CqlSharp.Protocol
         private static readonly Task<short>[] ShortTaskCache;
 
         private static readonly Task<int>[] IntTaskCache;
+
+        public static readonly Task CompletedTask;
 
         static TaskCache()
         {
@@ -30,10 +47,12 @@ namespace CqlSharp.Protocol
             IntTaskCache = new Task<int>[CacheSize + 1];
             for (int i = -1; i < CacheSize; i++)
                 IntTaskCache[i + 1] = Task.FromResult(i);
+
+            CompletedTask = Task.FromResult(true);
         }
 
         /// <summary>
-        /// returns a completed task with the given value as result
+        ///   returns a completed task with the given value as result
         /// </summary>
         public static Task<byte> AsTask(this byte value)
         {
@@ -43,7 +62,7 @@ namespace CqlSharp.Protocol
         }
 
         /// <summary>
-        /// returns a completed task with the given value as result
+        ///   returns a completed task with the given value as result
         /// </summary>
         public static Task<int> AsTask(this int value)
         {
@@ -59,11 +78,10 @@ namespace CqlSharp.Protocol
         }
 
         /// <summary>
-        /// returns a completed task with the given value as result
+        ///   returns a completed task with the given value as result
         /// </summary>
         public static Task<short> AsTask(this short value)
         {
-
             Task<short> result;
             if (value >= -1 && value < CacheSize)
                 result = ShortTaskCache[value + 1];
@@ -71,9 +89,8 @@ namespace CqlSharp.Protocol
                 result = Task.FromResult(value);
 
             Debug.Assert(value == result.Result, "Byte value not properly cached!");
-            
+
             return result;
         }
-
     }
 }

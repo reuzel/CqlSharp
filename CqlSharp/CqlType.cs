@@ -13,6 +13,12 @@
 // See the License for the specific language governing permissions and
 // limitations under the License.
 
+using System;
+using System.Collections.Concurrent;
+using System.Collections.Generic;
+using System.Net;
+using System.Numerics;
+
 namespace CqlSharp
 {
     public enum CqlType
@@ -56,5 +62,48 @@ namespace CqlSharp
         Map = 0x0021,
 
         Set = 0x0022
+
+
+
+    }
+
+    internal static class CqlTypeExtensions
+    {
+        private static readonly Dictionary<CqlType, Type> ColType2Type = new Dictionary<CqlType, Type>
+                                                                             {
+                                                                                 {CqlType.Ascii, typeof (string)},
+                                                                                 {CqlType.Text, typeof (string)},
+                                                                                 {CqlType.Varchar, typeof (string)},
+                                                                                 {CqlType.Blob, typeof (byte[])},
+                                                                                 {CqlType.Double, typeof (double)},
+                                                                                 {CqlType.Float, typeof (float)},
+                                                                                 {CqlType.Bigint, typeof (long)},
+                                                                                 {CqlType.Counter, typeof (long)},
+                                                                                 {CqlType.Int, typeof (int)},
+                                                                                 {CqlType.Boolean, typeof (bool)},
+                                                                                 {CqlType.Uuid, typeof (Guid)},
+                                                                                 {CqlType.Timeuuid, typeof (Guid)},
+                                                                                 {CqlType.Inet, typeof (IPAddress)},
+                                                                                 {CqlType.Varint, typeof (BigInteger)},
+                                                                                 {CqlType.Timestamp, typeof (DateTime)},
+                                                                                 {CqlType.List, typeof (List<>)},
+                                                                                 {CqlType.Set, typeof (HashSet<>)},
+                                                                                 {CqlType.Map, typeof (Dictionary<,>)}
+                                                                             };
+
+        private static readonly ConcurrentDictionary<CqlType, object> TypeDefaults =
+            new ConcurrentDictionary<CqlType, object>();
+
+
+        public static Type ToType(this CqlType colType)
+        {
+            Type type;
+            if (ColType2Type.TryGetValue(colType, out type))
+            {
+                return type;
+            }
+
+            throw new ArgumentException("Unsupported type");
+        }
     }
 }

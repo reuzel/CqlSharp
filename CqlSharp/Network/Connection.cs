@@ -390,7 +390,7 @@ namespace CqlSharp.Network
                     frame.Stream = id;
 
                     //serialize frame outside lock
-                    byte[] frameBytes = frame.GetFrameBytes(_allowCompression);
+                    Stream frameBytes = frame.GetFrameBytes(_allowCompression && !isConnecting);
 
                     await _writeLock.WaitAsync().ConfigureAwait(false);
                     try
@@ -401,11 +401,12 @@ namespace CqlSharp.Network
 
                         logger.LogVerbose("Sending {0} Frame with Id {1}, to {2}", frame.OpCode, id, this);
 
-                        await _writeStream.WriteAsync(frameBytes, 0, frameBytes.Length).ConfigureAwait(false);
+                        await frameBytes.CopyToAsync(_writeStream).ConfigureAwait(false);
                     }
                     finally
                     {
                         _writeLock.Release();
+                        frameBytes.Dispose();
                     }
 
                     //wait until response is received

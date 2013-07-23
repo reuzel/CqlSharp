@@ -53,13 +53,13 @@ namespace CqlSharp.Protocol
         /// <returns> </returns>
         public static long ToLong(this byte[] bytes, int offset = 0)
         {
-            long value = bytes[offset] << 56;
-            value |= bytes[offset + 1] << 48;
-            value |= bytes[offset + 2] << 40;
-            value |= bytes[offset + 3] << 32;
-            value |= bytes[offset + 4] << 24;
-            value |= bytes[offset + 5] << 16;
-            value |= bytes[offset + 6] << 8;
+            long value = (long)bytes[offset] << 56;
+            value |= (long)bytes[offset + 1] << 48;
+            value |= (long)bytes[offset + 2] << 40;
+            value |= (long)bytes[offset + 3] << 32;
+            value |= (long)bytes[offset + 4] << 24;
+            value |= (long)bytes[offset + 5] << 16;
+            value |= (long)bytes[offset + 6] << 8;
             value |= bytes[offset + 7];
 
             return value;
@@ -90,10 +90,8 @@ namespace CqlSharp.Protocol
         /// <returns> </returns>
         public static short ToShort(this byte[] bytes, int offset = 0)
         {
-            short value = (short)(bytes[offset] << 8);
-            value |= bytes[offset + 1];
-
-            return value;
+            int value = bytes[offset] << 8 | bytes[offset+1];
+            return (short)value;
         }
 
         public static Guid ToGuid(this byte[] bytes, int offset = 0)

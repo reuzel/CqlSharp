@@ -27,10 +27,10 @@ namespace CqlSharp.Logging
     internal class LoggerManager
     {
         private readonly string _factoryName;
+        private readonly LogLevel _level;
         private readonly object _syncLock = new object();
 
         private volatile ILoggerFactory _factory;
-        private readonly LogLevel _level;
 
         public LoggerManager(string loggerFactoryName, LogLevel level)
         {

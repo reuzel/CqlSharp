@@ -1,4 +1,4 @@
-using CqlSharp.Network;
+using CqlSharp.Memory;
 using System;
 using System.Diagnostics;
 using System.IO;

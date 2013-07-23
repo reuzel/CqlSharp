@@ -1,4 +1,4 @@
-using CqlSharp.Network;
+using CqlSharp.Memory;
 
 namespace NSnappy
 {

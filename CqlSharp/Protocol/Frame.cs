@@ -13,7 +13,7 @@
 // See the License for the specific language governing permissions and
 // limitations under the License.
 
-using CqlSharp.Network;
+using CqlSharp.Memory;
 using NSnappy;
 using System;
 using System.IO;
@@ -33,7 +33,7 @@ namespace CqlSharp.Protocol
         protected FrameReader Reader;
 
         private int _disposed; //0 not disposed, 1 disposed
-        
+
         /// <summary>
         ///   Gets or sets the version.
         /// </summary>
@@ -85,60 +85,49 @@ namespace CqlSharp.Protocol
         /// Gets the frame bytes.
         /// </summary>
         /// <returns></returns>
-        public byte[] GetFrameBytes(bool compress)
+        public Stream GetFrameBytes(bool compress)
         {
-            using (var buffer = new MemoryStream())
+            var buffer = new PoolMemoryStream();
+            buffer.WriteByte((byte)Version);
+            buffer.WriteByte((byte)Flags);
+            buffer.WriteByte(unchecked((byte)Stream));
+            buffer.WriteByte((byte)OpCode);
+
+            //write length placeholder
+            buffer.WriteInt(0);
+
+            //write the actual data
+            if (compress)
             {
-                buffer.WriteByte((byte)Version);
-                buffer.WriteByte((byte)Flags);
-                buffer.WriteByte(unchecked((byte)Stream));
-                buffer.WriteByte((byte)OpCode);
-
-                //write length placeholder
-                buffer.WriteInt(0);
-
-                //write the actual data
-                if (compress)
+                //write data to temporary stream
+                using (var uncompressed = new PoolMemoryStream())
                 {
-                    //write data to temporary stream
-                    using (var uncompressed = new MemoryStream())
-                    {
-                        WriteData(uncompressed);
-                        uncompressed.Position = 0;
+                    WriteData(uncompressed);
 
-                        //only compress if length > 128 (lower it typically makes no sense to compress)
-                        if (uncompressed.Length > 128)
-                        {
-                            //compress the data to the buffer
-                            Compressor.Compress(uncompressed,buffer);
+                    //compress the data to the buffer
+                    uncompressed.Position = 0;
+                    Compressor.Compress(uncompressed, buffer);
 
-                            //add compression to flags
-                            Flags |= FrameFlags.Compression;
-                            buffer.Position = 1;
-                            buffer.WriteByte((byte)Flags);
-                        }
-                        else
-                        {
-                            //write uncompressed to buffer
-                            uncompressed.CopyTo(buffer);
-                        }
-                    }
+                    //add compression to flags
+                    Flags |= FrameFlags.Compression;
+                    buffer.Position = 1;
+                    buffer.WriteByte((byte)Flags);
                 }
-                else
-                    //no compression, write data directly
-                    WriteData(buffer);
-
-                //overwrite length with real value
-                buffer.Position = 4;
-                buffer.WriteInt((int)buffer.Length - 8);
-
-                //reset buffer position
-                buffer.Position = 0;
-
-                //get the array
-                byte[] data = buffer.ToArray();
-                return data;
             }
+            else
+            {
+                //no compression, write data directly
+                WriteData(buffer);
+            }
+            //overwrite length with real value
+            buffer.Position = 4;
+            buffer.WriteInt((int)buffer.Length - 8);
+
+            //reset buffer position
+            buffer.Position = 0;
+
+            //return the buffer
+            return buffer;
         }
 
         /// <summary>
@@ -215,7 +204,6 @@ namespace CqlSharp.Protocol
         /// <summary>
         ///   Initialize frame contents from the stream
         /// </summary>
-        /// <param name="stream"> The stream. </param>
         protected abstract Task InitializeAsync();
 
         /// <summary>

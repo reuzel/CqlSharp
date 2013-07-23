@@ -1,17 +1,32 @@
-﻿using CqlSharp;
-using CqlSharp.Protocol;
+﻿// CqlSharp - CqlTest
+// Copyright (c) 2013 Joost Reuzel
+//   
+// Licensed under the Apache License, Version 2.0 (the "License");
+// you may not use this file except in compliance with the License.
+// You may obtain a copy of the License at
+//   
+// http://www.apache.org/licenses/LICENSE-2.0
+//  
+// Unless required by applicable law or agreed to in writing, software
+// distributed under the License is distributed on an "AS IS" BASIS,
+// WITHOUT WARRANTIES OR CONDITIONS OF ANY KIND, either express or implied.
+// See the License for the specific language governing permissions and
+// limitations under the License.
+
 using System;
 using System.Collections.Generic;
 using System.Threading.Tasks;
+using CqlSharp;
+using CqlSharp.Protocol;
 
 namespace CqlTest
 {
-    class CartManager
+    internal class CartManager
     {
         /// <summary>
-        /// Prepares the db async.
+        ///   Prepares the db async.
         /// </summary>
-        /// <returns></returns>
+        /// <returns> </returns>
         public async Task PrepareDbAsync()
         {
             using (var connection = new CqlConnection("cartDB"))
@@ -39,11 +54,13 @@ namespace CqlTest
                 try
                 {
                     //create the keyspace if it does not exist
-                    var createKs = new CqlCommand(connection, @"CREATE KEYSPACE Shop WITH replication = {'class': 'SimpleStrategy', 'replication_factor' : 1} and durable_writes = 'false';");
+                    var createKs = new CqlCommand(connection,
+                                                  @"CREATE KEYSPACE Shop WITH replication = {'class': 'SimpleStrategy', 'replication_factor' : 1} and durable_writes = 'false';");
                     await createKs.ExecuteNonQueryAsync();
 
                     //create the table
-                    var createTable = new CqlCommand(connection, @"create table Shop.Carts (id uuid primary key, groupId text, items map<text, int>);");
+                    var createTable = new CqlCommand(connection,
+                                                     @"create table Shop.Carts (id uuid primary key, groupId text, items map<text, int>);");
                     await createTable.ExecuteNonQueryAsync();
 
                     //create corresponding index
@@ -52,18 +69,17 @@ namespace CqlTest
                 }
                 catch (AlreadyExistsException)
                 {
-
                 }
             }
         }
 
         /// <summary>
-        /// Creates the cart async.
+        ///   Creates the cart async.
         /// </summary>
-        /// <returns></returns>
+        /// <returns> </returns>
         public async Task<Cart> AddCartAsync(string groupId)
         {
-            var c = new Cart { Id = Guid.NewGuid(), GroupId = groupId };
+            var c = new Cart {Id = Guid.NewGuid(), GroupId = groupId};
 
             using (var connection = new CqlConnection("cartDB"))
             {
@@ -78,10 +94,10 @@ namespace CqlTest
         }
 
         /// <summary>
-        /// Updates the cart async.
+        ///   Updates the cart async.
         /// </summary>
-        /// <param name="c">The c.</param>
-        /// <returns></returns>
+        /// <param name="c"> The c. </param>
+        /// <returns> </returns>
         public async Task UpdateCartAsync(Cart c)
         {
             using (var connection = new CqlConnection("cartDB"))
@@ -96,10 +112,10 @@ namespace CqlTest
         }
 
         /// <summary>
-        /// Queries the cart async.
+        ///   Queries the cart async.
         /// </summary>
-        /// <param name="guid">The GUID.</param>
-        /// <returns></returns>
+        /// <param name="guid"> The GUID. </param>
+        /// <returns> </returns>
         public async Task<Dictionary<string, int>> GetItemsAsync(Guid guid)
         {
             using (var connection = new CqlConnection("cartDB"))
@@ -112,18 +128,18 @@ namespace CqlTest
                 command.Parameters["id"] = guid;
                 using (var reader = await command.ExecuteReaderAsync())
                 {
-                    return await reader.ReadAsync() ? (Dictionary<string, int>)reader["items"] : null;
+                    return await reader.ReadAsync() ? (Dictionary<string, int>) reader["items"] : null;
                 }
             }
         }
 
 
         /// <summary>
-        /// Adds the items async.
+        ///   Adds the items async.
         /// </summary>
-        /// <param name="guid">The GUID.</param>
-        /// <param name="items">The items.</param>
-        /// <returns></returns>
+        /// <param name="guid"> The GUID. </param>
+        /// <param name="items"> The items. </param>
+        /// <returns> </returns>
         public async Task AddItemsAsync(Guid guid, Dictionary<string, int> items)
         {
             using (var connection = new CqlConnection("cartDB"))
@@ -140,10 +156,10 @@ namespace CqlTest
 
 
         /// <summary>
-        /// Finds the carts by group id async.
+        ///   Finds the carts by group id async.
         /// </summary>
-        /// <param name="groupId">The group id.</param>
-        /// <returns></returns>
+        /// <param name="groupId"> The group id. </param>
+        /// <returns> </returns>
         public async Task<List<Cart>> FindCartsByGroupIdAsync(string groupId)
         {
             using (var connection = new CqlConnection("cartDB"))

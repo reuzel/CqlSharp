@@ -22,7 +22,7 @@ using System.Linq;
 using System.Threading;
 using System.Threading.Tasks;
 
-namespace CqlSharpTest
+namespace CqlSharp.Test
 {
     [TestClass]
     public class QueryTests

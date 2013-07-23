@@ -13,7 +13,7 @@
 // See the License for the specific language governing permissions and
 // limitations under the License.
 
-using CqlSharp.Network;
+using CqlSharp.Memory;
 using NSnappy;
 using System;
 using System.Collections.Generic;
@@ -94,7 +94,11 @@ namespace CqlSharp.Protocol
 
                 //signal EOS when window reached
                 if (_unreadFromStream <= 0)
-                    Task.Run(() => _waitUntilAllFrameDataRead.SetResult(true));
+                {
+#pragma warning disable 168
+                    var completeTask = Task.Run(() => _waitUntilAllFrameDataRead.TrySetResult(true));
+#pragma warning restore 168
+                }
 
                 //return actual read count
                 return read;
@@ -185,7 +189,7 @@ namespace CqlSharp.Protocol
                         _unreadFromStream -= _innerStream.Read(_buffer, 0, Math.Min(_buffer.Length, _unreadFromStream));
                     }
 
-                    _waitUntilAllFrameDataRead.TrySetResult(true);
+                    Task.Run(() => _waitUntilAllFrameDataRead.TrySetResult(true));
                 }
                 catch (Exception ex)
                 {
@@ -493,17 +497,6 @@ namespace CqlSharp.Protocol
                 await ReadSegmentAsync(16).ConfigureAwait(false);
 
             return _lastReadSegment.Array.ToGuid(_lastReadSegment.Offset);
-        }
-
-        /// <summary>
-        ///   Ensures the correct byte order for decimal conversions.
-        /// </summary>
-        private void EnsureCorrectByteOrder()
-        {
-            if (BitConverter.IsLittleEndian)
-            {
-                Array.Reverse(_lastReadSegment.Array, _lastReadSegment.Offset, _lastReadSegment.Count);
-            }
         }
 
         /// <summary>

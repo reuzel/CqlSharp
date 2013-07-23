@@ -76,6 +76,7 @@
     <Compile Include="Network\nSnappy\Pointer.cs" />
     <Compile Include="Network\nSnappy\VarInt32.cs" />
     <Compile Include="Network\nSnappy\Writer.cs" />
+    <Compile Include="Memory\PoolMemoryStream.cs" />
     <Compile Include="Protocol\AlreadyExistsException.cs" />
     <Compile Include="Protocol\AuthenticateFrame.cs" />
     <Compile Include="Protocol\CredentialsFrame.cs" />
@@ -95,7 +96,7 @@
     <Compile Include="Protocol\StartupFrame.cs" />
     <Compile Include="Protocol\SupportedFrame.cs" />
     <Compile Include="Protocol\SyntaxException.cs" />
-    <Compile Include="Protocol\TaskCache.cs" />
+    <Compile Include="Memory\TaskCache.cs" />
     <Compile Include="Protocol\TimeOutException.cs" />
     <Compile Include="Protocol\UnauthorizedException.cs" />
     <Compile Include="Protocol\UnavailableException.cs" />
@@ -111,7 +112,7 @@
     <Compile Include="Network\ExclusiveConnectionStrategy.cs" />
     <Compile Include="Network\IConnectionStrategy.cs" />
     <Compile Include="Network\LoadChangeEvent.cs" />
-    <Compile Include="Network\MemoryPool.cs" />
+    <Compile Include="Memory\MemoryPool.cs" />
     <Compile Include="Network\EnumerableExtensions.cs" />
     <Compile Include="Network\Node.cs" />
     <Compile Include="Network\RandomConnectionStrategy.cs" />

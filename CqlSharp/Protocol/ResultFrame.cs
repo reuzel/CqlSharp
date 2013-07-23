@@ -16,7 +16,7 @@
 using System;
 using System.Collections.Generic;
 using System.IO;
-using System.Threading;
+//using System.Threading;
 using System.Threading.Tasks;
 
 namespace CqlSharp.Protocol
@@ -24,7 +24,7 @@ namespace CqlSharp.Protocol
     internal class ResultFrame : Frame
     {
         private volatile int _count;
-        private SemaphoreSlim _readLock;
+        //private SemaphoreSlim _readLock;
 
         public ResultOpcode ResultOpcode { get; private set; }
 

@@ -15,7 +15,6 @@
 
 using System;
 using System.Collections;
-using System.Collections.Concurrent;
 using System.Collections.Generic;
 using System.IO;
 using System.Net;
@@ -32,30 +31,7 @@ namespace CqlSharp.Protocol
     /// </remarks>
     internal static class ValueSerialization
     {
-        private static readonly Dictionary<CqlType, Type> ColType2Type = new Dictionary<CqlType, Type>
-                                                                             {
-                                                                                 {CqlType.Ascii, typeof (string)},
-                                                                                 {CqlType.Text, typeof (string)},
-                                                                                 {CqlType.Varchar, typeof (string)},
-                                                                                 {CqlType.Blob, typeof (byte[])},
-                                                                                 {CqlType.Double, typeof (double)},
-                                                                                 {CqlType.Float, typeof (float)},
-                                                                                 {CqlType.Bigint, typeof (long)},
-                                                                                 {CqlType.Counter, typeof (long)},
-                                                                                 {CqlType.Int, typeof (int)},
-                                                                                 {CqlType.Boolean, typeof (bool)},
-                                                                                 {CqlType.Uuid, typeof (Guid)},
-                                                                                 {CqlType.Timeuuid, typeof (Guid)},
-                                                                                 {CqlType.Inet, typeof (IPAddress)},
-                                                                                 {CqlType.Varint, typeof (BigInteger)},
-                                                                                 {CqlType.Timestamp, typeof (DateTime)},
-                                                                                 {CqlType.List, typeof (List<>)},
-                                                                                 {CqlType.Set, typeof (HashSet<>)},
-                                                                                 {CqlType.Map, typeof (Dictionary<,>)}
-                                                                             };
 
-        private static readonly ConcurrentDictionary<CqlType, object> TypeDefaults =
-            new ConcurrentDictionary<CqlType, object>();
 
         private static readonly bool IsLittleEndian = BitConverter.IsLittleEndian;
 
@@ -230,7 +206,7 @@ namespace CqlSharp.Protocol
         {
             //skip parsing and return null value when rawData is null
             if (rawData == null)
-                return GetNullValue(cqlColumn.CqlType);
+                return null;
 
             object data;
             Type colType;
@@ -367,7 +343,6 @@ namespace CqlSharp.Protocol
                 case CqlType.Uuid:
                 case CqlType.Timeuuid:
                     return rawData.ToGuid();
-                    break;
 
                 case CqlType.Inet:
                     data = new IPAddress(rawData);
@@ -380,40 +355,9 @@ namespace CqlSharp.Protocol
             return data;
         }
 
-        private static Type ToType(this CqlType colType)
-        {
-            Type type;
-            if (ColType2Type.TryGetValue(colType, out type))
-            {
-                return type;
-            }
-
-            throw new ArgumentException("Unsupported type");
-        }
 
 
 
-        /// <summary>
-        /// Gets the c# null variant for the provided CqlType
-        /// </summary>
-        /// <param name="colType">a CqlType.</param>
-        /// <returns>null if the CqlType is represented by a c# class, or Nullable if CqlType is represented by a struct</returns>
-        private static object GetNullValue(this CqlType colType)
-        {
-            return TypeDefaults.GetOrAdd(colType, t =>
-                                                       {
-                                                           Type type = t.ToType();
-                                                           if (type.IsValueType)
-                                                           {
-                                                               Type nullableGeneric = typeof(Nullable<>);
-                                                               Type nullableType = nullableGeneric.MakeGenericType(type);
-                                                               return Activator.CreateInstance(nullableType);
-                                                           }
 
-                                                           return null;
-                                                       });
-
-
-        }
     }
 }

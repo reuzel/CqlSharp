@@ -17,7 +17,7 @@ using System;
 using System.Collections.Concurrent;
 using System.Text;
 
-namespace CqlSharp.Network
+namespace CqlSharp.Memory
 {
     /// <summary>
     ///   Pool of memory buffers
