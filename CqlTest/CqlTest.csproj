@@ -52,10 +52,6 @@
     <None Include="App.config" />
   </ItemGroup>
   <ItemGroup>
-    <ProjectReference Include="..\CqlSharpTest\CqlSharp.Test.csproj">
-      <Project>{7F0D1D97-5AC1-4848-9D64-DC88FE63744D}</Project>
-      <Name>CqlSharp.Test</Name>
-    </ProjectReference>
     <ProjectReference Include="..\CqlSharp\CqlSharp.csproj">
       <Project>{45F69FDC-EEF6-43DA-A457-95EE553C68A1}</Project>
       <Name>CqlSharp</Name>

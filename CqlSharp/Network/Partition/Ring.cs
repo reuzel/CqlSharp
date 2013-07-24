@@ -13,14 +13,12 @@
 // See the License for the specific language governing permissions and
 // limitations under the License.
 
-using CqlSharp.Network.Partition;
 using System;
 using System.Collections;
 using System.Collections.Generic;
-using System.Linq;
 using System.Threading;
 
-namespace CqlSharp.Network
+namespace CqlSharp.Network.Partition
 {
     /// <summary>
     ///   Ring of nodes, along with their token values
@@ -29,6 +27,7 @@ namespace CqlSharp.Network
     {
         private readonly ReaderWriterLockSlim _nodeLock;
         private readonly List<Node> _nodes;
+        private volatile int _nodeCount;
         private readonly string _partitioner;
         private readonly List<IToken> _tokens;
         private Dictionary<IToken, List<Node>> _tokenMap;
@@ -41,6 +40,7 @@ namespace CqlSharp.Network
         public Ring(IEnumerable<Node> nodes, string partitioner)
         {
             _nodes = nodes is List<Node> ? (List<Node>)nodes : new List<Node>(nodes);
+            _nodeCount = _nodes.Count;
             _tokens = new List<IToken>();
             _partitioner = partitioner;
             _nodeLock = new ReaderWriterLockSlim();
@@ -57,7 +57,7 @@ namespace CqlSharp.Network
         /// <filterpriority>1</filterpriority>
         public IEnumerator<Node> GetEnumerator()
         {
-            int count = _nodes.Count;
+            int count = _nodeCount;
 
             for (int i = 0; i < count; i++)
             {
@@ -100,6 +100,7 @@ namespace CqlSharp.Network
                 if (!_nodes.Contains(item))
                 {
                     _nodes.Add(item);
+                    _nodeCount++;
                     RebuildMap();
                 }
             }
@@ -122,6 +123,7 @@ namespace CqlSharp.Network
             try
             {
                 _nodes.Clear();
+                _nodeCount = 0;
                 _tokenMap.Clear();
                 _tokens.Clear();
             }
@@ -202,6 +204,7 @@ namespace CqlSharp.Network
             {
                 if (_nodes.Remove(item))
                 {
+                    _nodeCount--;
                     RebuildMap();
                     return true;
                 }
@@ -220,19 +223,7 @@ namespace CqlSharp.Network
         /// <returns> The number of elements contained in the <see cref="T:System.Collections.Generic.ICollection`1" /> . </returns>
         public int Count
         {
-            get
-            {
-                _nodeLock.EnterReadLock();
-
-                try
-                {
-                    return _nodes.Count;
-                }
-                finally
-                {
-                    _nodeLock.ExitReadLock();
-                }
-            }
+            get { return _nodeCount; }
         }
 
         /// <summary>
@@ -283,6 +274,7 @@ namespace CqlSharp.Network
             try
             {
                 _nodes.Insert(index, item);
+                _nodeCount++;
                 RebuildMap();
             }
             finally
@@ -310,6 +302,7 @@ namespace CqlSharp.Network
             try
             {
                 _nodes.RemoveAt(index);
+                _nodeCount--;
                 RebuildMap();
             }
             finally

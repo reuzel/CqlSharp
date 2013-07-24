@@ -33,10 +33,10 @@ namespace CqlSharp
     {
         private static readonly ConcurrentDictionary<string, ClusterConfig> Configs;
         private static readonly ConcurrentDictionary<ClusterConfig, Cluster> Clusters;
+        private Cluster _cluster;
 
         private Connection _connection;
         private int _state; //0=created; 1=opened; 2=disposed
-        private Cluster _cluster;
 
         static CqlConnection()
         {
@@ -81,7 +81,6 @@ namespace CqlSharp
 
             //set the connection provider to the found cluster
             _cluster = cluster;
-
         }
 
         /// <summary>
@@ -102,7 +101,8 @@ namespace CqlSharp
             get
             {
                 if (_state == 0)
-                    throw new InvalidOperationException("You must invoke Open or OpenAsync on a CqlConnection before other use.");
+                    throw new InvalidOperationException(
+                        "You must invoke Open or OpenAsync on a CqlConnection before other use.");
 
                 if (_state == 2)
                     throw new ObjectDisposedException("CqlConnection");
@@ -112,22 +112,18 @@ namespace CqlSharp
         }
 
         /// <summary>
-        /// Gets the config related to this connection.
+        ///   Gets the config related to this connection.
         /// </summary>
-        /// <value>
-        /// The config
-        /// </value>
+        /// <value> The config </value>
         internal ClusterConfig Config
         {
             get { return _cluster.Config; }
         }
 
         /// <summary>
-        /// Gets the logger manager.
+        ///   Gets the logger manager.
         /// </summary>
-        /// <value>
-        /// The logger manager.
-        /// </value>
+        /// <value> The logger manager. </value>
         internal LoggerManager LoggerManager
         {
             get { return _cluster.LoggerManager; }
@@ -168,15 +164,13 @@ namespace CqlSharp
             //make sure the cluster is open for connections
             await _cluster.OpenAsync(logger).ConfigureAwait(false);
 
-            //get or create a connection
-            using (logger.ThreadBinding())
+            //get an exclusive connection
+            if (_cluster.Config.ConnectionStrategy == ConnectionStrategy.Exclusive)
+            {
                 _connection = _cluster.GetOrCreateConnection(PartitionKey.None);
 
-            if (_connection == null)
-            {
-                var ex = new CqlException("Unable to obtain a connection to a Cassandra node.");
-                logger.LogError("Error opening CqlConnection: {0}", ex);
-                throw ex;
+                if (_connection == null)
+                    throw new CqlException("Unable to obtain an exclusive Cql network connection.");
             }
         }
 
@@ -201,8 +195,7 @@ namespace CqlSharp
         ///   Gets the underlying connection. Will reopen this CqlConnection, if the underlying connection has failed,
         /// </summary>
         /// <returns> An open connection </returns>
-        internal Connection GetConnection(bool newConnection = false,
-                                                           PartitionKey partitionKey = default(PartitionKey))
+        internal Connection GetConnection(PartitionKey partitionKey = default(PartitionKey))
         {
             if (_state == 0)
                 throw new CqlException("You must invoke Open or OpenAsync on a CqlConnection before other use.");
@@ -210,41 +203,15 @@ namespace CqlSharp
             if (_state == 2)
                 throw new ObjectDisposedException("CqlConnection");
 
-            Connection connection;
-
-            //reuse a reserved connection, or get one if it is disconnected or not reserved yet
-            if (_connection != null && _connection.IsConnected)
-            {
-                connection = _connection;
-            }
-            else
-            {
-                connection = _connection = _cluster.GetOrCreateConnection(null);
-            }
-
-            //if new connection requested, or a partition key is provided get a new connection
-            if (newConnection || (partitionKey != null && partitionKey.IsSet))
-            {
-                connection = _cluster.GetOrCreateConnection(partitionKey);
-            }
-
+            //reuse the connection if the connection strategy is exclusive
+            Connection connection = _cluster.Config.ConnectionStrategy == ConnectionStrategy.Exclusive
+                                        ? _connection
+                                        : _cluster.GetOrCreateConnection(partitionKey);
 
             if (connection == null)
                 throw new CqlException("Unable to obtain a Cql network connection.");
 
             return connection;
-        }
-
-        /// <summary>
-        ///   Returns the connection. Used when a connection is no longer needed by a command, or when this instance is disposed.
-        /// </summary>
-        /// <param name="connection"> The connection. </param>
-        internal void ReturnConnection(Connection connection)
-        {
-            if (connection != null)
-            {
-                _cluster.ReturnConnection(connection);
-            }
         }
 
         /// <summary>
@@ -255,8 +222,11 @@ namespace CqlSharp
         {
             if (disposing && (Interlocked.Exchange(ref _state, 2) == 1))
             {
-                ReturnConnection(_connection);
-                _connection = null;
+                if (_connection != null)
+                {
+                    _cluster.ReturnConnection(_connection);
+                    _connection = null;
+                }
                 _cluster = null;
             }
         }

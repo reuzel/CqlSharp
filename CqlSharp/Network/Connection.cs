@@ -155,16 +155,19 @@ namespace CqlSharp.Network
         public event EventHandler<ClusterChangedEvent> OnClusterChange;
 
         /// <summary>
-        ///   Updates the load of this connection, and will trigger a corresponding event
+        /// Updates the load of this connection, and will trigger a corresponding event
         /// </summary>
-        /// <param name="load"> The load. </param>
-        private void UpdateLoad(int load)
+        /// <param name="load">The load.</param>
+        /// <param name="logger">The logger.</param>
+        private void UpdateLoad(int load, Logger logger)
         {
-            Interlocked.Add(ref _load, load);
+            var newLoad = Interlocked.Add(ref _load, load);
             Interlocked.Exchange(ref _lastActivity, DateTime.Now.Ticks);
 
             EventHandler<LoadChangeEvent> handler = OnLoadChange;
             if (handler != null) handler(this, new LoadChangeEvent { LoadDelta = load });
+
+            logger.LogVerbose("{0} has now a load of {1}", this, newLoad);
         }
 
         /// <summary>
@@ -296,7 +299,10 @@ namespace CqlSharp.Network
                 //submit startup frame
                 var startup = new StartupFrame(_cluster.Config.CqlVersion);
                 if (_allowCompression)
+                {
+                    logger.LogVerbose("Enabling Snappy Compression.");
                     startup.Options["COMPRESSION"] = "snappy";
+                }
 
                 Frame response = await SendRequestAsync(startup, logger, 1, true).ConfigureAwait(false);
 
@@ -366,7 +372,7 @@ namespace CqlSharp.Network
                 Interlocked.Increment(ref _activeRequests);
 
                 //increase the load
-                UpdateLoad(load);
+                UpdateLoad(load, logger);
 
                 logger.LogVerbose("Waiting for connection lock on {0}...", this);
 
@@ -390,7 +396,7 @@ namespace CqlSharp.Network
                     frame.Stream = id;
 
                     //serialize frame outside lock
-                    Stream frameBytes = frame.GetFrameBytes(_allowCompression && !isConnecting);
+                    Stream frameBytes = frame.GetFrameBytes(_allowCompression && !isConnecting, _cluster.Config.CompressionTreshold);
 
                     await _writeLock.WaitAsync().ConfigureAwait(false);
                     try
@@ -438,7 +444,7 @@ namespace CqlSharp.Network
 
                     //reduce load, we are done
                     Interlocked.Decrement(ref _activeRequests);
-                    UpdateLoad(-load);
+                    UpdateLoad(-load, logger);
                 }
             }
             catch (ProtocolException pex)

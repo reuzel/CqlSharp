@@ -13,6 +13,7 @@
 // See the License for the specific language governing permissions and
 // limitations under the License.
 
+using CqlSharp.Config;
 using CqlSharp.Logging;
 using CqlSharp.Network;
 using CqlSharp.Network.Partition;
@@ -87,12 +88,6 @@ namespace CqlSharp
         /// </summary>
         /// <value> <c>true</c> if tracing enabled; otherwise, <c>false</c> . </value>
         public bool EnableTracing { get; set; }
-
-        /// <summary>
-        ///   Gets or sets a value indicating whether the query is allowed to use different connection, than the default connection from the used CqlConnection.
-        /// </summary>
-        /// <value> <c>true</c> if parallel connections are allowed to be used; otherwise, <c>false</c> . </value>
-        public bool UseParallelConnections { get; set; }
 
         /// <summary>
         ///   Indication of the load this query generates (e.g. the number of expected returned rows). Used by connection stratagies for balancing
@@ -399,7 +394,6 @@ namespace CqlSharp
                                 Values = _parameters == null ? null : _parameters.Values,
                                 TracingEnabled = EnableTracing,
                                 UseBuffering = UseBuffering,
-                                UseParallelConnections = UseParallelConnections,
                                 PartitionKey = PartitionKey != null ? PartitionKey.Copy() : null,
                                 Load = Load
                             };
@@ -438,35 +432,22 @@ namespace CqlSharp
         private async Task<ResultFrame> RunWithRetry(
             Func<Connection, QueryExecutionState, Logger, Task<ResultFrame>> executeFunc, QueryExecutionState state, Logger logger)
         {
+
             int attempts = _connection.Config.MaxQueryRetries;
 
             //keep trying until faulted
             for (int attempt = 0; attempt < attempts; attempt++)
             {
-                //check if this query is to run using its own connection
-                bool newConn = state.UseParallelConnections;
 
                 //get me a connection
-
                 Connection connection;
                 using (logger.ThreadBinding())
-                {
-                    connection = _connection.GetConnection(newConn, state.PartitionKey);
+                    connection = _connection.GetConnection(state.PartitionKey);
 
-                }
+                //execute
                 try
                 {
-
-
-                    ResultFrame result = await executeFunc(connection, state, logger).ConfigureAwait(false);
-
-                    if (newConn)
-                    {
-                        using (logger.ThreadBinding())
-                            _connection.ReturnConnection(connection);
-                    }
-
-                    return result;
+                    return await executeFunc(connection, state, logger).ConfigureAwait(false);
                 }
                 catch (ProtocolException pex)
                 {
@@ -493,7 +474,15 @@ namespace CqlSharp
                 {
                     if (attempt == attempts - 1)
                     {
+                        //out of attempts
                         logger.LogError("Query failed after {0} attempts with error {1}", attempts, ex);
+                        throw;
+                    }
+
+                    if (_connection.Config.ConnectionStrategy == ConnectionStrategy.Exclusive)
+                    {
+                        //using exclusive connection strategy. If connection fails, do not recover
+                        logger.LogError("Query failed on exclusive connection with error {0}", ex);
                         throw;
                     }
 

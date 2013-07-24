@@ -48,6 +48,7 @@ namespace CqlSharp.Config
         private const LogLevel DefaultLogLevel = LogLevel.Info;
         private const bool DefaultUseBuffering = true;
         private const bool DefaultAllowCompression = true;
+        private const int DefaultCompressionTreshold = 2048;
 
         /// <summary>
         ///   Initializes a new instance of the <see cref="ClusterConfig" /> class.
@@ -72,6 +73,7 @@ namespace CqlSharp.Config
             LogLevel = DefaultLogLevel;
             UseBuffering = DefaultUseBuffering;
             AllowCompression = DefaultAllowCompression;
+            CompressionTreshold = DefaultCompressionTreshold;
         }
 
 
@@ -270,6 +272,14 @@ namespace CqlSharp.Config
         public bool AllowCompression { get; set; }
 
         /// <summary>
+        /// Gets or sets the compression treshold. Frames below this size will not be compressed.
+        /// </summary>
+        /// <value>
+        /// The compression treshold.
+        /// </value>
+        public int CompressionTreshold { get; set; }
+
+        /// <summary>
         ///   Parses the specified connectionstring.
         /// </summary>
         /// <param name="connectionstring"> The connectionstring. </param>
@@ -399,6 +409,14 @@ namespace CqlSharp.Config
                     case "supportcompression":
                         AllowCompression = bool.Parse(value);
                         break;
+                    case "compressiontreshold":
+                    case "compression treshold":
+                    case "compressionsize":
+                    case "compression size":
+                    case "min compression size":
+                    case "mincompressionsize":
+                        CompressionTreshold = int.Parse(value);
+                        break;
                     default:
                         throw new CqlException("Config error: unknown configuration property: " + key);
                 }
@@ -518,6 +536,13 @@ namespace CqlSharp.Config
             {
                 builder.Append("AllowCompression=");
                 builder.Append(AllowCompression);
+                builder.Append(";");
+            }
+
+            if (AllowCompression && CompressionTreshold != DefaultCompressionTreshold)
+            {
+                builder.Append("CompressionTreshold=");
+                builder.Append(CompressionTreshold);
                 builder.Append(";");
             }
 

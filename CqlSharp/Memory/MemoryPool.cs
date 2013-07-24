@@ -44,7 +44,7 @@ namespace CqlSharp.Memory
         /// <summary>
         ///   The buffer pools
         /// </summary>
-        private readonly ConcurrentBag<byte[]>[] _bufferPools;
+        private readonly ConcurrentQueue<byte[]>[] _bufferPools;
         private readonly int[] _sizes;
 
         /// <summary>
@@ -52,11 +52,11 @@ namespace CqlSharp.Memory
         /// </summary>
         protected MemoryPool()
         {
-            _bufferPools = new ConcurrentBag<byte[]>[MaxPools];
+            _bufferPools = new ConcurrentQueue<byte[]>[MaxPools];
             _sizes = new int[MaxPools];
             for (int i = 0; i < MaxPools; i++)
             {
-                _bufferPools[i] = new ConcurrentBag<byte[]>();
+                _bufferPools[i] = new ConcurrentQueue<byte[]>();
                 _sizes[i] = (int)Math.Pow(2, i) * 1024;
             }
         }
@@ -88,7 +88,7 @@ namespace CqlSharp.Memory
             {
                 buffer = new byte[size];
             }
-            else if (!_bufferPools[bufferIndex].TryTake(out buffer))
+            else if (!_bufferPools[bufferIndex].TryDequeue(out buffer))
             {
                 buffer = new byte[_sizes[bufferIndex]];
             }
@@ -105,7 +105,7 @@ namespace CqlSharp.Memory
             int bufferIndex = Array.BinarySearch(_sizes, buffer.Length);
             if (bufferIndex >= 0 && _bufferPools[bufferIndex].Count < MaxBufferPoolItems)
             {
-                _bufferPools[bufferIndex].Add(buffer);
+                _bufferPools[bufferIndex].Enqueue(buffer);
             }
         }
 

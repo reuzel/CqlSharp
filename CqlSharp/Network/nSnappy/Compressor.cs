@@ -9,7 +9,7 @@ namespace NSnappy
     {
         public static int Compress(Stream input, Stream output)
         {
-            var length = (int)input.Length;
+            var length = (int)(input.Length - input.Position);
 
             var varInt = new VarInt32(length).GetEncodedValue();
             output.Write(varInt, 0, varInt.Length);

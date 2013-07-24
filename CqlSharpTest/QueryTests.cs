@@ -101,11 +101,10 @@ namespace CqlSharp.Test
 
                 var executions = new Task<ICqlQueryResult>[insertCount];
 
-                ParallelOptions options = new ParallelOptions() { MaxDegreeOfParallelism = 1 };
+                var options = new ParallelOptions() { MaxDegreeOfParallelism = 1 };
                 Parallel.For(0, insertCount, options, (i) =>
                 {
                     var cmd = new CqlCommand(connection, insertCql, CqlConsistency.One);
-                    cmd.UseParallelConnections = true;
                     cmd.Prepare();
 
                     var b = new BasicFlowData { Id = i, Data = "Hallo " + i };

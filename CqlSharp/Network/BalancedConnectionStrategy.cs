@@ -15,8 +15,8 @@
 
 using CqlSharp.Config;
 using CqlSharp.Network.Partition;
-using System.Collections.Generic;
 using System.Linq;
+using System.Threading;
 
 namespace CqlSharp.Network
 {
@@ -31,6 +31,7 @@ namespace CqlSharp.Network
     {
         private readonly ClusterConfig _config;
         private readonly Ring _nodes;
+        private int _connectionCount;
 
         /// <summary>
         ///   Initializes the strategy with the specified nodes and cluster configuration
@@ -41,69 +42,47 @@ namespace CqlSharp.Network
         {
             _nodes = nodes;
             _config = config;
+            _connectionCount = 0;
         }
 
         #region IConnectionStrategy Members
+
+
 
         /// <summary>
         ///   Gets or creates connection to the cluster.
         /// </summary>
         /// <param name="partitionKey"> </param>
         /// <returns> </returns>
-        /// <exception cref="CqlException">Can not connect to any node of the cluster! All connectivity to the cluster seems to be lost</exception>
         public Connection GetOrCreateConnection(PartitionKey partitionKey)
         {
             //Sort the nodes by load (used first)
-            var nodesByLoad =
-                new List<Node>(_nodes.Where(n => n.IsUp).OrderBy(n => n.ConnectionCount > 0 ? n.Load : int.MaxValue));
+            Node leastUsedNode =
+                _nodes.Where(n => n.IsUp).SmallestOrDefault(n => n.ConnectionCount > 0 ? n.Load : _config.NewConnectionTreshold - 1);
 
-            int index = 0;
+            //try get a connection from it
+            Connection connection = leastUsedNode.GetConnection();
 
-            //find the least used connection per node and see if it can be used
-            for (; index < nodesByLoad.Count; index++)
+            //smallest connection from smallest node
+            if (connection != null && connection.Load < _config.NewConnectionTreshold)
+                return connection;
+
+            if (_config.MaxConnections <= 0 || _connectionCount < _config.MaxConnections)
             {
-                Connection connection = nodesByLoad[index].GetConnection();
+                //try to get a new connection from this smallest node
+                Connection newConnection = leastUsedNode.CreateConnection();
 
-                //break when no connection found (nodes with connections come first, thus if no connection available, no more to be expected...)
-                if (connection == null)
-                    break;
-
-                if (connection.Load < _config.NewConnectionTreshold)
-                    return connection;
-            }
-
-            //check if we may create another connection
-            if (_config.MaxConnections <= 0 || nodesByLoad.Sum(n => n.ConnectionCount) < _config.MaxConnections)
-            {
-                //iterate over the remaining (and initial) nodes, and try to create a connection
-                for (int i = 0; i < nodesByLoad.Count; i++)
+                if (newConnection != null)
                 {
-                    try
-                    {
-                        Node node = nodesByLoad[(index + i) % nodesByLoad.Count];
-                        Connection connection = node.CreateConnection();
+                    Interlocked.Increment(ref _connectionCount);
+                    newConnection.OnConnectionChange +=
+                        (c, ev) => { if (ev.Connected == false) Interlocked.Decrement(ref _connectionCount); };
 
-                        if (connection != null)
-                            return connection;
-                    }
-                    // ReSharper disable EmptyGeneralCatchClause
-                    catch
-                    {
-                        //ignore, errors handled within node, try to create another one at the next node
-                    }
-                    // ReSharper restore EmptyGeneralCatchClause
+                    return newConnection;
                 }
             }
 
-            //no suitable connection found or created, go to the least used node, and pick its least used open connection...
-            foreach (Node node in nodesByLoad)
-            {
-                Connection connection = node.GetConnection();
-                if (connection != null)
-                    return connection;
-            }
-
-            return null;
+            return connection;
         }
 
 

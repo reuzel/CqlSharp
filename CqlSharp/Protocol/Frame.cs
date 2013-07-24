@@ -85,7 +85,7 @@ namespace CqlSharp.Protocol
         /// Gets the frame bytes.
         /// </summary>
         /// <returns></returns>
-        public Stream GetFrameBytes(bool compress)
+        public Stream GetFrameBytes(bool compress, int compressTreshold)
         {
             var buffer = new PoolMemoryStream();
             buffer.WriteByte((byte)Version);
@@ -96,29 +96,33 @@ namespace CqlSharp.Protocol
             //write length placeholder
             buffer.WriteInt(0);
 
-            //write the actual data
-            if (compress)
-            {
-                //write data to temporary stream
-                using (var uncompressed = new PoolMemoryStream())
-                {
-                    WriteData(uncompressed);
+            //write uncompressed data
+            WriteData(buffer);
 
+            //compress if allowed, and buffer is large enough to compress
+            if (compress && buffer.Length > compressTreshold + 8)
+            {
+                buffer.Position = 8;
+
+                //compress data to temporary stream
+                using (var compressed = new PoolMemoryStream())
+                {
                     //compress the data to the buffer
-                    uncompressed.Position = 0;
-                    Compressor.Compress(uncompressed, buffer);
+                    int length = Compressor.Compress(buffer, compressed);
 
                     //add compression to flags
                     Flags |= FrameFlags.Compression;
                     buffer.Position = 1;
                     buffer.WriteByte((byte)Flags);
+
+                    //overwrite data with compressed data
+                    buffer.Position = 8;
+                    compressed.Position = 0;
+                    compressed.CopyTo(buffer);
+                    buffer.SetLength(length + 8);
                 }
             }
-            else
-            {
-                //no compression, write data directly
-                WriteData(buffer);
-            }
+
             //overwrite length with real value
             buffer.Position = 4;
             buffer.WriteInt((int)buffer.Length - 8);

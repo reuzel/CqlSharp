@@ -26,9 +26,6 @@ namespace CqlSharp
         public PartitionKey PartitionKey;
         public bool TracingEnabled;
         public bool UseBuffering;
-
-        public bool UseParallelConnections;
-
         public byte[][] Values;
     }
 }

@@ -277,7 +277,7 @@ namespace CqlSharp.Test
                     await connection.SendRequestAsync(new QueryFrame("", CqlConsistency.Any), logger, 10);
                 }
 
-                Assert.AreEqual(nodes.Sum(nd => nd.ConnectionCount), 4);
+                Assert.AreEqual(4, nodes.Sum(nd => nd.ConnectionCount));
                 Assert.IsTrue(nodes.All(nd => nd.ConnectionCount == 1));
                 Assert.IsTrue(nodes.SelectMany(nd => nd).All(c => c.Load == 20));
             }

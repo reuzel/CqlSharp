@@ -77,7 +77,7 @@ namespace CqlSharp.Memory
         /// <value> The capacity. </value>
         public long Capacity
         {
-            get { return _buffers.Count*BufferSize; }
+            get { return _buffers.Count * BufferSize; }
         }
 
         /// <summary>
@@ -183,8 +183,8 @@ namespace CqlSharp.Memory
             get
             {
                 //get location in buffer
-                int bufferIndex = (int) ((index)/BufferSize);
-                int bufferOffset = (int) ((index)%BufferSize);
+                int bufferIndex = (int)((index) / BufferSize);
+                int bufferOffset = (int)((index) % BufferSize);
 
                 //copy value to internal buffers
                 return _buffers[bufferIndex][bufferOffset];
@@ -193,8 +193,8 @@ namespace CqlSharp.Memory
             set
             {
                 //get location in buffer
-                int bufferIndex = (int) ((index)/BufferSize);
-                int bufferOffset = (int) ((index)%BufferSize);
+                int bufferIndex = (int)((index) / BufferSize);
+                int bufferOffset = (int)((index) % BufferSize);
 
                 //copy value to internal buffers
                 _buffers[bufferIndex][bufferOffset] = value;
@@ -280,7 +280,7 @@ namespace CqlSharp.Memory
 
             _size = value;
 
-            int bufferIndex = (int) _size/BufferSize;
+            int bufferIndex = (int)_size / BufferSize;
 
             //clear redundant buffers
             for (int i = bufferIndex + 1; i < _buffers.Count; i++)
@@ -343,10 +343,10 @@ namespace CqlSharp.Memory
             if (_disposed) throw new ObjectDisposedException("PoolMemoryStream");
 
             //get location in buffer
-            int bufferIndex = (int) (_position/BufferSize);
-            int bufferOffset = (int) (_position%BufferSize);
+            int bufferIndex = (int)(_position / BufferSize);
+            int bufferOffset = (int)(_position % BufferSize);
 
-            int maxReadable = (int) Math.Min(count, _size - _position);
+            int maxReadable = (int)Math.Min(count, _size - _position);
             int toRead = maxReadable;
             while (toRead > 0)
             {
@@ -415,14 +415,14 @@ namespace CqlSharp.Memory
             if (_disposed) throw new ObjectDisposedException("PoolMemoryStream");
 
             //allocate buffers if necessary
-            while (_buffers.Count*BufferSize <= _position + count)
+            while (_buffers.Count * BufferSize <= _position + count)
             {
                 _buffers.Add(MemoryPool.Instance.Take(BufferSize));
             }
 
             //get location in buffer
-            int bufferIndex = (int) (_position/BufferSize);
-            int bufferOffset = (int) (_position%BufferSize);
+            int bufferIndex = (int)(_position / BufferSize);
+            int bufferOffset = (int)(_position % BufferSize);
 
             //move position ahead
             _position += count;
@@ -449,14 +449,14 @@ namespace CqlSharp.Memory
         public override void WriteByte(byte value)
         {
             //allocate buffers if necessary
-            if (_buffers.Count*BufferSize <= _position + 1)
+            if (_buffers.Count * BufferSize <= _position + 1)
             {
                 _buffers.Add(MemoryPool.Instance.Take(BufferSize));
             }
 
             //get location in buffer
-            int bufferIndex = (int) (_position/BufferSize);
-            int bufferOffset = (int) (_position%BufferSize);
+            int bufferIndex = (int)(_position / BufferSize);
+            int bufferOffset = (int)(_position % BufferSize);
 
             //move position ahead
             _position++;
@@ -502,14 +502,14 @@ namespace CqlSharp.Memory
 
             long toCopy = _size - _position;
 
-            int bufferIndex = (int) (_position/BufferSize);
-            int bufferOffset = (int) (_position%BufferSize);
+            int bufferIndex = (int)(_position / BufferSize);
+            int bufferOffset = (int)(_position % BufferSize);
 
             while (toCopy > 0)
             {
                 if (_disposed) throw new ObjectDisposedException("PoolMemoryStream");
 
-                int writeSize = (int) Math.Min((long) BufferSize - bufferOffset, toCopy);
+                int writeSize = (int)Math.Min((long)BufferSize - bufferOffset, toCopy);
                 destination.Write(_buffers[bufferIndex], bufferOffset, writeSize);
                 bufferIndex++;
                 bufferOffset = 0;
@@ -535,15 +535,15 @@ namespace CqlSharp.Memory
 
             long toCopy = _size - _position;
 
-            int bufferIndex = (int) (_position/BufferSize);
-            int bufferOffset = (int) (_position%BufferSize);
+            int bufferIndex = (int)(_position / BufferSize);
+            int bufferOffset = (int)(_position % BufferSize);
 
             while (toCopy > 0)
             {
                 cancellationToken.ThrowIfCancellationRequested();
                 if (_disposed) throw new ObjectDisposedException("PoolMemoryStream");
 
-                int writeSize = (int) Math.Min((long) BufferSize - bufferOffset, toCopy);
+                int writeSize = (int)Math.Min((long)BufferSize - bufferOffset, toCopy);
                 await destination.WriteAsync(_buffers[bufferIndex], bufferOffset, writeSize);
                 bufferIndex++;
                 bufferOffset = 0;

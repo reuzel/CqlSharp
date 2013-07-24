@@ -129,7 +129,8 @@ namespace CqlSharp.Network
                     break;
                 case ConnectionStrategy.PartitionAware:
                     _connectionSelector = new PartitionAwareConnectionStrategy(_nodes, _config);
-                    if (_config.DiscoveryScope != DiscoveryScope.Cluster || _config.DiscoveryScope != DiscoveryScope.DataCenter) logger.LogWarning("PartitionAware connection strategy performs best if DiscoveryScope is set to cluster or datacenter");
+                    if (_config.DiscoveryScope != DiscoveryScope.Cluster || _config.DiscoveryScope != DiscoveryScope.DataCenter) 
+                        logger.LogWarning("PartitionAware connection strategy performs best if DiscoveryScope is set to cluster or datacenter");
                     break;
             }
 
@@ -166,6 +167,9 @@ namespace CqlSharp.Network
 
                     //get or create a connection
                     var connection = strategy.GetOrCreateConnection(null);
+
+                    //allow this connection to be used by others as well
+                    _connectionSelector.ReturnConnection(connection);
 
                     //setup event handlers
                     connection.OnConnectionChange += (src, ev) => SetupMaintenanceConnection(logger);
