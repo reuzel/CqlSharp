@@ -1,4 +1,4 @@
-﻿// CqlSharp - CqlSharpTest
+﻿// CqlSharp - CqlSharp.Test
 // Copyright (c) 2013 Joost Reuzel
 //   
 // Licensed under the Apache License, Version 2.0 (the "License");
@@ -13,9 +13,7 @@
 // See the License for the specific language governing permissions and
 // limitations under the License.
 
-using CqlSharp;
 using CqlSharp.Config;
-using CqlSharp.Logging;
 using CqlSharp.Network;
 using CqlSharp.Network.Fakes;
 using CqlSharp.Network.Partition;
@@ -39,16 +37,15 @@ namespace CqlSharp.Test
             using (ShimsContext.Create())
             {
                 //create cluster
-                var config = new ClusterConfig();
-                config.NewConnectionTreshold = 5;
+                var config = new ClusterConfig { NewConnectionTreshold = 5 };
 
-                Cluster cluster = new Cluster(config);
+                var cluster = new Cluster(config);
 
                 //create nodes
-                Node n = new Node(IPAddress.Parse("127.0.0.1"), cluster);
-                Node n2 = new Node(IPAddress.Parse("127.0.0.2"), cluster);
-                Node n3 = new Node(IPAddress.Parse("127.0.0.3"), cluster);
-                Node n4 = new Node(IPAddress.Parse("127.0.0.4"), cluster);
+                var n = new Node(IPAddress.Parse("127.0.0.1"), cluster);
+                var n2 = new Node(IPAddress.Parse("127.0.0.2"), cluster);
+                var n3 = new Node(IPAddress.Parse("127.0.0.3"), cluster);
+                var n4 = new Node(IPAddress.Parse("127.0.0.4"), cluster);
                 var nodes = new Ring(new List<Node> { n, n2, n3, n4 }, "RandomPartitioner");
 
                 ShimAllConnections();
@@ -57,7 +54,7 @@ namespace CqlSharp.Test
 
                 IConnectionStrategy strategy = new BalancedConnectionStrategy(nodes, config);
 
-                int nr = 8;
+                const int nr = 8;
 
                 for (int i = 0; i < nr; i++)
                 {
@@ -80,17 +77,15 @@ namespace CqlSharp.Test
             using (ShimsContext.Create())
             {
                 //create cluster
-                var config = new ClusterConfig();
-                config.NewConnectionTreshold = 5;
-                config.MaxConnections = 6;
+                var config = new ClusterConfig { NewConnectionTreshold = 5, MaxConnections = 6 };
 
-                Cluster cluster = new Cluster(config);
+                var cluster = new Cluster(config);
 
                 //create nodes
-                Node n1 = new Node(IPAddress.Parse("127.0.0.1"), cluster);
-                Node n2 = new Node(IPAddress.Parse("127.0.0.2"), cluster);
-                Node n3 = new Node(IPAddress.Parse("127.0.0.3"), cluster);
-                Node n4 = new Node(IPAddress.Parse("127.0.0.4"), cluster);
+                var n1 = new Node(IPAddress.Parse("127.0.0.1"), cluster);
+                var n2 = new Node(IPAddress.Parse("127.0.0.2"), cluster);
+                var n3 = new Node(IPAddress.Parse("127.0.0.3"), cluster);
+                var n4 = new Node(IPAddress.Parse("127.0.0.4"), cluster);
                 var nodes = new Ring(new List<Node> { n1, n2, n3, n4 }, "RandomPartitioner");
 
                 ShimAllConnections();
@@ -99,15 +94,15 @@ namespace CqlSharp.Test
 
                 IConnectionStrategy strategy = new BalancedConnectionStrategy(nodes, config);
 
-                int nr = 80;
+                const int nr = 80;
 
                 for (int i = 0; i < nr; i++)
                 {
                     Connection connection;
 
-                    using(logger.ThreadBinding())
+                    using (logger.ThreadBinding())
                         connection = strategy.GetOrCreateConnection(PartitionKey.None);
-                    
+
                     await connection.SendRequestAsync(new QueryFrame("", CqlConsistency.Any), logger, 10);
                 }
 
@@ -122,16 +117,15 @@ namespace CqlSharp.Test
             using (ShimsContext.Create())
             {
                 //create cluster 
-                var config = new ClusterConfig();
-                config.NewConnectionTreshold = 20;
+                var config = new ClusterConfig { NewConnectionTreshold = 20 };
 
-                Cluster cluster = new Cluster(config);
+                var cluster = new Cluster(config);
 
                 //create nodes
-                Node n = new Node(IPAddress.Parse("127.0.0.1"), cluster);
-                Node n2 = new Node(IPAddress.Parse("127.0.0.2"), cluster);
-                Node n3 = new Node(IPAddress.Parse("127.0.0.3"), cluster);
-                Node n4 = new Node(IPAddress.Parse("127.0.0.4"), cluster);
+                var n = new Node(IPAddress.Parse("127.0.0.1"), cluster);
+                var n2 = new Node(IPAddress.Parse("127.0.0.2"), cluster);
+                var n3 = new Node(IPAddress.Parse("127.0.0.3"), cluster);
+                var n4 = new Node(IPAddress.Parse("127.0.0.4"), cluster);
                 var nodes = new Ring(new List<Node> { n, n2, n3, n4 }, "RandomPartitioner");
 
                 ShimAllConnections();
@@ -140,13 +134,13 @@ namespace CqlSharp.Test
 
                 IConnectionStrategy strategy = new BalancedConnectionStrategy(nodes, config);
 
-                int nr = 8;
+                const int nr = 8;
 
                 for (int i = 0; i < nr; i++)
                 {
                     Connection connection;
 
-                    using(logger.ThreadBinding())
+                    using (logger.ThreadBinding())
                         connection = strategy.GetOrCreateConnection(PartitionKey.None);
 
                     await connection.SendRequestAsync(new QueryFrame("", CqlConsistency.Any), logger, 10);
@@ -163,16 +157,15 @@ namespace CqlSharp.Test
             using (ShimsContext.Create())
             {
                 //create cluster 
-                var config = new ClusterConfig();
-                config.NewConnectionTreshold = 200;
+                var config = new ClusterConfig { NewConnectionTreshold = 200 };
 
-                Cluster cluster = new Cluster(config);
+                var cluster = new Cluster(config);
 
                 //create nodes
-                Node n1 = new Node(IPAddress.Parse("127.0.0.1"), cluster);
-                Node n2 = new Node(IPAddress.Parse("127.0.0.2"), cluster);
-                Node n3 = new Node(IPAddress.Parse("127.0.0.3"), cluster);
-                Node n4 = new Node(IPAddress.Parse("127.0.0.4"), cluster);
+                var n1 = new Node(IPAddress.Parse("127.0.0.1"), cluster);
+                var n2 = new Node(IPAddress.Parse("127.0.0.2"), cluster);
+                var n3 = new Node(IPAddress.Parse("127.0.0.3"), cluster);
+                var n4 = new Node(IPAddress.Parse("127.0.0.4"), cluster);
                 var nodes = new Ring(new List<Node> { n1, n2, n3, n4 }, "RandomPartitioner");
 
                 ShimAllConnections();
@@ -181,7 +174,7 @@ namespace CqlSharp.Test
 
                 IConnectionStrategy strategy = new BalancedConnectionStrategy(nodes, config);
 
-                int nr = 8;
+                const int nr = 8;
 
                 for (int i = 0; i < nr; i++)
                 {
@@ -204,17 +197,15 @@ namespace CqlSharp.Test
             using (ShimsContext.Create())
             {
                 //create cluster
-                var config = new ClusterConfig();
-                config.NewConnectionTreshold = 5;
-                config.MaxConnections = 6;
+                var config = new ClusterConfig { NewConnectionTreshold = 5, MaxConnections = 6 };
 
-                Cluster cluster = new Cluster(config);
+                var cluster = new Cluster(config);
 
                 //create nodes
-                Node n = new Node(IPAddress.Parse("127.0.0.1"), cluster);
-                Node n2 = new Node(IPAddress.Parse("127.0.0.2"), cluster);
-                Node n3 = new Node(IPAddress.Parse("127.0.0.3"), cluster);
-                Node n4 = new Node(IPAddress.Parse("127.0.0.4"), cluster);
+                var n = new Node(IPAddress.Parse("127.0.0.1"), cluster);
+                var n2 = new Node(IPAddress.Parse("127.0.0.2"), cluster);
+                var n3 = new Node(IPAddress.Parse("127.0.0.3"), cluster);
+                var n4 = new Node(IPAddress.Parse("127.0.0.4"), cluster);
                 var nodes = new Ring(new List<Node> { n, n2, n3, n4 }, "RandomPartitioner");
 
                 ShimAllConnections();
@@ -223,7 +214,7 @@ namespace CqlSharp.Test
 
                 IConnectionStrategy strategy = new BalancedConnectionStrategy(nodes, config);
 
-                int nr = 8;
+                const int nr = 8;
 
                 for (int i = 0; i < nr; i++)
                 {
@@ -247,16 +238,15 @@ namespace CqlSharp.Test
             using (ShimsContext.Create())
             {
                 //create cluster 
-                var config = new ClusterConfig();
-                config.NewConnectionTreshold = 20;
+                var config = new ClusterConfig { NewConnectionTreshold = 20 };
 
-                Cluster cluster = new Cluster(config);
+                var cluster = new Cluster(config);
 
                 //create nodes
-                Node n = new Node(IPAddress.Parse("127.0.0.1"), cluster);
-                Node n2 = new Node(IPAddress.Parse("127.0.0.2"), cluster);
-                Node n3 = new Node(IPAddress.Parse("127.0.0.3"), cluster);
-                Node n4 = new Node(IPAddress.Parse("127.0.0.4"), cluster);
+                var n = new Node(IPAddress.Parse("127.0.0.1"), cluster);
+                var n2 = new Node(IPAddress.Parse("127.0.0.2"), cluster);
+                var n3 = new Node(IPAddress.Parse("127.0.0.3"), cluster);
+                var n4 = new Node(IPAddress.Parse("127.0.0.4"), cluster);
                 var nodes = new Ring(new List<Node> { n, n2, n3, n4 }, "RandomPartitioner");
 
                 ShimAllConnections();
@@ -265,7 +255,7 @@ namespace CqlSharp.Test
 
                 IConnectionStrategy strategy = new BalancedConnectionStrategy(nodes, config);
 
-                int nr = 8;
+                const int nr = 8;
 
                 for (int i = 0; i < nr; i++)
                 {
@@ -289,16 +279,15 @@ namespace CqlSharp.Test
             using (ShimsContext.Create())
             {
                 //create cluster 
-                var config = new ClusterConfig();
-                config.NewConnectionTreshold = 20;
+                var config = new ClusterConfig { NewConnectionTreshold = 20 };
 
-                Cluster cluster = new Cluster(config);
+                var cluster = new Cluster(config);
 
                 //create nodes
-                Node n = new Node(IPAddress.Parse("127.0.0.1"), cluster);
-                Node n2 = new Node(IPAddress.Parse("127.0.0.2"), cluster);
-                Node n3 = new Node(IPAddress.Parse("127.0.0.3"), cluster);
-                Node n4 = new Node(IPAddress.Parse("127.0.0.4"), cluster);
+                var n = new Node(IPAddress.Parse("127.0.0.1"), cluster);
+                var n2 = new Node(IPAddress.Parse("127.0.0.2"), cluster);
+                var n3 = new Node(IPAddress.Parse("127.0.0.3"), cluster);
+                var n4 = new Node(IPAddress.Parse("127.0.0.4"), cluster);
                 var nodes = new Ring(new List<Node> { n, n2, n3, n4 }, "RandomPartitioner");
 
                 ShimAllConnections();
@@ -308,7 +297,7 @@ namespace CqlSharp.Test
 
                 IConnectionStrategy strategy = new BalancedConnectionStrategy(nodes, config);
 
-                int nr = 80;
+                const int nr = 80;
 
                 for (int i = 0; i < nr; i++)
                 {
@@ -330,43 +319,45 @@ namespace CqlSharp.Test
         {
             //shim connections to avoid network connections...
             ShimConnection.ConstructorIPAddressClusterInt32 = (conn, address, conf, nr) =>
-                                                                   {
-                                                                       //wrap the new connection in a shim
-                                                                       var connection = new ShimConnection(conn);
-                                                                       int connLoad = 0;
-                                                                       EventHandler<LoadChangeEvent> nodeHandler = null;
+                                                                  {
+                                                                      //wrap the new connection in a shim
+                                                                      var connection = new ShimConnection(conn);
+                                                                      int connLoad = 0;
+                                                                      EventHandler<LoadChangeEvent> nodeHandler = null;
 
-                                                                       //replace any IO inducing methods
-                                                                       connection.OpenAsyncLogger =
-                                                                           (log) => { return Task.FromResult(true); };
+                                                                      //replace any IO inducing methods
+                                                                      connection.OpenAsyncLogger =
+                                                                          (log) => Task.FromResult(true);
 
-                                                                       connection.SendRequestAsyncFrameLoggerInt32Boolean =
-                                                                           (frame, log, load, connecting) =>
-                                                                           {
-                                                                               //update connection load
-                                                                               connLoad += load;
-                                                                               //call load change event handler
-                                                                               nodeHandler(connection,
+                                                                      connection.SendRequestAsyncFrameLoggerInt32Boolean
+                                                                          =
+                                                                          (frame, log, load, connecting) =>
+                                                                          {
+                                                                              //update connection load
+                                                                              connLoad += load;
+                                                                              //call load change event handler
+                                                                              if (nodeHandler != null)
+                                                                                  nodeHandler(connection,
                                                                                            new LoadChangeEvent { LoadDelta = load });
-                                                                               //done
-                                                                               return
-                                                                                   Task.FromResult(
-                                                                                       (Frame)
-                                                                                       new ResultFrame { Stream = frame.Stream });
-                                                                           };
+                                                                              //done
+                                                                              return
+                                                                                  Task.FromResult(
+                                                                                      (Frame)
+                                                                                      new ResultFrame { Stream = frame.Stream });
+                                                                          };
 
-                                                                       //intercept load changed handlers
-                                                                       connection.
-                                                                           OnLoadChangeAddEventHandlerOfLoadChangeEvent
-                                                                           = (handler) => { nodeHandler += handler; };
+                                                                      //intercept load changed handlers
+                                                                      connection.
+                                                                          OnLoadChangeAddEventHandlerOfLoadChangeEvent
+                                                                          = (handler) => { nodeHandler += handler; };
 
-                                                                       //return proper load values
-                                                                       connection.LoadGet = () => connLoad;
+                                                                      //return proper load values
+                                                                      connection.LoadGet = () => connLoad;
 
-                                                                       //set some default properties
-                                                                       connection.IsConnectedGet = () => true;
-                                                                       connection.IsIdleGet = () => false;
-                                                                   };
+                                                                      //set some default properties
+                                                                      connection.IsConnectedGet = () => true;
+                                                                      connection.IsIdleGet = () => false;
+                                                                  };
         }
     }
 }
