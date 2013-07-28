@@ -525,6 +525,13 @@ namespace CqlSharp.Config
                 builder.Append(";");
             }
 
+            if (MaxQueryRetries != DefaultMaxQueryRetries)
+            {
+                builder.Append("MaxQueryRetries=");
+                builder.Append(MaxQueryRetries);
+                builder.Append(";");
+            }
+
             if (UseBuffering != DefaultUseBuffering)
             {
                 builder.Append("UseBuffering=");

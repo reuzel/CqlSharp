@@ -13,7 +13,6 @@
 // See the License for the specific language governing permissions and
 // limitations under the License.
 
-using CqlSharp;
 using CqlSharp.Protocol;
 using CqlSharp.Serialization;
 using Microsoft.VisualStudio.TestTools.UnitTesting;
@@ -239,6 +238,83 @@ namespace CqlSharp.Test
                 Assert.AreEqual(result.aList, default(List<string>));
                 Assert.AreEqual(result.aSet, default(HashSet<int>));
                 Assert.AreEqual(result.aMap, default(Dictionary<long, string>));
+            }
+        }
+
+        [TestMethod]
+        public void NullDeserializeParameterTest()
+        {
+            const string insertCql = @"insert into Test.Types(aInt) values (1);";
+
+            const string selectCql = "select * from Test.Types limit 1;";
+
+
+
+            using (var connection = new CqlConnection(ConnectionString))
+            {
+
+                string aASCIIString;
+                string aVarcharString;
+                BigInteger? aVarint;
+                string aTextString;
+                bool? aBool;
+                double? aDouble;
+                float? aFloat;
+                IPAddress aInet;
+                long? aLong;
+                Guid? aTimeUUID;
+                Guid? aUUID;
+                byte[] aBlob;
+                List<string> aList;
+                HashSet<int> aSet;
+                Dictionary<long, string> aMap;
+
+                connection.Open();
+
+                var insertCmd = new CqlCommand(connection, insertCql);
+                insertCmd.ExecuteNonQuery();
+
+                var selectCmd = new CqlCommand(connection, selectCql);
+
+                using (var reader = selectCmd.ExecuteReader())
+                {
+                    if (reader.Read())
+                    {
+                        aASCIIString = (string)reader["aasciistring"];
+                        aVarcharString = (string)reader["avarcharstring"];
+                        aVarint = (BigInteger?)reader["avarint"];
+                        aTextString = (string)reader["atextstring"];
+                        aBool = (bool?)reader["abool"];
+                        aDouble = (double?)reader["adouble"];
+                        aFloat = (float?)reader["afloat"];
+                        aInet = (IPAddress)reader["ainet"];
+                        aLong = (long?)reader["along"];
+                        aTimeUUID = (Guid?)reader["atimeuuid"];
+                        aUUID = (Guid?)reader["auuid"];
+                        aBlob = (byte[])reader["ablob"];
+                        aList = (List<string>)reader["alist"];
+                        aSet = (HashSet<int>)reader["aset"];
+                        aMap = (Dictionary<long, string>)reader["amap"];
+                    }
+                    else
+                        throw new Exception("No row returned!");
+                }
+
+                Assert.AreEqual(aASCIIString, default(string));
+                Assert.AreEqual(aVarcharString, default(string));
+                Assert.AreEqual(aVarint, default(BigInteger?));
+                Assert.AreEqual(aTextString, default(string));
+                Assert.AreEqual(aBool, default(bool?));
+                Assert.AreEqual(aDouble, default(double?));
+                Assert.AreEqual(aFloat, default(float?));
+                Assert.AreEqual(aInet, default(IPAddress));
+                Assert.AreEqual(aLong, default(long?));
+                Assert.AreEqual(aTimeUUID, default(Guid?));
+                Assert.AreEqual(aUUID, default(Guid?));
+                Assert.AreEqual(aBlob, default(byte[]));
+                Assert.AreEqual(aList, default(List<string>));
+                Assert.AreEqual(aSet, default(HashSet<int>));
+                Assert.AreEqual(aMap, default(Dictionary<long, string>));
             }
         }
 
