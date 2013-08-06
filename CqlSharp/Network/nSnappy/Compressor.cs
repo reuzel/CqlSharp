@@ -3,7 +3,7 @@ using System;
 using System.Diagnostics;
 using System.IO;
 
-namespace NSnappy
+namespace CqlSharp.Network.nSnappy
 {
     public static class Compressor
     {

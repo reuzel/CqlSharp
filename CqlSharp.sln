@@ -7,6 +7,12 @@ Project("{FAE04EC0-301F-11D3-BF4B-00C04F79EFBC}") = "CqlSharp.Test", "CqlSharpTe
 EndProject
 Project("{FAE04EC0-301F-11D3-BF4B-00C04F79EFBC}") = "CqlTest", "CqlTest\CqlTest.csproj", "{61D745C9-1B9B-40A2-A9A6-A37A58E6B496}"
 EndProject
+Project("{2150E333-8FDC-42A3-9474-1A3956D46DE8}") = "Solution Items", "Solution Items", "{D825317C-46F7-452D-8928-2BC89C7037E3}"
+	ProjectSection(SolutionItems) = preProject
+		ChangeLog.md = ChangeLog.md
+		README.md = README.md
+	EndProjectSection
+EndProject
 Global
 	GlobalSection(SolutionConfigurationPlatforms) = preSolution
 		Debug|Any CPU = Debug|Any CPU

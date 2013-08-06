@@ -14,7 +14,7 @@
 // limitations under the License.
 
 using CqlSharp.Memory;
-using NSnappy;
+using CqlSharp.Network.nSnappy;
 using System;
 using System.Collections.Generic;
 using System.IO;
@@ -160,7 +160,7 @@ namespace CqlSharp.Protocol
         public async Task DecompressAsync()
         {
             //load all remaining frame data
-            await BufferRemainingData();
+            await BufferRemainingData().ConfigureAwait(false);
 
             //decompress into new buffer
             byte[] newBuffer;
@@ -311,12 +311,12 @@ namespace CqlSharp.Protocol
         ///   Reads the short async.
         /// </summary>
         /// <returns> </returns>
-        public Task<short> ReadShortAsync()
+        public Task<ushort> ReadShortAsync()
         {
             if (TryGetSegmentFromBuffer(2))
             {
                 //reverse the value if necessary
-                short value = _lastReadSegment.Array.ToShort(_lastReadSegment.Offset);
+                ushort value = _lastReadSegment.Array.ToShort(_lastReadSegment.Offset);
 
                 //return cached int value if possible
                 return value.AsTask();
@@ -329,11 +329,11 @@ namespace CqlSharp.Protocol
         ///   Reads the short async, awaiting network operations
         /// </summary>
         /// <returns> </returns>
-        private async Task<short> ReadShortInternalAsync()
+        private async Task<ushort> ReadShortInternalAsync()
         {
             await ReadSegmentAsync(2).ConfigureAwait(false);
 
-            short value = _lastReadSegment.Array.ToShort(_lastReadSegment.Offset);
+            ushort value = _lastReadSegment.Array.ToShort(_lastReadSegment.Offset);
 
             return value;
         }
@@ -375,7 +375,7 @@ namespace CqlSharp.Protocol
         public async Task<string> ReadStringAsync()
         {
             //read length
-            short len = await ReadShortAsync().ConfigureAwait(false);
+            ushort len = await ReadShortAsync().ConfigureAwait(false);
             if (0 == len)
             {
                 return string.Empty;
@@ -417,11 +417,10 @@ namespace CqlSharp.Protocol
         /// <returns> </returns>
         public async Task<byte[]> ReadShortBytesAsync()
         {
-            short len = await ReadShortAsync().ConfigureAwait(false);
-            if (-1 == len)
-            {
-                return null;
-            }
+            ushort len = await ReadShortAsync().ConfigureAwait(false);
+
+            if (len == 0)
+                return new byte[0];
 
             //read the data segment
             if (!TryGetSegmentFromBuffer(len))
@@ -439,7 +438,7 @@ namespace CqlSharp.Protocol
         /// <returns> </returns>
         public async Task<IList<string>> ReadStringListAsync()
         {
-            short len = await ReadShortAsync().ConfigureAwait(false);
+            ushort len = await ReadShortAsync().ConfigureAwait(false);
             var data = new string[len];
             for (int i = 0; i < len; ++i)
             {
@@ -454,7 +453,7 @@ namespace CqlSharp.Protocol
         /// <returns> </returns>
         public async Task<Dictionary<string, IList<string>>> ReadStringMultimapAsync()
         {
-            short len = await ReadShortAsync().ConfigureAwait(false);
+            ushort len = await ReadShortAsync().ConfigureAwait(false);
             var data = new Dictionary<string, IList<string>>(len);
             for (int i = 0; i < len; ++i)
             {

@@ -1,6 +1,6 @@
 using System;
 
-namespace NSnappy
+namespace CqlSharp.Network.nSnappy
 {
     public struct Pointer : IEquatable<Pointer>
     {

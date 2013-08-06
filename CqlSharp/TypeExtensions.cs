@@ -1,4 +1,4 @@
-﻿// CqlSharp - CqlSharp
+// CqlSharp - CqlSharp
 // Copyright (c) 2013 Joost Reuzel
 //   
 // Licensed under the Apache License, Version 2.0 (the "License");
@@ -15,7 +15,7 @@
 
 using System;
 
-namespace CqlSharp.Protocol
+namespace CqlSharp
 {
     /// <summary>
     ///   DateTime extensions to convert date-time values to and from unix-time
@@ -83,25 +83,36 @@ namespace CqlSharp.Protocol
         }
 
         /// <summary>
-        ///   converts the array into a short value (big-endian)
+        ///   converts the array into a unsigned short value (big-endian)
         /// </summary>
         /// <param name="bytes"> The bytes. </param>
         /// <param name="offset"> The offset. </param>
         /// <returns> </returns>
-        public static short ToShort(this byte[] bytes, int offset = 0)
+        public static ushort ToShort(this byte[] bytes, int offset = 0)
         {
-            int value = bytes[offset] << 8 | bytes[offset+1];
-            return (short)value;
+            int value = bytes[offset] << 8 | bytes[offset + 1];
+            return (ushort)value;
         }
 
+        /// <summary>
+        ///  converts the array to a Guid value
+        /// </summary>
+        /// <param name="bytes">The bytes.</param>
+        /// <param name="offset">The offset.</param>
+        /// <returns></returns>
         public static Guid ToGuid(this byte[] bytes, int offset = 0)
         {
-            int a = bytes.ToInt(offset);
-            short b = bytes.ToShort(offset + 4);
-            short c = bytes.ToShort(offset + 6);
+            unchecked
+            {
+                int a = bytes.ToInt(offset);
+                var b = (short)bytes.ToShort(offset + 4);
+                var c = (short)bytes.ToShort(offset + 6);
 
-            return new Guid(a, b, c, bytes[offset + 8], bytes[offset + 9], bytes[offset + 10], bytes[offset + 11], bytes[offset + 12], bytes[offset + 13],
+                return new Guid(a, b, c, bytes[offset + 8], bytes[offset + 9], bytes[offset + 10], bytes[offset + 11], bytes[offset + 12], bytes[offset + 13],
                             bytes[offset + 14], bytes[offset + 15]);
+
+            }
+
         }
     }
 }

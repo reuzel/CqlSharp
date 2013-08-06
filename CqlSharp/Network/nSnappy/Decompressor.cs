@@ -1,8 +1,7 @@
-using CqlSharp.Network;
 using System;
 using System.Diagnostics;
 
-namespace NSnappy
+namespace CqlSharp.Network.nSnappy
 {
     public class Decompressor
     {
@@ -23,17 +22,17 @@ namespace NSnappy
         private int RawUncompress(byte[] input, int compressedSize, out byte[] output)
         {
             _ip = new Pointer(input);
-            
+
             //set limit to pointer scope
             _ipLimit = compressedSize;
 
             //get size of uncompressed data
-            int uncompressedSize = (int)ReadUncompressedLength();
+            var uncompressedSize = (int)ReadUncompressedLength();
             _output = new Writer(uncompressedSize);
 
             //decompress
             DecompressAllTags();
-            
+
             //return results
             output = _output.ToArray();
             return uncompressedSize;
@@ -47,6 +46,8 @@ namespace NSnappy
             // However, duplicating it at the end of each branch gives the compiler more
             // scope to optimize the <ip_limit_ - ip> expression based on the local
             // context, which overall increases speed.
+
+            // ReSharper disable AccessToModifiedClosure
             Func<bool> maybeRefill = () =>
                 {
                     if (_ipLimit - ip < 5)
@@ -60,6 +61,7 @@ namespace NSnappy
 
                     return true;
                 };
+            // ReSharper restore AccessToModifiedClosure
 
             if (!maybeRefill())
                 return;
@@ -117,7 +119,7 @@ namespace NSnappy
                 else
                 {
                     int entry = CharTable[c];
-                    int trailer = (int)(ip.ToUInt32() & Wordmask[entry >> 11]);
+                    var trailer = (int)(ip.ToUInt32() & Wordmask[entry >> 11]);
                     int length = entry & 0xff;
                     ip += entry >> 11;
 

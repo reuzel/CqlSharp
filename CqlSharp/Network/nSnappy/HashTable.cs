@@ -1,4 +1,4 @@
-namespace NSnappy
+namespace CqlSharp.Network.nSnappy
 {
     public struct HashTable
     {

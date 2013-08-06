@@ -13,7 +13,6 @@
 // See the License for the specific language governing permissions and
 // limitations under the License.
 
-using CqlSharp;
 using CqlSharp.Protocol;
 using CqlSharp.Serialization;
 using CqlSharp.Tracing;
@@ -101,10 +100,12 @@ namespace CqlSharp.Test
 
                 var executions = new Task<ICqlQueryResult>[insertCount];
 
-                var options = new ParallelOptions() { MaxDegreeOfParallelism = 1 };
-                Parallel.For(0, insertCount, options, (i) =>
+                var options = new ParallelOptions { MaxDegreeOfParallelism = 1 };
+                Parallel.For(0, insertCount, options, i =>
                 {
+                    // ReSharper disable AccessToDisposedClosure
                     var cmd = new CqlCommand(connection, insertCql, CqlConsistency.One);
+                    // ReSharper restore AccessToDisposedClosure
                     cmd.Prepare();
 
                     var b = new BasicFlowData { Id = i, Data = "Hallo " + i };
@@ -129,6 +130,8 @@ namespace CqlSharp.Test
                 }
 
                 Assert.IsTrue(presence.All(p => p));
+
+                Assert.IsTrue(reader.TracingId.HasValue, "Expected a tracing id");
 
                 var tracer = new QueryTraceCommand(connection, reader.TracingId.Value);
                 TracingSession session = await tracer.GetTraceSessionAsync();

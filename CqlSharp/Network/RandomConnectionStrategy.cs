@@ -16,7 +16,7 @@
 using CqlSharp.Config;
 using CqlSharp.Network.Partition;
 using System;
-using System.Linq;
+using System.Threading;
 
 namespace CqlSharp.Network
 {
@@ -28,6 +28,7 @@ namespace CqlSharp.Network
         private readonly ClusterConfig _config;
         private readonly Ring _nodes;
         private readonly Random _rnd;
+        private int _connectionCount;
 
         /// <summary>
         ///   Initializes the strategies with the specified nodes and cluster configuration
@@ -48,57 +49,49 @@ namespace CqlSharp.Network
         /// </summary>
         /// <param name="partitionKey"> </param>
         /// <returns> </returns>
-        /// <exception cref="CqlException">Can not connect to any node of the cluster! All connectivity to the cluster seems to be lost</exception>
         public Connection GetOrCreateConnection(PartitionKey partitionKey)
         {
-            Connection connection;
             int count = _nodes.Count;
             int offset = _rnd.Next(count);
+
+            Connection connection = null;
 
             //try to get an unused connection from a random node
             for (int i = 0; i < count; i++)
             {
-                try
-                {
-                    connection = _nodes[(offset + i) % count].GetConnection();
-                    if (connection != null && connection.Load < _config.NewConnectionTreshold)
-                        return connection;
-                }
-                catch
-                {
-                    //ignore, try another node
-                }
-            }
+                Node randomNode = _nodes[(offset + i) % count];
 
-            //check if we may create another connection
-            if (_config.MaxConnections <= 0 || _nodes.Sum(n => n.ConnectionCount) < _config.MaxConnections)
-            {
-                //iterate over nodes and try to create a new one
-                for (int i = 0; i < count; i++)
+                //skip if node is down
+                if (!randomNode.IsUp) continue;
+
+                //try get a connection from it
+                connection = randomNode.GetConnection();
+
+                //connection is not used to the max, ok to use
+                if (connection != null && connection.Load < _config.NewConnectionTreshold)
+                    break;
+
+                //get a new connection to the node if possible
+                if (_config.MaxConnections <= 0 || _connectionCount < _config.MaxConnections)
                 {
-                    try
+                    //try to get a new connection from this random node
+                    Connection newConnection = randomNode.CreateConnection();
+
+                    if (newConnection != null)
                     {
-                        connection = _nodes[(offset + i) % count].CreateConnection();
-                        if (connection != null)
-                            return connection;
-                    }
-                    catch
-                    {
-                        //ignore, try another node
+                        Interlocked.Increment(ref _connectionCount);
+                        newConnection.OnConnectionChange +=
+                            (c, ev) => { if (ev.Connected == false) Interlocked.Decrement(ref _connectionCount); };
+
+                        connection = newConnection;
+                        break;
                     }
                 }
             }
 
-            //iterate over nodes and get an existing one
-            for (int i = 0; i < count; i++)
-            {
-                connection = _nodes[(offset + i) % count].GetConnection();
-                if (connection != null)
-                    return connection;
-            }
-
-            return null;
+            return connection;
         }
+
 
         /// <summary>
         ///   Invoked when a connection is no longer in use by the application

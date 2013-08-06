@@ -25,7 +25,7 @@ namespace CqlSharp.Tracing
     public class QueryTraceCommand
     {
         private readonly CqlConnection _connection;
-        private Guid _tracingId;
+        private readonly Guid _tracingId;
 
         /// <summary>
         ///   Initializes a new instance of the <see cref="QueryTraceCommand" /> class.
@@ -44,10 +44,10 @@ namespace CqlSharp.Tracing
         /// <returns> TracingSession if any, null otherwise </returns>
         public async Task<TracingSession> GetTraceSessionAsync()
         {
-            TracingSession session = null;
+            TracingSession session;
             var sessionCmd = new CqlCommand(_connection,
                                             "select * from system_traces.sessions where session_id=" +
-                                            _tracingId.ToString() + ";", CqlConsistency.One);
+                                            _tracingId + ";", CqlConsistency.One);
             using (CqlDataReader<TracingSession> reader = await sessionCmd.ExecuteReaderAsync<TracingSession>().ConfigureAwait(false))
             {
                 if (await reader.ReadAsync().ConfigureAwait(false))
@@ -60,7 +60,7 @@ namespace CqlSharp.Tracing
 
             var eventsCmd = new CqlCommand(_connection,
                                            "select * from system_traces.events where session_id=" +
-                                           _tracingId.ToString() + ";", CqlConsistency.One);
+                                           _tracingId + ";", CqlConsistency.One);
             using (CqlDataReader<TracingEvent> reader = await eventsCmd.ExecuteReaderAsync<TracingEvent>().ConfigureAwait(false))
             {
                 var events = new List<TracingEvent>(reader.Count);

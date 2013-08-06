@@ -14,7 +14,7 @@
 // limitations under the License.
 
 using CqlSharp.Memory;
-using NSnappy;
+using CqlSharp.Network.nSnappy;
 using System;
 using System.IO;
 using System.Threading;
@@ -194,7 +194,7 @@ namespace CqlSharp.Protocol
 
             //decompress the contents of the frame (implicity loads the entire frame body!)
             if (frame.Flags.HasFlag(FrameFlags.Compression))
-                await reader.DecompressAsync();
+                await reader.DecompressAsync().ConfigureAwait(false);
 
             //read tracing id if set
             if (frame.Flags.HasFlag(FrameFlags.Tracing))

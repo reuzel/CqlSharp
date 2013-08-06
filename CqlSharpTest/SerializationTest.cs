@@ -253,7 +253,7 @@ namespace CqlSharp.Test
             using (var connection = new CqlConnection(ConnectionString))
             {
 
-                string aASCIIString;
+                string aAsciiString;
                 string aVarcharString;
                 BigInteger? aVarint;
                 string aTextString;
@@ -280,7 +280,7 @@ namespace CqlSharp.Test
                 {
                     if (reader.Read())
                     {
-                        aASCIIString = (string)reader["aasciistring"];
+                        aAsciiString = (string)reader["aasciistring"];
                         aVarcharString = (string)reader["avarcharstring"];
                         aVarint = (BigInteger?)reader["avarint"];
                         aTextString = (string)reader["atextstring"];
@@ -300,7 +300,7 @@ namespace CqlSharp.Test
                         throw new Exception("No row returned!");
                 }
 
-                Assert.AreEqual(aASCIIString, default(string));
+                Assert.AreEqual(aAsciiString, default(string));
                 Assert.AreEqual(aVarcharString, default(string));
                 Assert.AreEqual(aVarint, default(BigInteger?));
                 Assert.AreEqual(aTextString, default(string));
@@ -528,6 +528,8 @@ namespace CqlSharp.Test
 
         #region Nested type: Types
 
+        // ReSharper disable InconsistentNaming
+
         public class Types
         {
             public int aInt { get; set; }
@@ -570,6 +572,9 @@ namespace CqlSharp.Test
             public HashSet<int> aSet { get; set; }
             public Dictionary<long, string> aMap { get; set; }
         }
+
+        // ReSharper restore InconsistentNaming
+
 
         #endregion
     }

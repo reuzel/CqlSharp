@@ -1,3 +1,9 @@
+## Version 0.14.1 - Bug fixes
+* Making short values unsigned shorts as depicted in Cql binary protocol spec.
+* Added few missing ConfigureAwaits
+* Cleanup of code
+* Faster Random Strategy Logic
+
 ## Version 0.14.0 - Need for Speed
 * ObjectMapping performance improvement: Using compiled expressions to set and get object properties and fields
 * Snappy compression support

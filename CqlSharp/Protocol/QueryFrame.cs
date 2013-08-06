@@ -39,7 +39,7 @@ namespace CqlSharp.Protocol
         protected override void WriteData(Stream buffer)
         {
             buffer.WriteLongString(Cql);
-            buffer.WriteShort((short) CqlConsistency);
+            buffer.WriteShort((ushort) CqlConsistency);
         }
 
         protected override Task InitializeAsync()

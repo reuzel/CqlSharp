@@ -30,7 +30,7 @@ namespace CqlSharp.Network.Partition
 
         public void Parse(byte[] partitionKey)
         {
-            long v = MurmurHash.Hash3_x64_128(partitionKey, 0, partitionKey.Length, 0)[0];
+            long v = MurmurHash.Hash3_X64_128(partitionKey, 0, partitionKey.Length, 0)[0];
             _value = v == long.MinValue ? long.MaxValue : v;
         }
 
@@ -54,12 +54,12 @@ namespace CqlSharp.Network.Partition
             if (obj == null || !(obj is MurmurToken))
                 return false;
 
-            return _value == ((MurmurToken) obj)._value;
+            return _value == ((MurmurToken)obj)._value;
         }
 
         public override int GetHashCode()
         {
-            return (int) (_value ^ ((long) ((ulong) _value >> 32)));
+            return (int)(_value ^ ((long)((ulong)_value >> 32)));
         }
     }
 }

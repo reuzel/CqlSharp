@@ -62,12 +62,21 @@ namespace CqlSharp.Network.Partition
             if (obj == null || !(obj is ByteArrayToken))
                 return false;
 
-            return _value.SequenceEqual(((ByteArrayToken) obj)._value);
+            return _value.SequenceEqual(((ByteArrayToken)obj)._value);
         }
 
         public override int GetHashCode()
         {
-            return _value.GetHashCode();
+            unchecked
+            {
+                var result = 0;
+                for (int i = 0; i < _value.Length; i++)
+                {
+                    byte b = _value[i];
+                    result = (result * 31) ^ b;
+                }
+                return result;
+            }
         }
     }
 }

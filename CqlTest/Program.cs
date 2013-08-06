@@ -38,7 +38,7 @@ namespace CqlTest
 
         public async Task DoAddCarts()
         {
-            var list = _times.GetOrAdd("addCart", (n) => new LinkedList<long>());
+            var list = _times.GetOrAdd("addCart", n => new LinkedList<long>());
 
             int groupId = 0;
             int nr = Interlocked.Increment(ref _count);
@@ -56,7 +56,7 @@ namespace CqlTest
 
         public async Task DoUpdateCarts(Cart[] carts)
         {
-            var list = _times.GetOrAdd("updateCart", (n) => new LinkedList<long>());
+            var list = _times.GetOrAdd("updateCart", n => new LinkedList<long>());
 
             int groupId = 0;
             int cartIndex = 0;
@@ -83,7 +83,7 @@ namespace CqlTest
 
         public async Task DoAddItems(Cart[] carts)
         {
-            var list = _times.GetOrAdd("addItems", (n) => new LinkedList<long>());
+            var list = _times.GetOrAdd("addItems", n => new LinkedList<long>());
 
             int cartIndex = 0;
             int nr = Interlocked.Increment(ref _count);
@@ -107,7 +107,7 @@ namespace CqlTest
 
         public async Task DoGetItems(Cart[] carts)
         {
-            var list = _times.GetOrAdd("getItems", (n) => new LinkedList<long>());
+            var list = _times.GetOrAdd("getItems", n => new LinkedList<long>());
 
             int cartIndex = 0;
             int nr = Interlocked.Increment(ref _count);
@@ -130,7 +130,7 @@ namespace CqlTest
 
         public async Task DoFindByGroupId()
         {
-            var list = _times.GetOrAdd("findByGroupId", (n) => new LinkedList<long>());
+            var list = _times.GetOrAdd("findByGroupId", n => new LinkedList<long>());
 
             int groupId = 0;
             int nr = Interlocked.Increment(ref _count);
@@ -222,7 +222,7 @@ namespace CqlTest
             var array = values.ToArray();
             Array.Sort(array);
 
-            long median = 0;
+            long median;
             if (array.Length % 2 == 1)
             {
                 median = array[array.Length / 2 + 1];
@@ -259,10 +259,9 @@ namespace CqlTest
             {
                 return array[array.Length / 2 + 1];
             }
-            else
-            {
-                return (array[array.Length / 2] + array[array.Length / 2 + 1]) / 2;
-            }
+
+            return (array[array.Length / 2] + array[array.Length / 2 + 1]) / 2;
         }
+
     }
 }

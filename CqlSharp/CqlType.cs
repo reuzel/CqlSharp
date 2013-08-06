@@ -14,7 +14,6 @@
 // limitations under the License.
 
 using System;
-using System.Collections.Concurrent;
 using System.Collections.Generic;
 using System.Net;
 using System.Numerics;
@@ -90,10 +89,6 @@ namespace CqlSharp
                                                                                  {CqlType.Set, typeof (HashSet<>)},
                                                                                  {CqlType.Map, typeof (Dictionary<,>)}
                                                                              };
-
-        private static readonly ConcurrentDictionary<CqlType, object> TypeDefaults =
-            new ConcurrentDictionary<CqlType, object>();
-
 
         public static Type ToType(this CqlType colType)
         {

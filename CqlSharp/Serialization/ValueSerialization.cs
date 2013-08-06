@@ -20,8 +20,9 @@ using System.IO;
 using System.Net;
 using System.Numerics;
 using System.Text;
+using CqlSharp.Protocol;
 
-namespace CqlSharp.Protocol
+namespace CqlSharp.Serialization
 {
     /// <summary>
     ///   Implements (de)serialization of values based on column specifications
@@ -54,7 +55,7 @@ namespace CqlSharp.Protocol
                     {
                         //write length placeholder
                         ms.Position = 2;
-                        short count = 0;
+                        ushort count = 0;
                         foreach (object elem in coll)
                         {
                             byte[] rawDataElem = Serialize(cqlColumn.CollectionValueType.Value, elem);
@@ -78,7 +79,7 @@ namespace CqlSharp.Protocol
                     var map = (IDictionary)data;
                     using (var ms = new MemoryStream())
                     {
-                        ms.WriteShort((short)map.Count);
+                        ms.WriteShort((ushort)map.Count);
                         foreach (DictionaryEntry de in map)
                         {
                             byte[] rawDataKey = Serialize(cqlColumn.CollectionKeyType.Value, de.Key);
@@ -225,7 +226,7 @@ namespace CqlSharp.Protocol
                     var list = (IList)Activator.CreateInstance(typedColl);
                     using (var ms = new MemoryStream(rawData))
                     {
-                        short nbElem = ms.ReadShort();
+                        ushort nbElem = ms.ReadShort();
                         for (int i = 0; i < nbElem; i++)
                         {
                             byte[] elemRawData = ms.ReadShortByteArray();
@@ -245,7 +246,7 @@ namespace CqlSharp.Protocol
                     var tempList = (IList)Activator.CreateInstance(tempListType);
                     using (var ms = new MemoryStream(rawData))
                     {
-                        short nbElem = ms.ReadShort();
+                        ushort nbElem = ms.ReadShort();
                         for (int i = 0; i < nbElem; i++)
                         {
                             byte[] elemRawData = ms.ReadShortByteArray();
@@ -271,7 +272,7 @@ namespace CqlSharp.Protocol
                     var dic = (IDictionary)Activator.CreateInstance(typedDic);
                     using (var ms = new MemoryStream(rawData))
                     {
-                        short nbElem = ms.ReadShort();
+                        ushort nbElem = ms.ReadShort();
                         for (int i = 0; i < nbElem; i++)
                         {
                             byte[] elemRawKey = ms.ReadShortByteArray();

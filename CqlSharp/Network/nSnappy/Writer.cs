@@ -1,6 +1,6 @@
 using CqlSharp.Memory;
 
-namespace NSnappy
+namespace CqlSharp.Network.nSnappy
 {
     [System.Diagnostics.DebuggerDisplay("Value: {DebugString}")]
     class Writer
@@ -16,10 +16,12 @@ namespace NSnappy
             _index = 0;
         }
 
+        // ReSharper disable UnusedMember.Local
         private string DebugString
         {
             get { return System.Text.Encoding.ASCII.GetString(_buffer, 0, _index); }
         }
+        // ReSharper restore UnusedMember.Local
 
         public bool Append(Pointer ip, int len)
         {

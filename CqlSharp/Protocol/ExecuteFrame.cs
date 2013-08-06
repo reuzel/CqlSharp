@@ -43,10 +43,10 @@ namespace CqlSharp.Protocol
         protected override void WriteData(Stream buffer)
         {
             buffer.WriteShortByteArray(QueryId);
-            buffer.WriteShort((short)Parameters.Count);
+            buffer.WriteShort((ushort)Parameters.Count);
             foreach (var prm in Parameters)
                 buffer.WriteByteArray(prm);
-            buffer.WriteShort((short)CqlConsistency);
+            buffer.WriteShort((ushort)CqlConsistency);
         }
 
         protected override Task InitializeAsync()

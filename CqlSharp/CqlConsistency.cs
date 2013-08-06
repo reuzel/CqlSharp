@@ -18,7 +18,7 @@ namespace CqlSharp
     /// <summary>
     ///   Cql Consistency 'levels'
     /// </summary>
-    public enum CqlConsistency : short
+    public enum CqlConsistency : ushort
     {
         Any = 0x0000,
 

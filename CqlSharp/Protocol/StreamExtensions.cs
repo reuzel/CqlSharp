@@ -32,7 +32,7 @@ namespace CqlSharp.Protocol
         /// </summary>
         /// <param name="stream"> The stream. </param>
         /// <param name="data"> The data. </param>
-        public static void WriteShort(this Stream stream, short data)
+        public static void WriteShort(this Stream stream, ushort data)
         {
             //byte[] buffer = BitConverter.GetBytes(data);
             //if (BitConverter.IsLittleEndian) Array.Reverse(buffer);
@@ -53,6 +53,7 @@ namespace CqlSharp.Protocol
             //if (BitConverter.IsLittleEndian) Array.Reverse(buffer);
             //stream.Write(buffer, 0, buffer.Length);
 
+
             stream.WriteByte((byte)(data >> 24));
             stream.WriteByte((byte)(data >> 16));
             stream.WriteByte((byte)(data >> 8));
@@ -72,7 +73,7 @@ namespace CqlSharp.Protocol
             //stream.Write(bufStr, 0, len);
 
             int len = Encoding.UTF8.GetByteCount(data);
-            stream.WriteShort((short)len);
+            stream.WriteShort((ushort)len);
 
             byte[] bufStr = MemoryPool.Instance.Take(len);
             Encoding.UTF8.GetBytes(data, 0, data.Length, bufStr, 0);
@@ -87,7 +88,7 @@ namespace CqlSharp.Protocol
         /// <param name="data"> The data. </param>
         public static void WriteStringList(this Stream stream, IList<string> data)
         {
-            stream.WriteShort((short)data.Count);
+            stream.WriteShort((ushort)data.Count);
             foreach (string s in data)
             {
                 stream.WriteString(s);
@@ -122,7 +123,7 @@ namespace CqlSharp.Protocol
         /// <param name="dic"> The dic. </param>
         public static void WriteStringMap(this Stream stream, IDictionary<string, string> dic)
         {
-            stream.WriteShort((short)dic.Count);
+            stream.WriteShort((ushort)dic.Count);
             foreach (var kvp in dic)
             {
                 stream.WriteString(kvp.Key);
@@ -138,10 +139,10 @@ namespace CqlSharp.Protocol
         public static void WriteShortByteArray(this Stream stream, byte[] data)
         {
             if (data == null)
-                stream.WriteShort(-1);
+                stream.WriteShort(0);
             else
             {
-                var len = (short)data.Length;
+                var len = (ushort)data.Length;
                 stream.WriteShort(len);
                 stream.Write(data, 0, len);
             }
@@ -230,7 +231,7 @@ namespace CqlSharp.Protocol
         /// <param name="stream"> The stream. </param>
         /// <returns> </returns>
         /// <exception cref="System.IO.IOException">Unexpected end of stream reached</exception>
-        public static short ReadShort(this Stream stream)
+        public static ushort ReadShort(this Stream stream)
         {
             int value = 0;
             for (int i = 0; i < 2; i++)
@@ -241,7 +242,7 @@ namespace CqlSharp.Protocol
 
                 value = (value << 8) + read;
             }
-            return (short)value;
+            return (ushort)value;
         }
 
         /// <summary>
@@ -271,7 +272,7 @@ namespace CqlSharp.Protocol
         /// <returns> </returns>
         public static string ReadString(this Stream stream)
         {
-            short len = stream.ReadShort();
+            ushort len = stream.ReadShort();
             if (0 == len)
             {
                 return string.Empty;
@@ -310,12 +311,7 @@ namespace CqlSharp.Protocol
         /// <returns> </returns>
         public static byte[] ReadShortByteArray(this Stream stream)
         {
-            short len = stream.ReadShort();
-            if (-1 == len)
-            {
-                return null;
-            }
-
+            ushort len = stream.ReadShort();
             var data = new byte[len];
             stream.ReadBuffer(data);
             return data;
@@ -328,7 +324,7 @@ namespace CqlSharp.Protocol
         /// <returns> </returns>
         public static string[] ReadStringList(this Stream stream)
         {
-            short len = stream.ReadShort();
+            ushort len = stream.ReadShort();
             var data = new string[len];
             for (int i = 0; i < len; ++i)
             {
@@ -344,7 +340,7 @@ namespace CqlSharp.Protocol
         /// <returns> </returns>
         public static Dictionary<string, string[]> ReadStringMultimap(this Stream stream)
         {
-            short len = stream.ReadShort();
+            ushort len = stream.ReadShort();
             var data = new Dictionary<string, string[]>(len);
             for (int i = 0; i < len; ++i)
             {

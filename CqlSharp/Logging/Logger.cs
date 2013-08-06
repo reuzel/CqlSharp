@@ -53,6 +53,7 @@ namespace CqlSharp.Logging
         ///   Initializes a new instance of the <see cref="Logger" /> class.
         /// </summary>
         /// <param name="logger"> The logger. </param>
+        /// <param name="logLevel">Minimum level to use for logging</param>
         public Logger(ILogger logger, LogLevel logLevel)
         {
             _logger = logger;

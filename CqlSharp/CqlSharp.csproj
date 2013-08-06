@@ -131,7 +131,6 @@
     <Compile Include="Network\Connection.cs" />
     <Compile Include="CqlConsistency.cs" />
     <Compile Include="CqlException.cs" />
-    <Compile Include="Protocol\TypeExtensions.cs" />
     <Compile Include="GuidVersion.cs" />
     <Compile Include="Properties\AssemblyInfo.cs" />
     <Compile Include="Protocol\Frame.cs" />
@@ -142,7 +141,7 @@
     <Compile Include="Protocol\MetadataFlags.cs" />
     <Compile Include="Protocol\ResultOpcode.cs" />
     <Compile Include="Protocol\StreamExtensions.cs" />
-    <Compile Include="Protocol\ValueSerialization.cs" />
+    <Compile Include="Serialization\ValueSerialization.cs" />
     <Compile Include="Serialization\CqlColumnAttribute.cs" />
     <Compile Include="Serialization\CqlIgnoreAttribute.cs" />
     <Compile Include="Serialization\CqlTableAttribute.cs" />
@@ -152,9 +151,10 @@
     <Compile Include="Tracing\QueryTraceCommand.cs" />
     <Compile Include="Tracing\TracingEvent.cs" />
     <Compile Include="Tracing\TracingSession.cs" />
+    <Compile Include="TypeExtensions.cs" />
   </ItemGroup>
   <ItemGroup>
-    <Content Include="Network\nSnappy\readme.txt" />
+    <None Include="Network\nSnappy\readme.txt" />
     <Content Include="Properties\logo.ico" />
   </ItemGroup>
   <ItemGroup>

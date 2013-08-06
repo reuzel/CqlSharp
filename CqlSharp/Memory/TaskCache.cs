@@ -28,7 +28,7 @@ namespace CqlSharp.Memory
 
         private static readonly Task<byte>[] ByteTaskCache;
 
-        private static readonly Task<short>[] ShortTaskCache;
+        private static readonly Task<ushort>[] ShortTaskCache;
 
         private static readonly Task<int>[] IntTaskCache;
 
@@ -40,9 +40,9 @@ namespace CqlSharp.Memory
             for (int i = 0; i < 256; i++)
                 ByteTaskCache[i] = Task.FromResult((byte)(i - Byte.MinValue));
 
-            ShortTaskCache = new Task<short>[CacheSize + 1];
-            for (short i = -1; i < CacheSize; i++)
-                ShortTaskCache[i + 1] = Task.FromResult(i);
+            ShortTaskCache = new Task<ushort>[CacheSize];
+            for (ushort i = 0; i < CacheSize; i++)
+                ShortTaskCache[i] = Task.FromResult(i);
 
             IntTaskCache = new Task<int>[CacheSize + 1];
             for (int i = -1; i < CacheSize; i++)
@@ -80,15 +80,11 @@ namespace CqlSharp.Memory
         /// <summary>
         ///   returns a completed task with the given value as result
         /// </summary>
-        public static Task<short> AsTask(this short value)
+        public static Task<ushort> AsTask(this ushort value)
         {
-            Task<short> result;
-            if (value >= -1 && value < CacheSize)
-                result = ShortTaskCache[value + 1];
-            else
-                result = Task.FromResult(value);
+            Task<ushort> result = value < CacheSize ? ShortTaskCache[value] : Task.FromResult(value);
 
-            Debug.Assert(value == result.Result, "Byte value not properly cached!");
+            Debug.Assert(value == result.Result, "Short value not properly cached!");
 
             return result;
         }

@@ -327,8 +327,10 @@ namespace CqlSharp.Test
 
                                                                       //replace any IO inducing methods
                                                                       connection.OpenAsyncLogger =
-                                                                          (log) => Task.FromResult(true);
+                                                                          log => Task.FromResult(true);
 
+
+                                                                      // ReSharper disable AccessToModifiedClosure
                                                                       connection.SendRequestAsyncFrameLoggerInt32Boolean
                                                                           =
                                                                           (frame, log, load, connecting) =>
@@ -345,11 +347,12 @@ namespace CqlSharp.Test
                                                                                       (Frame)
                                                                                       new ResultFrame { Stream = frame.Stream });
                                                                           };
+                                                                      // ReSharper restore AccessToModifiedClosure
 
                                                                       //intercept load changed handlers
                                                                       connection.
                                                                           OnLoadChangeAddEventHandlerOfLoadChangeEvent
-                                                                          = (handler) => { nodeHandler += handler; };
+                                                                          = handler => { nodeHandler += handler; };
 
                                                                       //return proper load values
                                                                       connection.LoadGet = () => connLoad;

@@ -40,7 +40,7 @@ namespace CqlSharp.Network
         private volatile Ring _nodes;
         private Connection _maintenanceConnection;
         private ConcurrentDictionary<string, ConcurrentDictionary<IPAddress, ResultFrame>> _prepareResultCache;
-        private LoggerManager _loggerManager;
+        private readonly LoggerManager _loggerManager;
 
         /// <summary>
         ///   Initializes a new instance of the <see cref="Cluster" /> class.
@@ -129,7 +129,7 @@ namespace CqlSharp.Network
                     break;
                 case ConnectionStrategy.PartitionAware:
                     _connectionSelector = new PartitionAwareConnectionStrategy(_nodes, _config);
-                    if (_config.DiscoveryScope != DiscoveryScope.Cluster || _config.DiscoveryScope != DiscoveryScope.DataCenter) 
+                    if (_config.DiscoveryScope != DiscoveryScope.Cluster || _config.DiscoveryScope != DiscoveryScope.DataCenter)
                         logger.LogWarning("PartitionAware connection strategy performs best if DiscoveryScope is set to cluster or datacenter");
                     break;
             }

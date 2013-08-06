@@ -52,7 +52,7 @@ namespace CqlSharp.Network
 
         public Connection GetOrCreateConnection(PartitionKey partitionKey)
         {
-            Connection connection = null;
+            Connection connection;
 
             //try pick an unused connection
             while (_connections.TryPop(out connection))
