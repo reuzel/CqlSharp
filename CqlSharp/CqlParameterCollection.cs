@@ -14,52 +14,190 @@
 // limitations under the License.
 
 using CqlSharp.Serialization;
+using System;
+using System.Collections.Generic;
+using System.Collections.ObjectModel;
+using System.Data;
 
 namespace CqlSharp
 {
     /// <summary>
-    ///   A set of input paramaters used for the execution of prepared statements
+    /// Represents a single parameter for use with CqlCommands
     /// </summary>
-    public class CqlParameterCollection
+    public class CqlParameter : IDbDataParameter
     {
-        private readonly CqlSchema _schema;
-        private byte[][] _values;
+        public CqlType CqlType { get; set; }
+        public CqlType? CollectionValueType { get; set; }
+        public CqlType? CollectionKeyType { get; set; }
 
-        internal CqlParameterCollection(CqlSchema schema)
+        public DbType DbType
         {
-            _schema = schema;
-            _values = new byte[schema.Count][];
+            get { return CqlType.ToDbType(); }
+            set { CqlType = value.ToCqlType(); }
         }
 
-        public object this[int index]
+        public ParameterDirection Direction
         {
             get
             {
-                if (_values[index] == null)
-                    return null;
-
-                return _schema[index].Deserialize(_values[index]);
-            }
-            set { _values[index] = _schema[index].Serialize(value); }
-        }
-
-        public object this[string name]
-        {
-            get
-            {
-                int index = _schema[name].Index;
-                return this[index];
+                return ParameterDirection.Input;
             }
             set
             {
-                int index = _schema[name].Index;
-                this[index] = value;
+                if (value != ParameterDirection.Input)
+                    throw new NotSupportedException("Cql only supports input parameters");
             }
+        }
+
+        public bool IsNullable
+        {
+            get { return true; }
+        }
+
+        public string ParameterName { get; set; }
+
+        public string SourceColumn { get; set; }
+
+        public DataRowVersion SourceVersion { get; set; }
+
+        public object Value { get; set; }
+
+        public byte Precision
+        {
+            get
+            {
+                if (Value != null)
+                {
+                    if (Value is float)
+                        return 7;
+
+                    if (Value is double)
+                        return 16;
+                }
+
+                return 0;
+            }
+            set
+            {
+                //noop
+            }
+        }
+
+        public byte Scale
+        {
+            get
+            {
+                if (Value != null)
+                {
+                    if (Value is float || Value is double)
+                    {
+                        var val = (decimal)Value;
+                        return (byte)((decimal.GetBits(val)[3] >> 16) & 0x7F);
+                    }
+                }
+
+                return 0;
+            }
+            set
+            {
+                //noop
+            }
+        }
+
+        public int Size
+        {
+            get
+            {
+                if (Value == null)
+                    return 0;
+
+                return ValueSerialization.Serialize(CqlType, CollectionKeyType, CollectionValueType, Value).Length;
+            }
+            set
+            {
+                //noop
+            }
+        }
+    }
+
+    /// <summary>
+    /// A collection of CqlParameters to be used with CqlCommands
+    /// </summary>
+    public class CqlParameterCollection : KeyedCollection<string, CqlParameter>, IDataParameterCollection
+    {
+        public CqlParameterCollection()
+        {
+        }
+
+        /// <summary>
+        /// Initializes a new instance of the <see cref="CqlParameterCollection" /> class.
+        /// </summary>
+        /// <param name="columns">The columns.</param>
+        /// <param name="option">The parameter creation option.</param>
+        internal CqlParameterCollection(IEnumerable<CqlColumn> columns, CqlParameterCreationOption option)
+        {
+            if (option == CqlParameterCreationOption.None)
+                return;
+
+            foreach (var column in columns)
+            {
+                var parameter = new CqlParameter();
+                switch (option)
+                {
+                    case CqlParameterCreationOption.Column:
+                        parameter.ParameterName = column.Name;
+                        break;
+                    case CqlParameterCreationOption.Table:
+                        parameter.ParameterName = column.TableAndName;
+                        break;
+                    case CqlParameterCreationOption.KeySpace:
+                        parameter.ParameterName = column.KeySpaceTableAndName;
+                        break;
+                }
+
+                parameter.CqlType = column.CqlType;
+                parameter.CollectionKeyType = column.CollectionKeyType;
+                parameter.CollectionValueType = column.CollectionValueType;
+
+                Add(parameter);
+            }
+        }
+
+        protected override string GetKeyForItem(CqlParameter item)
+        {
+            return item.ParameterName;
+        }
+
+        public int IndexOf(string parameterName)
+        {
+            return IndexOf(base[parameterName]);
+        }
+
+        public void RemoveAt(string parameterName)
+        {
+            Remove(parameterName);
+        }
+
+        object IDataParameterCollection.this[string parameterName]
+        {
+            get { return this[parameterName]; }
+            set { SetItem(IndexOf(parameterName), (CqlParameter)value); }
         }
 
         internal byte[][] Values
         {
-            get { return (byte[][])_values.Clone(); }
+            get
+            {
+                var values = new byte[Count][];
+                for (int i = 0; i < Count; i++)
+                {
+                    CqlParameter param = this[i];
+                    values[i] = ValueSerialization.Serialize(param.CqlType, param.CollectionKeyType,
+                                                             param.CollectionValueType, param.Value);
+                }
+
+                return values;
+            }
         }
 
         /// <summary>
@@ -70,20 +208,14 @@ namespace CqlSharp
         public void Set<T>(T source)
         {
             ObjectAccessor<T> accessor = ObjectAccessor<T>.Instance;
-            foreach (CqlColumn column in _schema)
+            foreach (var parameter in Items)
             {
                 object value;
-                if (accessor.TryGetValue(column, source, out value))
-                    this[column.Index] = value;
+                if (accessor.TryGetValue(parameter.ParameterName, source, out value))
+                {
+                    parameter.Value = value;
+                }
             }
-        }
-
-        /// <summary>
-        ///   Clears the parameter values
-        /// </summary>
-        public void Clear()
-        {
-            _values = new byte[_schema.Count][];
         }
     }
 }

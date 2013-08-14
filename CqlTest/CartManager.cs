@@ -125,7 +125,7 @@ namespace CqlTest
                 var command = new CqlCommand(connection, "select Items from Shop.Carts where id=?;");
                 await command.PrepareAsync();
                 command.UseBuffering = true;
-                command.Parameters["id"] = guid;
+                command.Parameters["id"].Value = guid;
                 using (var reader = await command.ExecuteReaderAsync())
                 {
                     return await reader.ReadAsync() ? (Dictionary<string, int>) reader["items"] : null;
@@ -148,8 +148,8 @@ namespace CqlTest
 
                 var command = new CqlCommand(connection, "update Shop.Carts set items = items + ? where id = ?;");
                 await command.PrepareAsync();
-                command.Parameters["id"] = guid;
-                command.Parameters["items"] = items;
+                command.Parameters["id"].Value = guid;
+                command.Parameters["items"].Value = items;
                 await command.ExecuteNonQueryAsync();
             }
         }
@@ -169,7 +169,7 @@ namespace CqlTest
                 var command = new CqlCommand(connection, "select * from Shop.Carts where GroupId=?;");
                 await command.PrepareAsync();
                 command.UseBuffering = true;
-                command.Parameters["groupid"] = groupId;
+                command.Parameters["groupid"].Value = groupId;
                 using (var reader = await command.ExecuteReaderAsync<Cart>())
                 {
                     var carts = new List<Cart>();

@@ -23,19 +23,20 @@ using System.Reflection;
 namespace CqlSharp.Serialization
 {
     /// <summary>
-    ///   Provides access to object fields and properties based on columnn descriptions.
+    /// Provides access to object fields and properties based on columnn descriptions.
     /// </summary>
+    /// <typeparam name="T"></typeparam>
     internal class ObjectAccessor<T>
     {
         /// <summary>
-        /// SingleTon instance
+        /// Singleton instance
         /// </summary>
         public static readonly ObjectAccessor<T> Instance = new ObjectAccessor<T>();
 
         private readonly Func<T, object>[] _partitionKeyReadFuncs;
         private readonly CqlType[] _partitionKeyTypes;
-        private readonly bool _keySpaceSet;
-        private readonly bool _tableSet;
+        public bool IsKeySpaceSet { get; private set; }
+        public bool IsTableSet { get; private set; }
 
         /// <summary>
         ///   Read functions to used to read member or property values
@@ -64,17 +65,17 @@ namespace CqlSharp.Serialization
 
             //set default table name to class name if table is not anonymous
             Type type = typeof(T);
-            _tableSet = !type.IsAnonymous();
-            if (_tableSet)
-                table = type.Name;
+            IsTableSet = !type.IsAnonymous();
+            if (IsTableSet)
+                table = type.Name.ToLower();
 
             //check for CqlTable attribute
             var tableAttribute = Attribute.GetCustomAttribute(type, typeof(CqlTableAttribute)) as CqlTableAttribute;
             if (tableAttribute != null)
             {
                 //overwrite keyspace if any
-                _keySpaceSet = tableAttribute.Keyspace != null;
-                if (_keySpaceSet)
+                IsKeySpaceSet = tableAttribute.Keyspace != null;
+                if (IsKeySpaceSet)
                     keyspace = tableAttribute.Keyspace;
 
                 //set default table name
@@ -85,23 +86,25 @@ namespace CqlSharp.Serialization
             foreach (PropertyInfo prop in type.GetProperties())
             {
                 //get the column name of the property
-                string name = GetColumnName(prop, table, keyspace);
+                string name = GetColumnName(prop);
 
                 //check if we get a proper name
                 if (string.IsNullOrEmpty(name))
                     continue;
 
-                //add write func if we can write the property
-                if (prop.CanWrite && !prop.SetMethod.IsPrivate)
-                {
-                    _writeFuncs[name] = MakeSetterDelegate(prop);
-                }
-
                 //add the read func if we can read the property
                 if (prop.CanRead && !prop.GetMethod.IsPrivate)
                 {
-                    _readFuncs[name] = MakeGetterDelegate(prop);
-                    SetPartitionKeyMember(keyMembers, prop, _readFuncs[name]);
+                    var getter = MakeGetterDelegate(prop);
+                    AddReadFunc(getter, name, table, keyspace);
+                    SetPartitionKeyMember(keyMembers, prop, getter);
+                }
+
+                //add write func if we can write the property
+                if (prop.CanWrite && !prop.SetMethod.IsPrivate)
+                {
+                    var setter = MakeSetterDelegate(prop);
+                    AddWriteFunc(setter, name, table, keyspace);
                 }
             }
 
@@ -109,27 +112,53 @@ namespace CqlSharp.Serialization
             foreach (FieldInfo field in type.GetFields())
             {
                 //get the column name of the field
-                string name = GetColumnName(field, table, keyspace);
+                string name = GetColumnName(field);
 
                 //check if we get a proper name
                 if (string.IsNullOrEmpty(name))
                     continue;
 
+                //set getter functions
+                var getter = MakeFieldGetterDelegate(field);
+                AddReadFunc(getter, name, table, keyspace);
+                SetPartitionKeyMember(keyMembers, field, getter);
 
-                //set getter and setter functions
+                //set setter functions if not readonly
                 if (!field.IsInitOnly)
                 {
-                    _writeFuncs[name] = MakeFieldSetterDelegate(field);
+                    var setter = MakeFieldSetterDelegate(field);
+                    AddWriteFunc(setter, name, table, keyspace);
                 }
 
-                _readFuncs[name] = MakeFieldGetterDelegate(field);
-                SetPartitionKeyMember(keyMembers, field, _readFuncs[name]);
+
             }
 
             //sort keyMembers on partitionIndex
             keyMembers.Sort((a, b) => a.Item1.CompareTo(b.Item1));
             _partitionKeyReadFuncs = keyMembers.Select(km => km.Item2).ToArray();
             _partitionKeyTypes = keyMembers.Select(km => km.Item3).ToArray();
+        }
+
+        private void AddWriteFunc(Action<T, object> setter, string column, string table, string keyspace)
+        {
+            _writeFuncs[column] = setter;
+            if (table != null)
+            {
+                _writeFuncs[table + "." + column] = setter;
+                if (keyspace != null)
+                    _writeFuncs[keyspace + "." + table + "." + column] = setter;
+            }
+        }
+
+        private void AddReadFunc(Func<T, object> getter, string column, string table, string keyspace)
+        {
+            _readFuncs[column] = getter;
+            if (table != null)
+            {
+                _readFuncs[table + "." + column] = getter;
+                if (keyspace != null)
+                    _readFuncs[keyspace + "." + table + "." + column] = getter;
+            }
         }
 
         /// <summary>
@@ -163,10 +192,8 @@ namespace CqlSharp.Serialization
         ///   Gets the name of the column of the specified member.
         /// </summary>
         /// <param name="member"> The member. </param>
-        /// <param name="table"> The table. </param>
-        /// <param name="keyspace"> The keyspace. </param>
         /// <returns> </returns>
-        private static string GetColumnName(MemberInfo member, string table, string keyspace)
+        private static string GetColumnName(MemberInfo member)
         {
             //check for ignore attribute
             var ignoreAttribute =
@@ -180,9 +207,7 @@ namespace CqlSharp.Serialization
             var columnAttribute =
                 Attribute.GetCustomAttribute(member, typeof(CqlColumnAttribute)) as CqlColumnAttribute;
 
-            string cName = columnAttribute != null ? columnAttribute.Column : member.Name;
-
-            return (keyspace + "." + table + "." + cName).ToLower();
+            return columnAttribute != null ? columnAttribute.Column : member.Name.ToLower();
         }
 
         /// <summary>
@@ -194,7 +219,7 @@ namespace CqlSharp.Serialization
         /// <returns> true, if the value could be distilled from the source </returns>
         /// <exception cref="System.ArgumentNullException">column</exception>
         /// <exception cref="System.ArgumentException">Source is not of the correct type!;source</exception>
-        public bool TryGetValue(CqlColumn column, T source, out object value)
+        public bool TryGetValue(string column, T source, out object value)
         {
             if (column == null)
                 throw new ArgumentNullException("column");
@@ -204,28 +229,9 @@ namespace CqlSharp.Serialization
                 // ReSharper restore CompareNonConstrainedGenericWithNull
                 throw new ArgumentNullException("source");
 
-            if (source.GetType() != typeof(T))
-                throw new ArgumentException("Source is not of the correct type!", "source");
-
             Func<T, object> func;
 
-            if (_keySpaceSet && _tableSet)
-            {
-                if (_readFuncs.TryGetValue(column.KsTableNameNormalized, out func))
-                {
-                    value = func(source);
-                    return true;
-                }
-            }
-            else if (_tableSet)
-            {
-                if (_readFuncs.TryGetValue(column.TableNameNormalized, out func))
-                {
-                    value = func(source);
-                    return true;
-                }
-            }
-            else if (_readFuncs.TryGetValue(column.NameNormalized, out func))
+            if (_readFuncs.TryGetValue(column, out func))
             {
                 value = func(source);
                 return true;
@@ -236,39 +242,31 @@ namespace CqlSharp.Serialization
         }
 
         /// <summary>
-        ///   Tries to set a property or field of the specified object, based on the column description
+        /// Tries to set a property or field of the specified object, based on the column description
         /// </summary>
-        /// <param name="column"> The column. </param>
-        /// <param name="target"> The target. </param>
-        /// <param name="value"> The value. </param>
-        /// <returns> true if the property or field value is set </returns>
-        /// <exception cref="System.ArgumentNullException">column</exception>
-        /// <exception cref="System.ArgumentException">Source is not of the correct type!;target</exception>
-        public bool TrySetValue(CqlColumn column, T target, object value)
+        /// <param name="column">The column name.</param>
+        /// <param name="target">The target.</param>
+        /// <param name="value">The value.</param>
+        /// <returns>
+        /// true if the property or field value is set
+        /// </returns>
+        /// <exception cref="System.ArgumentNullException">column or target are null</exception>
+        public bool TrySetValue(string column, T target, object value)
         {
+            if (column == null)
+                throw new ArgumentNullException("column");
+
+            // ReSharper disable CompareNonConstrainedGenericWithNull
+            if (target == null)
+                // ReSharper restore CompareNonConstrainedGenericWithNull
+                throw new ArgumentNullException("target");
+
+
             Action<T, object> func;
 
-            if (_keySpaceSet && _tableSet)
-            {
-                if (_writeFuncs.TryGetValue(column.KsTableNameNormalized, out func))
-                {
-                    func(target, value);
-                    return true;
-                }
-            }
-            else if (_tableSet)
-            {
-                if (_writeFuncs.TryGetValue(column.TableNameNormalized, out func))
-                {
-                    func(target, value);
-
-                    return true;
-                }
-            }
-            else if (_writeFuncs.TryGetValue(column.NameNormalized, out func))
+            if (_writeFuncs.TryGetValue(column, out func))
             {
                 func(target, value);
-
                 return true;
             }
 

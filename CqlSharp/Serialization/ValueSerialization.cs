@@ -13,6 +13,7 @@
 // See the License for the specific language governing permissions and
 // limitations under the License.
 
+using CqlSharp.Protocol;
 using System;
 using System.Collections;
 using System.Collections.Generic;
@@ -20,7 +21,6 @@ using System.IO;
 using System.Net;
 using System.Numerics;
 using System.Text;
-using CqlSharp.Protocol;
 
 namespace CqlSharp.Serialization
 {
@@ -33,21 +33,20 @@ namespace CqlSharp.Serialization
     internal static class ValueSerialization
     {
 
-
         private static readonly bool IsLittleEndian = BitConverter.IsLittleEndian;
 
-        public static byte[] Serialize(this CqlColumn cqlColumn, object data)
+        public static byte[] Serialize(CqlType type, CqlType? collectionKeyType, CqlType? collectionValueType, object data)
         {
             //null value check
             if (data == null)
                 return null;
 
             byte[] rawData;
-            switch (cqlColumn.CqlType)
+            switch (type)
             {
                 case CqlType.List:
                 case CqlType.Set:
-                    if (!cqlColumn.CollectionValueType.HasValue)
+                    if (!collectionValueType.HasValue)
                         throw new CqlException("CqlColumn collection type must has its value type set");
 
                     var coll = (IEnumerable)data;
@@ -58,7 +57,7 @@ namespace CqlSharp.Serialization
                         ushort count = 0;
                         foreach (object elem in coll)
                         {
-                            byte[] rawDataElem = Serialize(cqlColumn.CollectionValueType.Value, elem);
+                            byte[] rawDataElem = Serialize(collectionValueType.Value, elem);
                             ms.WriteShortByteArray(rawDataElem);
                             count++;
                         }
@@ -70,10 +69,10 @@ namespace CqlSharp.Serialization
 
                 case CqlType.Map:
 
-                    if (!cqlColumn.CollectionKeyType.HasValue)
+                    if (!collectionKeyType.HasValue)
                         throw new CqlException("CqlColumn map type must has its key type set");
 
-                    if (!cqlColumn.CollectionValueType.HasValue)
+                    if (!collectionValueType.HasValue)
                         throw new CqlException("CqlColumn map type must has its value type set");
 
                     var map = (IDictionary)data;
@@ -82,9 +81,9 @@ namespace CqlSharp.Serialization
                         ms.WriteShort((ushort)map.Count);
                         foreach (DictionaryEntry de in map)
                         {
-                            byte[] rawDataKey = Serialize(cqlColumn.CollectionKeyType.Value, de.Key);
+                            byte[] rawDataKey = Serialize(collectionKeyType.Value, de.Key);
                             ms.WriteShortByteArray(rawDataKey);
-                            byte[] rawDataValue = Serialize(cqlColumn.CollectionValueType.Value, de.Value);
+                            byte[] rawDataValue = Serialize(collectionValueType.Value, de.Value);
                             ms.WriteShortByteArray(rawDataValue);
                         }
                         rawData = ms.ToArray();
@@ -92,21 +91,21 @@ namespace CqlSharp.Serialization
                     break;
 
                 default:
-                    rawData = Serialize(cqlColumn.CqlType, data);
+                    rawData = Serialize(type, data);
                     break;
             }
 
             return rawData;
         }
 
-        public static byte[] Serialize(CqlType colType, object data)
+        public static byte[] Serialize(CqlType type, object data)
         {
             //null value check
             if (data == null)
                 return null;
 
             byte[] rawData;
-            switch (colType)
+            switch (type)
             {
                 case CqlType.Ascii:
                     rawData = Encoding.ASCII.GetBytes(Convert.ToString(data));
@@ -221,8 +220,7 @@ namespace CqlSharp.Serialization
                     if (!cqlColumn.CollectionValueType.HasValue)
                         throw new CqlException("CqlColumn collection type must has its value type set");
 
-                    colType = cqlColumn.CollectionValueType.Value.ToType();
-                    Type typedColl = typeof(List<>).MakeGenericType(colType);
+                    Type typedColl = cqlColumn.ToType();
                     var list = (IList)Activator.CreateInstance(typedColl);
                     using (var ms = new MemoryStream(rawData))
                     {
@@ -254,7 +252,7 @@ namespace CqlSharp.Serialization
                             tempList.Add(elem);
                         }
 
-                        Type typedSet = typeof(HashSet<>).MakeGenericType(colType);
+                        Type typedSet = cqlColumn.ToType();
                         data = Activator.CreateInstance(typedSet, tempList);
                     }
                     break;
@@ -266,9 +264,7 @@ namespace CqlSharp.Serialization
                     if (!cqlColumn.CollectionValueType.HasValue)
                         throw new CqlException("CqlColumn map type must has its value type set");
 
-                    Type keyType = cqlColumn.CollectionKeyType.Value.ToType();
-                    colType = cqlColumn.CollectionValueType.Value.ToType();
-                    Type typedDic = typeof(Dictionary<,>).MakeGenericType(keyType, colType);
+                    Type typedDic = cqlColumn.ToType();
                     var dic = (IDictionary)Activator.CreateInstance(typedDic);
                     using (var ms = new MemoryStream(rawData))
                     {
@@ -289,7 +285,7 @@ namespace CqlSharp.Serialization
             return data;
         }
 
-        private static object Deserialize(CqlType colType, byte[] rawData)
+        internal static object Deserialize(CqlType colType, byte[] rawData)
         {
 
             object data;

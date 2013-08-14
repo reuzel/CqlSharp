@@ -125,7 +125,7 @@ namespace CqlSharp.Test
                 while (await reader.ReadAsync())
                 {
                     BasicFlowData row = reader.Current;
-                    Assert.AreEqual(row.Data, "Hallo " + row.Id);
+                    Assert.AreEqual("Hallo " + row.Id, row.Data);
                     presence[row.Id] = true;
                 }
 
@@ -149,7 +149,7 @@ namespace CqlSharp.Test
 
         #region Nested type: BasicFlowData
 
-        [CqlTable("BasicFlow", Keyspace = "Test")]
+        [CqlTable("basicflow", Keyspace = "test")]
         public class BasicFlowData
         {
             [CqlColumn("id", PartitionKeyIndex = 0, CqlType = CqlType.Int)]

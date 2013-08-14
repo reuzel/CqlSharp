@@ -27,5 +27,6 @@ namespace CqlSharp
         public bool TracingEnabled;
         public bool UseBuffering;
         public byte[][] Values;
+        public CqlParameterCreationOption ParamCreationOption;
     }
 }

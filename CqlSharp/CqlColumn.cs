@@ -13,6 +13,8 @@
 // See the License for the specific language governing permissions and
 // limitations under the License.
 
+using System;
+
 namespace CqlSharp
 {
     /// <summary>
@@ -22,7 +24,6 @@ namespace CqlSharp
     {
         private string _ksTableName;
         private string _tableName;
-        private string _name;
 
         /// <summary>
         ///   Initializes a new instance of the <see cref="CqlColumn" /> class.
@@ -64,37 +65,31 @@ namespace CqlSharp
 
         public CqlType? CollectionValueType { get; private set; }
 
-        internal string KsTableNameNormalized
+        internal string KeySpaceTableAndName
         {
             get
             {
                 if (_ksTableName == null)
-                    _ksTableName = (Keyspace + "." + Table + "." + Name).ToLower();
+                    _ksTableName = Keyspace + "." + Table + "." + Name;
 
                 return _ksTableName;
             }
         }
 
-        internal string TableNameNormalized
+        internal string TableAndName
         {
             get
             {
                 if (_tableName == null)
-                    _tableName = ("." + Table + "." + Name).ToLower();
+                    _tableName = Table + "." + Name;
 
                 return _tableName;
             }
         }
 
-        internal string NameNormalized
+        public Type ToType()
         {
-            get
-            {
-                if (_name == null)
-                    _name = (".." + Name).ToLower();
-
-                return _name;
-            }
+            return CqlType.ToType(CollectionKeyType, CollectionValueType);
         }
     }
 }

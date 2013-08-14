@@ -181,18 +181,18 @@ namespace CqlSharp.Test
 
                 Assert.IsNotNull(result);
 
-                Assert.AreEqual(result.aASCIIString, values.aASCIIString);
-                Assert.AreEqual(result.aVarcharString, values.aVarcharString);
-                Assert.AreEqual(result.aVarint, values.aVarint);
-                Assert.AreEqual(result.aTextString, values.aTextString);
-                Assert.AreEqual(result.aBool, values.aBool);
-                Assert.AreEqual(result.aDouble, values.aDouble);
-                Assert.AreEqual(result.aFloat, values.aFloat);
-                Assert.AreEqual(result.aInet, values.aInet);
-                Assert.AreEqual(result.aInt, values.aInt);
-                Assert.AreEqual(result.aLong, values.aLong);
-                Assert.AreEqual(result.aTimeUUID, values.aTimeUUID);
-                Assert.AreEqual(result.aUUID, values.aUUID);
+                Assert.AreEqual(values.aASCIIString, result.aASCIIString);
+                Assert.AreEqual(values.aVarcharString, result.aVarcharString);
+                Assert.AreEqual(values.aVarint, result.aVarint);
+                Assert.AreEqual(values.aTextString, result.aTextString);
+                Assert.AreEqual(values.aBool, result.aBool);
+                Assert.AreEqual(values.aDouble, result.aDouble);
+                Assert.AreEqual(values.aFloat, result.aFloat);
+                Assert.AreEqual(values.aInet, result.aInet);
+                Assert.AreEqual(values.aInt, result.aInt);
+                Assert.AreEqual(values.aLong, result.aLong);
+                Assert.AreEqual(values.aTimeUUID, result.aTimeUUID);
+                Assert.AreEqual(values.aUUID, result.aUUID);
                 Assert.IsTrue(result.aBlob.SequenceEqual(values.aBlob));
                 Assert.IsTrue(result.aList.SequenceEqual(values.aList));
                 Assert.IsTrue(result.aSet.SequenceEqual(values.aSet));

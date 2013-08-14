@@ -19,6 +19,7 @@ using CqlSharp.Network;
 using CqlSharp.Network.Partition;
 using CqlSharp.Protocol;
 using System;
+using System.Data;
 using System.Threading.Tasks;
 
 namespace CqlSharp
@@ -26,14 +27,15 @@ namespace CqlSharp
     /// <summary>
     ///   A Cql query
     /// </summary>
-    public class CqlCommand
+    public class CqlCommand : IDbCommand
     {
-        private readonly CqlConnection _connection;
-        private readonly string _cql;
+        private CqlConnection _connection;
+        private string _cql;
         private readonly CqlConsistency _level;
         private CqlParameterCollection _parameters;
         private PartitionKey _partitionKey;
         private bool _prepared;
+        private CqlParameterCreationOption _paramCreation;
 
         /// <summary>
         ///   Initializes a new instance of the <see cref="CqlCommand" /> class.
@@ -61,20 +63,9 @@ namespace CqlSharp
         {
         }
 
-        /// <summary>
-        ///   Gets the parameters that need to be set before executing a prepared query
-        /// </summary>
-        /// <value> The parameters. </value>
-        /// <exception cref="CqlException">Parameters are available only after a query has been prepared</exception>
-        public CqlParameterCollection Parameters
+        public CqlCommand(CqlConnection connection)
+            : this(connection, null, CqlConsistency.One)
         {
-            get
-            {
-                if (_parameters == null)
-                    throw new CqlException("Parameters are available only after a query has been prepared");
-
-                return _parameters;
-            }
         }
 
         /// <summary>
@@ -110,6 +101,104 @@ namespace CqlSharp
                 return _partitionKey;
             }
         }
+
+        public string CommandText
+        {
+            get { return _cql; }
+            set { _cql = value; }
+        }
+
+        public int CommandTimeout
+        {
+            get
+            {
+                throw new NotSupportedException();
+            }
+            set
+            {
+                throw new NotSupportedException();
+            }
+        }
+
+        public CommandType CommandType
+        {
+            get
+            {
+                return CommandType.Text;
+            }
+            set
+            {
+                if (value != CommandType.Text)
+                    throw new ArgumentException("Only Text commands are supported");
+            }
+        }
+
+        public IDbConnection Connection
+        {
+            get { return _connection; }
+            set { _connection = (CqlConnection)value; }
+        }
+
+
+
+        IDbTransaction IDbCommand.Transaction
+        {
+            get
+            {
+                throw new NotSupportedException();
+            }
+            set
+            {
+                throw new NotSupportedException();
+            }
+        }
+
+        /// <summary>
+        /// Gets the <see cref="T:System.Data.IDataParameterCollection"/>.
+        /// </summary>
+        /// <returns>
+        /// The parameters of the SQL statement or stored procedure.
+        /// </returns>
+        /// <filterpriority>2</filterpriority>
+        IDataParameterCollection IDbCommand.Parameters
+        {
+            get { return Parameters; }
+        }
+
+        UpdateRowSource IDbCommand.UpdatedRowSource
+        {
+            get
+            {
+                throw new NotImplementedException();
+            }
+            set
+            {
+                throw new NotImplementedException();
+            }
+        }
+
+        /// <summary>
+        ///   Gets the parameters that need to be set before executing a prepared query
+        /// </summary>
+        /// <value> The parameters. </value>
+        /// <exception cref="CqlException">Parameters are available only after a query has been prepared</exception>
+        public CqlParameterCollection Parameters
+        {
+            get
+            {
+                if (_parameters == null)
+                    throw new CqlException("Parameters are available only after a query has been prepared");
+
+                return _parameters;
+            }
+        }
+
+        public IDbDataParameter CreateParameter()
+        {
+            return new CqlParameter();
+        }
+
+
 
         /// <summary>
         ///   Executes the query async.
@@ -169,6 +258,41 @@ namespace CqlSharp
             {
                 throw aex.InnerException;
             }
+        }
+
+        /// <summary>
+        /// Executes the <see cref="P:System.Data.IDbCommand.CommandText"/> against the <see cref="P:System.Data.IDbCommand.Connection"/> and builds an <see cref="T:System.Data.IDataReader"/>.
+        /// </summary>
+        /// <returns>
+        /// An <see cref="T:System.Data.IDataReader"/> object.
+        /// </returns>
+        /// <filterpriority>2</filterpriority>
+        IDataReader IDbCommand.ExecuteReader()
+        {
+            return ExecuteReader();
+        }
+
+        /// <summary>
+        /// Executes the <see cref="P:System.Data.IDbCommand.CommandText" /> against the <see cref="P:System.Data.IDbCommand.Connection" />, and builds an <see cref="T:System.Data.IDataReader" /> using one of the <see cref="T:System.Data.CommandBehavior" /> values.
+        /// </summary>
+        /// <param name="behavior">One of the <see cref="T:System.Data.CommandBehavior" /> values.</param>
+        /// <returns>
+        /// An <see cref="T:System.Data.IDataReader" /> object.
+        /// </returns>
+        /// <exception cref="System.ArgumentException">Command behavior not supported;behavior</exception>
+        public IDataReader ExecuteReader(CommandBehavior behavior)
+        {
+            if (behavior.HasFlag(CommandBehavior.SequentialAccess))
+                UseBuffering = false;
+
+            if (behavior.HasFlag(CommandBehavior.KeyInfo) ||
+                behavior.HasFlag(CommandBehavior.SchemaOnly) ||
+                behavior.HasFlag(CommandBehavior.CloseConnection) ||
+                behavior.HasFlag(CommandBehavior.SingleResult) ||
+                behavior.HasFlag(CommandBehavior.SingleRow))
+                throw new ArgumentException("Command behavior not supported", "behavior");
+
+            return ExecuteReader();
         }
 
 
@@ -353,12 +477,31 @@ namespace CqlSharp
             }
         }
 
+        /// <summary>
+        /// Executes the non-query. Will return 1 always as Cql does not return information on the amount
+        /// of rows updated.
+        /// </summary>
+        /// <returns></returns>
+        int IDbCommand.ExecuteNonQuery()
+        {
+            ExecuteNonQuery();
+            return 1;
+        }
+
+        /// <summary>
+        /// Cancels the execution of this command. Not supported.
+        /// </summary>
+        /// <exception cref="System.NotSupportedException"></exception>
+        public void Cancel()
+        {
+            throw new NotSupportedException();
+        }
 
         /// <summary>
         ///   Prepares the query async.
         /// </summary>
         /// <returns> </returns>
-        public async Task PrepareAsync()
+        public async Task PrepareAsync(CqlParameterCreationOption paramCreation = CqlParameterCreationOption.Column)
         {
             var logger = _connection.LoggerManager.GetLogger("CqlSharp.CqlCommand.Prepare");
 
@@ -369,6 +512,7 @@ namespace CqlSharp
             try
             {
                 //capture state
+                _paramCreation = paramCreation;
                 var state = CaptureState();
 
                 logger.LogVerbose("State captured, start executing query");
@@ -395,10 +539,13 @@ namespace CqlSharp
                                 TracingEnabled = EnableTracing,
                                 UseBuffering = UseBuffering,
                                 PartitionKey = PartitionKey != null ? PartitionKey.Copy() : null,
-                                Load = Load
+                                Load = Load,
+                                ParamCreationOption = _paramCreation
                             };
             return state;
         }
+
+
 
         /// <summary>
         ///   Prepares the query
@@ -408,16 +555,32 @@ namespace CqlSharp
         /// </remarks>
         /// <returns> A ICqlQueryResult of type rows, Void, SchemaChange or SetKeySpace </returns>
         /// <exception cref="CqlException">Unexpected type of result received</exception>
-        public void Prepare()
+        public void Prepare(CqlParameterCreationOption paramCreation)
         {
             try
             {
-                PrepareAsync().Wait();
+                PrepareAsync(paramCreation).Wait();
             }
             catch (AggregateException aex)
             {
                 throw aex.InnerException;
             }
+        }
+
+        /// <summary>
+        /// Creates a prepared (or compiled) version of the command on the data source.
+        /// </summary>
+        public void Prepare()
+        {
+            Prepare(CqlParameterCreationOption.Column);
+        }
+
+        /// <summary>
+        /// Creates a prepared (or compiled) version of the command on the data source.
+        /// </summary>
+        void IDbCommand.Prepare()
+        {
+            Prepare(CqlParameterCreationOption.None);
         }
 
 
@@ -541,7 +704,7 @@ namespace CqlSharp
 
             //set parameters collection if not done so before
             if (_parameters == null)
-                _parameters = new CqlParameterCollection(result.Schema);
+                _parameters = new CqlParameterCollection(result.Schema, state.ParamCreationOption);
 
             return result;
         }
@@ -590,6 +753,15 @@ namespace CqlSharp
             }
 
             throw new CqlException("Unexpected frame received " + response.OpCode);
+        }
+
+
+        /// <summary>
+        /// Performs application-defined tasks associated with freeing, releasing, or resetting unmanaged resources.
+        /// </summary>
+        /// <filterpriority>2</filterpriority>
+        void IDisposable.Dispose()
+        {
         }
     }
 }

@@ -13,6 +13,7 @@
 // See the License for the specific language governing permissions and
 // limitations under the License.
 
+using System.Data;
 using CqlSharp.Config;
 using CqlSharp.Logging;
 using CqlSharp.Network;
@@ -29,7 +30,7 @@ namespace CqlSharp
     /// <summary>
     ///   A connection to a Cassandra cluster
     /// </summary>
-    public class CqlConnection : IDisposable
+    public class CqlConnection : IDbConnection
     {
         private static readonly ConcurrentDictionary<string, ClusterConfig> Configs;
         private static readonly ConcurrentDictionary<ClusterConfig, Cluster> Clusters;
@@ -49,6 +50,15 @@ namespace CqlSharp
         /// </summary>
         /// <param name="connectionString"> The connection string. </param>
         public CqlConnection(string connectionString)
+        {
+            SetCluster(connectionString);
+        }
+
+        /// <summary>
+        /// Sets the cluster.
+        /// </summary>
+        /// <param name="connectionString">The connection string.</param>
+        private void SetCluster(string connectionString)
         {
             //get the cluster config, or add one if none exists
             ClusterConfig config = Configs.GetOrAdd(connectionString, connString =>
@@ -91,6 +101,65 @@ namespace CqlSharp
         {
             _cluster = cluster;
         }
+
+
+        IDbTransaction IDbConnection.BeginTransaction(IsolationLevel il)
+        {
+            throw new NotSupportedException();
+        }
+
+        IDbTransaction IDbConnection.BeginTransaction()
+        {
+            throw new NotSupportedException();
+        }
+
+        void IDbConnection.ChangeDatabase(string databaseName)
+        {
+            throw new NotImplementedException();
+        }
+
+        void IDbConnection.Close()
+        {
+            //no effect, TODO: introduce more states
+        }
+
+        public string ConnectionString
+        {
+            get { return _cluster.Config.ToString(); }
+            set
+            {
+                if (_state != 0)
+                    throw new InvalidOperationException("Can set connection string only when the connection is closed");
+
+                SetCluster(value);
+            }
+        }
+
+        int IDbConnection.ConnectionTimeout
+        {
+            get { throw new NotSupportedException(); }
+        }
+
+        public IDbCommand CreateCommand()
+        {
+            return new CqlCommand(this);
+        }
+
+        string IDbConnection.Database
+        {
+            get { throw new NotImplementedException(); }
+        }
+
+        void IDbConnection.Open()
+        {
+            Open();
+        }
+
+        ConnectionState IDbConnection.State
+        {
+            get { return _state == 1 ? ConnectionState.Open : ConnectionState.Closed; }
+        }
+
 
         /// <summary>
         ///   Gets or sets the throttle.
@@ -220,7 +289,7 @@ namespace CqlSharp
         /// <param name="disposing"> <c>true</c> to release both managed and unmanaged resources; <c>false</c> to release only unmanaged resources. </param>
         protected void Dispose(bool disposing)
         {
-            if (disposing && (Interlocked.Exchange(ref _state, 2) == 1))
+            if (disposing && (Interlocked.Exchange(ref _state, 2) != 2))
             {
                 if (_connection != null)
                 {

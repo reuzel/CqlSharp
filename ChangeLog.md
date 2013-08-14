@@ -1,4 +1,7 @@
-## Version 0.14.1 - Bug fixes
+## Version 0.15.0 - Bug fixes
+* Breaking changes: making CqlSharp implement ADO.NET interfaces
+
+## Version 0.14.1 - Bug fixes (not released)
 * Making short values unsigned shorts as depicted in Cql binary protocol spec.
 * Added few missing ConfigureAwaits
 * Cleanup of code

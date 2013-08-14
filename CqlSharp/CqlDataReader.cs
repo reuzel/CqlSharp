@@ -18,6 +18,7 @@ using CqlSharp.Serialization;
 using System;
 using System.Collections;
 using System.Collections.Generic;
+using System.Data;
 using System.Threading;
 using System.Threading.Tasks;
 
@@ -26,7 +27,7 @@ namespace CqlSharp
     /// <summary>
     ///   Provides access to a set of Cql data rows as returned from a query
     /// </summary>
-    public class CqlDataReader : ICqlQueryResult, IDisposable
+    public class CqlDataReader : ICqlQueryResult, IDataReader
     {
         private readonly ResultFrame _frame;
         protected byte[][] CurrentValues;
@@ -47,7 +48,13 @@ namespace CqlSharp
         /// <value> The schema. </value>
         public CqlSchema Schema
         {
-            get { return _frame.Schema; }
+            get
+            {
+                if (_frame.Schema == null)
+                    throw new InvalidOperationException("No result schema is available");
+
+                return _frame.Schema;
+            }
         }
 
         /// <summary>
@@ -149,8 +156,11 @@ namespace CqlSharp
         }
 
         /// <summary>
-        ///   Forwards the reader to the next row.
+        /// Forwards the reader to the next row.
         /// </summary>
+        /// <returns>
+        /// true if there are more rows; otherwise, false.
+        /// </returns>
         public bool Read()
         {
             return ReadAsync().Result;
@@ -185,6 +195,426 @@ namespace CqlSharp
         ~CqlDataReader()
         {
             Dispose(false);
+        }
+
+
+        /// <summary>
+        /// Gets a value indicating the depth of nesting for the current row.
+        /// </summary>
+        /// <returns>The level of nesting.</returns>
+        public int Depth
+        {
+            get { return 0; }
+        }
+
+        /// <summary>
+        /// Returns a <see cref="T:System.Data.DataTable" /> that describes the column metadata of the <see cref="T:System.Data.IDataReader" />.
+        /// </summary>
+        /// <returns>
+        /// A <see cref="T:System.Data.DataTable" /> that describes the column metadata.
+        /// </returns>
+        public DataTable GetSchemaTable()
+        {
+            var table = new DataTable();
+            table.Columns.Add("ColumnOrdinal", typeof(int));
+            table.Columns.Add("KeySpaceName", typeof(string));
+            table.Columns.Add("TableName", typeof(string));
+            table.Columns.Add("ColumnName", typeof(string));
+            table.Columns.Add("CqlType", typeof(string));
+            table.Columns.Add("CollectionKeyType", typeof(string));
+            table.Columns.Add("CollectionValueType", typeof(string));
+            table.Columns.Add("Type", typeof(string));
+
+            foreach (var column in Schema)
+            {
+                var row = table.NewRow();
+                row["ColumnOrdinal"] = column.Index;
+                row["KeySpaceName"] = column.Keyspace;
+                row["TableName"] = column.Table;
+                row["ColumnName"] = column.Name;
+                row["CqlType"] = column.CqlType.ToString();
+                row["CollectionKeyType"] = column.CollectionKeyType.ToString();
+                row["CollectionValueType"] = column.CollectionValueType.ToString();
+                row["Type"] = column.ToType().FullName;
+            }
+
+            return table;
+        }
+
+        /// <summary>
+        /// Gets a value indicating whether the data reader is closed.
+        /// </summary>
+        /// <returns>true if the data reader is closed; otherwise, false.</returns>
+        public bool IsClosed
+        {
+            get { return _disposed == 1; }
+        }
+
+        /// <summary>
+        /// Advances the data reader to the next result, when reading the results of batch SQL statements.
+        /// </summary>
+        /// <returns>
+        /// true if there are more rows; otherwise, false.
+        /// </returns>
+        /// <exception cref="System.NotSupportedException">Cql does not support batched select statements</exception>
+        public bool NextResult()
+        {
+            throw new NotSupportedException("Cql does not support batched select statements");
+        }
+
+        /// <summary>
+        /// Gets the number of rows changed, inserted, or deleted by execution of the SQL statement.
+        /// </summary>
+        /// <returns>The number of rows changed, inserted, or deleted; 0 if no rows were affected or the statement failed; and -1 for SELECT statements.</returns>
+        /// <exception cref="System.NotSupportedException">Cql does not provide information on records affected</exception>
+        public int RecordsAffected
+        {
+            get { throw new NotSupportedException("Cql does not provide information on records affected"); }
+        }
+
+        /// <summary>
+        /// Gets the number of columns in the current row.
+        /// </summary>
+        /// <returns>When not positioned in a valid recordset, 0; otherwise, the number of columns in the current record. The default is -1.</returns>
+        public int FieldCount
+        {
+            get
+            {
+                if (CurrentValues == null)
+                    return 0;
+
+                return CurrentValues.Length;
+            }
+        }
+
+        /// <summary>
+        /// Gets the value of the specified column as a Boolean.
+        /// </summary>
+        /// <param name="i">The zero-based column ordinal.</param>
+        /// <returns>
+        /// The value of the column.
+        /// </returns>
+        public bool GetBoolean(int i)
+        {
+            return (bool)ValueSerialization.Deserialize(CqlType.Boolean, CurrentValues[i]);
+        }
+
+        /// <summary>
+        /// Gets the 8-bit unsigned integer value of the specified column.
+        /// </summary>
+        /// <param name="i">The zero-based column ordinal.</param>
+        /// <returns>
+        /// The 8-bit unsigned integer value of the specified column.
+        /// </returns>
+        /// <exception cref="System.NotSupportedException">Single byte values are not supported by Cql</exception>
+        public byte GetByte(int i)
+        {
+            throw new NotSupportedException("Single byte values are not supported by Cql");
+        }
+
+        /// <summary>
+        /// Reads a stream of bytes from the specified column offset into the buffer as an array, starting at the given buffer offset.
+        /// </summary>
+        /// <param name="i">The zero-based column ordinal.</param>
+        /// <param name="fieldOffset">The index within the field from which to start the read operation.</param>
+        /// <param name="buffer">The buffer into which to read the stream of bytes.</param>
+        /// <param name="bufferoffset">The index for <paramref name="buffer" /> to start the read operation.</param>
+        /// <param name="length">The number of bytes to read.</param>
+        /// <returns>
+        /// The actual number of bytes read.
+        /// </returns>
+        /// <exception cref="System.ArgumentException">Provided length allows more data to be copied than what fits in the provided buffer;length</exception>
+        /// <exception cref="System.ArgumentOutOfRangeException">fieldOffset;The field offset is larger than the stored string</exception>
+        public long GetBytes(int i, long fieldOffset, byte[] buffer, int bufferoffset, int length)
+        {
+            if (bufferoffset + length > buffer.Length)
+                throw new ArgumentException("Provided length allows more data to be copied than what fits in the provided buffer", "length");
+
+            if (CurrentValues[i] == null)
+                return 0;
+
+            var value = (byte[])ValueSerialization.Deserialize(CqlType.Blob, CurrentValues[i]);
+
+            if (fieldOffset < 0 || fieldOffset >= value.Length)
+                throw new ArgumentOutOfRangeException("fieldOffset", fieldOffset, "The field offset is larger than the stored string");
+
+            //copy string to buffer
+            var copySize = (int)Math.Min(length, value.Length - fieldOffset);
+            Buffer.BlockCopy(value, (int)fieldOffset, buffer, bufferoffset, copySize);
+            return copySize;
+        }
+
+        /// <summary>
+        /// Gets the character value of the specified column.
+        /// </summary>
+        /// <param name="i">The zero-based column ordinal.</param>
+        /// <returns>
+        /// The character value of the specified column.
+        /// </returns>
+        /// <exception cref="System.NotSupportedException">Single char values are not supported by Cql</exception>
+        public char GetChar(int i)
+        {
+            throw new NotSupportedException("Single char values are not supported by Cql");
+        }
+
+        /// <summary>
+        /// Reads a stream of characters from the specified column offset into the buffer as an array, starting at the given buffer offset.
+        /// </summary>
+        /// <param name="i">The zero-based column ordinal.</param>
+        /// <param name="fieldoffset">The index within the row from which to start the read operation.</param>
+        /// <param name="buffer">The buffer into which to read the stream of bytes.</param>
+        /// <param name="bufferoffset">The index for <paramref name="buffer" /> to start the read operation.</param>
+        /// <param name="length">The number of bytes to read.</param>
+        /// <returns>
+        /// The actual number of characters read.
+        /// </returns>
+        /// <exception cref="System.ArgumentException">Provided length allows more data to be copied than what fits in the provided buffer;length</exception>
+        /// <exception cref="System.ArgumentOutOfRangeException">fieldoffset;The field offset is larger than the stored string</exception>
+        public long GetChars(int i, long fieldoffset, char[] buffer, int bufferoffset, int length)
+        {
+
+            if (bufferoffset + length > buffer.Length)
+                throw new ArgumentException("Provided length allows more data to be copied than what fits in the provided buffer", "length");
+
+            if (CurrentValues[i] == null)
+                return 0;
+
+            var value = (string)ValueSerialization.Deserialize(CqlType.Varchar, CurrentValues[i]);
+
+            if (fieldoffset < 0 || fieldoffset >= value.Length)
+                throw new ArgumentOutOfRangeException("fieldoffset", fieldoffset, "The field offset is larger than the stored string");
+
+            //copy string to buffer
+            var copySize = (int)Math.Min(length, value.Length - fieldoffset);
+            value.CopyTo((int)fieldoffset, buffer, bufferoffset, copySize);
+            return copySize;
+        }
+
+        /// <summary>
+        /// Returns an <see cref="T:System.Data.IDataReader" /> for the specified column ordinal.
+        /// </summary>
+        /// <param name="i">The index of the field to find.</param>
+        /// <returns>
+        /// The <see cref="T:System.Data.IDataReader" /> for the specified column ordinal.
+        /// </returns>
+        /// <exception cref="System.NotSupportedException">Cql does not support nested data rows</exception>
+        public IDataReader GetData(int i)
+        {
+            throw new NotSupportedException("Cql does not support nested data rows");
+        }
+
+        /// <summary>
+        /// Gets the data type information for the specified field.
+        /// </summary>
+        /// <param name="i">The index of the field to find.</param>
+        /// <returns>
+        /// The data type information for the specified field.
+        /// </returns>
+        public string GetDataTypeName(int i)
+        {
+            return Schema[i].CqlType.ToString();
+        }
+
+        /// <summary>
+        /// Gets the date and time data value of the specified field.
+        /// </summary>
+        /// <param name="i">The index of the field to find.</param>
+        /// <returns>
+        /// The date and time data value of the specified field.
+        /// </returns>
+        public DateTime GetDateTime(int i)
+        {
+            if (CurrentValues[i] == null) return default(DateTime);
+
+            return (DateTime)ValueSerialization.Deserialize(CqlType.Timestamp, CurrentValues[i]);
+        }
+
+        /// <summary>
+        /// Gets the fixed-position numeric value of the specified field.
+        /// </summary>
+        /// <param name="i">The index of the field to find.</param>
+        /// <returns>
+        /// The fixed-position numeric value of the specified field.
+        /// </returns>
+        /// <exception cref="System.NotSupportedException"></exception>
+        public decimal GetDecimal(int i)
+        {
+            throw new NotSupportedException();
+        }
+
+        /// <summary>
+        /// Gets the double-precision floating point number of the specified field.
+        /// </summary>
+        /// <param name="i">The index of the field to find.</param>
+        /// <returns>
+        /// The double-precision floating point number of the specified field.
+        /// </returns>
+        public double GetDouble(int i)
+        {
+            if (CurrentValues[i] == null) return default(double);
+
+            return (double)ValueSerialization.Deserialize(CqlType.Double, CurrentValues[i]);
+        }
+
+        /// <summary>
+        /// Gets the <see cref="T:System.Type" /> information corresponding to the type of <see cref="T:System.Object" /> that would be returned from <see cref="M:System.Data.IDataRecord.GetValue(System.Int32)" />.
+        /// </summary>
+        /// <param name="i">The index of the field to find.</param>
+        /// <returns>
+        /// The <see cref="T:System.Type" /> information corresponding to the type of <see cref="T:System.Object" /> that would be returned from <see cref="M:System.Data.IDataRecord.GetValue(System.Int32)" />.
+        /// </returns>
+        public Type GetFieldType(int i)
+        {
+            return Schema[i].ToType();
+        }
+
+        /// <summary>
+        /// Gets the single-precision floating point number of the specified field.
+        /// </summary>
+        /// <param name="i">The index of the field to find.</param>
+        /// <returns>
+        /// The single-precision floating point number of the specified field.
+        /// </returns>
+        public float GetFloat(int i)
+        {
+            if (CurrentValues[i] == null) return default(float);
+
+            return (float)ValueSerialization.Deserialize(CqlType.Float, CurrentValues[i]);
+        }
+
+        /// <summary>
+        /// Returns the GUID value of the specified field.
+        /// </summary>
+        /// <param name="i">The index of the field to find.</param>
+        /// <returns>
+        /// The GUID value of the specified field.
+        /// </returns>
+        public Guid GetGuid(int i)
+        {
+            if (CurrentValues[i] == null) return default(Guid);
+
+            return (Guid)ValueSerialization.Deserialize(CqlType.Uuid, CurrentValues[i]);
+        }
+
+        /// <summary>
+        /// Gets the 16-bit signed integer value of the specified field.
+        /// </summary>
+        /// <param name="i">The index of the field to find.</param>
+        /// <returns>
+        /// The 16-bit signed integer value of the specified field.
+        /// </returns>
+        /// <exception cref="System.NotSupportedException">short values are not supported by Cql</exception>
+        public short GetInt16(int i)
+        {
+            throw new NotSupportedException("short values are not supported by Cql");
+        }
+
+        /// <summary>
+        /// Gets the 32-bit signed integer value of the specified field.
+        /// </summary>
+        /// <param name="i">The index of the field to find.</param>
+        /// <returns>
+        /// The 32-bit signed integer value of the specified field.
+        /// </returns>
+        public int GetInt32(int i)
+        {
+            if (CurrentValues[i] == null) return default(int);
+            return (int)ValueSerialization.Deserialize(CqlType.Int, CurrentValues[i]);
+        }
+
+        /// <summary>
+        /// Gets the 64-bit signed integer value of the specified field.
+        /// </summary>
+        /// <param name="i">The index of the field to find.</param>
+        /// <returns>
+        /// The 64-bit signed integer value of the specified field.
+        /// </returns>
+        public long GetInt64(int i)
+        {
+            if (CurrentValues[i] == null) return default(long);
+
+            return (long)ValueSerialization.Deserialize(CqlType.Bigint, CurrentValues[i]);
+        }
+
+        /// <summary>
+        /// Gets the name for the field to find.
+        /// </summary>
+        /// <param name="i">The index of the field to find.</param>
+        /// <returns>
+        /// The name of the field or the empty string (""), if there is no value to return.
+        /// </returns>
+        public string GetName(int i)
+        {
+            string name = Schema[i].Name;
+            if (Schema[i].Table != null)
+            {
+                name = Schema[i].Table + "." + name;
+                if (Schema[i].Keyspace != null)
+                    name = Schema[i].Keyspace + "." + name;
+            }
+            return name;
+        }
+
+        /// <summary>
+        /// Return the index of the named field.
+        /// </summary>
+        /// <param name="name">The name of the field to find.</param>
+        /// <returns>
+        /// The index of the named field.
+        /// </returns>
+        public int GetOrdinal(string name)
+        {
+            return Schema[name].Index;
+        }
+
+        /// <summary>
+        /// Gets the string value of the specified field.
+        /// </summary>
+        /// <param name="i">The index of the field to find.</param>
+        /// <returns>
+        /// The string value of the specified field.
+        /// </returns>
+        public string GetString(int i)
+        {
+            return (string)ValueSerialization.Deserialize(CqlType.Varchar, CurrentValues[i]);
+        }
+
+        /// <summary>
+        /// Return the value of the specified field.
+        /// </summary>
+        /// <param name="i">The index of the field to find.</param>
+        /// <returns>
+        /// The <see cref="T:System.Object" /> which will contain the field value upon return.
+        /// </returns>
+        public object GetValue(int i)
+        {
+            return this[i];
+        }
+
+        /// <summary>
+        /// Populates an array of objects with the column values of the current record.
+        /// </summary>
+        /// <param name="values">An array of <see cref="T:System.Object" /> to copy the attribute fields into.</param>
+        /// <returns>
+        /// The number of instances of <see cref="T:System.Object" /> in the array.
+        /// </returns>
+        /// <exception cref="System.ArgumentException">values array too small to fit row contents;values</exception>
+        public int GetValues(object[] values)
+        {
+            if (CurrentValues.Length > values.Length)
+                throw new ArgumentException("values array too small to fit row contents", "values");
+
+            for (int i = 0; i < CurrentValues.Length; i++)
+            {
+                values[i] = this[i];
+            }
+
+            return CurrentValues.Length;
+        }
+
+        public bool IsDBNull(int i)
+        {
+            return CurrentValues[i] == null;
         }
     }
 
@@ -223,7 +653,21 @@ namespace CqlSharp
 
                     foreach (CqlColumn column in Schema)
                     {
-                        accessor.TrySetValue(column, value, this[column.Index]);
+                        string name;
+                        if (accessor.IsKeySpaceSet)
+                        {
+                            name = column.KeySpaceTableAndName;
+                        }
+                        else if (accessor.IsTableSet)
+                        {
+                            name = column.TableAndName;
+                        }
+                        else
+                        {
+                            name = column.Name;
+                        }
+
+                        accessor.TrySetValue(name, value, this[column.Index]);
                     }
 
                     _current = value;
