@@ -1,4 +1,4 @@
-## Version 0.15.0 - Bug fixes
+## Version 0.15.0 - ADO.NET implementation
 * Breaking changes: making CqlSharp implement ADO.NET interfaces
 
 ## Version 0.14.1 - Bug fixes (not released)

@@ -1,7 +1,7 @@
 CqlSharp
 ========
 
-CqlSharp is a high performance, asynchronous [Cassandra](http://cassandra.apache.org/) CQL binary protocol driver offering an ADO.NET like interface.
+CqlSharp is a high performance, asynchronous ADO.NET driver for [Cassandra](http://cassandra.apache.org/) implementing the CQL binary protocol.
 
 Please see the [Wiki](https://github.com/reuzel/CqlSharp/wiki) for more extensive [documentation](https://github.com/reuzel/CqlSharp/wiki).
 
@@ -16,7 +16,7 @@ Features
 * CqlSharp is 100% written in C#, and requires .NET 4.5. It has no dependencies on other packages or libraries.
 * CqlSharp is an implementation of the (new) CQL Binary Protocol and therefore requires Cassandra 1.2 and up
 * Query tracing is supported.
-* The API is ADO.NET like. If you are familiar with SqlConnection, SqlCommand, and SqlReader, you should be able to use CqlSharp with no difficulty.
+* The API implements the ADO.NET interfaces. If you are familiar with SqlConnection, SqlCommand, and SqlReader, you should be able to use CqlSharp with no difficulty.
 * The API is predominately [asynchronous](http://msdn.microsoft.com/en-us/library/vstudio/hh191443.aspx), heavily relying on the System.Threading.Tasks namespace. Synchronous alternatives are available for convenience.
 * Supports mapping of objects to query parameters, or query results to objects. Mapping is tunable by decorating your classes via Table and Column attributes.
 * Configuration is done through connection strings. The simultaneous use of multiple Cassandra clusters is supported.
