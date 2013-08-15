@@ -51,6 +51,7 @@
     <Reference Include="System.Xml" />
   </ItemGroup>
   <ItemGroup>
+    <Compile Include="CqlParameter.cs" />
     <Compile Include="CqlParameterCreationOption.cs" />
     <Compile Include="Logging\ConsoleLogger.cs" />
     <Compile Include="Logging\DebugLogger.cs" />
@@ -119,13 +120,13 @@
     <Compile Include="Network\EnumerableExtensions.cs" />
     <Compile Include="Network\Node.cs" />
     <Compile Include="Network\RandomConnectionStrategy.cs" />
-    <Compile Include="CqlColumn.cs" />
+    <Compile Include="Protocol\Column.cs" />
     <Compile Include="CqlCommand.cs" />
     <Compile Include="CqlConnection.cs" />
     <Compile Include="CqlDataReader.cs" />
     <Compile Include="CqlParameterCollection.cs" />
     <Compile Include="CqlResultType.cs" />
-    <Compile Include="CqlSchema.cs" />
+    <Compile Include="Protocol\Schema.cs" />
     <Compile Include="CqlSchemaChange.cs" />
     <Compile Include="CqlSetKeyspace.cs" />
     <Compile Include="CqlVoid.cs" />

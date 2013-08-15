@@ -86,6 +86,21 @@ namespace CqlSharp
                                                                                  {CqlType.Timestamp, typeof (DateTime)}
                                                                              };
 
+        private static readonly Dictionary<Type, CqlType> Type2CqlType = new Dictionary<Type, CqlType>
+                                                                             {
+                                                                                 {typeof (string), CqlType.Varchar},
+                                                                                 {typeof (byte[]), CqlType.Blob },
+                                                                                 {typeof (double),CqlType.Double },
+                                                                                 {typeof (float), CqlType.Float},
+                                                                                 {typeof (long), CqlType.Bigint},
+                                                                                 {typeof (int), CqlType.Int},
+                                                                                 {typeof (bool), CqlType.Boolean},
+                                                                                 {typeof (Guid), CqlType.Uuid},
+                                                                                 {typeof (IPAddress), CqlType.Inet},
+                                                                                 {typeof (BigInteger), CqlType.Varint},
+                                                                                 {typeof (DateTime),CqlType.Timestamp }
+                                                                             };
+
         private static readonly Dictionary<CqlType, DbType> CqlType2DbType = new Dictionary<CqlType, DbType>
                                                                              {
                                                                                  {CqlType.Ascii,DbType.AnsiString},
@@ -163,6 +178,21 @@ namespace CqlSharp
             }
 
             return type;
+        }
+
+        /// <summary>
+        /// gets the corresponding the CqlType.
+        /// </summary>
+        /// <param name="type">The type.</param>
+        /// <returns></returns>
+        /// <exception cref="System.NotSupportedException">Type +type.Name+ is not supported for deserialization</exception>
+        internal static CqlType ToCqlType(this Type type)
+        {
+            CqlType cqlType;
+            if (!Type2CqlType.TryGetValue(type, out cqlType))
+                throw new NotSupportedException("Type " + type.Name + " is not supported for deserialization");
+
+            return cqlType;
         }
 
         /// <summary>

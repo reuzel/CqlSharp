@@ -19,6 +19,8 @@ using System;
 using System.Collections;
 using System.Collections.Generic;
 using System.Data;
+using System.Net;
+using System.Numerics;
 using System.Threading;
 using System.Threading.Tasks;
 
@@ -46,12 +48,12 @@ namespace CqlSharp
         ///   Gets the schema.
         /// </summary>
         /// <value> The schema. </value>
-        public CqlSchema Schema
+        internal Schema Schema
         {
             get
             {
                 if (_frame.Schema == null)
-                    throw new InvalidOperationException("No result schema is available");
+                    throw new InvalidOperationException("No column metadata has been retrieved.");
 
                 return _frame.Schema;
             }
@@ -85,8 +87,8 @@ namespace CqlSharp
         {
             get
             {
-                CqlColumn column = Schema[index];
-                return column.Deserialize(CurrentValues[index]);
+                Column column = Schema[index];
+                return ValueSerialization.Deserialize(column.CqlType, column.CollectionKeyType, column.CollectionValueType, CurrentValues[index]);
             }
         }
 
@@ -100,8 +102,8 @@ namespace CqlSharp
         {
             get
             {
-                CqlColumn column = Schema[name];
-                return column.Deserialize(CurrentValues[column.Index]);
+                Column column = Schema[name];
+                return ValueSerialization.Deserialize(column.CqlType, column.CollectionKeyType, column.CollectionValueType, CurrentValues[column.Index]);
             }
         }
 
@@ -345,6 +347,18 @@ namespace CqlSharp
         }
 
         /// <summary>
+        /// Gets the bytes (blob) data value of the specified field.
+        /// </summary>
+        /// <param name="i">The index of the field to find.</param>
+        /// <returns>
+        /// The bytes value of the specified field.
+        /// </returns>
+        public byte[] GetBytes(int i)
+        {
+            return (byte[])ValueSerialization.Deserialize(CqlType.Blob, CurrentValues[i]);
+        }
+
+        /// <summary>
         /// Gets the character value of the specified column.
         /// </summary>
         /// <param name="i">The zero-based column ordinal.</param>
@@ -580,6 +594,76 @@ namespace CqlSharp
         }
 
         /// <summary>
+        /// Gets the IPAddress value of the specified field.
+        /// </summary>
+        /// <param name="i">The index of the field to find.</param>
+        /// <returns>
+        /// The IPAddress value of the specified field.
+        /// </returns>
+        public IPAddress GetIPAddress(int i)
+        {
+            return (IPAddress)ValueSerialization.Deserialize(CqlType.Inet, CurrentValues[i]);
+        }
+
+        /// <summary>
+        /// Gets the BigInteger value of the specified field.
+        /// </summary>
+        /// <param name="i">The index of the field to find.</param>
+        /// <returns>
+        /// The BigInteger value of the specified field.
+        /// </returns>
+        public BigInteger GetBigInteger(int i)
+        {
+            if (CurrentValues[i] == null) return default(BigInteger);
+
+            return (BigInteger)ValueSerialization.Deserialize(CqlType.Varint, CurrentValues[i]);
+        }
+
+        /// <summary>
+        /// Gets the Set value of the specified field.
+        /// </summary>
+        /// <typeparam name="T">The type of the contents of the set</typeparam>
+        /// <param name="i">The index of the field to find.</param>
+        /// <returns>
+        /// The Set value of the specified field.
+        /// </returns>
+        public HashSet<T> GetSet<T>(int i)
+        {
+            CqlType setType = typeof(T).ToCqlType();
+            return (HashSet<T>)ValueSerialization.Deserialize(CqlType.Set, null, setType, CurrentValues[i]);
+        }
+
+        /// <summary>
+        /// Gets the List value of the specified field.
+        /// </summary>
+        /// <typeparam name="T">The type of the contents of the list</typeparam>
+        /// <param name="i">The index of the field to find.</param>
+        /// <returns>
+        /// The list value of the specified field.
+        /// </returns>
+        public List<T> GetList<T>(int i)
+        {
+            CqlType listType = typeof(T).ToCqlType();
+            return (List<T>)ValueSerialization.Deserialize(CqlType.List, null, listType, CurrentValues[i]);
+        }
+
+        /// <summary>
+        /// Gets the Dictionary value of the specified field.
+        /// </summary>
+        /// <typeparam name="TKey">The type of the key.</typeparam>
+        /// <typeparam name="TValue">The type of the value.</typeparam>
+        /// <param name="i">The index of the field to find.</param>
+        /// <returns>
+        /// The list value of the specified field.
+        /// </returns>
+        public Dictionary<TKey, TValue> GetDictionary<TKey, TValue>(int i)
+        {
+            CqlType keyType = typeof(TKey).ToCqlType();
+            CqlType valueType = typeof(TValue).ToCqlType();
+            return (Dictionary<TKey, TValue>)ValueSerialization.Deserialize(CqlType.Map, keyType, valueType, CurrentValues[i]);
+        }
+
+        /// <summary>
         /// Return the value of the specified field.
         /// </summary>
         /// <param name="i">The index of the field to find.</param>
@@ -651,7 +735,7 @@ namespace CqlSharp
                     var value = new T();
                     ObjectAccessor<T> accessor = ObjectAccessor<T>.Instance;
 
-                    foreach (CqlColumn column in Schema)
+                    foreach (Column column in Schema)
                     {
                         string name;
                         if (accessor.IsKeySpaceSet)

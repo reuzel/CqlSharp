@@ -16,7 +16,6 @@
 using System;
 using System.Collections.Generic;
 using System.IO;
-//using System.Threading;
 using System.Threading.Tasks;
 
 namespace CqlSharp.Protocol
@@ -24,7 +23,6 @@ namespace CqlSharp.Protocol
     internal class ResultFrame : Frame
     {
         private volatile int _count;
-        //private SemaphoreSlim _readLock;
 
         public ResultOpcode ResultOpcode { get; private set; }
 
@@ -33,7 +31,7 @@ namespace CqlSharp.Protocol
             get { return _count; }
         }
 
-        public CqlSchema Schema { get; private set; }
+        public Schema Schema { get; private set; }
 
         public byte[] PreparedQueryId { get; private set; }
 
@@ -82,16 +80,12 @@ namespace CqlSharp.Protocol
                     throw new ArgumentException("Unexpected ResultOpcode");
             }
 
-            //_readLock = new SemaphoreSlim(1);
         }
 
         public async Task<byte[][]> ReadNextDataRowAsync()
         {
             if (_count == 0)
                 return null;
-
-            //await _readLock.WaitAsync().ConfigureAwait(false);
-
 
             var valueBytes = new byte[Schema.Count][];
             for (int i = 0; i < Schema.Count; i++)
@@ -117,7 +111,7 @@ namespace CqlSharp.Protocol
             return Reader.BufferRemainingData();
         }
 
-        internal async Task<CqlSchema> ReadCqlSchemaAsync()
+        internal async Task<Schema> ReadCqlSchemaAsync()
         {
             FrameReader reader = Reader;
             var flags = (MetadataFlags)await reader.ReadIntAsync().ConfigureAwait(false);
@@ -133,7 +127,7 @@ namespace CqlSharp.Protocol
                 table = await reader.ReadStringAsync().ConfigureAwait(false);
             }
 
-            var columnSpecs = new List<CqlColumn>(colCount);
+            var columnSpecs = new List<Column>(colCount);
             for (int colIdx = 0; colIdx < colCount; ++colIdx)
             {
                 string colKeyspace = keyspace;
@@ -165,11 +159,11 @@ namespace CqlSharp.Protocol
                         break;
                 }
 
-                columnSpecs.Add(new CqlColumn(colIdx, colKeyspace, colTable, colName, colType, colCustom,
+                columnSpecs.Add(new Column(colIdx, colKeyspace, colTable, colName, colType, colCustom,
                                               colKeyType, colValueType));
             }
 
-            return new CqlSchema(columnSpecs);
+            return new Schema(columnSpecs);
         }
     }
 }

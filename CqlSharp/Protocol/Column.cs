@@ -15,18 +15,18 @@
 
 using System;
 
-namespace CqlSharp
+namespace CqlSharp.Protocol
 {
     /// <summary>
     ///   A description of a single Cql column. Used to describe input to a Cql prepared query, or result of a select query.
     /// </summary>
-    public class CqlColumn
+    internal class Column
     {
         private string _ksTableName;
         private string _tableName;
 
         /// <summary>
-        ///   Initializes a new instance of the <see cref="CqlColumn" /> class.
+        ///   Initializes a new instance of the <see cref="Column" /> class.
         /// </summary>
         /// <param name="index"> The index. </param>
         /// <param name="keyspace"> The keyspace. </param>
@@ -36,7 +36,7 @@ namespace CqlSharp
         /// <param name="customData"> The custom data. </param>
         /// <param name="collectionKeyType"> Type of the collection key. </param>
         /// <param name="collectionValueType"> Type of the collection value. </param>
-        internal CqlColumn(int index, string keyspace, string table, string name, CqlType cqlType,
+        internal Column(int index, string keyspace, string table, string name, CqlType cqlType,
                            string customData, CqlType? collectionKeyType, CqlType? collectionValueType)
         {
             Index = index;
