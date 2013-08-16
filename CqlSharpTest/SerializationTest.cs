@@ -200,6 +200,124 @@ namespace CqlSharp.Test
         }
 
         [TestMethod]
+        public void SerializeDirectTest()
+        {
+            const string insertCql = @"insert into Test.Types(
+                aInt,
+                aLong ,
+                aVarint ,
+                aTextString ,
+                aVarcharString ,
+                aASCIIString ,
+                aBlob ,
+                aBool ,
+                aDouble  , 
+                aFloat  , 
+                aTimestamp ,
+                aTimeUUID ,
+                aUUID ,
+                aInet ,
+                aList,
+                aSet,
+                aMap) 
+                values (?,?,?,?,?,?,?,?,?,?,?,?,?,?,?,?,?);";
+
+            const string selectCql = "select * from Test.Types limit 1;";
+
+            using (var connection = new CqlConnection(ConnectionString))
+            {
+                connection.Open();
+
+
+                var insertCmd = new CqlCommand(connection, insertCql);
+                insertCmd.Prepare(CqlParameterCreationOption.Column);
+
+                insertCmd.Parameters["aasciistring"].Value = "hello world!";
+                insertCmd.Parameters["ablob"].Value = new byte[] { 1, 2, 3, 4 };
+                insertCmd.Parameters["abool"].Value = true;
+                insertCmd.Parameters["adouble"].Value = 1.234;
+                insertCmd.Parameters["afloat"].Value = 5.789f;
+                insertCmd.Parameters["ainet"].Value = new IPAddress(new byte[] { 127, 0, 0, 1 });
+                insertCmd.Parameters["aint"].Value = 10;
+                insertCmd.Parameters["along"].Value = 56789012456;
+                insertCmd.Parameters["atextstring"].Value = "some other text with \u005C unicode";
+                insertCmd.Parameters["avarcharstring"].Value = "some other varchar with \u005C unicode";
+                insertCmd.Parameters["atimeuuid"].Value = DateTime.Now.GenerateTimeBasedGuid();
+                insertCmd.Parameters["auuid"].Value = Guid.NewGuid();
+                insertCmd.Parameters["atimestamp"].Value = DateTime.Now;
+                insertCmd.Parameters["avarint"].Value = new BigInteger(12345678901234);
+                insertCmd.Parameters["alist"].Value = new List<string> { "string 1", "string 2" };
+                insertCmd.Parameters["aset"].Value = new HashSet<int> { 1, 3, 3 };
+                insertCmd.Parameters["amap"].Value =
+                    new Dictionary<long, string> { { 1, "value 1" }, { 2, "value 2" }, { 3, "value 3" } };
+
+                insertCmd.ExecuteNonQuery();
+
+                string aAsciiString;
+                string aVarcharString;
+                BigInteger aVarint;
+                string aTextString;
+                bool aBool;
+                double aDouble;
+                float aFloat;
+                IPAddress aInet;
+                long aLong;
+                Guid aTimeUUID;
+                Guid aUUID;
+                byte[] aBlob;
+                List<string> aList;
+                HashSet<int> aSet;
+                Dictionary<long, string> aMap;
+
+                var selectCmd = new CqlCommand(connection, selectCql);
+                using (var reader = selectCmd.ExecuteReader())
+                {
+                    if (reader.Read())
+                    {
+                        aAsciiString = reader.GetString(reader.GetOrdinal("aasciistring"));
+                        aVarcharString = reader.GetString(reader.GetOrdinal("avarcharstring"));
+                        aVarint = reader.GetBigInteger(reader.GetOrdinal("avarint"));
+                        aTextString = reader.GetString(reader.GetOrdinal("atextstring"));
+                        aBool = reader.GetBoolean(reader.GetOrdinal("abool"));
+
+                        aDouble = reader.GetDouble(reader.GetOrdinal("adouble"));
+                        aFloat = reader.GetFloat(reader.GetOrdinal("afloat"));
+                        aInet = reader.GetIPAddress(reader.GetOrdinal("ainet"));
+                        aLong = reader.GetInt64(reader.GetOrdinal("along"));
+                        aTimeUUID = reader.GetGuid(reader.GetOrdinal("atimeuuid"));
+                        aUUID = reader.GetGuid(reader.GetOrdinal("auuid"));
+                        aBlob = reader.GetBytes(reader.GetOrdinal("ablob"));
+                        aList = reader.GetList<string>(reader.GetOrdinal("alist"));
+                        aSet = reader.GetSet<int>(reader.GetOrdinal("aset"));
+                        aMap = reader.GetDictionary<long, string>(reader.GetOrdinal("amap"));
+                    }
+                    else
+                        throw new Exception("No row returned!");
+                }
+
+                Assert.AreEqual(insertCmd.Parameters["aasciistring"].Value, aAsciiString);
+                Assert.AreEqual(insertCmd.Parameters["avarcharstring"].Value, aVarcharString);
+                Assert.AreEqual(insertCmd.Parameters["avarint"].Value, aVarint);
+                Assert.AreEqual(insertCmd.Parameters["atextstring"].Value, aTextString);
+                Assert.AreEqual(insertCmd.Parameters["abool"].Value, aBool);
+                Assert.AreEqual(insertCmd.Parameters["adouble"].Value, aDouble);
+                Assert.AreEqual(insertCmd.Parameters["afloat"].Value, aFloat);
+                Assert.AreEqual(insertCmd.Parameters["ainet"].Value, aInet);
+                Assert.AreEqual(insertCmd.Parameters["along"].Value, aLong);
+                Assert.AreEqual(insertCmd.Parameters["atimeuuid"].Value, aTimeUUID);
+                Assert.AreEqual(insertCmd.Parameters["auuid"].Value, aUUID);
+                Assert.IsTrue(((byte[])insertCmd.Parameters["ablob"].Value).SequenceEqual(aBlob));
+                Assert.IsTrue(((List<string>)insertCmd.Parameters["alist"].Value).SequenceEqual(aList));
+                Assert.IsTrue(((HashSet<int>)insertCmd.Parameters["aset"].Value).SequenceEqual(aSet));
+                foreach (var entry in ((Dictionary<long, string>)insertCmd.Parameters["amap"].Value))
+                {
+                    var val = aMap[entry.Key];
+                    Assert.AreEqual(entry.Value, val);
+                }
+            }
+        }
+
+        [TestMethod]
         public void DefaultDeserializeTest()
         {
             const string insertCql = @"insert into Test.Types(aInt) values (1);";
@@ -311,6 +429,84 @@ namespace CqlSharp.Test
                 Assert.AreEqual(aLong, default(long?));
                 Assert.AreEqual(aTimeUUID, default(Guid?));
                 Assert.AreEqual(aUUID, default(Guid?));
+                Assert.AreEqual(aBlob, default(byte[]));
+                Assert.AreEqual(aList, default(List<string>));
+                Assert.AreEqual(aSet, default(HashSet<int>));
+                Assert.AreEqual(aMap, default(Dictionary<long, string>));
+            }
+        }
+
+        [TestMethod]
+        public void DefaultDeserializeDirectTest()
+        {
+            const string insertCql = @"insert into Test.Types(aInt) values (1);";
+
+            const string selectCql = "select * from Test.Types limit 1;";
+
+
+
+            using (var connection = new CqlConnection(ConnectionString))
+            {
+
+                string aAsciiString;
+                string aVarcharString;
+                BigInteger aVarint;
+                string aTextString;
+                bool aBool;
+                double aDouble;
+                float aFloat;
+                IPAddress aInet;
+                long aLong;
+                Guid aTimeUUID;
+                Guid aUUID;
+                byte[] aBlob;
+                List<string> aList;
+                HashSet<int> aSet;
+                Dictionary<long, string> aMap;
+
+                connection.Open();
+
+                var insertCmd = new CqlCommand(connection, insertCql);
+                insertCmd.ExecuteNonQuery();
+
+                var selectCmd = new CqlCommand(connection, selectCql);
+
+                using (var reader = selectCmd.ExecuteReader())
+                {
+                    if (reader.Read())
+                    {
+                        aAsciiString = reader.GetString(reader.GetOrdinal("aasciistring"));
+                        aVarcharString = reader.GetString(reader.GetOrdinal("avarcharstring"));
+                        aVarint = reader.GetBigInteger(reader.GetOrdinal("avarint"));
+                        aTextString = reader.GetString(reader.GetOrdinal("atextstring"));
+                        aBool = reader.GetBoolean(reader.GetOrdinal("abool"));
+
+                        aDouble = reader.GetDouble(reader.GetOrdinal("adouble"));
+                        aFloat = reader.GetFloat(reader.GetOrdinal("afloat"));
+                        aInet = reader.GetIPAddress(reader.GetOrdinal("ainet"));
+                        aLong = reader.GetInt64(reader.GetOrdinal("along"));
+                        aTimeUUID = reader.GetGuid(reader.GetOrdinal("atimeuuid"));
+                        aUUID = reader.GetGuid(reader.GetOrdinal("auuid"));
+                        aBlob = reader.GetBytes(reader.GetOrdinal("ablob"));
+                        aList = reader.GetList<string>(reader.GetOrdinal("alist"));
+                        aSet = reader.GetSet<int>(reader.GetOrdinal("aset"));
+                        aMap = reader.GetDictionary<long, string>(reader.GetOrdinal("amap"));
+                    }
+                    else
+                        throw new Exception("No row returned!");
+                }
+
+                Assert.AreEqual(aAsciiString, default(string));
+                Assert.AreEqual(aVarcharString, default(string));
+                Assert.AreEqual(aVarint, default(BigInteger));
+                Assert.AreEqual(aTextString, default(string));
+                Assert.AreEqual(aBool, default(bool));
+                Assert.AreEqual(aDouble, default(double));
+                Assert.AreEqual(aFloat, default(float));
+                Assert.AreEqual(aInet, default(IPAddress));
+                Assert.AreEqual(aLong, default(long));
+                Assert.AreEqual(aTimeUUID, default(Guid));
+                Assert.AreEqual(aUUID, default(Guid));
                 Assert.AreEqual(aBlob, default(byte[]));
                 Assert.AreEqual(aList, default(List<string>));
                 Assert.AreEqual(aSet, default(HashSet<int>));

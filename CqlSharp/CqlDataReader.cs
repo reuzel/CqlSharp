@@ -298,6 +298,7 @@ namespace CqlSharp
         /// </returns>
         public bool GetBoolean(int i)
         {
+            if (CurrentValues[i] == null) return default(bool);
             return (bool)ValueSerialization.Deserialize(CqlType.Boolean, CurrentValues[i]);
         }
 

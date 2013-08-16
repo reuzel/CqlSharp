@@ -33,7 +33,7 @@ namespace CqlSharp.Test
         {
             const string createKsCql =
                 @"CREATE KEYSPACE Test WITH replication = {'class': 'SimpleStrategy', 'replication_factor' : 1} and durable_writes = 'false';";
-            const string createTableCql = @"create table Test.BasicFlow (id int primary key, value text);";
+            const string createTableCql = @"create table Test.BasicFlow (id int primary key, value text, ignored text);";
             const string truncateTableCql = @"truncate Test.BasicFlow;";
 
             using (var connection = new CqlConnection(ConnectionString))
@@ -88,7 +88,7 @@ namespace CqlSharp.Test
         public async Task BasicFlow()
         {
             //Assume
-            const string insertCql = @"insert into Test.BasicFlow (id,value) values (?,?);";
+            const string insertCql = @"insert into Test.BasicFlow (id,value,ignored) values (?,?,?);";
             const string retrieveCql = @"select * from Test.BasicFlow;";
 
             const int insertCount = 1000;
@@ -108,7 +108,7 @@ namespace CqlSharp.Test
                     // ReSharper restore AccessToDisposedClosure
                     cmd.Prepare();
 
-                    var b = new BasicFlowData { Id = i, Data = "Hallo " + i };
+                    var b = new BasicFlowData { Id = i, Data = "Hallo " + i, Ignored = "none" };
                     cmd.PartitionKey.Set(b);
                     cmd.Parameters.Set(b);
 
@@ -126,6 +126,7 @@ namespace CqlSharp.Test
                 {
                     BasicFlowData row = reader.Current;
                     Assert.AreEqual("Hallo " + row.Id, row.Data);
+                    Assert.IsNull(row.Ignored);
                     presence[row.Id] = true;
                 }
 

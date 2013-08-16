@@ -63,6 +63,10 @@ namespace CqlSharp
         {
         }
 
+        /// <summary>
+        /// Initializes a new instance of the <see cref="CqlCommand" /> class.
+        /// </summary>
+        /// <param name="connection">The connection.</param>
         public CqlCommand(CqlConnection connection)
             : this(connection, null, CqlConsistency.One)
         {
@@ -102,12 +106,21 @@ namespace CqlSharp
             }
         }
 
+        /// <summary>
+        /// Gets or sets the text command to run against the data source.
+        /// </summary>
+        /// <returns>The text command to execute. The default value is an empty string ("").</returns>
         public string CommandText
         {
             get { return _cql; }
             set { _cql = value; }
         }
 
+        /// <summary>
+        /// Gets or sets the wait time before terminating the attempt to execute a command and generating an error.
+        /// </summary>
+        /// <returns>The time (in seconds) to wait for the command to execute. The default value is 30 seconds.</returns>
+        /// <exception cref="System.NotSupportedException"></exception>
         public int CommandTimeout
         {
             get
@@ -120,6 +133,11 @@ namespace CqlSharp
             }
         }
 
+        /// <summary>
+        /// Indicates or specifies how the <see cref="P:System.Data.IDbCommand.CommandText" /> property is interpreted.
+        /// </summary>
+        /// <returns>One of the <see cref="T:System.Data.CommandType" /> values. The default is Text.</returns>
+        /// <exception cref="System.ArgumentException">Only Text commands are supported</exception>
         public CommandType CommandType
         {
             get
@@ -133,6 +151,10 @@ namespace CqlSharp
             }
         }
 
+        /// <summary>
+        /// Gets or sets the <see cref="T:System.Data.IDbConnection" /> used by this instance of the <see cref="T:System.Data.IDbCommand" />.
+        /// </summary>
+        /// <returns>The connection to the data source.</returns>
         public IDbConnection Connection
         {
             get { return _connection; }
@@ -141,6 +163,11 @@ namespace CqlSharp
 
 
 
+        /// <summary>
+        /// Gets or sets the transaction within which the Command object of a .NET Framework data provider executes.
+        /// </summary>
+        /// <returns>the Command object of a .NET Framework data provider executes. The default value is null.</returns>
+        /// <exception cref="System.NotSupportedException"></exception>
         IDbTransaction IDbCommand.Transaction
         {
             get
@@ -150,6 +177,28 @@ namespace CqlSharp
             set
             {
                 throw new NotSupportedException();
+            }
+        }
+
+        /// <summary>
+        /// Gets or sets how command results are applied to the <see cref="T:System.Data.DataRow" /> when used by the <see cref="M:System.Data.IDataAdapter.Update(System.Data.DataSet)" /> method of a <see cref="T:System.Data.Common.DbDataAdapter" />.
+        /// </summary>
+        /// <returns>One of the <see cref="T:System.Data.UpdateRowSource" /> values. The default is Both unless the command is automatically generated. Then the default is None.</returns>
+        UpdateRowSource IDbCommand.UpdatedRowSource { get; set; }
+
+        /// <summary>
+        ///   Gets the parameters that need to be set before executing a prepared query
+        /// </summary>
+        /// <value> The parameters. </value>
+        /// <exception cref="CqlException">Parameters are available only after a query has been prepared</exception>
+        public CqlParameterCollection Parameters
+        {
+            get
+            {
+                if (_parameters == null)
+                    _parameters = new CqlParameterCollection();
+
+                return _parameters;
             }
         }
 
@@ -165,40 +214,16 @@ namespace CqlSharp
             get { return Parameters; }
         }
 
-        UpdateRowSource IDbCommand.UpdatedRowSource
-        {
-            get
-            {
-                throw new NotImplementedException();
-            }
-            set
-            {
-                throw new NotImplementedException();
-            }
-        }
-
         /// <summary>
-        ///   Gets the parameters that need to be set before executing a prepared query
+        /// Creates a new instance of an <see cref="T:System.Data.IDbDataParameter" /> object.
         /// </summary>
-        /// <value> The parameters. </value>
-        /// <exception cref="CqlException">Parameters are available only after a query has been prepared</exception>
-        public CqlParameterCollection Parameters
-        {
-            get
-            {
-                if (_parameters == null)
-                    throw new CqlException("Parameters are available only after a query has been prepared");
-
-                return _parameters;
-            }
-        }
-
+        /// <returns>
+        /// An IDbDataParameter object.
+        /// </returns>
         public IDbDataParameter CreateParameter()
         {
             return new CqlParameter();
         }
-
-
 
         /// <summary>
         ///   Executes the query async.
@@ -702,8 +727,8 @@ namespace CqlSharp
             //set as prepared
             _prepared = true;
 
-            //set parameters collection if not done so before
-            if (_parameters == null)
+            //set parameters collection
+            if (state.ParamCreationOption != CqlParameterCreationOption.None && _parameters == null)
                 _parameters = new CqlParameterCollection(result.Schema, state.ParamCreationOption);
 
             return result;
