@@ -19,6 +19,7 @@ using System;
 using System.Collections;
 using System.Collections.Generic;
 using System.Data;
+using System.Data.Common;
 using System.Net;
 using System.Numerics;
 using System.Threading;
@@ -29,7 +30,7 @@ namespace CqlSharp
     /// <summary>
     ///   Provides access to a set of Cql data rows as returned from a query
     /// </summary>
-    public class CqlDataReader : ICqlQueryResult, IDataReader
+    public class CqlDataReader : ICqlQueryResult, IDataReader, IEnumerable
     {
         private readonly ResultFrame _frame;
         protected byte[][] CurrentValues;
@@ -88,7 +89,8 @@ namespace CqlSharp
             get
             {
                 Column column = Schema[index];
-                return ValueSerialization.Deserialize(column.CqlType, column.CollectionKeyType, column.CollectionValueType, CurrentValues[index]);
+                object value = ValueSerialization.Deserialize(column.CqlType, column.CollectionKeyType, column.CollectionValueType, CurrentValues[index]);
+                return value ?? DBNull.Value;
             }
         }
 
@@ -103,7 +105,8 @@ namespace CqlSharp
             get
             {
                 Column column = Schema[name];
-                return ValueSerialization.Deserialize(column.CqlType, column.CollectionKeyType, column.CollectionValueType, CurrentValues[column.Index]);
+                object value = ValueSerialization.Deserialize(column.CqlType, column.CollectionKeyType, column.CollectionValueType, CurrentValues[column.Index]);
+                return value ?? DBNull.Value;
             }
         }
 
@@ -218,26 +221,27 @@ namespace CqlSharp
         public DataTable GetSchemaTable()
         {
             var table = new DataTable();
-            table.Columns.Add("ColumnOrdinal", typeof(int));
-            table.Columns.Add("KeySpaceName", typeof(string));
-            table.Columns.Add("TableName", typeof(string));
-            table.Columns.Add("ColumnName", typeof(string));
-            table.Columns.Add("CqlType", typeof(string));
-            table.Columns.Add("CollectionKeyType", typeof(string));
-            table.Columns.Add("CollectionValueType", typeof(string));
-            table.Columns.Add("Type", typeof(string));
+            table.Columns.Add(CqlSchemaTableColumnNames.ColumnOrdinal, typeof(int));
+            table.Columns.Add(CqlSchemaTableColumnNames.KeySpaceName, typeof(string));
+            table.Columns.Add(CqlSchemaTableColumnNames.TableName, typeof(string));
+            table.Columns.Add(CqlSchemaTableColumnNames.ColumnName, typeof(string));
+            table.Columns.Add(CqlSchemaTableColumnNames.CqlType, typeof(string));
+            table.Columns.Add(CqlSchemaTableColumnNames.CollectionKeyType, typeof(string));
+            table.Columns.Add(CqlSchemaTableColumnNames.CollectionValueType, typeof(string));
+            table.Columns.Add(CqlSchemaTableColumnNames.Type, typeof(string));
 
             foreach (var column in Schema)
             {
                 var row = table.NewRow();
-                row["ColumnOrdinal"] = column.Index;
-                row["KeySpaceName"] = column.Keyspace;
-                row["TableName"] = column.Table;
-                row["ColumnName"] = column.Name;
-                row["CqlType"] = column.CqlType.ToString();
-                row["CollectionKeyType"] = column.CollectionKeyType.ToString();
-                row["CollectionValueType"] = column.CollectionValueType.ToString();
-                row["Type"] = column.ToType().FullName;
+                row[CqlSchemaTableColumnNames.ColumnOrdinal] = column.Index;
+                row[CqlSchemaTableColumnNames.KeySpaceName] = column.Keyspace;
+                row[CqlSchemaTableColumnNames.TableName] = column.Table;
+                row[CqlSchemaTableColumnNames.ColumnName] = column.Name;
+                row[CqlSchemaTableColumnNames.CqlType] = column.CqlType.ToString();
+                row[CqlSchemaTableColumnNames.CollectionKeyType] = column.CollectionKeyType.ToString();
+                row[CqlSchemaTableColumnNames.CollectionValueType] = column.CollectionValueType.ToString();
+                row[CqlSchemaTableColumnNames.Type] = column.ToType().FullName;
+                table.Rows.Add(row);
             }
 
             return table;
@@ -261,7 +265,8 @@ namespace CqlSharp
         /// <exception cref="System.NotSupportedException">Cql does not support batched select statements</exception>
         public bool NextResult()
         {
-            throw new NotSupportedException("Cql does not support batched select statements");
+            //there are never any next resultsets
+            return false;
         }
 
         /// <summary>
@@ -271,7 +276,11 @@ namespace CqlSharp
         /// <exception cref="System.NotSupportedException">Cql does not provide information on records affected</exception>
         public int RecordsAffected
         {
-            get { throw new NotSupportedException("Cql does not provide information on records affected"); }
+            get
+            {
+                //CqlDataReader is only used with select statements
+                return -1;
+            }
         }
 
         /// <summary>
@@ -560,14 +569,7 @@ namespace CqlSharp
         /// </returns>
         public string GetName(int i)
         {
-            string name = Schema[i].Name;
-            if (Schema[i].Table != null)
-            {
-                name = Schema[i].Table + "." + name;
-                if (Schema[i].Keyspace != null)
-                    name = Schema[i].Keyspace + "." + name;
-            }
-            return name;
+            return Schema[i].Name;
         }
 
         /// <summary>
@@ -701,6 +703,11 @@ namespace CqlSharp
         {
             return CurrentValues[i] == null;
         }
+
+        public IEnumerator GetEnumerator()
+        {
+            return new DbEnumerator(this, false);
+        }
     }
 
     /// <summary>
@@ -752,7 +759,8 @@ namespace CqlSharp
                             name = column.Name;
                         }
 
-                        accessor.TrySetValue(name, value, this[column.Index]);
+                        var fieldValue = IsDBNull(column.Index) ? null : this[column.Index];
+                        accessor.TrySetValue(name, value, fieldValue);
                     }
 
                     _current = value;
@@ -769,7 +777,7 @@ namespace CqlSharp
         /// </summary>
         /// <returns> A <see cref="T:System.Collections.Generic.IEnumerator`1" /> that can be used to iterate through the collection. </returns>
         /// <filterpriority>1</filterpriority>
-        public IEnumerator<T> GetEnumerator()
+        new public IEnumerator<T> GetEnumerator()
         {
             while (Read())
             {

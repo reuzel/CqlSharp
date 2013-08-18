@@ -51,8 +51,12 @@
     <Reference Include="System.Xml" />
   </ItemGroup>
   <ItemGroup>
+    <Compile Include="CqlDataAdapter.cs">
+      <SubType>Component</SubType>
+    </Compile>
     <Compile Include="CqlParameter.cs" />
     <Compile Include="CqlParameterCreationOption.cs" />
+    <Compile Include="CqlSchemaTableColumnNames.cs" />
     <Compile Include="Logging\ConsoleLogger.cs" />
     <Compile Include="Logging\DebugLogger.cs" />
     <Compile Include="Logging\ILogger.cs" />

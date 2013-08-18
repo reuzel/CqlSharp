@@ -116,7 +116,7 @@ namespace CqlSharp.Test
         }
 
         [TestMethod]
-        public void SerializeTest()
+        public void SerializeObjectInOutTest()
         {
             const string insertCql = @"insert into Test.Types(
                 aInt,
@@ -200,7 +200,7 @@ namespace CqlSharp.Test
         }
 
         [TestMethod]
-        public void SerializeDirectTest()
+        public void SerializeInOutTest()
         {
             const string insertCql = @"insert into Test.Types(
                 aInt,
@@ -318,7 +318,7 @@ namespace CqlSharp.Test
         }
 
         [TestMethod]
-        public void DefaultDeserializeTest()
+        public void SerializeObjectOutDefaultsTest()
         {
             const string insertCql = @"insert into Test.Types(aInt) values (1);";
 
@@ -360,13 +360,11 @@ namespace CqlSharp.Test
         }
 
         [TestMethod]
-        public void NullDeserializeParameterTest()
+        public void SerializeOutNullTest()
         {
             const string insertCql = @"insert into Test.Types(aInt) values (1);";
 
             const string selectCql = "select * from Test.Types limit 1;";
-
-
 
             using (var connection = new CqlConnection(ConnectionString))
             {
@@ -437,16 +435,17 @@ namespace CqlSharp.Test
         }
 
         [TestMethod]
-        public void DefaultDeserializeDirectTest()
+        public void SerializeOutDefaultTest()
         {
             const string insertCql = @"insert into Test.Types(aInt) values (1);";
-
             const string selectCql = "select * from Test.Types limit 1;";
-
-
 
             using (var connection = new CqlConnection(ConnectionString))
             {
+                connection.Open();
+
+                var insertCmd = new CqlCommand(connection, insertCql);
+                insertCmd.ExecuteNonQuery();
 
                 string aAsciiString;
                 string aVarcharString;
@@ -463,11 +462,6 @@ namespace CqlSharp.Test
                 List<string> aList;
                 HashSet<int> aSet;
                 Dictionary<long, string> aMap;
-
-                connection.Open();
-
-                var insertCmd = new CqlCommand(connection, insertCql);
-                insertCmd.ExecuteNonQuery();
 
                 var selectCmd = new CqlCommand(connection, selectCql);
 
@@ -515,7 +509,7 @@ namespace CqlSharp.Test
         }
 
         [TestMethod]
-        public void DefaultSerializeTest()
+        public void SerializeObjectInOutDefaultsTest()
         {
             const string insertCql = @"insert into Test.Types(
                 aInt,
@@ -598,7 +592,7 @@ namespace CqlSharp.Test
         }
 
         [TestMethod]
-        public void NullableSerializeTest()
+        public void SerializeObjectInOutNullTest()
         {
             const string insertCql = @"insert into Test.Types(
                 aInt,
@@ -681,7 +675,7 @@ namespace CqlSharp.Test
         }
 
         [TestMethod]
-        public void NullableDeserializeTest()
+        public void SerializeObjectOutNullTest()
         {
             const string insertCql = @"insert into Test.Types(aInt) values (4);";
 

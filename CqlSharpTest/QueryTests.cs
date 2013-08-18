@@ -17,6 +17,7 @@ using CqlSharp.Protocol;
 using CqlSharp.Serialization;
 using CqlSharp.Tracing;
 using Microsoft.VisualStudio.TestTools.UnitTesting;
+using System.Data;
 using System.Linq;
 using System.Threading;
 using System.Threading.Tasks;
@@ -88,7 +89,7 @@ namespace CqlSharp.Test
         public async Task BasicFlow()
         {
             //Assume
-            const string insertCql = @"insert into Test.BasicFlow (id,value,ignored) values (?,?,?);";
+            const string insertCql = @"insert into Test.BasicFlow (id,value) values (?,?);";
             const string retrieveCql = @"select * from Test.BasicFlow;";
 
             const int insertCount = 1000;
@@ -148,21 +149,76 @@ namespace CqlSharp.Test
             await BasicFlow();
         }
 
-        #region Nested type: BasicFlowData
 
-        [CqlTable("basicflow", Keyspace = "test")]
-        public class BasicFlowData
+        [TestMethod]
+        public void BasicFlowAdo()
         {
-            [CqlColumn("id", PartitionKeyIndex = 0, CqlType = CqlType.Int)]
-            public int Id;
+            //Assume
+            const string insertCql = @"insert into Test.BasicFlow (id,value) values (?,?);";
+            const string retrieveCql = @"select id,value,ignored from Test.BasicFlow;";
 
-            [CqlColumn("value")]
-            public string Data { get; set; }
+            const int insertCount = 1000;
 
-            [CqlIgnore]
-            public string Ignored { get; set; }
+            //Act
+
+            using (IDbConnection connection = new CqlConnection(ConnectionString))
+            {
+                connection.Open();
+
+                IDbCommand cmd = new CqlCommand(connection, insertCql,
+                                                CqlConsistency.One);
+                cmd.Parameters.Add(new CqlParameter("id", CqlType.Int));
+                cmd.Parameters.Add(new CqlParameter("value",
+                                                    CqlType.Text));
+
+                for (int i = 0; i < insertCount; i++)
+                {
+                    cmd.Prepare();
+
+                    ((IDbDataParameter)cmd.Parameters["id"]).Value = i;
+                    ((IDbDataParameter)cmd.Parameters["value"]).Value =
+                        "Hallo " + i;
+
+                    cmd.ExecuteNonQuery();
+                }
+
+                var presence = new bool[insertCount];
+
+                IDbCommand selectCmd = new CqlCommand(connection, retrieveCql, CqlConsistency.One) { EnableTracing = true };
+                IDataReader reader = selectCmd.ExecuteReader();
+
+                DataTable schema = reader.GetSchemaTable();
+                Assert.AreEqual(3, schema.Rows.Count);
+                Assert.IsTrue(schema.Rows.Cast<DataRow>().Any(row => row[CqlSchemaTableColumnNames.ColumnName].Equals("ignored")));
+
+                while (reader.Read())
+                {
+                    int id = reader.GetInt32(0);
+                    string value = reader.GetString(1);
+                    Assert.IsTrue(reader.IsDBNull(2));
+                    Assert.AreEqual("Hallo " + id, value);
+                    presence[id] = true;
+                }
+
+                Assert.IsTrue(presence.All(p => p));
+            }
         }
-
-        #endregion
     }
+
+    #region Nested type: BasicFlowData
+
+    [CqlTable("basicflow", Keyspace = "test")]
+    public class BasicFlowData
+    {
+        [CqlColumn("id", PartitionKeyIndex = 0, CqlType = CqlType.Int)]
+        public int Id;
+
+        [CqlColumn("value")]
+        public string Data { get; set; }
+
+        [CqlIgnore]
+        public string Ignored { get; set; }
+    }
+
+    #endregion
 }

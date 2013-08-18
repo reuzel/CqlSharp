@@ -38,7 +38,7 @@ namespace CqlSharp.Serialization
         public static byte[] Serialize(CqlType type, CqlType? collectionKeyType, CqlType? collectionValueType, object data)
         {
             //null value check
-            if (data == null)
+            if (data == null || data == DBNull.Value)
                 return null;
 
             byte[] rawData;
@@ -101,7 +101,7 @@ namespace CqlSharp.Serialization
         public static byte[] Serialize(CqlType type, object data)
         {
             //null value check
-            if (data == null)
+            if (data == null || data == DBNull.Value)
                 return null;
 
             byte[] rawData;

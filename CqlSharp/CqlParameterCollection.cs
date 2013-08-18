@@ -15,6 +15,7 @@
 
 using CqlSharp.Protocol;
 using CqlSharp.Serialization;
+using System;
 using System.Collections.Generic;
 using System.Collections.ObjectModel;
 using System.Data;
@@ -93,6 +94,9 @@ namespace CqlSharp
                 for (int i = 0; i < Count; i++)
                 {
                     CqlParameter param = this[i];
+
+                    if (param.Value == DBNull.Value) continue;
+
                     values[i] = ValueSerialization.Serialize(param.CqlType, param.CollectionKeyType,
                                                              param.CollectionValueType, param.Value);
                 }

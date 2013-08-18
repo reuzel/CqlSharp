@@ -54,6 +54,17 @@ namespace CqlSharp
         }
 
         /// <summary>
+        /// Initializes a new instance of the <see cref="CqlCommand" /> class. Uses a default consistency level One
+        /// </summary>
+        /// <param name="connection">The connection.</param>
+        /// <param name="cql">The CQL.</param>
+        /// <param name="level">The level.</param>
+        public CqlCommand(IDbConnection connection, string cql, CqlConsistency level)
+            : this((CqlConnection)connection, cql, level)
+        {
+        }
+
+        /// <summary>
         ///   Initializes a new instance of the <see cref="CqlCommand" /> class. Uses a default consistency level One
         /// </summary>
         /// <param name="connection"> The connection. </param>
@@ -64,11 +75,40 @@ namespace CqlSharp
         }
 
         /// <summary>
+        ///   Initializes a new instance of the <see cref="CqlCommand" /> class. Uses a default consistency level One
+        /// </summary>
+        /// <param name="connection"> The connection. </param>
+        /// <param name="cql"> The CQL. </param>
+        public CqlCommand(IDbConnection connection, string cql)
+            : this((CqlConnection)connection, cql, CqlConsistency.One)
+        {
+        }
+
+
+        /// <summary>
         /// Initializes a new instance of the <see cref="CqlCommand" /> class.
         /// </summary>
         /// <param name="connection">The connection.</param>
         public CqlCommand(CqlConnection connection)
             : this(connection, null, CqlConsistency.One)
+        {
+        }
+
+        // <summary>
+        /// <summary>
+        /// Initializes a new instance of the <see cref="CqlCommand" /> class.
+        /// </summary>
+        /// <param name="connection">The connection.</param>
+        public CqlCommand(IDbConnection connection)
+            : this((CqlConnection)connection, null, CqlConsistency.One)
+        {
+        }
+
+        /// <summary>
+        /// Initializes a new instance of the <see cref="CqlCommand" /> class.
+        /// </summary>
+        public CqlCommand()
+            : this(null, null, CqlConsistency.One)
         {
         }
 
