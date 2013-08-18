@@ -110,7 +110,6 @@
     <Compile Include="Protocol\UnavailableException.cs" />
     <Compile Include="Protocol\UnpreparedException.cs" />
     <Compile Include="Protocol\WriteTimeOutException.cs" />
-    <Compile Include="QueryExecutionState.cs" />
     <Compile Include="Network\BalancedConnectionStrategy.cs" />
     <Compile Include="Network\Cluster.cs" />
     <Compile Include="Config\ClusterConfig.cs" />
