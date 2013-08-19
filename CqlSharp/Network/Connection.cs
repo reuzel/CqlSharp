@@ -279,7 +279,7 @@ namespace CqlSharp.Network
                     //check wether compression is supported by getting compression options from server
                     var options = new OptionsFrame();
                     var supported =
-                        await SendRequestAsync(options, logger, 1, true).ConfigureAwait(false) as SupportedFrame;
+                        await SendRequestAsyncInternal(options, logger, 1, true, CancellationToken.None).ConfigureAwait(false) as SupportedFrame;
 
                     if (supported == null)
                         throw new ProtocolException(0, "Expected Supported frame not received");
@@ -304,7 +304,7 @@ namespace CqlSharp.Network
                     startup.Options["COMPRESSION"] = "snappy";
                 }
 
-                Frame response = await SendRequestAsync(startup, logger, 1, true).ConfigureAwait(false);
+                Frame response = await SendRequestAsyncInternal(startup, logger, 1, true, CancellationToken.None).ConfigureAwait(false);
 
                 //authenticate if required
                 var auth = response as AuthenticateFrame;
@@ -320,7 +320,7 @@ namespace CqlSharp.Network
                     response.Dispose();
 
                     var cred = new CredentialsFrame(_cluster.Config.Username, _cluster.Config.Password);
-                    response = await SendRequestAsync(cred, logger, 1, true).ConfigureAwait(false);
+                    response = await SendRequestAsyncInternal(cred, logger, 1, true, CancellationToken.None).ConfigureAwait(false);
                 }
 
                 //check if ready
@@ -349,14 +349,70 @@ namespace CqlSharp.Network
         }
 
         /// <summary>
-        ///   Submits a frame, and waits until response is received
+        /// Submits a frame, and waits until response is received
         /// </summary>
-        /// <param name="frame"> The frame to send. </param>
+        /// <param name="frame">The frame to send.</param>
         /// <param name="logger">logger to write progress to</param>
-        /// <param name="load"> the load indication of the request. Used for balancing queries over nodes and connections </param>
+        /// <param name="load">the load indication of the request. Used for balancing queries over nodes and connections</param>
         /// <param name="isConnecting">indicates if this request is send as part of connection setup protocol</param>
-        /// <returns> </returns>
-        internal async Task<Frame> SendRequestAsync(Frame frame, Logger logger, int load = 1, bool isConnecting = false)
+        /// <param name="token">The token.</param>
+        /// <returns></returns>
+        /// <exception cref="System.IO.IOException">Not connected</exception>
+        internal Task<Frame> SendRequestAsync(Frame frame, Logger logger, int load, bool isConnecting, CancellationToken token)
+        {
+            return token.CanBeCanceled ? SendCancellableRequestAsync(frame, logger, load, isConnecting, token) : SendRequestAsyncInternal(frame, logger, load, isConnecting, token);
+        }
+
+        /// <summary>
+        /// Sends the cancellable request async. Adds a cancellation wrapper around SendRequestInternal
+        /// </summary>
+        /// <param name="frame">The frame.</param>
+        /// <param name="logger">The logger.</param>
+        /// <param name="load">The load.</param>
+        /// <param name="isConnecting">if set to <c>true</c> [is connecting].</param>
+        /// <param name="token">The token.</param>
+        /// <returns></returns>
+        /// <exception cref="System.OperationCanceledException"></exception>
+        private async Task<Frame> SendCancellableRequestAsync(Frame frame, Logger logger, int load, bool isConnecting, CancellationToken token)
+        {
+            var task = SendRequestAsyncInternal(frame, logger, load, isConnecting, token);
+            var cancelTask = new TaskCompletionSource<bool>();
+            using (token.Register(s => ((TaskCompletionSource<bool>)s).TrySetResult(true), cancelTask))
+            {
+                //wait for either sendTask or cancellation task to complete
+                if (task != await Task.WhenAny(task, cancelTask.Task).ConfigureAwait(false))
+                {
+                    //ignore/log any exception of the handled task
+                    var logError = task.ContinueWith((sendTask, log) =>
+                                          {
+                                              if (sendTask.Exception != null)
+                                              {
+                                                  var logger1 = (Logger)log;
+                                                  logger1.LogWarning("Cancelled query threw exception: {0}",
+                                                                     sendTask.Exception.InnerException);
+                                              }
+                                          }, logger, TaskContinuationOptions.OnlyOnFaulted | TaskContinuationOptions.ExecuteSynchronously);
+
+                    //get this request cancelled
+                    throw new OperationCanceledException(token);
+                }
+            }
+            return await task;
+        }
+
+
+        /// <summary>
+        /// Sends the request async internal. Cancellation supported until request is send, after which answer must be handled
+        /// to avoid connection corruption.
+        /// </summary>
+        /// <param name="frame">The frame.</param>
+        /// <param name="logger">The logger.</param>
+        /// <param name="load">The load.</param>
+        /// <param name="isConnecting">if set to <c>true</c> [is connecting].</param>
+        /// <param name="token">The token.</param>
+        /// <returns></returns>
+        /// <exception cref="System.IO.IOException">Not connected</exception>
+        private async Task<Frame> SendRequestAsyncInternal(Frame frame, Logger logger, int load, bool isConnecting, CancellationToken token)
         {
             try
             {
@@ -377,7 +433,7 @@ namespace CqlSharp.Network
                 logger.LogVerbose("Waiting for connection lock on {0}...", this);
 
                 //wait until allowed to submit a frame
-                await _frameSubmitLock.WaitAsync().ConfigureAwait(false);
+                await _frameSubmitLock.WaitAsync(token).ConfigureAwait(false);
 
                 //get a task that gets completed when a response is received
                 var waitTask = new TaskCompletionSource<Frame>();
@@ -398,7 +454,7 @@ namespace CqlSharp.Network
                     //serialize frame outside lock
                     Stream frameBytes = frame.GetFrameBytes(_allowCompression && !isConnecting, _cluster.Config.CompressionTreshold);
 
-                    await _writeLock.WaitAsync().ConfigureAwait(false);
+                    await _writeLock.WaitAsync(token).ConfigureAwait(false);
                     try
                     {
                         //final check to make sure we're connected
@@ -407,6 +463,7 @@ namespace CqlSharp.Network
 
                         logger.LogVerbose("Sending {0} Frame with Id {1}, to {2}", frame.OpCode, id, this);
 
+                        //write frame to stream, don't use cancelToken to prevent half-written frames
                         await frameBytes.CopyToAsync(_writeStream).ConfigureAwait(false);
                     }
                     finally
@@ -424,7 +481,16 @@ namespace CqlSharp.Network
                     var error = response as ErrorFrame;
                     if (error != null)
                     {
+                        //dispose error frame and throw the exception
+                        error.Dispose();
                         throw error.Exception;
+                    }
+
+                    //dispose frame, when cancellation requested
+                    if (token.IsCancellationRequested)
+                    {
+                        response.Dispose();
+                        throw new OperationCanceledException(token);
                     }
 
                     //return response
@@ -446,6 +512,10 @@ namespace CqlSharp.Network
                     Interlocked.Decrement(ref _activeRequests);
                     UpdateLoad(-load, logger);
                 }
+            }
+            catch (TaskCanceledException)
+            {
+                throw;
             }
             catch (ProtocolException pex)
             {
@@ -571,7 +641,7 @@ namespace CqlSharp.Network
         public async Task RegisterForClusterChangesAsync(Logger logger)
         {
             var registerframe = new RegisterFrame(new List<string> { "TOPOLOGY_CHANGE", "STATUS_CHANGE" });
-            Frame result = await SendRequestAsync(registerframe, logger).ConfigureAwait(false);
+            Frame result = await SendRequestAsync(registerframe, logger, 1, false, CancellationToken.None).ConfigureAwait(false);
 
             if (!(result is ReadyFrame))
                 throw new CqlException("Could not register for cluster changes!");

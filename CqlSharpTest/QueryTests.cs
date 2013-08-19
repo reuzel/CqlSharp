@@ -136,7 +136,7 @@ namespace CqlSharp.Test
                 Assert.IsTrue(reader.TracingId.HasValue, "Expected a tracing id");
 
                 var tracer = new QueryTraceCommand(connection, reader.TracingId.Value);
-                TracingSession session = await tracer.GetTraceSessionAsync();
+                TracingSession session = await tracer.GetTraceSessionAsync(CancellationToken.None);
 
                 Assert.IsNotNull(session);
             }

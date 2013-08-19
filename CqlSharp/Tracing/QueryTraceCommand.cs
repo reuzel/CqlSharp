@@ -15,6 +15,7 @@
 
 using System;
 using System.Collections.Generic;
+using System.Threading;
 using System.Threading.Tasks;
 
 namespace CqlSharp.Tracing
@@ -42,13 +43,13 @@ namespace CqlSharp.Tracing
         ///   Gets the trace session async.
         /// </summary>
         /// <returns> TracingSession if any, null otherwise </returns>
-        public async Task<TracingSession> GetTraceSessionAsync()
+        public async Task<TracingSession> GetTraceSessionAsync(CancellationToken token)
         {
             TracingSession session;
             var sessionCmd = new CqlCommand(_connection,
                                             "select * from system_traces.sessions where session_id=" +
                                             _tracingId + ";", CqlConsistency.One);
-            using (CqlDataReader<TracingSession> reader = await sessionCmd.ExecuteReaderAsync<TracingSession>().ConfigureAwait(false))
+            using (CqlDataReader<TracingSession> reader = await sessionCmd.ExecuteReaderAsync<TracingSession>(token).ConfigureAwait(false))
             {
                 if (await reader.ReadAsync().ConfigureAwait(false))
                 {
@@ -61,7 +62,7 @@ namespace CqlSharp.Tracing
             var eventsCmd = new CqlCommand(_connection,
                                            "select * from system_traces.events where session_id=" +
                                            _tracingId + ";", CqlConsistency.One);
-            using (CqlDataReader<TracingEvent> reader = await eventsCmd.ExecuteReaderAsync<TracingEvent>().ConfigureAwait(false))
+            using (CqlDataReader<TracingEvent> reader = await eventsCmd.ExecuteReaderAsync<TracingEvent>(token).ConfigureAwait(false))
             {
                 var events = new List<TracingEvent>(reader.Count);
                 while (await reader.ReadAsync().ConfigureAwait(false))
@@ -86,7 +87,7 @@ namespace CqlSharp.Tracing
         {
             try
             {
-                return GetTraceSessionAsync().Result;
+                return GetTraceSessionAsync(CancellationToken.None).Result;
             }
             catch (AggregateException aex)
             {

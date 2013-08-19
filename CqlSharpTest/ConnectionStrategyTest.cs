@@ -13,6 +13,7 @@
 // See the License for the specific language governing permissions and
 // limitations under the License.
 
+using System.Threading;
 using CqlSharp.Config;
 using CqlSharp.Network;
 using CqlSharp.Network.Fakes;
@@ -63,7 +64,7 @@ namespace CqlSharp.Test
                     using (logger.ThreadBinding())
                         connection = strategy.GetOrCreateConnection(PartitionKey.None);
 
-                    await connection.SendRequestAsync(new QueryFrame("", CqlConsistency.Any), logger, 10);
+                    await connection.SendRequestAsync(new QueryFrame("", CqlConsistency.Any), logger, 10, false, CancellationToken.None);
                 }
 
                 Assert.AreEqual(nodes.Sum(nd => nd.ConnectionCount), nr);
@@ -103,7 +104,7 @@ namespace CqlSharp.Test
                     using (logger.ThreadBinding())
                         connection = strategy.GetOrCreateConnection(PartitionKey.None);
 
-                    await connection.SendRequestAsync(new QueryFrame("", CqlConsistency.Any), logger, 10);
+                    await connection.SendRequestAsync(new QueryFrame("", CqlConsistency.Any), logger, 10, false, CancellationToken.None);
                 }
 
                 Assert.AreEqual(6, nodes.Sum(nd => nd.ConnectionCount));
@@ -143,7 +144,7 @@ namespace CqlSharp.Test
                     using (logger.ThreadBinding())
                         connection = strategy.GetOrCreateConnection(PartitionKey.None);
 
-                    await connection.SendRequestAsync(new QueryFrame("", CqlConsistency.Any), logger, 10);
+                    await connection.SendRequestAsync(new QueryFrame("", CqlConsistency.Any), logger, 10, false, CancellationToken.None);
                 }
 
                 Assert.AreEqual(4, nodes.Sum(nd => nd.ConnectionCount));
@@ -183,7 +184,7 @@ namespace CqlSharp.Test
                     using (logger.ThreadBinding())
                         connection = strategy.GetOrCreateConnection(PartitionKey.None);
 
-                    await connection.SendRequestAsync(new QueryFrame("", CqlConsistency.Any), logger, 10);
+                    await connection.SendRequestAsync(new QueryFrame("", CqlConsistency.Any), logger, 10, false, CancellationToken.None);
                 }
 
                 Assert.AreEqual(1, nodes.Sum(nd => nd.ConnectionCount));
@@ -223,7 +224,7 @@ namespace CqlSharp.Test
                     using (logger.ThreadBinding())
                         connection = strategy.GetOrCreateConnection(PartitionKey.None);
 
-                    await connection.SendRequestAsync(new QueryFrame("", CqlConsistency.Any), logger, 10);
+                    await connection.SendRequestAsync(new QueryFrame("", CqlConsistency.Any), logger, 10, false, CancellationToken.None);
                 }
 
                 Assert.AreEqual(nodes.Sum(nd => nd.ConnectionCount), 6);
@@ -264,7 +265,7 @@ namespace CqlSharp.Test
                     using (logger.ThreadBinding())
                         connection = strategy.GetOrCreateConnection(PartitionKey.None);
 
-                    await connection.SendRequestAsync(new QueryFrame("", CqlConsistency.Any), logger, 10);
+                    await connection.SendRequestAsync(new QueryFrame("", CqlConsistency.Any), logger, 10, false, CancellationToken.None);
                 }
 
                 Assert.AreEqual(4, nodes.Sum(nd => nd.ConnectionCount));
@@ -306,7 +307,7 @@ namespace CqlSharp.Test
                     using (logger.ThreadBinding())
                         connection = strategy.GetOrCreateConnection(PartitionKey.None);
 
-                    await connection.SendRequestAsync(new QueryFrame("", CqlConsistency.Any), logger, 10);
+                    await connection.SendRequestAsync(new QueryFrame("", CqlConsistency.Any), logger, 10, false, CancellationToken.None);
                 }
 
                 Assert.AreEqual(nodes.Sum(nd => nd.ConnectionCount), 8);
@@ -331,9 +332,9 @@ namespace CqlSharp.Test
 
 
                                                                       // ReSharper disable AccessToModifiedClosure
-                                                                      connection.SendRequestAsyncFrameLoggerInt32Boolean
+                                                                      connection.SendRequestAsyncFrameLoggerInt32BooleanCancellationToken
                                                                           =
-                                                                          (frame, log, load, connecting) =>
+                                                                          (frame, log, load, connecting, token) =>
                                                                           {
                                                                               //update connection load
                                                                               connLoad += load;
