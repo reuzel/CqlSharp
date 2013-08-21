@@ -324,12 +324,15 @@ namespace CqlSharp
 
             if (behavior.HasFlag(CommandBehavior.KeyInfo) ||
                 behavior.HasFlag(CommandBehavior.SchemaOnly) ||
-                behavior.HasFlag(CommandBehavior.CloseConnection) ||
-                behavior.HasFlag(CommandBehavior.SingleResult) ||
                 behavior.HasFlag(CommandBehavior.SingleRow))
                 throw new ArgumentException("Command behavior not supported", "behavior");
 
-            return ExecuteReader();
+            IDataReader reader = ExecuteReader();
+
+            if (behavior.HasFlag(CommandBehavior.CloseConnection))
+                _connection.Close();
+
+            return reader;
         }
 
         /// <summary>
@@ -717,12 +720,11 @@ namespace CqlSharp
 
             //wait until allowed
             _connection.Throttle.Wait();
-
-            //continue?
-            token.ThrowIfCancellationRequested();
-
             try
             {
+                //continue?
+                token.ThrowIfCancellationRequested();
+
                 _paramCreation = paramCreation;
 
                 logger.LogVerbose("State captured, start executing query");
@@ -735,8 +737,9 @@ namespace CqlSharp
             {
                 _connection.Throttle.Release();
             }
-        }
 
+        }
+        
         /// <summary>
         ///   Prepares the query
         /// </summary>

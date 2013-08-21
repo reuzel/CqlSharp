@@ -13,7 +13,6 @@
 // See the License for the specific language governing permissions and
 // limitations under the License.
 
-using System.Data;
 using CqlSharp.Config;
 using CqlSharp.Logging;
 using CqlSharp.Network;
@@ -21,6 +20,7 @@ using CqlSharp.Network.Partition;
 using CqlSharp.Protocol;
 using System;
 using System.Collections.Concurrent;
+using System.Data;
 using System.Net;
 using System.Threading;
 using System.Threading.Tasks;
@@ -118,9 +118,10 @@ namespace CqlSharp
             throw new NotImplementedException();
         }
 
-        void IDbConnection.Close()
+        public void Close()
         {
-            //no effect, TODO: introduce more states
+            //TODO: create intermediate states
+            Dispose(true);
         }
 
         public string ConnectionString

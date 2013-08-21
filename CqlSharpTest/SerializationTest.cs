@@ -396,21 +396,21 @@ namespace CqlSharp.Test
                 {
                     if (reader.Read())
                     {
-                        aAsciiString = (string)reader["aasciistring"];
-                        aVarcharString = (string)reader["avarcharstring"];
-                        aVarint = (BigInteger?)reader["avarint"];
-                        aTextString = (string)reader["atextstring"];
-                        aBool = (bool?)reader["abool"];
-                        aDouble = (double?)reader["adouble"];
-                        aFloat = (float?)reader["afloat"];
-                        aInet = (IPAddress)reader["ainet"];
-                        aLong = (long?)reader["along"];
-                        aTimeUUID = (Guid?)reader["atimeuuid"];
-                        aUUID = (Guid?)reader["auuid"];
-                        aBlob = (byte[])reader["ablob"];
-                        aList = (List<string>)reader["alist"];
-                        aSet = (HashSet<int>)reader["aset"];
-                        aMap = (Dictionary<long, string>)reader["amap"];
+                        aAsciiString = reader["aasciistring"] as string;
+                        aVarcharString = reader["avarcharstring"] as string;
+                        aVarint = reader["avarint"] as BigInteger?;
+                        aTextString = reader["atextstring"] as string;
+                        aBool = reader["abool"] as bool?;
+                        aDouble = reader["adouble"] as double?;
+                        aFloat = reader["afloat"] as float?;
+                        aInet = reader["ainet"] as IPAddress;
+                        aLong = reader["along"] as long?;
+                        aTimeUUID = reader["atimeuuid"] as Guid?;
+                        aUUID = reader["auuid"] as Guid?;
+                        aBlob = reader["ablob"] as byte[];
+                        aList = reader["alist"] as List<string>;
+                        aSet = reader["aset"] as HashSet<int>;
+                        aMap = reader["amap"] as Dictionary<long, string>;
                     }
                     else
                         throw new Exception("No row returned!");
