@@ -33,7 +33,7 @@ namespace CqlSharp.Network
     internal class Cluster
     {
         private readonly ClusterConfig _config;
-        private IConnectionStrategy _connectionSelector;
+        private IConnectionStrategy _connectionStrategy;
         private SemaphoreSlim _throttle;
         private volatile Task _openTask;
         private readonly object _syncLock = new object();
@@ -118,17 +118,17 @@ namespace CqlSharp.Network
             //setup cluster connection strategy
             switch (_config.ConnectionStrategy)
             {
-                case ConnectionStrategy.Balanced:
-                    _connectionSelector = new BalancedConnectionStrategy(_nodes, _config);
+                case CqlSharp.Config.ConnectionStrategy.Balanced:
+                    _connectionStrategy = new BalancedConnectionStrategy(_nodes, _config);
                     break;
-                case ConnectionStrategy.Random:
-                    _connectionSelector = new RandomConnectionStrategy(_nodes, _config);
+                case CqlSharp.Config.ConnectionStrategy.Random:
+                    _connectionStrategy = new RandomConnectionStrategy(_nodes, _config);
                     break;
-                case ConnectionStrategy.Exclusive:
-                    _connectionSelector = new ExclusiveConnectionStrategy(_nodes, _config);
+                case CqlSharp.Config.ConnectionStrategy.Exclusive:
+                    _connectionStrategy = new ExclusiveConnectionStrategy(_nodes, _config);
                     break;
-                case ConnectionStrategy.PartitionAware:
-                    _connectionSelector = new PartitionAwareConnectionStrategy(_nodes, _config);
+                case CqlSharp.Config.ConnectionStrategy.PartitionAware:
+                    _connectionStrategy = new PartitionAwareConnectionStrategy(_nodes, _config);
                     if (_config.DiscoveryScope != DiscoveryScope.Cluster || _config.DiscoveryScope != DiscoveryScope.DataCenter)
                         logger.LogWarning("PartitionAware connection strategy performs best if DiscoveryScope is set to cluster or datacenter");
                     break;
@@ -162,14 +162,10 @@ namespace CqlSharp.Network
                     //setup maintenance connection
                     logger.LogVerbose("Creating new maintenance connection");
 
-                    //pick a random node from the list
-                    var strategy = new RandomConnectionStrategy(_nodes, _config);
-
                     //get or create a connection
-                    var connection = strategy.GetOrCreateConnection(null);
-
-                    //allow this connection to be used by others as well
-                    _connectionSelector.ReturnConnection(connection);
+                    Connection connection;
+                    using (logger.ThreadBinding())
+                        connection = _connectionStrategy.GetOrCreateConnection(ConnectionScope.Infrastructure, null);
 
                     //setup event handlers
                     connection.OnConnectionChange += (src, ev) => SetupMaintenanceConnection(logger);
@@ -226,26 +222,19 @@ namespace CqlSharp.Network
             return _prepareResultCache.GetOrAdd(cql, s => new ConcurrentDictionary<IPAddress, ResultFrame>());
         }
 
-
         /// <summary>
-        ///   Gets a connection to a reference in the cluster
+        /// Gets the connection strategy.
         /// </summary>
-        /// <param name="partitionKey"> </param>
-        /// <returns> </returns>
-        public Connection GetOrCreateConnection(PartitionKey partitionKey)
+        /// <value>
+        /// The connection strategy.
+        /// </value>
+        public IConnectionStrategy ConnectionStrategy
         {
-            return _connectionSelector.GetOrCreateConnection(partitionKey);
+            get
+            {
+                return _connectionStrategy;
+            }
         }
-
-        /// <summary>
-        ///   Returns the connection.
-        /// </summary>
-        /// <param name="connection"> The connection. </param>
-        public void ReturnConnection(Connection connection)
-        {
-            _connectionSelector.ReturnConnection(connection);
-        }
-
 
         /// <summary>
         /// Gets all nodes that make up the cluster

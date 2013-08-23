@@ -113,9 +113,24 @@ namespace CqlSharp
             throw new NotSupportedException();
         }
 
-        void IDbConnection.ChangeDatabase(string databaseName)
+        /// <summary>
+        /// Changes the current database for an open Connection object.
+        /// </summary>
+        /// <param name="databaseName">The name of the database to use in place of the current database.</param>
+        /// <exception cref="System.ObjectDisposedException">CqlConnection</exception>
+        /// <exception cref="System.InvalidOperationException">Database property only supported with a ConnectionStrategy that offers exclusive connections</exception>
+        public void ChangeDatabase(string databaseName)
         {
-            throw new NotImplementedException();
+            if (_state == 0)
+                throw new InvalidOperationException("Can set database only when the connection is open");
+
+            if (_state == 2)
+                throw new ObjectDisposedException("CqlConnection");
+
+            if (!_cluster.ConnectionStrategy.ProvidesExclusiveConnections)
+                throw new InvalidOperationException("Changing a database is only supported with a ConnectionStrategy that offers exclusive connections");
+
+            _database = databaseName;
         }
 
         public void Close()
@@ -136,24 +151,47 @@ namespace CqlSharp
             }
         }
 
+        /// <summary>
+        /// Gets the time to wait while trying to establish a connection before terminating the attempt and generating an error.
+        /// </summary>
+        /// <returns>The time (in seconds) to wait for a connection to open. The default value is 15 seconds.</returns>
+        /// <exception cref="System.NotSupportedException"></exception>
         int IDbConnection.ConnectionTimeout
         {
             get { throw new NotSupportedException(); }
         }
 
+        /// <summary>
+        /// Creates and returns a Command object associated with the connection.
+        /// </summary>
+        /// <returns>
+        /// A Command object associated with the connection.
+        /// </returns>
         public IDbCommand CreateCommand()
         {
             return new CqlCommand(this);
         }
 
-        string IDbConnection.Database
-        {
-            get { throw new NotImplementedException(); }
-        }
+        private string _database;
 
-        void IDbConnection.Open()
+        /// <summary>
+        /// Gets the name of the current database or the database to be used after a connection is opened.
+        /// </summary>
+        /// <returns>The name of the current database or the name of the database to be used once a connection is open. The default value is an empty string.</returns>
+        /// <exception cref="System.InvalidOperationException">You must invoke Open or OpenAsync on a CqlConnection before other use.</exception>
+        /// <exception cref="System.ObjectDisposedException">CqlConnection</exception>
+        public string Database
         {
-            Open();
+            get
+            {
+                if (_state == 2)
+                    throw new ObjectDisposedException("CqlConnection");
+
+                if (!_cluster.ConnectionStrategy.ProvidesExclusiveConnections)
+                    throw new InvalidOperationException("Database property only supported with a ConnectionStrategy that offers exclusive connections");
+
+                return _database;
+            }
         }
 
         ConnectionState IDbConnection.State
@@ -199,6 +237,8 @@ namespace CqlSharp
             get { return _cluster.LoggerManager; }
         }
 
+
+
         #region IDisposable Members
 
         /// <summary>
@@ -234,14 +274,8 @@ namespace CqlSharp
             //make sure the cluster is open for connections
             await _cluster.OpenAsync(logger).ConfigureAwait(false);
 
-            //get an exclusive connection
-            if (_cluster.Config.ConnectionStrategy == ConnectionStrategy.Exclusive)
-            {
-                _connection = _cluster.GetOrCreateConnection(PartitionKey.None);
-
-                if (_connection == null)
-                    throw new CqlException("Unable to obtain an exclusive Cql network connection.");
-            }
+            //get a connection
+            _connection = _cluster.ConnectionStrategy.GetOrCreateConnection(ConnectionScope.Connection, PartitionKey.None);
         }
 
         /// <summary>
@@ -262,7 +296,7 @@ namespace CqlSharp
         }
 
         /// <summary>
-        ///   Gets the underlying connection. Will reopen this CqlConnection, if the underlying connection has failed,
+        ///   Requests a connection to be used for a command. Will reuse connection level connection if available
         /// </summary>
         /// <returns> An open connection </returns>
         internal Connection GetConnection(PartitionKey partitionKey = default(PartitionKey))
@@ -273,15 +307,24 @@ namespace CqlSharp
             if (_state == 2)
                 throw new ObjectDisposedException("CqlConnection");
 
-            //reuse the connection if the connection strategy is exclusive
-            Connection connection = _cluster.Config.ConnectionStrategy == ConnectionStrategy.Exclusive
-                                        ? _connection
-                                        : _cluster.GetOrCreateConnection(partitionKey);
+            //reuse the connection if any available on connection level
+            Connection connection = _connection ?? _cluster.ConnectionStrategy.GetOrCreateConnection(ConnectionScope.Command, partitionKey);
 
             if (connection == null)
                 throw new CqlException("Unable to obtain a Cql network connection.");
 
             return connection;
+        }
+
+        /// <summary>
+        /// Gets a value indicating whether the CqlConnection provides exclusive connections.
+        /// </summary>
+        /// <value>
+        /// <c>true</c> if [provides exclusive connections]; otherwise, <c>false</c>.
+        /// </value>
+        internal bool ProvidesExclusiveConnections
+        {
+            get { return _cluster.ConnectionStrategy.ProvidesExclusiveConnections; }
         }
 
         /// <summary>
@@ -294,7 +337,7 @@ namespace CqlSharp
             {
                 if (_connection != null)
                 {
-                    _cluster.ReturnConnection(_connection);
+                    _cluster.ConnectionStrategy.ReturnConnection(_connection, ConnectionScope.Connection);
                     _connection = null;
                 }
                 _cluster = null;

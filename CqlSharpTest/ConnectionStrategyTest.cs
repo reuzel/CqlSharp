@@ -13,7 +13,6 @@
 // See the License for the specific language governing permissions and
 // limitations under the License.
 
-using System.Threading;
 using CqlSharp.Config;
 using CqlSharp.Network;
 using CqlSharp.Network.Fakes;
@@ -25,6 +24,7 @@ using System;
 using System.Collections.Generic;
 using System.Linq;
 using System.Net;
+using System.Threading;
 using System.Threading.Tasks;
 
 namespace CqlSharp.Test
@@ -62,7 +62,7 @@ namespace CqlSharp.Test
                     Connection connection;
 
                     using (logger.ThreadBinding())
-                        connection = strategy.GetOrCreateConnection(PartitionKey.None);
+                        connection = strategy.GetOrCreateConnection(ConnectionScope.Command, PartitionKey.None);
 
                     await connection.SendRequestAsync(new QueryFrame("", CqlConsistency.Any), logger, 10, false, CancellationToken.None);
                 }
@@ -102,7 +102,7 @@ namespace CqlSharp.Test
                     Connection connection;
 
                     using (logger.ThreadBinding())
-                        connection = strategy.GetOrCreateConnection(PartitionKey.None);
+                        connection = strategy.GetOrCreateConnection(ConnectionScope.Command, PartitionKey.None);
 
                     await connection.SendRequestAsync(new QueryFrame("", CqlConsistency.Any), logger, 10, false, CancellationToken.None);
                 }
@@ -142,7 +142,7 @@ namespace CqlSharp.Test
                     Connection connection;
 
                     using (logger.ThreadBinding())
-                        connection = strategy.GetOrCreateConnection(PartitionKey.None);
+                        connection = strategy.GetOrCreateConnection(ConnectionScope.Command, PartitionKey.None);
 
                     await connection.SendRequestAsync(new QueryFrame("", CqlConsistency.Any), logger, 10, false, CancellationToken.None);
                 }
@@ -182,7 +182,7 @@ namespace CqlSharp.Test
                     Connection connection;
 
                     using (logger.ThreadBinding())
-                        connection = strategy.GetOrCreateConnection(PartitionKey.None);
+                        connection = strategy.GetOrCreateConnection(ConnectionScope.Command, PartitionKey.None);
 
                     await connection.SendRequestAsync(new QueryFrame("", CqlConsistency.Any), logger, 10, false, CancellationToken.None);
                 }
@@ -222,7 +222,7 @@ namespace CqlSharp.Test
                     Connection connection;
 
                     using (logger.ThreadBinding())
-                        connection = strategy.GetOrCreateConnection(PartitionKey.None);
+                        connection = strategy.GetOrCreateConnection(ConnectionScope.Command, PartitionKey.None);
 
                     await connection.SendRequestAsync(new QueryFrame("", CqlConsistency.Any), logger, 10, false, CancellationToken.None);
                 }
@@ -263,7 +263,7 @@ namespace CqlSharp.Test
                     Connection connection;
 
                     using (logger.ThreadBinding())
-                        connection = strategy.GetOrCreateConnection(PartitionKey.None);
+                        connection = strategy.GetOrCreateConnection(ConnectionScope.Command, PartitionKey.None);
 
                     await connection.SendRequestAsync(new QueryFrame("", CqlConsistency.Any), logger, 10, false, CancellationToken.None);
                 }
@@ -305,7 +305,7 @@ namespace CqlSharp.Test
                     Connection connection;
 
                     using (logger.ThreadBinding())
-                        connection = strategy.GetOrCreateConnection(PartitionKey.None);
+                        connection = strategy.GetOrCreateConnection(ConnectionScope.Command, PartitionKey.None);
 
                     await connection.SendRequestAsync(new QueryFrame("", CqlConsistency.Any), logger, 10, false, CancellationToken.None);
                 }

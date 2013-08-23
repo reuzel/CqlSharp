@@ -47,18 +47,22 @@ namespace CqlSharp.Network
 
         #region IConnectionStrategy Members
 
-
-
         /// <summary>
         ///   Gets or creates connection to the cluster.
         /// </summary>
+        /// <param name="scope"> </param>
         /// <param name="partitionKey"> </param>
         /// <returns> </returns>
-        public Connection GetOrCreateConnection(PartitionKey partitionKey)
+        public Connection GetOrCreateConnection(ConnectionScope scope, PartitionKey partitionKey)
         {
+            //provide connections on command level only
+            if (scope == ConnectionScope.Connection)
+                return null;
+
             //Sort the nodes by load (used first)
             Node leastUsedNode =
-                _nodes.Where(n => n.IsUp).SmallestOrDefault(n => n.ConnectionCount > 0 ? n.Load : _config.NewConnectionTreshold - 1);
+                _nodes.Where(n => n.IsUp).SmallestOrDefault(
+                    n => n.ConnectionCount > 0 ? n.Load : _config.NewConnectionTreshold - 1);
 
             //try get a connection from it
             Connection connection = leastUsedNode.GetConnection();
@@ -90,9 +94,20 @@ namespace CqlSharp.Network
         ///   Invoked when a connection is no longer in use by the application
         /// </summary>
         /// <param name="connection"> The connection no longer used. </param>
-        public void ReturnConnection(Connection connection)
+        public void ReturnConnection(Connection connection, ConnectionScope scope)
         {
             //connections are shared, nothing to do here
+        }
+
+        /// <summary>
+        /// Gets a value indicating whether [provide exclusive connections].
+        /// </summary>
+        /// <value>
+        /// <c>true</c> if [provide exclusive connections]; otherwise, <c>false</c>.
+        /// </value>
+        public bool ProvidesExclusiveConnections
+        {
+            get { return false; }
         }
 
         #endregion

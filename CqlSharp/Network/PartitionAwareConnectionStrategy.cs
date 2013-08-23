@@ -38,13 +38,18 @@ namespace CqlSharp.Network
         #region Implementation of IConnectionStrategy
 
         /// <summary>
-        ///   Gets or creates connection to the cluster.
+        /// Gets or creates connection to the cluster.
         /// </summary>
-        /// <param name="partitionKey"> </param>
-        /// <returns> </returns>
+        /// <param name="scope">The scope.</param>
+        /// <param name="partitionKey">The partition key.</param>
+        /// <returns></returns>
         /// <exception cref="CqlException">Can not connect to any node of the cluster! All connectivity to the cluster seems to be lost</exception>
-        public Connection GetOrCreateConnection(PartitionKey partitionKey)
+        public Connection GetOrCreateConnection(ConnectionScope scope, PartitionKey partitionKey)
         {
+            //provide connections on command level only
+            if (scope == ConnectionScope.Connection)
+                return null;
+
             //try based on partition first
             if (partitionKey != null && partitionKey.IsSet)
             {
@@ -58,17 +63,27 @@ namespace CqlSharp.Network
                 }
             }
 
-            return _baseStrategy.GetOrCreateConnection(partitionKey);
+            return _baseStrategy.GetOrCreateConnection(scope, partitionKey);
         }
 
         /// <summary>
-        ///   Invoked when a connection is no longer in use by the application
+        /// Invoked when a connection is no longer in use by the application
         /// </summary>
-        /// <param name="connection"> The connection no longer used. </param>
-        public void ReturnConnection(Connection connection)
+        /// <param name="connection">The connection no longer used.</param>
+        /// <param name="scope">The scope.</param>
+        public void ReturnConnection(Connection connection, ConnectionScope scope)
         {
+            _baseStrategy.ReturnConnection(connection, scope);
+        }
+
+        public bool ProvidesExclusiveConnections
+        {
+            get { return false; }
         }
 
         #endregion
+
+
+
     }
 }

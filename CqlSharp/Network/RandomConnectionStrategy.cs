@@ -45,12 +45,17 @@ namespace CqlSharp.Network
         #region IConnectionStrategy Members
 
         /// <summary>
-        ///   Gets or creates connection to the cluster.
+        /// Gets or creates connection to the cluster.
         /// </summary>
-        /// <param name="partitionKey"> </param>
-        /// <returns> </returns>
-        public Connection GetOrCreateConnection(PartitionKey partitionKey)
+        /// <param name="scope">The scope.</param>
+        /// <param name="partitionKey">The partition key.</param>
+        /// <returns></returns>
+        public Connection GetOrCreateConnection(ConnectionScope scope, PartitionKey partitionKey)
         {
+            //provide connections on command level only
+            if (scope == ConnectionScope.Connection)
+                return null;
+
             int count = _nodes.Count;
             int offset = _rnd.Next(count);
 
@@ -94,12 +99,18 @@ namespace CqlSharp.Network
 
 
         /// <summary>
-        ///   Invoked when a connection is no longer in use by the application
+        /// Invoked when a connection is no longer in use by the application
         /// </summary>
-        /// <param name="connection"> The connection no longer used. </param>
-        public void ReturnConnection(Connection connection)
+        /// <param name="connection">The connection no longer used.</param>
+        /// <param name="scope">The scope.</param>
+        public void ReturnConnection(Connection connection, ConnectionScope scope)
         {
             //no-op
+        }
+
+        public bool ProvidesExclusiveConnections
+        {
+            get { return false; }
         }
 
         #endregion

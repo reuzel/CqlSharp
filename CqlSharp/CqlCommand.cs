@@ -739,7 +739,7 @@ namespace CqlSharp
             }
 
         }
-        
+
         /// <summary>
         ///   Prepares the query
         /// </summary>
@@ -792,11 +792,27 @@ namespace CqlSharp
                 //get me a connection
                 Connection connection;
                 using (logger.ThreadBinding())
-                    connection = _connection.GetConnection(PartitionKey != null ? PartitionKey.Copy() : null);
+                    connection = _connection.GetConnection(PartitionKey);
 
-                //execute
                 try
                 {
+                    //set correct database if necessary
+                    if (_connection.ProvidesExclusiveConnections &&
+                        !string.IsNullOrWhiteSpace(_connection.Database) &&
+                        !_connection.Database.Equals(connection.CurrentKeySpace))
+                    {
+                        var useFrame = new QueryFrame("use '" + _connection.Database + "';", CqlConsistency.One);
+                        var result = await connection.SendRequestAsync(useFrame, logger, 1, false, token) as ResultFrame;
+                        if (result == null || result.ResultOpcode != ResultOpcode.SetKeyspace)
+                        {
+                            if (result != null) result.Dispose();
+                            throw new CqlException("Unexpected frame received");
+                        }
+                        //assume success
+                        result.Dispose();
+                    }
+
+                    //execute
                     return await executeFunc(connection, logger, token).ConfigureAwait(false);
                 }
                 catch (TaskCanceledException)

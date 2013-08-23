@@ -17,7 +17,7 @@ using CqlSharp.Config;
 using CqlSharp.Network.Partition;
 using System;
 using System.Collections.Concurrent;
-using System.Linq;
+using System.Threading;
 
 namespace CqlSharp.Network
 {
@@ -34,6 +34,7 @@ namespace CqlSharp.Network
         private readonly ConcurrentStack<Connection> _connections;
         private readonly Ring _nodes;
         private readonly Random _rndGen;
+        private int _connectionCount;
 
         /// <summary>
         ///   Initializes the strategy with the specified nodes and cluster configuration
@@ -46,23 +47,46 @@ namespace CqlSharp.Network
             _config = config;
             _connections = new ConcurrentStack<Connection>();
             _rndGen = new Random((int)DateTime.Now.Ticks);
+            _connectionCount = 0;
         }
 
         #region IConnectionStrategy Members
 
-        public Connection GetOrCreateConnection(PartitionKey partitionKey)
+        public Connection GetOrCreateConnection(ConnectionScope scope, PartitionKey partitionKey)
         {
-            Connection connection;
+            Connection connection = null;
 
-            //try pick an unused connection
-            while (_connections.TryPop(out connection))
+            //provide connections on connection level only
+            if (scope == ConnectionScope.Command)
+                return null;
+
+            if (scope == ConnectionScope.Infrastructure)
             {
-                if (connection.IsConnected)
-                    return connection;
+                //connection exist, go and find random one
+                if (_connectionCount > 0)
+                {
+                    int count = _nodes.Count;
+                    int offset = _rndGen.Next(count);
+                    for (int i = 0; i < count; i++)
+                    {
+                        connection = _nodes[(offset + i) % count].GetConnection();
+                        if (connection != null)
+                            return connection;
+                    }
+                }
+            }
+            else
+            {
+                //try pick an unused connection
+                while (_connections.TryPop(out connection))
+                {
+                    if (connection.IsConnected)
+                        return connection;
+                }
             }
 
-            //check if we may create another connection
-            if (_config.MaxConnections <= 0 || _nodes.Sum(n => n.ConnectionCount) < _config.MaxConnections)
+            //check if we may create another connection if we didn't find a connection yet
+            if (_config.MaxConnections <= 0 || _connectionCount < _config.MaxConnections)
             {
                 //all connections in use, or non available, go and create one at random node
                 int count = _nodes.Count;
@@ -71,17 +95,34 @@ namespace CqlSharp.Network
                 {
                     connection = _nodes[(offset + i) % count].CreateConnection();
                     if (connection != null)
+                    {
+                        Interlocked.Increment(ref _connectionCount);
+                        connection.OnConnectionChange += (src, ev) =>
+                                                             {
+                                                                 if (!ev.Connected)
+                                                                     Interlocked.Decrement(ref _connectionCount);
+                                                             };
+
+                        if (scope == ConnectionScope.Infrastructure)
+                            _connections.Push(connection);
+
                         return connection;
+                    }
                 }
             }
 
             //yikes nothing available
-            return null;
+            return connection;
         }
 
-        public void ReturnConnection(Connection connection)
+        public void ReturnConnection(Connection connection, ConnectionScope scope)
         {
             _connections.Push(connection);
+        }
+
+        public bool ProvidesExclusiveConnections
+        {
+            get { return true; }
         }
 
         #endregion

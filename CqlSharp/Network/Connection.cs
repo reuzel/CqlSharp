@@ -54,6 +54,18 @@ namespace CqlSharp.Network
         private readonly int _nr;
         private bool _allowCompression;
 
+        /// <summary>
+        /// Gets the current key space.
+        /// </summary>
+        /// <value>
+        /// The current key space.
+        /// </value>
+        internal string CurrentKeySpace
+        {
+            get;
+            private set;
+        }
+
 
         /// <summary>
         /// Initializes a new instance of the <see cref="Connection" /> class.
@@ -486,6 +498,12 @@ namespace CqlSharp.Network
                         throw error.Exception;
                     }
 
+                    var keyspaceChange = response as ResultFrame;
+                    if (keyspaceChange != null && keyspaceChange.ResultOpcode == ResultOpcode.SetKeyspace)
+                    {
+                        CurrentKeySpace = keyspaceChange.Keyspace;
+                    }
+
                     //dispose frame, when cancellation requested
                     if (token.IsCancellationRequested)
                     {
@@ -546,6 +564,7 @@ namespace CqlSharp.Network
                 }
             }
         }
+
 
         /// <summary>
         ///   Starts a readloop
