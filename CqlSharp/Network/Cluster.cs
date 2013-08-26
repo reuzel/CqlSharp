@@ -65,16 +65,16 @@ namespace CqlSharp.Network
         /// <summary>
         /// Opens the cluster for queries.
         /// </summary>
-        public Task OpenAsync(Logger logger)
+        public Task OpenAsync(Logger logger, CancellationToken token)
         {
-            if (_openTask == null || _openTask.IsFaulted)
+            if (_openTask == null || _openTask.IsFaulted || _openTask.IsCanceled)
             {
                 lock (_syncLock)
                 {
-                    if (_openTask == null || _openTask.IsFaulted)
+                    if (_openTask == null || _openTask.IsFaulted || _openTask.IsCanceled)
                     {
                         //set the openTask
-                        _openTask = OpenAsyncInternal(logger);
+                        _openTask = OpenAsyncInternal(logger, token);
                     }
                 }
             }
@@ -87,7 +87,7 @@ namespace CqlSharp.Network
         /// </summary>
         /// <returns></returns>
         /// <exception cref="CqlException">Cannot construct ring from provided seeds!</exception>
-        private async Task OpenAsyncInternal(Logger logger)
+        private async Task OpenAsyncInternal(Logger logger, CancellationToken token)
         {
             logger.LogInfo("Opening Cluster with parameters: {0}", _config.ToString());
 
@@ -97,7 +97,12 @@ namespace CqlSharp.Network
                 try
                 {
                     var seed = new Node(seedAddress, this);
-                    _nodes = await DiscoverNodesAsync(seed, logger).ConfigureAwait(false);
+                    _nodes = await DiscoverNodesAsync(seed, logger, token).ConfigureAwait(false);
+                }
+                catch (TaskCanceledException)
+                {
+                    logger.LogWarning("Opening connection to cluster was cancelled");
+                    throw;
                 }
                 catch (Exception ex)
                 {
@@ -241,9 +246,10 @@ namespace CqlSharp.Network
         /// </summary>
         /// <param name="seed">The reference.</param>
         /// <param name="logger">logger used to log progress</param>
+        /// <param name="token">The token.</param>
         /// <returns></returns>
         /// <exception cref="CqlException">Could not detect datacenter or rack information from the reference specified in the config section!</exception>
-        private async Task<Ring> DiscoverNodesAsync(Node seed, Logger logger)
+        private async Task<Ring> DiscoverNodesAsync(Node seed, Logger logger, CancellationToken token)
         {
             Connection c;
             using (logger.ThreadBinding())
@@ -254,23 +260,23 @@ namespace CqlSharp.Network
 
             //get partitioner
             string partitioner;
-            using (var result = await ExecQuery(c, "select partitioner from system.local", logger).ConfigureAwait(false))
+            using (var result = await ExecQuery(c, "select partitioner from system.local", logger, token).ConfigureAwait(false))
             {
                 if (!await result.ReadAsync().ConfigureAwait(false))
                     throw new CqlException("Could not detect the cluster partitioner");
-                partitioner = (string)result[0];
+                partitioner = result.GetString(0);
             }
 
             logger.LogInfo("Partitioner in use: {0}", partitioner);
 
             //get the "local" data center, rack and token
-            using (var result = await ExecQuery(c, "select data_center, rack, tokens from system.local", logger).ConfigureAwait(false))
+            using (var result = await ExecQuery(c, "select data_center, rack, tokens from system.local", logger, token).ConfigureAwait(false))
             {
                 if (await result.ReadAsync().ConfigureAwait(false))
                 {
-                    seed.DataCenter = (string)result["data_center"];
-                    seed.Rack = (string)result["rack"];
-                    seed.Tokens = (ISet<string>)result["tokens"];
+                    seed.DataCenter = result.GetString(0);
+                    seed.Rack = result.GetString(1);
+                    seed.Tokens = result.GetSet<string>(2);
 
                     logger.LogVerbose("Seed info - Address:{0} DataCenter:{1} Rack:{2}", seed.Address, seed.DataCenter, seed.Rack);
                 }
@@ -285,7 +291,7 @@ namespace CqlSharp.Network
             var found = new List<Node> { seed };
 
             //get the peers
-            using (var result = await ExecQuery(c, "select rpc_address, data_center, rack, tokens from system.peers", logger).ConfigureAwait(false))
+            using (var result = await ExecQuery(c, "select rpc_address, data_center, rack, tokens from system.peers", logger, token).ConfigureAwait(false))
             {
                 //iterate over the peers
                 while (await result.ReadAsync().ConfigureAwait(false))
@@ -314,15 +320,19 @@ namespace CqlSharp.Network
         /// <param name="connection">The connection.</param>
         /// <param name="cql">The CQL.</param>
         /// <param name="logger">The logger.</param>
+        /// <param name="token">The token.</param>
         /// <returns>
         /// A CqlDataReader that can be used to access the query results
         /// </returns>
-        private async Task<CqlDataReader> ExecQuery(Connection connection, string cql, Logger logger)
+        private async Task<CqlDataReader> ExecQuery(Connection connection, string cql, Logger logger, CancellationToken token)
         {
+            //cancel if requested
+            token.ThrowIfCancellationRequested();
+
             logger.LogVerbose("Excuting query {0} on {1}", cql, connection);
 
             var query = new QueryFrame(cql, CqlConsistency.One);
-            var result = (ResultFrame)await connection.SendRequestAsync(query, logger, 1, false, CancellationToken.None).ConfigureAwait(false);
+            var result = (ResultFrame)await connection.SendRequestAsync(query, logger, 1, false, token).ConfigureAwait(false);
             var reader = new CqlDataReader(result);
 
             logger.LogVerbose("Query {0} returned {1} results", cql, reader.Count);
@@ -372,7 +382,7 @@ namespace CqlSharp.Network
                 var connection = (Connection)source;
 
                 //get the new peer
-                using (var result = await ExecQuery(connection, "select rpc_address, data_center, rack, tokens from system.peers where peer = '" + args.Node + "'", logger).ConfigureAwait(false))
+                using (var result = await ExecQuery(connection, "select rpc_address, data_center, rack, tokens from system.peers where peer = '" + args.Node + "'", logger, CancellationToken.None).ConfigureAwait(false))
                 {
                     if (await result.ReadAsync().ConfigureAwait(false))
                     {

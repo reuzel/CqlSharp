@@ -27,7 +27,7 @@ namespace CqlSharp.Test
     [TestClass]
     public class QueryTests
     {
-        private const string ConnectionString = "server=localhost;throttle=256;ConnectionStrategy=PartitionAware;loggerfactory=console;loglevel=query";
+        private const string ConnectionString = "server=localhost;throttle=256;ConnectionStrategy=PartitionAware;loggerfactory=debug;loglevel=query";
 
         [TestInitialize]
         public void Init()
@@ -101,7 +101,7 @@ namespace CqlSharp.Test
 
                 var executions = new Task<ICqlQueryResult>[insertCount];
 
-                var options = new ParallelOptions { MaxDegreeOfParallelism = 1 };
+                var options = new ParallelOptions { MaxDegreeOfParallelism = 4 };
                 Parallel.For(0, insertCount, options, i =>
                 {
                     // ReSharper disable AccessToDisposedClosure
