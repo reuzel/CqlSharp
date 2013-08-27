@@ -13,7 +13,6 @@
 // See the License for the specific language governing permissions and
 // limitations under the License.
 
-using CqlSharp.Config;
 using CqlSharp.Logging;
 using CqlSharp.Network;
 using CqlSharp.Network.Partition;
@@ -61,7 +60,7 @@ namespace CqlSharp
         ///   Initializes a new instance of the <see cref="CqlConnection" /> class.
         /// </summary>
         /// <param name="config"> The config. </param>
-        public CqlConnection(ClusterConfig config)
+        public CqlConnection(CqlConnectionStringBuilder config)
             : this(config.ToString())
         {
         }
@@ -82,7 +81,7 @@ namespace CqlSharp
         ///   Gets the config related to this connection.
         /// </summary>
         /// <value> The config </value>
-        internal ClusterConfig Config
+        internal CqlConnectionStringBuilder Config
         {
             get { return Cluster.Config; }
         }
@@ -335,7 +334,7 @@ namespace CqlSharp
             Cluster cluster = Clusters.GetOrAdd(ConnectionString, connString =>
                                                                       {
                                                                           //connection string unknown, create a new config 
-                                                                          var cc = new ClusterConfig(connString);
+                                                                          var cc = new CqlConnectionStringBuilder(connString);
 
                                                                           //get normalized connection string
                                                                           string normalizedConnectionString =

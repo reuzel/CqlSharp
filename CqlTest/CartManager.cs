@@ -13,11 +13,11 @@
 // See the License for the specific language governing permissions and
 // limitations under the License.
 
+using CqlSharp;
+using CqlSharp.Protocol;
 using System;
 using System.Collections.Generic;
 using System.Threading.Tasks;
-using CqlSharp;
-using CqlSharp.Protocol;
 
 namespace CqlTest
 {
@@ -79,7 +79,7 @@ namespace CqlTest
         /// <returns> </returns>
         public async Task<Cart> AddCartAsync(string groupId)
         {
-            var c = new Cart {Id = Guid.NewGuid(), GroupId = groupId};
+            var c = new Cart { Id = Guid.NewGuid(), GroupId = groupId };
 
             using (var connection = new CqlConnection("cartDB"))
             {
@@ -128,7 +128,7 @@ namespace CqlTest
                 command.Parameters["id"].Value = guid;
                 using (var reader = await command.ExecuteReaderAsync())
                 {
-                    return await reader.ReadAsync() ? (Dictionary<string, int>) reader["items"] : null;
+                    return await reader.ReadAsync() ? reader["items"] as Dictionary<string, int> : null;
                 }
             }
         }

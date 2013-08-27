@@ -240,7 +240,7 @@ namespace CqlTest
         {
             const int prepared = 10000;
             const int queries = 50000;
-            const int threads = 16;
+            const int threads = 4;
 
             var program = new Program();
             program.Run(queries, threads, prepared);

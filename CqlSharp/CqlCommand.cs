@@ -17,7 +17,6 @@ using System;
 using System.Data;
 using System.Threading;
 using System.Threading.Tasks;
-using CqlSharp.Config;
 using CqlSharp.Logging;
 using CqlSharp.Network;
 using CqlSharp.Network.Partition;

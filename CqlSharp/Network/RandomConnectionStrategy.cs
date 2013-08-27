@@ -13,7 +13,6 @@
 // See the License for the specific language governing permissions and
 // limitations under the License.
 
-using CqlSharp.Config;
 using CqlSharp.Network.Partition;
 using System;
 using System.Threading;
@@ -25,7 +24,7 @@ namespace CqlSharp.Network
     /// </summary>
     internal class RandomConnectionStrategy : IConnectionStrategy
     {
-        private readonly ClusterConfig _config;
+        private readonly CqlConnectionStringBuilder _config;
         private readonly Ring _nodes;
         private readonly Random _rnd;
         private int _connectionCount;
@@ -35,7 +34,7 @@ namespace CqlSharp.Network
         /// </summary>
         /// <param name="nodes"> The nodes. </param>
         /// <param name="config"> The config. </param>
-        public RandomConnectionStrategy(Ring nodes, ClusterConfig config)
+        public RandomConnectionStrategy(Ring nodes, CqlConnectionStringBuilder config)
         {
             _nodes = nodes;
             _config = config;

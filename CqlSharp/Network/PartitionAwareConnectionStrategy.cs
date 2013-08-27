@@ -13,7 +13,6 @@
 // See the License for the specific language governing permissions and
 // limitations under the License.
 
-using CqlSharp.Config;
 using CqlSharp.Network.Partition;
 using System.Linq;
 
@@ -29,7 +28,7 @@ namespace CqlSharp.Network
         /// </summary>
         /// <param name="nodes"> The nodes. </param>
         /// <param name="config"> The config. </param>
-        public PartitionAwareConnectionStrategy(Ring nodes, ClusterConfig config)
+        public PartitionAwareConnectionStrategy(Ring nodes, CqlConnectionStringBuilder config)
         {
             _nodes = nodes;
             _baseStrategy = new BalancedConnectionStrategy(nodes, config);

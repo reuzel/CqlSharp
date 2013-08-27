@@ -1,5 +1,11 @@
 ## Version 0.15.0 - ADO.NET implementation
-* Breaking changes: making CqlSharp implement ADO.NET interfaces
+* CqlSharp now implements the ADO.NET interfaces (this is a breaking change!)
+* Some ADO.NET interfaces are implemented explicitly, such that public interfaces expose Cassandra specific info
+* Parameters to prepared queries will be created based on ParameterCreationOption provided to prepare
+* ClusterConfig replaced by CqlConnectionStringBuilder (and moved to root namespace)
+* Query cancellation supported
+* Database can be changed from default to something else per CqlConnection when Exclusive strategy is used
+* Some preparation to make ConnectionStrategy extendable like logging
 
 ## Version 0.14.1 - Bug fixes (not released)
 * Making short values unsigned shorts as depicted in Cql binary protocol spec.

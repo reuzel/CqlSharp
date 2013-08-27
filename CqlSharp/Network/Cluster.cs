@@ -13,7 +13,6 @@
 // See the License for the specific language governing permissions and
 // limitations under the License.
 
-using CqlSharp.Config;
 using CqlSharp.Logging;
 using CqlSharp.Network.Partition;
 using CqlSharp.Protocol;
@@ -32,7 +31,7 @@ namespace CqlSharp.Network
     /// </summary>
     internal class Cluster
     {
-        private readonly ClusterConfig _config;
+        private readonly CqlConnectionStringBuilder _config;
         private IConnectionStrategy _connectionStrategy;
         private SemaphoreSlim _throttle;
         private volatile Task _openTask;
@@ -46,7 +45,7 @@ namespace CqlSharp.Network
         ///   Initializes a new instance of the <see cref="Cluster" /> class.
         /// </summary>
         /// <param name="config"> The config. </param>
-        public Cluster(ClusterConfig config)
+        public Cluster(CqlConnectionStringBuilder config)
         {
             //store config
             _config = config;
@@ -60,7 +59,7 @@ namespace CqlSharp.Network
         /// <value>
         /// The config
         /// </value>
-        public ClusterConfig Config { get { return _config; } }
+        public CqlConnectionStringBuilder Config { get { return _config; } }
 
         /// <summary>
         /// Opens the cluster for queries.
@@ -92,7 +91,7 @@ namespace CqlSharp.Network
             logger.LogInfo("Opening Cluster with parameters: {0}", _config.ToString());
 
             //try to connect to the seeds in turn
-            foreach (IPAddress seedAddress in _config.NodeAddresses)
+            foreach (IPAddress seedAddress in _config.ServerAddresses)
             {
                 try
                 {
@@ -123,16 +122,16 @@ namespace CqlSharp.Network
             //setup cluster connection strategy
             switch (_config.ConnectionStrategy)
             {
-                case CqlSharp.Config.ConnectionStrategy.Balanced:
+                case CqlSharp.ConnectionStrategy.Balanced:
                     _connectionStrategy = new BalancedConnectionStrategy(_nodes, _config);
                     break;
-                case CqlSharp.Config.ConnectionStrategy.Random:
+                case CqlSharp.ConnectionStrategy.Random:
                     _connectionStrategy = new RandomConnectionStrategy(_nodes, _config);
                     break;
-                case CqlSharp.Config.ConnectionStrategy.Exclusive:
+                case CqlSharp.ConnectionStrategy.Exclusive:
                     _connectionStrategy = new ExclusiveConnectionStrategy(_nodes, _config);
                     break;
-                case CqlSharp.Config.ConnectionStrategy.PartitionAware:
+                case CqlSharp.ConnectionStrategy.PartitionAware:
                     _connectionStrategy = new PartitionAwareConnectionStrategy(_nodes, _config);
                     if (_config.DiscoveryScope != DiscoveryScope.Cluster || _config.DiscoveryScope != DiscoveryScope.DataCenter)
                         logger.LogWarning("PartitionAware connection strategy performs best if DiscoveryScope is set to cluster or datacenter");
@@ -354,7 +353,7 @@ namespace CqlSharp.Network
             {
                 case DiscoveryScope.None:
                     //add if item is in configured list
-                    return _config.NodeAddresses.Contains(target.Address);
+                    return _config.ServerAddresses.Contains(target.Address);
 
                 case DiscoveryScope.DataCenter:
                     //add if in the same datacenter

@@ -13,31 +13,32 @@
 // See the License for the specific language governing permissions and
 // limitations under the License.
 
-namespace CqlSharp.Config
+namespace CqlSharp
 {
     /// <summary>
-    ///   Defines the scope of the nodes to be discovered when connection to the cluster
+    ///   Strategy options for managing connections to the cluster
     /// </summary>
-    public enum DiscoveryScope
+    public enum ConnectionStrategy
     {
         /// <summary>
-        ///   Find all nodes in the Cassandra cluster
+        ///   The balanced strategy. Attempts to spread queries over connections based on their load indication
         /// </summary>
-        Cluster,
+        Balanced,
 
         /// <summary>
-        ///   Find all nodes in the racks that the configured nodes are part of
+        ///   The random strategy. Spreads load, by randomizing access to nodes
         /// </summary>
-        Rack,
+        Random,
 
         /// <summary>
-        ///   Find all nodes in the datacenters that the configured nodes are part of
+        ///   The exclusive strategy. Connections will not be shared between CqlConnection or CqlCommand instances.
         /// </summary>
-        DataCenter,
+        Exclusive,
 
         /// <summary>
-        ///   Do not search for additional nodes
+        ///   Partition Aware strategy. Nodes and connections are selected based on supplied PartitionKey values. In some use
+        ///   cases this may reduce inter-node communication and thereby increase performance.
         /// </summary>
-        None
+        PartitionAware
     }
 }

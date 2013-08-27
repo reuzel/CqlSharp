@@ -13,7 +13,6 @@
 // See the License for the specific language governing permissions and
 // limitations under the License.
 
-using CqlSharp.Config;
 using CqlSharp.Network;
 using CqlSharp.Network.Fakes;
 using CqlSharp.Network.Partition;
@@ -38,7 +37,7 @@ namespace CqlSharp.Test
             using (ShimsContext.Create())
             {
                 //create cluster
-                var config = new ClusterConfig { NewConnectionTreshold = 5 };
+                var config = new CqlConnectionStringBuilder { NewConnectionTreshold = 5 };
 
                 var cluster = new Cluster(config);
 
@@ -78,7 +77,7 @@ namespace CqlSharp.Test
             using (ShimsContext.Create())
             {
                 //create cluster
-                var config = new ClusterConfig { NewConnectionTreshold = 5, MaxConnections = 6 };
+                var config = new CqlConnectionStringBuilder { NewConnectionTreshold = 5, MaxConnections = 6 };
 
                 var cluster = new Cluster(config);
 
@@ -118,7 +117,7 @@ namespace CqlSharp.Test
             using (ShimsContext.Create())
             {
                 //create cluster 
-                var config = new ClusterConfig { NewConnectionTreshold = 20 };
+                var config = new CqlConnectionStringBuilder { NewConnectionTreshold = 20 };
 
                 var cluster = new Cluster(config);
 
@@ -158,7 +157,7 @@ namespace CqlSharp.Test
             using (ShimsContext.Create())
             {
                 //create cluster 
-                var config = new ClusterConfig { NewConnectionTreshold = 200 };
+                var config = new CqlConnectionStringBuilder { NewConnectionTreshold = 200 };
 
                 var cluster = new Cluster(config);
 
@@ -198,7 +197,7 @@ namespace CqlSharp.Test
             using (ShimsContext.Create())
             {
                 //create cluster
-                var config = new ClusterConfig { NewConnectionTreshold = 5, MaxConnections = 6 };
+                var config = new CqlConnectionStringBuilder { NewConnectionTreshold = 5, MaxConnections = 6 };
 
                 var cluster = new Cluster(config);
 
@@ -239,7 +238,7 @@ namespace CqlSharp.Test
             using (ShimsContext.Create())
             {
                 //create cluster 
-                var config = new ClusterConfig { NewConnectionTreshold = 20 };
+                var config = new CqlConnectionStringBuilder { NewConnectionTreshold = 20 };
 
                 var cluster = new Cluster(config);
 
@@ -280,7 +279,7 @@ namespace CqlSharp.Test
             using (ShimsContext.Create())
             {
                 //create cluster 
-                var config = new ClusterConfig { NewConnectionTreshold = 20 };
+                var config = new CqlConnectionStringBuilder { NewConnectionTreshold = 20 };
 
                 var cluster = new Cluster(config);
 

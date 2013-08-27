@@ -53,6 +53,7 @@ namespace CqlSharp.Network
         private volatile Task _connectTask;
         private readonly int _nr;
         private bool _allowCompression;
+        private readonly long _maxIdleTicks;
 
         /// <summary>
         /// Gets the current key space.
@@ -97,6 +98,7 @@ namespace CqlSharp.Network
             _lastActivity = DateTime.Now.Ticks;
 
             Logger.Current.LogVerbose("{0} created", this);
+            _maxIdleTicks = TimeSpan.FromSeconds(_cluster.Config.MaxConnectionIdleTime).Ticks;
         }
 
         /// <summary>
@@ -120,7 +122,7 @@ namespace CqlSharp.Network
             {
                 return _connectionState == 2 ||
                        (_activeRequests == 0 &&
-                        (DateTime.Now.Ticks - Interlocked.Read(ref _lastActivity)) > _cluster.Config.MaxConnectionIdleTime.Ticks);
+                        (DateTime.Now.Ticks - Interlocked.Read(ref _lastActivity)) > _maxIdleTicks);
             }
         }
 

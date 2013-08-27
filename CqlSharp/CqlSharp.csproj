@@ -51,12 +51,15 @@
     <Reference Include="System.Xml" />
   </ItemGroup>
   <ItemGroup>
+    <Compile Include="ConnectionStrategy.cs" />
+    <Compile Include="CqlConnectionStringBuilder.cs" />
     <Compile Include="CqlDataAdapter.cs">
       <SubType>Component</SubType>
     </Compile>
     <Compile Include="CqlParameter.cs" />
     <Compile Include="CqlParameterCreationOption.cs" />
     <Compile Include="CqlSchemaTableColumnNames.cs" />
+    <Compile Include="DiscoveryScope.cs" />
     <Compile Include="Logging\ConsoleLogger.cs" />
     <Compile Include="Logging\DebugLogger.cs" />
     <Compile Include="Logging\ILogger.cs" />
@@ -112,9 +115,6 @@
     <Compile Include="Protocol\WriteTimeOutException.cs" />
     <Compile Include="Network\BalancedConnectionStrategy.cs" />
     <Compile Include="Network\Cluster.cs" />
-    <Compile Include="Config\ClusterConfig.cs" />
-    <Compile Include="Config\ConnectionStrategy.cs" />
-    <Compile Include="Config\DiscoveryScope.cs" />
     <Compile Include="Network\ConnectionChangeEvent.cs" />
     <Compile Include="Network\ExclusiveConnectionStrategy.cs" />
     <Compile Include="Network\IConnectionStrategy.cs" />

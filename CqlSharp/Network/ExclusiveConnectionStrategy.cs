@@ -13,7 +13,6 @@
 // See the License for the specific language governing permissions and
 // limitations under the License.
 
-using CqlSharp.Config;
 using CqlSharp.Network.Partition;
 using System;
 using System.Collections.Concurrent;
@@ -29,7 +28,7 @@ namespace CqlSharp.Network
     /// </summary>
     internal class ExclusiveConnectionStrategy : IConnectionStrategy
     {
-        private readonly ClusterConfig _config;
+        private readonly CqlConnectionStringBuilder _config;
 
         private readonly ConcurrentStack<Connection> _connections;
         private readonly Ring _nodes;
@@ -41,7 +40,7 @@ namespace CqlSharp.Network
         /// </summary>
         /// <param name="nodes"> The nodes. </param>
         /// <param name="config"> The config. </param>
-        public ExclusiveConnectionStrategy(Ring nodes, ClusterConfig config)
+        public ExclusiveConnectionStrategy(Ring nodes, CqlConnectionStringBuilder config)
         {
             _nodes = nodes;
             _config = config;
