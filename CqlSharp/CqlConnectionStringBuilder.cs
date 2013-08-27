@@ -149,12 +149,23 @@ namespace CqlSharp
         /// </summary>
         private Dictionary<Keyword, object> _values = new Dictionary<Keyword, object>(DefaultValues);
 
-        private Dictionary<string, IPAddress> _nodeAddresses;
+        /// <summary>
+        /// The server addresses, translated from server name to server IPAddress
+        /// </summary>
+        private Dictionary<string, IPAddress> _serverAddresses;
 
+        /// <summary>
+        /// Initializes a new instance of the <see cref="CqlConnectionStringBuilder" /> class.
+        /// </summary>
         public CqlConnectionStringBuilder()
         {
         }
 
+        /// <summary>
+        /// Initializes a new instance of the <see cref="CqlConnectionStringBuilder" /> class.
+        /// </summary>
+        /// <param name="connectionString">The connection string.</param>
+        /// <exception cref="System.ArgumentNullException">connectionString</exception>
         public CqlConnectionStringBuilder(string connectionString)
         {
             if (connectionString == null)
@@ -217,14 +228,14 @@ namespace CqlSharp
         {
             get
             {
-                if (_nodeAddresses == null)
-                    _nodeAddresses = new Dictionary<string, IPAddress>();
+                if (_serverAddresses == null)
+                    _serverAddresses = new Dictionary<string, IPAddress>();
 
                 foreach (string nameOrAddress in Servers)
                 {
                     IPAddress address;
 
-                    if (!_nodeAddresses.TryGetValue(nameOrAddress, out address))
+                    if (!_serverAddresses.TryGetValue(nameOrAddress, out address))
                     {
                         try
                         {
@@ -241,7 +252,7 @@ namespace CqlSharp
                             }
 
                             if (address != null)
-                                _nodeAddresses.Add(nameOrAddress, address);
+                                _serverAddresses.Add(nameOrAddress, address);
                         }
                         catch (Exception ex)
                         {
@@ -468,7 +479,7 @@ namespace CqlSharp
                 {
                     case Keyword.Servers:
                         sanatizedValue = ConvertToEnumerationString(value);
-                        _nodeAddresses = null;
+                        _serverAddresses = null;
                         break;
                     case Keyword.Port:
                         sanatizedValue = Convert.ToInt32(value);
@@ -535,6 +546,11 @@ namespace CqlSharp
         }
 
 
+        /// <summary>
+        /// Converts to enumeration string.
+        /// </summary>
+        /// <param name="value">The value.</param>
+        /// <returns></returns>
         private static string ConvertToEnumerationString(object value)
         {
             var str = value as string;
@@ -550,6 +566,13 @@ namespace CqlSharp
             return "";
         }
 
+        /// <summary>
+        /// Converts to enum.
+        /// </summary>
+        /// <typeparam name="T"></typeparam>
+        /// <param name="value">The value.</param>
+        /// <returns></returns>
+        /// <exception cref="System.ArgumentNullException">value</exception>
         private static T ConvertToEnum<T>(object value)
         {
             if (value == null)
@@ -561,6 +584,11 @@ namespace CqlSharp
             return (T)Enum.Parse(typeof(T), value.ToString(), true);
         }
 
+        /// <summary>
+        /// Converts to boolean.
+        /// </summary>
+        /// <param name="value">The value.</param>
+        /// <returns></returns>
         private static bool ConvertToBoolean(object value)
         {
             var str = value as string;
@@ -581,6 +609,14 @@ namespace CqlSharp
             return Convert.ToBoolean(value);
         }
 
+        /// <summary>
+        /// Retrieves a value corresponding to the supplied key from this <see cref="T:System.Data.Common.DbConnectionStringBuilder" />.
+        /// </summary>
+        /// <param name="keyword">The key of the item to retrieve.</param>
+        /// <param name="value">The value corresponding to the <paramref name="keyword" />.</param>
+        /// <returns>
+        /// true if <paramref name="keyword" /> was found within the connection string, false otherwise.
+        /// </returns>
         public override bool TryGetValue(string keyword, out object value)
         {
             Keyword k;
@@ -594,6 +630,13 @@ namespace CqlSharp
             return false;
         }
 
+        /// <summary>
+        /// Indicates whether the specified key exists in this <see cref="T:System.Data.Common.DbConnectionStringBuilder" /> instance.
+        /// </summary>
+        /// <param name="keyword">The key to locate in the <see cref="T:System.Data.Common.DbConnectionStringBuilder" />.</param>
+        /// <returns>
+        /// true if the <see cref="T:System.Data.Common.DbConnectionStringBuilder" /> contains an entry with the specified key; otherwise false.
+        /// </returns>
         public override bool ShouldSerialize(string keyword)
         {
             Keyword k;
@@ -604,32 +647,59 @@ namespace CqlSharp
             return false;
         }
 
+        /// <summary>
+        /// Gets an <see cref="T:System.Collections.ICollection" /> that contains the keys in the <see cref="T:System.Data.Common.DbConnectionStringBuilder" />.
+        /// </summary>
+        /// <returns>An <see cref="T:System.Collections.ICollection" /> that contains the keys in the <see cref="T:System.Data.Common.DbConnectionStringBuilder" />.</returns>
         public override ICollection Keys
         {
             get { return Enum.GetNames(typeof(Keyword)); }
         }
 
+        /// <summary>
+        /// Gets an <see cref="T:System.Collections.ICollection" /> that contains the values in the <see cref="T:System.Data.Common.DbConnectionStringBuilder" />.
+        /// </summary>
+        /// <returns>An <see cref="T:System.Collections.ICollection" /> that contains the values in the <see cref="T:System.Data.Common.DbConnectionStringBuilder" />.</returns>
         public override ICollection Values
         {
             get { return _values.Values.ToArray(); }
         }
 
+        /// <summary>
+        /// Determines whether the <see cref="T:System.Data.Common.DbConnectionStringBuilder" /> contains a specific key.
+        /// </summary>
+        /// <param name="keyword">The key to locate in the <see cref="T:System.Data.Common.DbConnectionStringBuilder" />.</param>
+        /// <returns>
+        /// true if the <see cref="T:System.Data.Common.DbConnectionStringBuilder" /> contains an entry with the specified key; otherwise false.
+        /// </returns>
         public override bool ContainsKey(string keyword)
         {
             return Keywords.ContainsKey(keyword);
         }
 
+        /// <summary>
+        /// Clears the contents of the <see cref="T:System.Data.Common.DbConnectionStringBuilder" /> instance. Sets all
+        /// the values to their defaults.
+        /// </summary>
         public override void Clear()
         {
             _values = new Dictionary<Keyword, object>(DefaultValues);
             base.Clear();
         }
 
+        /// <summary>
+        /// Gets the current number of keys that are contained within the <see cref="P:System.Data.Common.DbConnectionStringBuilder.ConnectionString" /> property.
+        /// </summary>
+        /// <returns>The number of keys that are contained within the connection string maintained by the <see cref="T:System.Data.Common.DbConnectionStringBuilder" /> instance.</returns>
         public override int Count
         {
             get { return _values.Count; }
         }
 
+        /// <summary>
+        /// Gets a value that indicates whether the <see cref="T:System.Data.Common.DbConnectionStringBuilder" /> has a fixed size.
+        /// </summary>
+        /// <returns>always true for a CqlConnectionStringBuilder</returns>
         public override bool IsFixedSize
         {
             get { return true; }
