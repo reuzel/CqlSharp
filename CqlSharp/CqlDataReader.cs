@@ -238,8 +238,8 @@ namespace CqlSharp
                 row[CqlSchemaTableColumnNames.TableName] = column.Table;
                 row[CqlSchemaTableColumnNames.ColumnName] = column.Name;
                 row[CqlSchemaTableColumnNames.CqlType] = column.CqlType.ToString();
-                row[CqlSchemaTableColumnNames.CollectionKeyType] = column.CollectionKeyType.ToString();
-                row[CqlSchemaTableColumnNames.CollectionValueType] = column.CollectionValueType.ToString();
+                row[CqlSchemaTableColumnNames.CollectionKeyType] = column.CollectionKeyType.HasValue ? column.CollectionKeyType.ToString() : null;
+                row[CqlSchemaTableColumnNames.CollectionValueType] = column.CollectionValueType.HasValue ? column.CollectionValueType.ToString() : null;
                 row[CqlSchemaTableColumnNames.Type] = column.ToType().FullName;
                 table.Rows.Add(row);
             }
