@@ -21,7 +21,7 @@ namespace CqlSharp.Protocol
     public class AlreadyExistsException : ProtocolException
     {
         public AlreadyExistsException(string message, string keyspace, string table)
-            : base(ErrorCode.AlreadyExists, message)
+            : base(Protocol.ErrorCode.AlreadyExists, message)
         {
             Keyspace = keyspace;
             Table = table;

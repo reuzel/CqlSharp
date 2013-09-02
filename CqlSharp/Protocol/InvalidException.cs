@@ -21,7 +21,7 @@ namespace CqlSharp.Protocol
     public class InvalidException : ProtocolException
     {
         public InvalidException(string message)
-            : base(ErrorCode.Invalid, message)
+            : base(Protocol.ErrorCode.Invalid, message)
         {
         }
     }

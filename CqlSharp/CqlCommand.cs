@@ -13,31 +13,34 @@
 // See the License for the specific language governing permissions and
 // limitations under the License.
 
-using System;
-using System.Data;
-using System.Threading;
-using System.Threading.Tasks;
 using CqlSharp.Logging;
 using CqlSharp.Network;
 using CqlSharp.Network.Partition;
 using CqlSharp.Protocol;
+using System;
+using System.Data;
+using System.Data.Common;
+using System.Threading;
+using System.Threading.Tasks;
 
 namespace CqlSharp
 {
+
     /// <summary>
     ///   A Cql query
     /// </summary>
-    public class CqlCommand : IDbCommand
+    public class CqlCommand : DbCommand
     {
         private CancellationTokenSource _cancelTokenSource;
         private string _commandText;
         private CommandType _commandType;
         private CqlConnection _connection;
-        private CqlParameterCreationOption _paramCreation;
         private CqlParameterCollection _parameters;
         private PartitionKey _partitionKey;
         private bool _prepared;
         private string _query;
+        private ICqlQueryResult _queryResult;
+        private int _commandTimeout;
 
         /// <summary>
         ///   Initializes a new instance of the <see cref="CqlCommand" /> class.
@@ -48,13 +51,13 @@ namespace CqlSharp
         public CqlCommand(CqlConnection connection, string cql, CqlConsistency level)
         {
             _connection = connection;
-            CommandText = cql;
+            _commandText = cql;
             Consistency = level;
             _prepared = false;
             Load = 1;
             UseBuffering = connection.Config.UseBuffering;
             _commandType = CommandType.Text;
-            CommandTimeout = 30;
+            _commandTimeout = 30;
         }
 
         /// <summary>
@@ -64,7 +67,7 @@ namespace CqlSharp
         /// <param name="cql"> The CQL. </param>
         /// <param name="level"> The level. </param>
         public CqlCommand(IDbConnection connection, string cql, CqlConsistency level)
-            : this((CqlConnection) connection, cql, level)
+            : this((CqlConnection)connection, cql, level)
         {
         }
 
@@ -84,7 +87,7 @@ namespace CqlSharp
         /// <param name="connection"> The connection. </param>
         /// <param name="cql"> The CQL. </param>
         public CqlCommand(IDbConnection connection, string cql)
-            : this((CqlConnection) connection, cql, CqlConsistency.One)
+            : this((CqlConnection)connection, cql, CqlConsistency.One)
         {
         }
 
@@ -104,7 +107,7 @@ namespace CqlSharp
         /// </summary>
         /// <param name="connection"> The connection. </param>
         public CqlCommand(IDbConnection connection)
-            : this((CqlConnection) connection, "", CqlConsistency.One)
+            : this((CqlConnection)connection, "", CqlConsistency.One)
         {
         }
 
@@ -189,7 +192,7 @@ namespace CqlSharp
         /// </summary>
         /// <value> The parameters. </value>
         /// <exception cref="CqlException">Parameters are available only after a query has been prepared</exception>
-        public CqlParameterCollection Parameters
+        public new CqlParameterCollection Parameters
         {
             get
             {
@@ -200,13 +203,18 @@ namespace CqlSharp
             }
         }
 
+        protected override DbParameterCollection DbParameterCollection
+        {
+            get { return Parameters; }
+        }
+
         #region IDbCommand Members
 
         /// <summary>
         ///   Gets or sets the text command to run against the data source.
         /// </summary>
         /// <returns> The text command to execute. The default value is an empty string (""). </returns>
-        public string CommandText
+        public override string CommandText
         {
             get { return _commandText; }
             set
@@ -221,14 +229,18 @@ namespace CqlSharp
         /// </summary>
         /// <returns> The time (in seconds) to wait for the command to execute. The default value is 30 seconds. </returns>
         /// <exception cref="System.NotSupportedException"></exception>
-        public int CommandTimeout { get; set; }
+        public override int CommandTimeout
+        {
+            get { return _commandTimeout; }
+            set { _commandTimeout = value; }
+        }
 
         /// <summary>
         ///   Indicates or specifies how the <see cref="P:System.Data.IDbCommand.CommandText" /> property is interpreted.
         /// </summary>
         /// <returns> One of the <see cref="T:System.Data.CommandType" /> values. The default is Text. </returns>
         /// <exception cref="System.ArgumentException">Only Text and TableDirect commands are supported</exception>
-        public CommandType CommandType
+        public override CommandType CommandType
         {
             get { return _commandType; }
             set
@@ -245,97 +257,10 @@ namespace CqlSharp
         }
 
         /// <summary>
-        ///   Gets or sets the <see cref="T:System.Data.IDbConnection" /> used by this instance of the <see
-        ///    cref="T:System.Data.IDbCommand" />.
-        /// </summary>
-        /// <returns> The connection to the data source. </returns>
-        public IDbConnection Connection
-        {
-            get { return _connection; }
-            set { _connection = (CqlConnection) value; }
-        }
-
-
-        /// <summary>
-        ///   Gets or sets the transaction within which the Command object of a .NET Framework data provider executes.
-        /// </summary>
-        /// <returns> the Command object of a .NET Framework data provider executes. The default value is null. </returns>
-        /// <exception cref="System.NotSupportedException"></exception>
-        IDbTransaction IDbCommand.Transaction
-        {
-            get { throw new NotSupportedException(); }
-            set { throw new NotSupportedException(); }
-        }
-
-        /// <summary>
-        ///   Gets or sets how command results are applied to the <see cref="T:System.Data.DataRow" /> when used by the <see
-        ///    cref="M:System.Data.IDataAdapter.Update(System.Data.DataSet)" /> method of a <see
-        ///    cref="T:System.Data.Common.DbDataAdapter" />.
-        /// </summary>
-        /// <returns> One of the <see cref="T:System.Data.UpdateRowSource" /> values. The default is Both unless the command is automatically generated. Then the default is None. </returns>
-        UpdateRowSource IDbCommand.UpdatedRowSource { get; set; }
-
-        /// <summary>
-        ///   Gets the <see cref="T:System.Data.IDataParameterCollection" />.
-        /// </summary>
-        /// <returns> The parameters of the SQL statement or stored procedure. </returns>
-        /// <filterpriority>2</filterpriority>
-        IDataParameterCollection IDbCommand.Parameters
-        {
-            get { return Parameters; }
-        }
-
-        /// <summary>
-        ///   Creates a new instance of an <see cref="T:System.Data.IDbDataParameter" /> object.
-        /// </summary>
-        /// <returns> An IDbDataParameter object. </returns>
-        public IDbDataParameter CreateParameter()
-        {
-            return new CqlParameter();
-        }
-
-        /// <summary>
-        ///   Executes the <see cref="P:System.Data.IDbCommand.CommandText" /> against the <see
-        ///    cref="P:System.Data.IDbCommand.Connection" /> and builds an <see cref="T:System.Data.IDataReader" />.
-        /// </summary>
-        /// <returns> An <see cref="T:System.Data.IDataReader" /> object. </returns>
-        /// <filterpriority>2</filterpriority>
-        IDataReader IDbCommand.ExecuteReader()
-        {
-            return ExecuteReader();
-        }
-
-        /// <summary>
-        ///   Executes the <see cref="P:System.Data.IDbCommand.CommandText" /> against the <see
-        ///    cref="P:System.Data.IDbCommand.Connection" />, and builds an <see cref="T:System.Data.IDataReader" /> using one of the <see
-        ///    cref="T:System.Data.CommandBehavior" /> values.
-        /// </summary>
-        /// <param name="behavior"> One of the <see cref="T:System.Data.CommandBehavior" /> values. </param>
-        /// <returns> An <see cref="T:System.Data.IDataReader" /> object. </returns>
-        /// <exception cref="System.ArgumentException">Command behavior not supported;behavior</exception>
-        public IDataReader ExecuteReader(CommandBehavior behavior)
-        {
-            if (behavior.HasFlag(CommandBehavior.SequentialAccess))
-                UseBuffering = false;
-
-            if (behavior.HasFlag(CommandBehavior.KeyInfo) ||
-                behavior.HasFlag(CommandBehavior.SchemaOnly) ||
-                behavior.HasFlag(CommandBehavior.SingleRow))
-                throw new ArgumentException("Command behavior not supported", "behavior");
-
-            IDataReader reader = ExecuteReader();
-
-            if (behavior.HasFlag(CommandBehavior.CloseConnection))
-                _connection.Close();
-
-            return reader;
-        }
-
-        /// <summary>
         ///   Executes the query, and returns the value of the first column of the first row.
         /// </summary>
         /// <returns> </returns>
-        public object ExecuteScalar()
+        public override object ExecuteScalar()
         {
             try
             {
@@ -349,44 +274,27 @@ namespace CqlSharp
         }
 
         /// <summary>
-        ///   Executes the non-query. Will return 1 always as Cql does not return information on the amount
-        ///   of rows updated.
-        /// </summary>
-        /// <returns> </returns>
-        int IDbCommand.ExecuteNonQuery()
-        {
-            ExecuteNonQuery();
-            return 1;
-        }
-
-        /// <summary>
         ///   Cancels the execution of this command.
         /// </summary>
-        public void Cancel()
+        public override void Cancel()
         {
             if (_cancelTokenSource != null)
                 _cancelTokenSource.Cancel();
         }
 
         /// <summary>
-        ///   Creates a prepared (or compiled) version of the command on the data source.
-        /// </summary>
-        void IDbCommand.Prepare()
-        {
-            Prepare(CqlParameterCreationOption.None);
-        }
-
-        /// <summary>
         ///   Performs application-defined tasks associated with freeing, releasing, or resetting unmanaged resources.
         /// </summary>
         /// <filterpriority>2</filterpriority>
-        void IDisposable.Dispose()
+        protected override void Dispose(bool disposing)
         {
-            if (_cancelTokenSource != null)
+            if (disposing && _cancelTokenSource != null)
             {
                 _cancelTokenSource.Dispose();
                 _cancelTokenSource = null;
             }
+
+            base.Dispose(disposing);
         }
 
         #endregion
@@ -403,72 +311,31 @@ namespace CqlSharp
 
             //setup new token
             _cancelTokenSource = CommandTimeout > 0
-                                     ? new CancellationTokenSource(CommandTimeout*1000)
+                                     ? new CancellationTokenSource(CommandTimeout * 1000)
                                      : new CancellationTokenSource();
             return _cancelTokenSource.Token;
         }
 
         /// <summary>
-        ///   Executes the query async.
+        /// Executes the reader.
         /// </summary>
-        /// <returns> CqlDataReader that can be used to read the results </returns>
-        public Task<CqlDataReader> ExecuteReaderAsync()
+        /// <returns></returns>
+        public new CqlDataReader ExecuteReader()
         {
-            return ExecuteReaderAsync(CancellationToken.None);
+            return ExecuteReader(CommandBehavior.Default);
         }
 
         /// <summary>
-        ///   Executes the query async.
+        /// Executes the query.
         /// </summary>
-        /// <param name="token"> The cancelletion token. </param>
-        /// <returns> CqlDataReader that can be used to read the results </returns>
-        public async Task<CqlDataReader> ExecuteReaderAsync(CancellationToken token)
-        {
-            var logger = _connection.LoggerManager.GetLogger("CqlSharp.CqlCommand.ExecuteReader");
-
-            logger.LogVerbose("Waiting on Throttle");
-
-            //wait until allowed
-            _connection.Throttle.Wait();
-
-            try
-            {
-                logger.LogVerbose("Start executing query");
-
-                ResultFrame result = await RunWithRetry(ExecuteInternalAsync, logger, token).ConfigureAwait(false);
-
-                if (result.ResultOpcode != ResultOpcode.Rows)
-                {
-                    var ex = new CqlException("Can not create a DataReader for non-select query.");
-                    logger.LogError("Error executing reader: {0}", ex);
-                    throw ex;
-                }
-
-                var reader = new CqlDataReader(result);
-
-                logger.LogQuery("Query {0} returned {1} results", Query, reader.Count);
-
-                return reader;
-            }
-            finally
-            {
-                _connection.Throttle.Release();
-            }
-        }
-
-        /// <summary>
-        ///   Executes the query.
-        /// </summary>
-        /// <remarks>
-        ///   Utility wrapper around ExecuteReaderAsync
-        /// </remarks>
-        /// <returns> CqlDataReader that can be used to read the results </returns>
-        public CqlDataReader ExecuteReader()
+        /// <param name="behavior">The behavior.</param>
+        /// <returns></returns>
+        public new CqlDataReader ExecuteReader(CommandBehavior behavior)
         {
             try
             {
                 var token = SetupCancellationToken();
-                return ExecuteReaderAsync(token).Result;
+                return ExecuteReaderAsync(behavior, token).Result;
             }
             catch (AggregateException aex)
             {
@@ -477,23 +344,177 @@ namespace CqlSharp
         }
 
         /// <summary>
-        ///   Executes the query async.
+        /// Executes the query.
         /// </summary>
-        /// <typeparam name="T"> class representing the rows returned </typeparam>
-        /// <returns> </returns>
+        /// <param name="behavior">An instance of <see cref="T:System.Data.CommandBehavior" />.</param>
+        /// <returns>
+        /// CqlDataReader that can be used to read the results
+        /// </returns>
+        /// <remarks>
+        /// Invokes ExecuteReader
+        /// </remarks>
+        protected override DbDataReader ExecuteDbDataReader(CommandBehavior behavior)
+        {
+            return ExecuteReader(behavior);
+        }
+
+        /// <summary>
+        /// Executes the query asynchronous.
+        /// </summary>
+        /// <returns></returns>
+        public new Task<CqlDataReader> ExecuteReaderAsync()
+        {
+            return ExecuteReaderAsync(CommandBehavior.Default, CancellationToken.None);
+        }
+
+        /// <summary>
+        /// Executes the reader asynchronous.
+        /// </summary>
+        /// <param name="cancellationToken">The cancellation token.</param>
+        /// <returns></returns>
+        public new Task<CqlDataReader> ExecuteReaderAsync(CancellationToken cancellationToken)
+        {
+            return ExecuteReaderAsync(CommandBehavior.Default, cancellationToken);
+        }
+
+        /// <summary>
+        /// Executes the query asynchronous.
+        /// </summary>
+        /// <param name="behavior">The behavior.</param>
+        /// <returns></returns>
+        public new Task<CqlDataReader> ExecuteReaderAsync(CommandBehavior behavior)
+        {
+            return ExecuteReaderAsync(behavior, CancellationToken.None);
+        }
+
+        protected override async Task<DbDataReader> ExecuteDbDataReaderAsync(CommandBehavior behavior, CancellationToken cancellationToken)
+        {
+            return await ExecuteReaderAsync(behavior, cancellationToken).ConfigureAwait(false);
+        }
+
+        /// <summary>
+        /// Executes the reader asynchronous.
+        /// </summary>
+        /// <param name="behavior">The behavior.</param>
+        /// <param name="cancellationToken">The cancellation token.</param>
+        /// <returns></returns>
+        public new async Task<CqlDataReader> ExecuteReaderAsync(CommandBehavior behavior, CancellationToken cancellationToken)
+        {
+            var result = await ExecuteReaderAsyncInternal(behavior, cancellationToken);
+
+            var reader = new CqlDataReader(result, behavior.HasFlag(CommandBehavior.CloseConnection) ? _connection : null);
+            _queryResult = reader;
+            return reader;
+        }
+
+        /// <summary>
+        /// Executes the query async.
+        /// </summary>
+        /// <typeparam name="T">class representing the rows returned</typeparam>
+        /// <returns></returns>
         public Task<CqlDataReader<T>> ExecuteReaderAsync<T>() where T : class, new()
         {
-            return ExecuteReaderAsync<T>(CancellationToken.None);
+            return ExecuteReaderAsync<T>(CommandBehavior.Default, CancellationToken.None);
+        }
+
+
+        /// <summary>
+        /// Executes the query async.
+        /// </summary>
+        /// <typeparam name="T">class representing the rows returned</typeparam>
+        /// <param name="behavior">The behavior.</param>
+        /// <returns></returns>
+        public Task<CqlDataReader<T>> ExecuteReaderAsync<T>(CommandBehavior behavior) where T : class, new()
+        {
+            return ExecuteReaderAsync<T>(behavior, CancellationToken.None);
         }
 
         /// <summary>
-        ///   Executes the query async.
+        /// Executes the query async.
         /// </summary>
-        /// <typeparam name="T"> class representing the rows returned </typeparam>
-        /// <param name="token"> The cancellation token. </param>
-        /// <returns> </returns>
-        public async Task<CqlDataReader<T>> ExecuteReaderAsync<T>(CancellationToken token) where T : class, new()
+        /// <typeparam name="T">class representing the rows returned</typeparam>
+        /// <param name="cancellationToken">The cancellation token.</param>
+        /// <returns></returns>
+        public Task<CqlDataReader<T>> ExecuteReaderAsync<T>(CancellationToken cancellationToken) where T : class, new()
         {
+            return ExecuteReaderAsync<T>(CommandBehavior.Default, cancellationToken);
+        }
+
+        /// <summary>
+        /// Executes the query async.
+        /// </summary>
+        /// <typeparam name="T">class representing the rows returned</typeparam>
+        /// <param name="behavior">The behavior.</param>
+        /// <param name="cancellationToken">The cancellation token.</param>
+        /// <returns></returns>
+        public async Task<CqlDataReader<T>> ExecuteReaderAsync<T>(CommandBehavior behavior, CancellationToken cancellationToken) where T : class, new()
+        {
+            var result = await ExecuteReaderAsyncInternal(behavior, cancellationToken);
+
+            var reader = new CqlDataReader<T>(result, behavior.HasFlag(CommandBehavior.CloseConnection) ? _connection : null);
+            _queryResult = reader;
+            return reader;
+        }
+
+        /// <summary>
+        /// Executes the query.
+        /// </summary>
+        /// <typeparam name="T">class representing the rows returned</typeparam>
+        /// <returns>
+        /// CqlDataReader that can be used to read the results
+        /// </returns>
+        /// <remarks>
+        /// Utility wrapper around ExecuteReaderAsync
+        /// </remarks>
+        public CqlDataReader<T> ExecuteReader<T>() where T : class, new()
+        {
+            return ExecuteReader<T>(CommandBehavior.Default);
+        }
+
+        /// <summary>
+        /// Executes the query.
+        /// </summary>
+        /// <typeparam name="T">class representing the rows returned</typeparam>
+        /// <param name="behavior">The behavior.</param>
+        /// <returns>
+        /// CqlDataReader that can be used to read the results
+        /// </returns>
+        /// <remarks>
+        /// Utility wrapper around ExecuteReaderAsync
+        /// </remarks>
+        public CqlDataReader<T> ExecuteReader<T>(CommandBehavior behavior) where T : class, new()
+        {
+            try
+            {
+                var token = SetupCancellationToken();
+                return ExecuteReaderAsync<T>(behavior, token).Result;
+            }
+            catch (AggregateException aex)
+            {
+                throw aex.InnerException;
+            }
+        }
+
+        /// <summary>
+        /// Executes the select (read) operation asynchronous.
+        /// </summary>
+        /// <param name="behavior">The behavior.</param>
+        /// <param name="cancellationToken">The cancellation token.</param>
+        /// <returns></returns>
+        /// <exception cref="System.ArgumentException">Command behavior not supported;behavior</exception>
+        private async Task<ResultFrame> ExecuteReaderAsyncInternal(CommandBehavior behavior, CancellationToken cancellationToken)
+        {
+            //clear last result
+            _queryResult = null;
+
+            if (behavior.HasFlag(CommandBehavior.SequentialAccess))
+                UseBuffering = false;
+
+            if (behavior.HasFlag(CommandBehavior.KeyInfo) ||
+                behavior.HasFlag(CommandBehavior.SchemaOnly) ||
+                behavior.HasFlag(CommandBehavior.SingleRow))
+                throw new ArgumentException("Command behavior not supported", "behavior");
+
             var logger = _connection.LoggerManager.GetLogger("CqlSharp.CqlCommand.ExecuteReader");
 
             logger.LogVerbose("Waiting on Throttle");
@@ -505,7 +526,7 @@ namespace CqlSharp
             {
                 logger.LogVerbose("Start executing query");
 
-                ResultFrame result = await RunWithRetry(ExecuteInternalAsync, logger, token).ConfigureAwait(false);
+                ResultFrame result = await RunWithRetry(ExecuteInternalAsync, logger, cancellationToken).ConfigureAwait(false);
 
                 if (result.ResultOpcode != ResultOpcode.Rows)
                 {
@@ -513,11 +534,10 @@ namespace CqlSharp
                     logger.LogError("Error executing reader: {0}", ex);
                     throw ex;
                 }
-                var reader = new CqlDataReader<T>(result);
 
-                logger.LogQuery("Query {0} returned {1} results", Query, reader.Count);
+                logger.LogQuery("Query {0} returned {1} results", Query, result.Count);
 
-                return reader;
+                return result;
             }
             finally
             {
@@ -526,44 +546,12 @@ namespace CqlSharp
         }
 
         /// <summary>
-        ///   Executes the query.
-        /// </summary>
-        /// <remarks>
-        ///   Utility wrapper around ExecuteReaderAsync
-        /// </remarks>
-        /// <typeparam name="T"> class representing the rows returned </typeparam>
-        /// <returns> CqlDataReader that can be used to read the results </returns>
-        public CqlDataReader<T> ExecuteReader<T>() where T : class, new()
-        {
-            try
-            {
-                var token = SetupCancellationToken();
-                return ExecuteReaderAsync<T>(token).Result;
-            }
-            catch (AggregateException aex)
-            {
-                throw aex.InnerException;
-            }
-        }
-
-
-        /// <summary>
-        ///   Executes the query, and returns the value of the first column of the first row.
-        /// </summary>
-        /// <returns> </returns>
-        /// <exception cref="CqlException">Execute Scalar Query yield no results</exception>
-        public Task<object> ExecuteScalarAsync()
-        {
-            return ExecuteScalarAsync(CancellationToken.None);
-        }
-
-        /// <summary>
         ///   Executes the query, and returns the value of the first column of the first row.
         /// </summary>
         /// <param name="token"> The cancellation token. </param>
         /// <returns> </returns>
         /// <exception cref="CqlException">Execute Scalar Query yield no results</exception>
-        public async Task<object> ExecuteScalarAsync(CancellationToken token)
+        public override async Task<object> ExecuteScalarAsync(CancellationToken token)
         {
             object result;
 
@@ -582,26 +570,47 @@ namespace CqlSharp
             return result;
         }
 
-
         /// <summary>
-        ///   Executes the non-query async.
+        /// Gets the last query result. This may provide more information on the effects of a
+        /// query, especially for NonQueries.
         /// </summary>
-        /// <returns> A ICqlQueryResult of type rows, Void, SchemaChange or SetKeySpace </returns>
-        /// <exception cref="CqlException">Unexpected type of result received</exception>
-        public Task<ICqlQueryResult> ExecuteNonQueryAsync()
+        /// <value>
+        /// The last query result.
+        /// </value>
+        public ICqlQueryResult LastQueryResult
         {
-            return ExecuteNonQueryAsync(CancellationToken.None);
+            get { return _queryResult; }
         }
 
+        /// <summary>
+        /// Executes a SQL statement against a connection object.
+        /// </summary>
+        /// <returns>
+        /// The number of rows affected.
+        /// </returns>
+        public override int ExecuteNonQuery()
+        {
+            try
+            {
+                var token = SetupCancellationToken();
+                return ExecuteNonQueryAsync(token).Result;
+            }
+            catch (AggregateException aex)
+            {
+                throw aex.InnerException;
+            }
+        }
 
         /// <summary>
-        ///   Executes the non-query async.
+        /// Executes the non query asynchronous.
         /// </summary>
-        /// <param name="token"> The token. </param>
-        /// <returns> A ICqlQueryResult of type rows, Void, SchemaChange or SetKeySpace </returns>
-        /// <exception cref="CqlException">Unexpected type of result received</exception>
-        public async Task<ICqlQueryResult> ExecuteNonQueryAsync(CancellationToken token)
+        /// <param name="token">The token.</param>
+        /// <returns></returns>
+        public override async Task<int> ExecuteNonQueryAsync(CancellationToken token)
         {
+            //clear last result
+            _queryResult = null;
+
             //check token first
             token.ThrowIfCancellationRequested();
 
@@ -623,18 +632,21 @@ namespace CqlSharp
                 switch (result.ResultOpcode)
                 {
                     case ResultOpcode.Rows:
-                        var reader = new CqlDataReader(result);
+                        var reader = new CqlDataReader(result, null);
+                        _queryResult = reader;
                         logger.LogQuery("Query {0} returned {1} results", Query, reader.Count);
-                        return reader;
+                        return -1;
 
                     case ResultOpcode.Void:
                         logger.LogQuery("Query {0} executed succesfully", Query);
-                        return new CqlVoid {TracingId = result.TracingId};
+                        _queryResult = new CqlVoid { TracingId = result.TracingId };
+                        return 1;
 
                     case ResultOpcode.SchemaChange:
                         logger.LogQuery("Query {0} resulted in {1}.{2} {3}", Query, result.Keyspace, result.Table,
                                         result.Change);
-                        return new CqlSchemaChange
+
+                        _queryResult = new CqlSchemaChange
                                    {
                                        TracingId = result.TracingId,
                                        Keyspace = result.Keyspace,
@@ -642,13 +654,17 @@ namespace CqlSharp
                                        Change = result.Change
                                    };
 
+                        return -1;
+
                     case ResultOpcode.SetKeyspace:
                         logger.LogQuery("Query {0} resulted in keyspace set to {1}", Query, result.Keyspace);
-                        return new CqlSetKeyspace
+                        _queryResult = new CqlSetKeyspace
                                    {
                                        TracingId = result.TracingId,
                                        Keyspace = result.Keyspace
                                    };
+
+                        return -1;
 
                     default:
                         throw new CqlException("Unexpected type of result received");
@@ -661,55 +677,20 @@ namespace CqlSharp
         }
 
         /// <summary>
-        ///   Executes the non-query.
+        /// Prepares the command asynchronous.
         /// </summary>
-        /// <remarks>
-        ///   Utility wrapper around ExecuteNonQueryAsync
-        /// </remarks>
-        /// <returns> A ICqlQueryResult of type rows, Void, SchemaChange or SetKeySpace </returns>
-        /// <exception cref="CqlException">Unexpected type of result received</exception>
-        public ICqlQueryResult ExecuteNonQuery()
+        /// <returns></returns>
+        public Task PrepareAsync()
         {
-            try
-            {
-                var token = SetupCancellationToken();
-                return ExecuteNonQueryAsync(token).Result;
-            }
-            catch (AggregateException aex)
-            {
-                throw aex.InnerException;
-            }
-        }
-
-
-        /// <summary>
-        ///   Prepares the query async.
-        /// </summary>
-        /// <param name="token"> The cancellation token. </param>
-        /// <returns> </returns>
-        public Task PrepareAsync(CancellationToken token)
-        {
-            return PrepareAsync(CqlParameterCreationOption.Column, token);
+            return PrepareAsync(CancellationToken.None);
         }
 
         /// <summary>
-        ///   Prepares the query async.
+        /// Prepares the command asynchronous.
         /// </summary>
-        /// <param name="paramCreation"> The parameter creation option. </param>
-        /// <returns> </returns>
-        public Task PrepareAsync(CqlParameterCreationOption paramCreation = CqlParameterCreationOption.Column)
-        {
-            return PrepareAsync(paramCreation, CancellationToken.None);
-        }
-
-
-        /// <summary>
-        ///   Prepares the query async.
-        /// </summary>
-        /// <param name="token"> The cancellation token. </param>
-        /// <param name="paramCreation"> The parameter creation option. </param>
-        /// <returns> </returns>
-        public async Task PrepareAsync(CqlParameterCreationOption paramCreation, CancellationToken token)
+        /// <param name="token">The cancellation token.</param>
+        /// <returns></returns>
+        public async Task PrepareAsync(CancellationToken token)
         {
             //continue?
             token.ThrowIfCancellationRequested();
@@ -725,8 +706,6 @@ namespace CqlSharp
                 //continue?
                 token.ThrowIfCancellationRequested();
 
-                _paramCreation = paramCreation;
-
                 logger.LogVerbose("State captured, start executing query");
 
                 await RunWithRetry(PrepareInternalAsync, logger, token).ConfigureAwait(false);
@@ -740,19 +719,14 @@ namespace CqlSharp
         }
 
         /// <summary>
-        ///   Prepares the query
+        ///   Creates a prepared (or compiled) version of the command on the data source.
         /// </summary>
-        /// <remarks>
-        ///   Utility wrapper around PrepareAsync
-        /// </remarks>
-        /// <returns> A ICqlQueryResult of type rows, Void, SchemaChange or SetKeySpace </returns>
-        /// <exception cref="CqlException">Unexpected type of result received</exception>
-        public void Prepare(CqlParameterCreationOption paramCreation)
+        public override void Prepare()
         {
             try
             {
                 var token = SetupCancellationToken();
-                PrepareAsync(paramCreation, token).Wait();
+                PrepareAsync(token).Wait();
             }
             catch (AggregateException aex)
             {
@@ -762,14 +736,6 @@ namespace CqlSharp
             {
                 _cancelTokenSource = null;
             }
-        }
-
-        /// <summary>
-        ///   Creates a prepared (or compiled) version of the command on the data source.
-        /// </summary>
-        public void Prepare()
-        {
-            Prepare(CqlParameterCreationOption.Column);
         }
 
 
@@ -915,8 +881,11 @@ namespace CqlSharp
             _prepared = true;
 
             //set parameters collection
-            if (_paramCreation != CqlParameterCreationOption.None && _parameters == null)
-                _parameters = new CqlParameterCollection(result.Schema, _paramCreation);
+            if (_parameters == null)
+                _parameters = new CqlParameterCollection(result.Schema);
+
+            //fix the parameter collection (if not done so already)
+            _parameters.Fixate();
 
             return result;
         }
@@ -971,5 +940,45 @@ namespace CqlSharp
             response.Dispose();
             throw new CqlException("Unexpected frame received " + response.OpCode);
         }
+
+        public new CqlParameter CreateParameter()
+        {
+            return new CqlParameter();
+        }
+
+        protected override DbParameter CreateDbParameter()
+        {
+            return CreateParameter();
+        }
+
+        public new CqlConnection Connection
+        {
+            get { return _connection; }
+            set { _connection = value; }
+        }
+
+        protected override DbConnection DbConnection
+        {
+            get { return Connection; }
+            set { Connection = (CqlConnection)value; }
+        }
+
+        protected override DbTransaction DbTransaction
+        {
+            get
+            {
+                throw new NotSupportedException();
+            }
+            set
+            {
+                throw new NotSupportedException();
+            }
+        }
+
+        public override bool DesignTimeVisible { get; set; }
+
+
+        public override UpdateRowSource UpdatedRowSource { get; set; }
+
     }
 }

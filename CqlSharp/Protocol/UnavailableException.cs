@@ -21,7 +21,7 @@ namespace CqlSharp.Protocol
     public class UnavailableException : ProtocolException
     {
         public UnavailableException(string message, CqlConsistency cqlConsistency, int required, int alive)
-            : base(ErrorCode.Unavailable, message)
+            : base(Protocol.ErrorCode.Unavailable, message)
         {
             CqlConsistency = cqlConsistency;
             Required = required;

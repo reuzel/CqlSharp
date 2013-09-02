@@ -22,7 +22,7 @@ namespace CqlSharp.Protocol
     {
         public WriteTimeOutException(string message, CqlConsistency cqlConsistency, int received, int blockFor,
                                      string writeType)
-            : base(ErrorCode.WriteTimeout, message, cqlConsistency, received, blockFor)
+            : base(Protocol.ErrorCode.WriteTimeout, message, cqlConsistency, received, blockFor)
         {
             WriteType = writeType;
         }

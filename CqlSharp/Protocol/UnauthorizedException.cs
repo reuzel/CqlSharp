@@ -21,7 +21,7 @@ namespace CqlSharp.Protocol
     public class UnauthorizedException : ProtocolException
     {
         public UnauthorizedException(string message)
-            : base(ErrorCode.Unauthorized, message)
+            : base(Protocol.ErrorCode.Unauthorized, message)
         {
         }
     }

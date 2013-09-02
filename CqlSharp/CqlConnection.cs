@@ -13,6 +13,7 @@
 // See the License for the specific language governing permissions and
 // limitations under the License.
 
+using System.Data.Common;
 using CqlSharp.Logging;
 using CqlSharp.Network;
 using CqlSharp.Network.Partition;
@@ -27,9 +28,9 @@ using System.Threading.Tasks;
 namespace CqlSharp
 {
     /// <summary>
-    ///   A connection to a Cassandra cluster
+    /// A database connection to a Cassandra Cluster
     /// </summary>
-    public class CqlConnection : IDbConnection
+    public class CqlConnection : DbConnection
     {
         private static readonly ConcurrentDictionary<string, Cluster> Clusters;
 
@@ -39,7 +40,11 @@ namespace CqlSharp
         private bool _disposed;
         private volatile Task _openTask;
         private CancellationTokenSource _openCancellationTokenSource;
+        private string _connectionString;
 
+        /// <summary>
+        /// Initializes the <see cref="CqlConnection"/> class.
+        /// </summary>
         static CqlConnection()
         {
             Clusters = new ConcurrentDictionary<string, Cluster>();
@@ -51,8 +56,7 @@ namespace CqlSharp
         /// <param name="connectionString"> The connection string. </param>
         public CqlConnection(string connectionString)
         {
-            ConnectionString = connectionString;
-            ConnectionTimeout = 0;
+            _connectionString = connectionString;
             _database = string.Empty;
         }
 
@@ -63,6 +67,29 @@ namespace CqlSharp
         public CqlConnection(CqlConnectionStringBuilder config)
             : this(config.ToString())
         {
+        }
+
+        /// <summary>
+        /// Gets or sets the cluster.
+        /// </summary>
+        /// <value>
+        /// The cluster.
+        /// </value>
+        /// <exception cref="System.InvalidOperationException">CqlConnection must be open before further use.</exception>
+        private Cluster Cluster
+        {
+            get
+            {
+                if (State != ConnectionState.Open)
+                    throw new InvalidOperationException("CqlConnection must be open before further use.");
+
+                return _cluster;
+            }
+
+            set
+            {
+                _cluster = value;
+            }
         }
 
         /// <summary>
@@ -104,23 +131,29 @@ namespace CqlSharp
             get { return Cluster.ConnectionStrategy.ProvidesExclusiveConnections; }
         }
 
-        #region IDbConnection Members
-
-        IDbTransaction IDbConnection.BeginTransaction(IsolationLevel il)
-        {
-            throw new NotSupportedException();
-        }
-
-        IDbTransaction IDbConnection.BeginTransaction()
+        /// <summary>
+        /// Starts a database transaction.
+        /// </summary>
+        /// <param name="isolationLevel">Specifies the isolation level for the transaction.</param>
+        /// <returns>
+        /// An object representing the new transaction.
+        /// </returns>
+        /// <exception cref="System.NotSupportedException"></exception>
+        protected override DbTransaction BeginDbTransaction(IsolationLevel isolationLevel)
         {
             throw new NotSupportedException();
         }
 
         /// <summary>
-        ///   Changes the current database for an open Connection object.
+        /// Changes the current database for an open connection.
         /// </summary>
-        /// <param name="databaseName"> The name of the database to use in place of the current database. </param>
-        public void ChangeDatabase(string databaseName)
+        /// <param name="databaseName">Specifies the name of the database for the connection to use.</param>
+        /// <exception cref="System.InvalidOperationException">
+        /// CqlConnection must be open before Database can be changed.
+        /// or
+        /// Changing a database is only supported with a ConnectionStrategy that offers exclusive connections
+        /// </exception>
+        public override void ChangeDatabase(string databaseName)
         {
             if (State != ConnectionState.Open)
                 throw new InvalidOperationException("CqlConnection must be open before Database can be changed.");
@@ -133,93 +166,10 @@ namespace CqlSharp
         }
 
         /// <summary>
-        ///   Gets or sets the string used to open a database.
+        /// Closes the connection to the database. This is the preferred method of closing any open connection.
         /// </summary>
-        /// <returns> A string containing connection settings. </returns>
-        public string ConnectionString { get; set; }
-
-        /// <summary>
-        ///   Gets or sets the time to wait while trying to establish a connection before terminating the attempt and generating an error.
-        /// </summary>
-        /// <returns> The time (in seconds) to wait for a connection to open. The default value is 15 seconds. </returns>
-        public int ConnectionTimeout { get; set; }
-
-        /// <summary>
-        ///   Creates and returns a Command object associated with the connection.
-        /// </summary>
-        /// <returns> A Command object associated with the connection. </returns>
-        public IDbCommand CreateCommand()
+        public override void Close()
         {
-            return new CqlCommand(this);
-        }
-
-        /// <summary>
-        ///   Gets the name of the current database or the database to be used after a connection is opened.
-        /// </summary>
-        /// <returns> The name of the current database or the name of the database to be used once a connection is open. The default value is an empty string. </returns>
-        /// <exception cref="System.InvalidOperationException">You must invoke Open or OpenAsync on a CqlConnection before other use.</exception>
-        /// <exception cref="System.ObjectDisposedException">CqlConnection</exception>
-        public string Database
-        {
-            get
-            {
-                if (_disposed)
-                    throw new ObjectDisposedException("CqlConnection");
-
-                return _database;
-            }
-        }
-
-
-        /// <summary>
-        ///   Performs application-defined tasks associated with freeing, releasing, or resetting unmanaged resources.
-        /// </summary>
-        public void Dispose()
-        {
-            Dispose(true);
-            GC.SuppressFinalize(this);
-        }
-
-
-        /// <summary>
-        ///   Opens a database connection with the settings specified by the ConnectionString property of the provider-specific Connection object.
-        /// </summary>
-        public void Open()
-        {
-            try
-            {
-                _openCancellationTokenSource = ConnectionTimeout > 0
-                                       ? new CancellationTokenSource(TimeSpan.FromSeconds(ConnectionTimeout))
-                                       : new CancellationTokenSource();
-
-                OpenAsync(_openCancellationTokenSource.Token).Wait();
-            }
-            catch (AggregateException aex)
-            {
-                throw aex.InnerException;
-            }
-            finally
-            {
-                _openCancellationTokenSource = null;
-            }
-        }
-
-        /// <summary>
-        /// Cancels any ongoing open operation.
-        /// </summary>
-        public void CancelOpen()
-        {
-            if (_openCancellationTokenSource != null)
-                _openCancellationTokenSource.Cancel();
-        }
-
-        /// <summary>
-        ///   Closes the connection to the database.
-        /// </summary>
-        public void Close()
-        {
-
-
             if (State != ConnectionState.Closed)
             {
                 var logger = LoggerManager.GetLogger("CqlSharp.CqlConnection.Close");
@@ -250,75 +200,108 @@ namespace CqlSharp
         }
 
         /// <summary>
-        ///   Gets the current state of the connection.
+        /// Gets or sets the string used to open the connection.
         /// </summary>
-        /// <returns> One of the <see cref="T:System.Data.ConnectionState" /> values. </returns>
-        public ConnectionState State
+        /// <returns>The connection string used to establish the initial connection. The exact contents of the connection string depend on the specific data source for this connection. The default value is an empty string.</returns>
+        public override string ConnectionString
+        {
+            get { return _connectionString; }
+            set { _connectionString = value; }
+        }
+
+        /// <summary>
+        /// Creates and returns a <see cref="T:CqlSharp.CqlCommand" /> object associated with the current connection.
+        /// </summary>
+        /// <returns>
+        /// A <see cref="T:CqlSharp.CqlCommand" /> object.
+        /// </returns>
+        public CqlCommand CreateCqlCommand()
+        {
+            return new CqlCommand(this);
+        }
+
+        /// <summary>
+        /// Creates and returns a <see cref="T:System.Data.Common.DbCommand" /> object associated with the current connection.
+        /// </summary>
+        /// <returns>
+        /// A <see cref="T:System.Data.Common.DbCommand" /> object.
+        /// </returns>
+        protected override DbCommand CreateDbCommand()
+        {
+            return CreateCqlCommand();
+        }
+
+        /// <summary>
+        /// Gets the name of the database server to which to connect.
+        /// </summary>
+        /// <returns>The name of the database server to which to connect. The default value is an empty string.</returns>
+        public override string DataSource
+        {
+            get { return Cluster.Name; }
+        }
+
+        /// <summary>
+        /// Gets the name of the current database after a connection is opened, or the database name specified in the connection string before the connection is opened.
+        /// </summary>
+        /// <returns>The name of the current database or the name of the database to be used after a connection is opened. The default value is an empty string.</returns>
+        /// <exception cref="System.ObjectDisposedException">CqlConnection</exception>
+        public override string Database
         {
             get
             {
                 if (_disposed)
                     throw new ObjectDisposedException("CqlConnection");
 
-                if (_openTask == null || _openTask.IsCanceled)
-                    return ConnectionState.Closed;
-
-                if (_openTask.IsFaulted || (_connection != null && !_connection.IsConnected))
-                    return ConnectionState.Broken;
-
-                if (!_openTask.IsCompleted)
-                    return ConnectionState.Connecting;
-
-                return ConnectionState.Open;
+                return _database;
             }
         }
 
         /// <summary>
-        /// Gets or sets the cluster.
+        /// Opens a database connection with the settings specified by the <see cref="P:System.Data.Common.DbConnection.ConnectionString" />.
         /// </summary>
-        /// <value>
-        /// The cluster.
-        /// </value>
-        /// <exception cref="System.InvalidOperationException">CqlConnection must be open before further use.</exception>
-        private Cluster Cluster
+        public override void Open()
         {
-            get
+            try
             {
-                if (State != ConnectionState.Open)
-                    throw new InvalidOperationException("CqlConnection must be open before further use.");
+                _openCancellationTokenSource = ConnectionTimeout > 0
+                                       ? new CancellationTokenSource(TimeSpan.FromSeconds(ConnectionTimeout))
+                                       : new CancellationTokenSource();
 
-                return _cluster;
+                OpenAsync(_openCancellationTokenSource.Token).Wait();
             }
-
-            set
+            catch (AggregateException aex)
             {
-                _cluster = value;
+                throw aex.InnerException;
+            }
+            finally
+            {
+                _openCancellationTokenSource = null;
             }
         }
 
-        #endregion
-
         /// <summary>
-        ///   Opens the connection.
+        /// Cancels any ongoing open operation.
         /// </summary>
-        /// <returns> </returns>
-        /// <exception cref="System.ObjectDisposedException">CqlConnection</exception>
-        public Task OpenAsync()
+        public void Cancel()
         {
-            return OpenAsync(CancellationToken.None);
+            if (_openCancellationTokenSource != null)
+                _openCancellationTokenSource.Cancel();
         }
 
         /// <summary>
-        ///   Opens connection async.
+        /// This is the asynchronous version of <see cref="M:System.Data.Common.DbConnection.Open" />. The cancellation token can optionally be honored.The default implementation invokes the synchronous <see cref="M:System.Data.Common.DbConnection.Open" /> call and returns a completed task. The default implementation will return a cancelled task if passed an already cancelled cancellationToken. Exceptions thrown by Open will be communicated via the returned Task Exception property.Do not invoke other methods and properties of the DbConnection object until the returned Task is complete.
         /// </summary>
-        /// <param name="token"> The token. </param>
-        /// <returns> </returns>
-        private Task OpenAsync(CancellationToken token)
+        /// <param name="cancellationToken">The cancellation instruction.</param>
+        /// <returns>
+        /// A task representing the asynchronous operation.
+        /// </returns>
+        /// <exception cref="System.InvalidOperationException">Connection must be closed before it is opened</exception>
+        public override Task OpenAsync(CancellationToken cancellationToken)
         {
             if (State != ConnectionState.Closed)
                 throw new InvalidOperationException("Connection must be closed before it is opened");
 
-            _openTask = OpenAsyncInternal(token);
+            _openTask = OpenAsyncInternal(cancellationToken);
             return _openTask;
         }
 
@@ -327,25 +310,25 @@ namespace CqlSharp
         /// </summary>
         /// <returns> </returns>
         /// <exception cref="System.ObjectDisposedException">CqlConnection</exception>
-        private async Task OpenAsyncInternal(CancellationToken token)
+        private async Task OpenAsyncInternal(CancellationToken cancellationToken)
         {
 
             //get or add cluster based on connection string
             Cluster cluster = Clusters.GetOrAdd(ConnectionString, connString =>
-                                                                      {
-                                                                          //connection string unknown, create a new config 
-                                                                          var cc = new CqlConnectionStringBuilder(connString);
+            {
+                //connection string unknown, create a new config 
+                var cc = new CqlConnectionStringBuilder(connString);
 
-                                                                          //get normalized connection string
-                                                                          string normalizedConnectionString =
-                                                                              cc.ToString();
+                //get normalized connection string
+                string normalizedConnectionString =
+                    cc.ToString();
 
-                                                                          //get or add based on normalized string
-                                                                          return
-                                                                              Clusters.GetOrAdd(
-                                                                                  normalizedConnectionString,
-                                                                                  new Cluster(cc));
-                                                                      });
+                //get or add based on normalized string
+                return
+                    Clusters.GetOrAdd(
+                        normalizedConnectionString,
+                        new Cluster(cc));
+            });
 
             //set the cluster
             Cluster = cluster;
@@ -357,7 +340,7 @@ namespace CqlSharp
             var logger = cluster.LoggerManager.GetLogger("CqlSharp.CqlConnection.Open");
 
             //make sure the cluster is open for connections
-            await cluster.OpenAsync(logger, token).ConfigureAwait(false);
+            await cluster.OpenAsync(logger, cancellationToken).ConfigureAwait(false);
 
             //get a connection
             _connection = cluster.ConnectionStrategy.GetOrCreateConnection(ConnectionScope.Connection,
@@ -385,24 +368,52 @@ namespace CqlSharp
         }
 
         /// <summary>
-        ///   Releases unmanaged and - optionally - managed resources.
+        /// Gets a string that represents the version of the server to which the object is connected.
         /// </summary>
-        /// <param name="disposing"> <c>true</c> to release both managed and unmanaged resources; <c>false</c> to release only unmanaged resources. </param>
-        protected void Dispose(bool disposing)
+        /// <returns>The version of the database. The format of the string returned depends on the specific type of connection you are using.</returns>
+        /// <exception cref="System.NotImplementedException"></exception>
+        public override string ServerVersion
+        {
+            get { throw new NotImplementedException(); }
+        }
+
+        /// <summary>
+        /// Gets a string that describes the state of the connection.
+        /// </summary>
+        /// <returns>The state of the connection. The format of the string returned depends on the specific type of connection you are using.</returns>
+        /// <exception cref="System.ObjectDisposedException">CqlConnection</exception>
+        public override ConnectionState State
+        {
+            get
+            {
+                if (_disposed)
+                    throw new ObjectDisposedException("CqlConnection");
+
+                if (_openTask == null || _openTask.IsCanceled)
+                    return ConnectionState.Closed;
+
+                if (_openTask.IsFaulted || (_connection != null && !_connection.IsConnected))
+                    return ConnectionState.Broken;
+
+                if (!_openTask.IsCompleted)
+                    return ConnectionState.Connecting;
+
+                return ConnectionState.Open;
+            }
+        }
+
+        /// <summary>
+        /// Releases the unmanaged resources used by the <see cref="T:System.ComponentModel.Component" /> and optionally releases the managed resources.
+        /// </summary>
+        /// <param name="disposing">true to release both managed and unmanaged resources; false to release only unmanaged resources.</param>
+        protected override void Dispose(bool disposing)
         {
             if (!_disposed && disposing)
             {
                 Close();
                 _disposed = true;
             }
-        }
-
-        /// <summary>
-        ///   Finalizes an instance of the <see cref="CqlConnection" /> class.
-        /// </summary>
-        ~CqlConnection()
-        {
-            Dispose(false);
+            base.Dispose(disposing);
         }
 
         internal ConcurrentDictionary<IPAddress, ResultFrame> GetPrepareResultsFor(string cql)
@@ -410,4 +421,5 @@ namespace CqlSharp
             return Cluster.GetPrepareResultsFor(cql);
         }
     }
+
 }

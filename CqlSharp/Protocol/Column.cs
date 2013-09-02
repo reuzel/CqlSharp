@@ -14,6 +14,7 @@
 // limitations under the License.
 
 using System;
+using System.Collections.Generic;
 
 namespace CqlSharp.Protocol
 {
@@ -24,6 +25,14 @@ namespace CqlSharp.Protocol
     {
         private string _ksTableName;
         private string _tableName;
+        private string _keyspace;
+        private string _table;
+        private string _name;
+
+        public Column()
+        {
+            _name = string.Empty;
+        }
 
         /// <summary>
         ///   Initializes a new instance of the <see cref="Column" /> class.
@@ -49,28 +58,59 @@ namespace CqlSharp.Protocol
             CollectionValueType = collectionValueType;
         }
 
-        public int Index { get; private set; }
+        public int Index { get; set; }
 
-        public string Keyspace { get; private set; }
+        public string Keyspace
+        {
+            get { return _keyspace; }
+            set
+            {
+                _keyspace = value;
+                _ksTableName = null;
+                _tableName = null;
+            }
+        }
 
-        public string Table { get; private set; }
+        public string Table
+        {
+            get { return _table; }
+            set
+            {
+                _table = value;
+                _ksTableName = null;
+                _tableName = null;
+            }
+        }
 
-        public string Name { get; private set; }
+        public string Name
+        {
+            get { return _name; }
+            set
+            {
+                _name = value;
+                _ksTableName = null;
+                _tableName = null;
+            }
+        }
 
-        public CqlType CqlType { get; private set; }
+        public CqlType CqlType { get; set; }
 
         public string CustomData { get; private set; }
 
-        public CqlType? CollectionKeyType { get; private set; }
+        public CqlType? CollectionKeyType { get; set; }
 
-        public CqlType? CollectionValueType { get; private set; }
+        public CqlType? CollectionValueType { get; set; }
 
         internal string KeySpaceTableAndName
         {
             get
             {
                 if (_ksTableName == null)
-                    _ksTableName = Keyspace + "." + Table + "." + Name;
+                {
+                    _ksTableName = (Keyspace != null ? Keyspace + "." : string.Empty) +
+                                   (Table != null ? Table + "." : string.Empty) +
+                                   Name;
+                }
 
                 return _ksTableName;
             }
@@ -81,15 +121,67 @@ namespace CqlSharp.Protocol
             get
             {
                 if (_tableName == null)
-                    _tableName = Table + "." + Name;
+                    _tableName = (Table != null ? Table + "." : "") + Name;
 
                 return _tableName;
             }
         }
 
+        /// <summary>
+        /// Returns the .NET type representing the column type
+        /// </summary>
+        /// <returns></returns>
         public Type ToType()
         {
             return CqlType.ToType(CollectionKeyType, CollectionValueType);
+        }
+
+        /// <summary>
+        /// Guesses the type of the column from the .NET type
+        /// </summary>
+        /// <param name="type">The type.</param>
+        /// <exception cref="CqlException">Unsupported type</exception>
+        public void GuessType(Type type)
+        {
+            CqlType cqlType;
+            CqlType? keyType = null;
+            CqlType? valueType = null;
+
+            if (type.IsGenericType)
+            {
+                var genericType = type.GetGenericTypeDefinition();
+
+                //check for collection types
+                if (genericType == typeof(List<>))
+                {
+                    cqlType = CqlType.List;
+                    valueType = type.GetGenericArguments()[0].ToCqlType();
+                }
+                else if (genericType == typeof(HashSet<>))
+                {
+                    cqlType = CqlType.Set;
+                    valueType = type.GetGenericArguments()[0].ToCqlType();
+                }
+                else if (genericType == typeof(Dictionary<,>))
+                {
+                    cqlType = CqlType.Map;
+                    keyType = type.GetGenericArguments()[0].ToCqlType();
+                    valueType = type.GetGenericArguments()[1].ToCqlType();
+                }
+                else
+                {
+                    throw new CqlException("Unsupported type");
+                }
+            }
+            else
+            {
+                cqlType = type.ToCqlType();
+            }
+
+            //all is well, set the type values
+            CqlType = cqlType;
+            CollectionKeyType = keyType;
+            CollectionValueType = valueType;
         }
     }
 }

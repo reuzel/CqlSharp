@@ -99,7 +99,7 @@ namespace CqlSharp.Test
             {
                 await connection.OpenAsync();
 
-                var executions = new Task<ICqlQueryResult>[insertCount];
+                var executions = new Task<int>[insertCount];
 
                 var options = new ParallelOptions { MaxDegreeOfParallelism = 4 };
                 Parallel.For(0, insertCount, options, i =>

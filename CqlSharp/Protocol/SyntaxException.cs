@@ -21,7 +21,7 @@ namespace CqlSharp.Protocol
     public class SyntaxException : ProtocolException
     {
         public SyntaxException(string message)
-            : base(ErrorCode.Syntax, message)
+            : base(Protocol.ErrorCode.Syntax, message)
         {
         }
     }

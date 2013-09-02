@@ -230,7 +230,7 @@ namespace CqlSharp.Test
 
 
                 var insertCmd = new CqlCommand(connection, insertCql);
-                insertCmd.Prepare(CqlParameterCreationOption.Column);
+                insertCmd.Prepare();
 
                 insertCmd.Parameters["aasciistring"].Value = "hello world!";
                 insertCmd.Parameters["ablob"].Value = new byte[] { 1, 2, 3, 4 };

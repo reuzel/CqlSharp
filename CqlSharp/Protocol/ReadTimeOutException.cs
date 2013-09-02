@@ -22,7 +22,7 @@ namespace CqlSharp.Protocol
     {
         public ReadTimeOutException(string message, CqlConsistency cqlConsistency, int received, int blockFor,
                                     bool dataPresent)
-            : base(ErrorCode.ReadTimeout, message, cqlConsistency, received, blockFor)
+            : base(Protocol.ErrorCode.ReadTimeout, message, cqlConsistency, received, blockFor)
         {
             DataPresent = dataPresent;
         }

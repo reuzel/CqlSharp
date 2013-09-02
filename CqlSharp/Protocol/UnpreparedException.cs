@@ -21,7 +21,7 @@ namespace CqlSharp.Protocol
     public class UnpreparedException : ProtocolException
     {
         public UnpreparedException(string message, byte[] unknownId)
-            : base(ErrorCode.Unprepared, message)
+            : base(Protocol.ErrorCode.Unprepared, message)
         {
             UnknownId = unknownId;
         }

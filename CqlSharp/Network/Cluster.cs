@@ -32,14 +32,20 @@ namespace CqlSharp.Network
     internal class Cluster
     {
         private readonly CqlConnectionStringBuilder _config;
-        private IConnectionStrategy _connectionStrategy;
-        private SemaphoreSlim _throttle;
-        private volatile Task _openTask;
-        private readonly object _syncLock = new object();
-        private volatile Ring _nodes;
-        private Connection _maintenanceConnection;
-        private ConcurrentDictionary<string, ConcurrentDictionary<IPAddress, ResultFrame>> _prepareResultCache;
         private readonly LoggerManager _loggerManager;
+        private readonly object _syncLock = new object();
+        private IConnectionStrategy _connectionStrategy;
+        private string _cqlVersion;
+        private string _dataCenter;
+        private Connection _maintenanceConnection;
+        private string _name;
+        private volatile Ring _nodes;
+        private volatile Task _openTask;
+        private ConcurrentDictionary<string, ConcurrentDictionary<IPAddress, ResultFrame>> _prepareResultCache;
+        private string _rack;
+        private string _release;
+        private SemaphoreSlim _throttle;
+
 
         /// <summary>
         ///   Initializes a new instance of the <see cref="Cluster" /> class.
@@ -54,15 +60,91 @@ namespace CqlSharp.Network
         }
 
         /// <summary>
-        /// Gets the config
+        ///   Gets the config
         /// </summary>
-        /// <value>
-        /// The config
-        /// </value>
-        public CqlConnectionStringBuilder Config { get { return _config; } }
+        /// <value> The config </value>
+        public CqlConnectionStringBuilder Config
+        {
+            get { return _config; }
+        }
 
         /// <summary>
-        /// Opens the cluster for queries.
+        ///   Gets the throttle to limit concurrent requests.
+        /// </summary>
+        /// <value> The throttle. </value>
+        public SemaphoreSlim Throttle
+        {
+            get { return _throttle; }
+        }
+
+        /// <summary>
+        /// Gets the logger manager.
+        /// </summary>
+        /// <value>
+        /// The logger manager.
+        /// </value>
+        public LoggerManager LoggerManager
+        {
+            get { return _loggerManager; }
+        }
+
+
+        /// <summary>
+        ///   Gets the connection strategy.
+        /// </summary>
+        /// <value> The connection strategy. </value>
+        public IConnectionStrategy ConnectionStrategy
+        {
+            get { return _connectionStrategy; }
+        }
+
+        /// <summary>
+        ///   Gets the name of the cluster.
+        /// </summary>
+        /// <value> The name. </value>
+        public string Name
+        {
+            get { return _name; }
+        }
+
+        /// <summary>
+        ///   Gets the rack to which the initial (seed) connection was made
+        /// </summary>
+        /// <value> The rack. </value>
+        public string Rack
+        {
+            get { return _rack; }
+        }
+
+        /// <summary>
+        ///   Gets the data center to which the initial (seed) connection was made.
+        /// </summary>
+        /// <value> The data center. </value>
+        public string DataCenter
+        {
+            get { return _dataCenter; }
+        }
+
+        /// <summary>
+        ///   Gets the cassandra version.
+        /// </summary>
+        /// <value> The cassandra version. </value>
+        public string CassandraVersion
+        {
+            get { return _release; }
+        }
+
+        /// <summary>
+        ///   Gets the CQL version.
+        /// </summary>
+        /// <value> The CQL version. </value>
+        public string CqlVersion
+        {
+            get { return _cqlVersion; }
+        }
+
+        /// <summary>
+        ///   Opens the cluster for queries.
         /// </summary>
         public Task OpenAsync(Logger logger, CancellationToken token)
         {
@@ -82,9 +164,9 @@ namespace CqlSharp.Network
         }
 
         /// <summary>
-        /// Opens the cluster for queries. Contains actual implementation and will be called only once per cluster
+        ///   Opens the cluster for queries. Contains actual implementation and will be called only once per cluster
         /// </summary>
-        /// <returns></returns>
+        /// <returns> </returns>
         /// <exception cref="CqlException">Cannot construct ring from provided seeds!</exception>
         private async Task OpenAsyncInternal(Logger logger, CancellationToken token)
         {
@@ -96,7 +178,7 @@ namespace CqlSharp.Network
                 try
                 {
                     var seed = new Node(seedAddress, this);
-                    _nodes = await DiscoverNodesAsync(seed, logger, token).ConfigureAwait(false);
+                    await GetClusterInfoAsync(seed, logger, token).ConfigureAwait(false);
                 }
                 catch (TaskCanceledException)
                 {
@@ -133,8 +215,10 @@ namespace CqlSharp.Network
                     break;
                 case CqlSharp.ConnectionStrategy.PartitionAware:
                     _connectionStrategy = new PartitionAwareConnectionStrategy(_nodes, _config);
-                    if (_config.DiscoveryScope != DiscoveryScope.Cluster || _config.DiscoveryScope != DiscoveryScope.DataCenter)
-                        logger.LogWarning("PartitionAware connection strategy performs best if DiscoveryScope is set to cluster or datacenter");
+                    if (_config.DiscoveryScope != DiscoveryScope.Cluster ||
+                        _config.DiscoveryScope != DiscoveryScope.DataCenter)
+                        logger.LogWarning(
+                            "PartitionAware connection strategy performs best if DiscoveryScope is set to cluster or datacenter");
                     break;
             }
 
@@ -155,7 +239,7 @@ namespace CqlSharp.Network
         }
 
         /// <summary>
-        /// Setups the maintenance channel.
+        ///   Setups the maintenance channel.
         /// </summary>
         private async void SetupMaintenanceConnection(Logger logger)
         {
@@ -202,53 +286,24 @@ namespace CqlSharp.Network
         }
 
         /// <summary>
-        ///   Gets the throttle to limit concurrent requests.
+        ///   Gets the prepare results for the given query
         /// </summary>
-        /// <value> The throttle. </value>
-        public SemaphoreSlim Throttle
-        {
-            get { return _throttle; }
-        }
-
-        public LoggerManager LoggerManager
-        {
-            get { return _loggerManager; }
-        }
-
-
-        /// <summary>
-        /// Gets the prepare results for the given query
-        /// </summary>
-        /// <param name="cql">The CQL query prepared</param>
-        /// <returns></returns>
+        /// <param name="cql"> The CQL query prepared </param>
+        /// <returns> </returns>
         internal ConcurrentDictionary<IPAddress, ResultFrame> GetPrepareResultsFor(string cql)
         {
             return _prepareResultCache.GetOrAdd(cql, s => new ConcurrentDictionary<IPAddress, ResultFrame>());
         }
 
         /// <summary>
-        /// Gets the connection strategy.
+        ///   Gets all nodes that make up the cluster
         /// </summary>
-        /// <value>
-        /// The connection strategy.
-        /// </value>
-        public IConnectionStrategy ConnectionStrategy
-        {
-            get
-            {
-                return _connectionStrategy;
-            }
-        }
-
-        /// <summary>
-        /// Gets all nodes that make up the cluster
-        /// </summary>
-        /// <param name="seed">The reference.</param>
-        /// <param name="logger">logger used to log progress</param>
-        /// <param name="token">The token.</param>
-        /// <returns></returns>
+        /// <param name="seed"> The reference. </param>
+        /// <param name="logger"> logger used to log progress </param>
+        /// <param name="token"> The token. </param>
+        /// <returns> </returns>
         /// <exception cref="CqlException">Could not detect datacenter or rack information from the reference specified in the config section!</exception>
-        private async Task<Ring> DiscoverNodesAsync(Node seed, Logger logger, CancellationToken token)
+        private async Task GetClusterInfoAsync(Node seed, Logger logger, CancellationToken token)
         {
             Connection c;
             using (logger.ThreadBinding())
@@ -257,51 +312,50 @@ namespace CqlSharp.Network
                 c = seed.GetOrCreateConnection(null);
             }
 
-            //get partitioner
+            //get local information
             string partitioner;
-            using (var result = await ExecQuery(c, "select partitioner from system.local", logger, token).ConfigureAwait(false))
+            using (
+                var result =
+                    await
+                    ExecQuery(c,
+                              "select cluster_name, cql_version, release_version, partitioner, data_center, rack, tokens from system.local",
+                              logger, token).ConfigureAwait(false))
             {
                 if (!await result.ReadAsync().ConfigureAwait(false))
                     throw new CqlException("Could not detect the cluster partitioner");
-                partitioner = result.GetString(0);
+                _name = result.GetString(0);
+                _cqlVersion = result.GetString(1);
+                _release = result.GetString(2);
+                partitioner = result.GetString(3);
+                _dataCenter = seed.DataCenter = result.GetString(4);
+                _rack = seed.Rack = result.GetString(5);
+                seed.Tokens = result.GetSet<string>(6);
             }
 
-            logger.LogInfo("Partitioner in use: {0}", partitioner);
-
-            //get the "local" data center, rack and token
-            using (var result = await ExecQuery(c, "select data_center, rack, tokens from system.local", logger, token).ConfigureAwait(false))
-            {
-                if (await result.ReadAsync().ConfigureAwait(false))
-                {
-                    seed.DataCenter = result.GetString(0);
-                    seed.Rack = result.GetString(1);
-                    seed.Tokens = result.GetSet<string>(2);
-
-                    logger.LogVerbose("Seed info - Address:{0} DataCenter:{1} Rack:{2}", seed.Address, seed.DataCenter, seed.Rack);
-                }
-                else
-                {
-                    //strange, no local info found?!
-                    throw new CqlException("Could not detect datacenter or rack information from the reference specified in the config section!");
-                }
-            }
+            logger.LogInfo(
+                "Connected to cluster {0}, based on Cassandra Release {1}, supporting CqlVersion {2}, using partitioner '{3}'",
+                _name, _release, _cqlVersion, partitioner);
 
             //create list of nodes that make up the cluster, and add the seed
             var found = new List<Node> { seed };
 
             //get the peers
-            using (var result = await ExecQuery(c, "select rpc_address, data_center, rack, tokens from system.peers", logger, token).ConfigureAwait(false))
+            using (
+                var result =
+                    await
+                    ExecQuery(c, "select rpc_address, data_center, rack, tokens from system.peers", logger, token).
+                        ConfigureAwait(false))
             {
                 //iterate over the peers
                 while (await result.ReadAsync().ConfigureAwait(false))
                 {
                     //create a new node
                     var newNode = new Node((IPAddress)result["rpc_address"], this)
-                                        {
-                                            DataCenter = (string)result["data_center"],
-                                            Rack = (string)result["rack"],
-                                            Tokens = (ISet<string>)result["tokens"]
-                                        };
+                                      {
+                                          DataCenter = (string)result["data_center"],
+                                          Rack = (string)result["rack"],
+                                          Tokens = (ISet<string>)result["tokens"]
+                                      };
 
                     //add it if it is in scope
                     if (InDiscoveryScope(seed, newNode, _config.DiscoveryScope))
@@ -309,21 +363,20 @@ namespace CqlSharp.Network
                 }
             }
 
-            //return a new Ring of nodes
-            return new Ring(found, partitioner);
+            //set the new Ring of nodes
+            _nodes = new Ring(found, partitioner);
         }
 
         /// <summary>
-        /// Executes a query.
+        ///   Executes a query.
         /// </summary>
-        /// <param name="connection">The connection.</param>
-        /// <param name="cql">The CQL.</param>
-        /// <param name="logger">The logger.</param>
-        /// <param name="token">The token.</param>
-        /// <returns>
-        /// A CqlDataReader that can be used to access the query results
-        /// </returns>
-        private async Task<CqlDataReader> ExecQuery(Connection connection, string cql, Logger logger, CancellationToken token)
+        /// <param name="connection"> The connection. </param>
+        /// <param name="cql"> The CQL. </param>
+        /// <param name="logger"> The logger. </param>
+        /// <param name="token"> The token. </param>
+        /// <returns> A CqlDataReader that can be used to access the query results </returns>
+        private async Task<CqlDataReader> ExecQuery(Connection connection, string cql, Logger logger,
+                                                    CancellationToken token)
         {
             //cancel if requested
             token.ThrowIfCancellationRequested();
@@ -331,8 +384,9 @@ namespace CqlSharp.Network
             logger.LogVerbose("Excuting query {0} on {1}", cql, connection);
 
             var query = new QueryFrame(cql, CqlConsistency.One);
-            var result = (ResultFrame)await connection.SendRequestAsync(query, logger, 1, false, token).ConfigureAwait(false);
-            var reader = new CqlDataReader(result);
+            var result =
+                (ResultFrame)await connection.SendRequestAsync(query, logger, 1, false, token).ConfigureAwait(false);
+            var reader = new CqlDataReader(result, null);
 
             logger.LogVerbose("Query {0} returned {1} results", cql, reader.Count);
 
@@ -340,12 +394,12 @@ namespace CqlSharp.Network
         }
 
         /// <summary>
-        /// Checks wether a node is in the discovery scope.
+        ///   Checks wether a node is in the discovery scope.
         /// </summary>
-        /// <param name="reference">The reference node that is known to be in scope</param>
-        /// <param name="target">The target node of which is checked wether it is in scope</param>
-        /// <param name="discoveryScope">The discovery scope.</param>
-        /// <returns></returns>
+        /// <param name="reference"> The reference node that is known to be in scope </param>
+        /// <param name="target"> The target node of which is checked wether it is in scope </param>
+        /// <param name="discoveryScope"> The discovery scope. </param>
+        /// <returns> </returns>
         private bool InDiscoveryScope(Node reference, Node target, DiscoveryScope discoveryScope)
         {
             //filter based on scope
@@ -381,16 +435,21 @@ namespace CqlSharp.Network
                 var connection = (Connection)source;
 
                 //get the new peer
-                using (var result = await ExecQuery(connection, "select rpc_address, data_center, rack, tokens from system.peers where peer = '" + args.Node + "'", logger, CancellationToken.None).ConfigureAwait(false))
+                using (
+                    var result =
+                        await
+                        ExecQuery(connection,
+                                  "select rpc_address, data_center, rack, tokens from system.peers where peer = '" +
+                                  args.Node + "'", logger, CancellationToken.None).ConfigureAwait(false))
                 {
                     if (await result.ReadAsync().ConfigureAwait(false))
                     {
                         var newNode = new Node((IPAddress)result["rpc_address"], this)
-                                            {
-                                                DataCenter = (string)result["data_center"],
-                                                Rack = (string)result["rack"],
-                                                Tokens = (ISet<string>)result["tokens"]
-                                            };
+                                          {
+                                              DataCenter = (string)result["data_center"],
+                                              Rack = (string)result["rack"],
+                                              Tokens = (ISet<string>)result["tokens"]
+                                          };
 
 
                         if (InDiscoveryScope(_nodes.First(), newNode, _config.DiscoveryScope))
@@ -415,7 +474,8 @@ namespace CqlSharp.Network
                 }
                 else
                 {
-                    logger.LogVerbose("Node with address {0} was removed but not used within the current configuration", args.Node);
+                    logger.LogVerbose(
+                        "Node with address {0} was removed but not used within the current configuration", args.Node);
                 }
             }
             else if (args.Change.Equals(ClusterChange.Up))

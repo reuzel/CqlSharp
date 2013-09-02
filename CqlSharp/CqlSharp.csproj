@@ -57,7 +57,6 @@
       <SubType>Component</SubType>
     </Compile>
     <Compile Include="CqlParameter.cs" />
-    <Compile Include="CqlParameterCreationOption.cs" />
     <Compile Include="CqlSchemaTableColumnNames.cs" />
     <Compile Include="DiscoveryScope.cs" />
     <Compile Include="Logging\ConsoleLogger.cs" />
@@ -124,7 +123,9 @@
     <Compile Include="Network\Node.cs" />
     <Compile Include="Network\RandomConnectionStrategy.cs" />
     <Compile Include="Protocol\Column.cs" />
-    <Compile Include="CqlCommand.cs" />
+    <Compile Include="CqlCommand.cs">
+      <SubType>Component</SubType>
+    </Compile>
     <Compile Include="CqlConnection.cs" />
     <Compile Include="CqlDataReader.cs" />
     <Compile Include="CqlParameterCollection.cs" />

@@ -189,6 +189,7 @@ namespace CqlSharp
         internal static CqlType ToCqlType(this Type type)
         {
             CqlType cqlType;
+
             if (!Type2CqlType.TryGetValue(type, out cqlType))
                 throw new NotSupportedException("Type " + type.Name + " is not supported for deserialization");
 

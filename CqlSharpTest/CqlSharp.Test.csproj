@@ -63,6 +63,7 @@
   </Choose>
   <ItemGroup>
     <Compile Include="ConnectionStrategyTest.cs" />
+    <Compile Include="CqlParameterTest.cs" />
     <Compile Include="MemoryTest.cs" />
     <Compile Include="QueryTests.cs" />
     <Compile Include="Properties\AssemblyInfo.cs" />

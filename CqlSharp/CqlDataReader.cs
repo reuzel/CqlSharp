@@ -30,19 +30,22 @@ namespace CqlSharp
     /// <summary>
     ///   Provides access to a set of Cql data rows as returned from a query
     /// </summary>
-    public class CqlDataReader : ICqlQueryResult, IDataReader, IEnumerable
+    public class CqlDataReader : DbDataReader, ICqlQueryResult
     {
         private readonly ResultFrame _frame;
         protected byte[][] CurrentValues;
         private int _disposed;
+        private readonly CqlConnection _connectionToClose;
 
         /// <summary>
         ///   Initializes a new instance of the <see cref="CqlDataReader" /> class.
         /// </summary>
         /// <param name="frame"> The frame. </param>
-        internal CqlDataReader(ResultFrame frame)
+        /// <param name="connectionToClose">connection to close when done </param>
+        internal CqlDataReader(ResultFrame frame, CqlConnection connectionToClose)
         {
             _frame = frame;
+            _connectionToClose = connectionToClose;
         }
 
         /// <summary>
@@ -64,7 +67,7 @@ namespace CqlSharp
         ///   Gets a value indicating whether this reader instance has more rows.
         /// </summary>
         /// <value> <c>true</c> if this instance has more rows; otherwise, <c>false</c> . </value>
-        public bool HasRows
+        public override bool HasRows
         {
             get { return _frame.Count > 0; }
         }
@@ -84,7 +87,7 @@ namespace CqlSharp
         /// <value> The <see cref="System.Object" /> . </value>
         /// <param name="index"> The index. </param>
         /// <returns> </returns>
-        public object this[int index]
+        public override object this[int index]
         {
             get
             {
@@ -100,7 +103,7 @@ namespace CqlSharp
         /// <value> The <see cref="System.Object" /> . </value>
         /// <param name="name"> The name. </param>
         /// <returns> </returns>
-        public object this[string name]
+        public override object this[string name]
         {
             get
             {
@@ -132,27 +135,16 @@ namespace CqlSharp
 
         #endregion
 
-        #region IDisposable Members
-
-        /// <summary>
-        ///   Performs application-defined tasks associated with freeing, releasing, or resetting unmanaged resources.
-        /// </summary>
-        public void Dispose()
-        {
-            Dispose(true);
-            GC.SuppressFinalize(this);
-        }
-
-        #endregion
 
         /// <summary>
         ///   Forwards the reader to the next row async.
         /// </summary>
         /// <returns> </returns>
-        public virtual async Task<bool> ReadAsync()
+        public override async Task<bool> ReadAsync(CancellationToken cancellationToken)
         {
             if (_frame.Count > 0)
             {
+                cancellationToken.ThrowIfCancellationRequested();
                 CurrentValues = await _frame.ReadNextDataRowAsync().ConfigureAwait(false);
                 return true;
             }
@@ -166,7 +158,7 @@ namespace CqlSharp
         /// <returns>
         /// true if there are more rows; otherwise, false.
         /// </returns>
-        public bool Read()
+        public override bool Read()
         {
             return ReadAsync().Result;
         }
@@ -174,7 +166,7 @@ namespace CqlSharp
         /// <summary>
         ///   Closes this instance.
         /// </summary>
-        public void Close()
+        public override void Close()
         {
             Dispose();
         }
@@ -183,31 +175,25 @@ namespace CqlSharp
         ///   Releases unmanaged and - optionally - managed resources.
         /// </summary>
         /// <param name="disposing"> <c>true</c> to release both managed and unmanaged resources; <c>false</c> to release only unmanaged resources. </param>
-        protected virtual void Dispose(bool disposing)
+        protected override void Dispose(bool disposing)
         {
             if (Interlocked.CompareExchange(ref _disposed, 1, 0) == 0)
             {
                 if (disposing)
                 {
+                    if (_connectionToClose != null)
+                        _connectionToClose.Close();
+
                     _frame.Dispose();
                 }
             }
         }
 
         /// <summary>
-        ///   Finalizes an instance of the <see cref="CqlDataReader" /> class.
-        /// </summary>
-        ~CqlDataReader()
-        {
-            Dispose(false);
-        }
-
-
-        /// <summary>
         /// Gets a value indicating the depth of nesting for the current row.
         /// </summary>
         /// <returns>The level of nesting.</returns>
-        public int Depth
+        public override int Depth
         {
             get { return 0; }
         }
@@ -218,7 +204,7 @@ namespace CqlSharp
         /// <returns>
         /// A <see cref="T:System.Data.DataTable" /> that describes the column metadata.
         /// </returns>
-        public DataTable GetSchemaTable()
+        public override DataTable GetSchemaTable()
         {
             var table = new DataTable();
             table.Columns.Add(CqlSchemaTableColumnNames.ColumnOrdinal, typeof(int));
@@ -251,7 +237,7 @@ namespace CqlSharp
         /// Gets a value indicating whether the data reader is closed.
         /// </summary>
         /// <returns>true if the data reader is closed; otherwise, false.</returns>
-        public bool IsClosed
+        public override bool IsClosed
         {
             get { return _disposed == 1; }
         }
@@ -263,7 +249,7 @@ namespace CqlSharp
         /// true if there are more rows; otherwise, false.
         /// </returns>
         /// <exception cref="System.NotSupportedException">Cql does not support batched select statements</exception>
-        public bool NextResult()
+        public override bool NextResult()
         {
             //there are never any next resultsets
             return false;
@@ -274,7 +260,7 @@ namespace CqlSharp
         /// </summary>
         /// <returns>The number of rows changed, inserted, or deleted; 0 if no rows were affected or the statement failed; and -1 for SELECT statements.</returns>
         /// <exception cref="System.NotSupportedException">Cql does not provide information on records affected</exception>
-        public int RecordsAffected
+        public override int RecordsAffected
         {
             get
             {
@@ -287,7 +273,7 @@ namespace CqlSharp
         /// Gets the number of columns in the current row.
         /// </summary>
         /// <returns>When not positioned in a valid recordset, 0; otherwise, the number of columns in the current record. The default is -1.</returns>
-        public int FieldCount
+        public override int FieldCount
         {
             get
             {
@@ -305,7 +291,7 @@ namespace CqlSharp
         /// <returns>
         /// The value of the column.
         /// </returns>
-        public bool GetBoolean(int i)
+        public override bool GetBoolean(int i)
         {
             if (CurrentValues[i] == null) return default(bool);
             return (bool)ValueSerialization.Deserialize(CqlType.Boolean, CurrentValues[i]);
@@ -319,7 +305,7 @@ namespace CqlSharp
         /// The 8-bit unsigned integer value of the specified column.
         /// </returns>
         /// <exception cref="System.NotSupportedException">Single byte values are not supported by Cql</exception>
-        public byte GetByte(int i)
+        public override byte GetByte(int i)
         {
             throw new NotSupportedException("Single byte values are not supported by Cql");
         }
@@ -337,7 +323,7 @@ namespace CqlSharp
         /// </returns>
         /// <exception cref="System.ArgumentException">Provided length allows more data to be copied than what fits in the provided buffer;length</exception>
         /// <exception cref="System.ArgumentOutOfRangeException">fieldOffset;The field offset is larger than the stored string</exception>
-        public long GetBytes(int i, long fieldOffset, byte[] buffer, int bufferoffset, int length)
+        public override long GetBytes(int i, long fieldOffset, byte[] buffer, int bufferoffset, int length)
         {
             if (bufferoffset + length > buffer.Length)
                 throw new ArgumentException("Provided length allows more data to be copied than what fits in the provided buffer", "length");
@@ -376,7 +362,7 @@ namespace CqlSharp
         /// The character value of the specified column.
         /// </returns>
         /// <exception cref="System.NotSupportedException">Single char values are not supported by Cql</exception>
-        public char GetChar(int i)
+        public override char GetChar(int i)
         {
             throw new NotSupportedException("Single char values are not supported by Cql");
         }
@@ -394,7 +380,7 @@ namespace CqlSharp
         /// </returns>
         /// <exception cref="System.ArgumentException">Provided length allows more data to be copied than what fits in the provided buffer;length</exception>
         /// <exception cref="System.ArgumentOutOfRangeException">fieldoffset;The field offset is larger than the stored string</exception>
-        public long GetChars(int i, long fieldoffset, char[] buffer, int bufferoffset, int length)
+        public override long GetChars(int i, long fieldoffset, char[] buffer, int bufferoffset, int length)
         {
 
             if (bufferoffset + length > buffer.Length)
@@ -415,26 +401,13 @@ namespace CqlSharp
         }
 
         /// <summary>
-        /// Returns an <see cref="T:System.Data.IDataReader" /> for the specified column ordinal.
-        /// </summary>
-        /// <param name="i">The index of the field to find.</param>
-        /// <returns>
-        /// The <see cref="T:System.Data.IDataReader" /> for the specified column ordinal.
-        /// </returns>
-        /// <exception cref="System.NotSupportedException">Cql does not support nested data rows</exception>
-        public IDataReader GetData(int i)
-        {
-            throw new NotSupportedException("Cql does not support nested data rows");
-        }
-
-        /// <summary>
         /// Gets the data type information for the specified field.
         /// </summary>
         /// <param name="i">The index of the field to find.</param>
         /// <returns>
         /// The data type information for the specified field.
         /// </returns>
-        public string GetDataTypeName(int i)
+        public override string GetDataTypeName(int i)
         {
             return Schema[i].CqlType.ToString();
         }
@@ -446,7 +419,7 @@ namespace CqlSharp
         /// <returns>
         /// The date and time data value of the specified field.
         /// </returns>
-        public DateTime GetDateTime(int i)
+        public override DateTime GetDateTime(int i)
         {
             if (CurrentValues[i] == null) return default(DateTime);
 
@@ -461,7 +434,7 @@ namespace CqlSharp
         /// The fixed-position numeric value of the specified field.
         /// </returns>
         /// <exception cref="System.NotSupportedException"></exception>
-        public decimal GetDecimal(int i)
+        public override decimal GetDecimal(int i)
         {
             throw new NotSupportedException();
         }
@@ -473,7 +446,7 @@ namespace CqlSharp
         /// <returns>
         /// The double-precision floating point number of the specified field.
         /// </returns>
-        public double GetDouble(int i)
+        public override double GetDouble(int i)
         {
             if (CurrentValues[i] == null) return default(double);
 
@@ -487,7 +460,7 @@ namespace CqlSharp
         /// <returns>
         /// The <see cref="T:System.Type" /> information corresponding to the type of <see cref="T:System.Object" /> that would be returned from <see cref="M:System.Data.IDataRecord.GetValue(System.Int32)" />.
         /// </returns>
-        public Type GetFieldType(int i)
+        public override Type GetFieldType(int i)
         {
             return Schema[i].ToType();
         }
@@ -499,7 +472,7 @@ namespace CqlSharp
         /// <returns>
         /// The single-precision floating point number of the specified field.
         /// </returns>
-        public float GetFloat(int i)
+        public override float GetFloat(int i)
         {
             if (CurrentValues[i] == null) return default(float);
 
@@ -513,7 +486,7 @@ namespace CqlSharp
         /// <returns>
         /// The GUID value of the specified field.
         /// </returns>
-        public Guid GetGuid(int i)
+        public override Guid GetGuid(int i)
         {
             if (CurrentValues[i] == null) return default(Guid);
 
@@ -528,7 +501,7 @@ namespace CqlSharp
         /// The 16-bit signed integer value of the specified field.
         /// </returns>
         /// <exception cref="System.NotSupportedException">short values are not supported by Cql</exception>
-        public short GetInt16(int i)
+        public override short GetInt16(int i)
         {
             throw new NotSupportedException("short values are not supported by Cql");
         }
@@ -540,7 +513,7 @@ namespace CqlSharp
         /// <returns>
         /// The 32-bit signed integer value of the specified field.
         /// </returns>
-        public int GetInt32(int i)
+        public override int GetInt32(int i)
         {
             if (CurrentValues[i] == null) return default(int);
             return (int)ValueSerialization.Deserialize(CqlType.Int, CurrentValues[i]);
@@ -553,7 +526,7 @@ namespace CqlSharp
         /// <returns>
         /// The 64-bit signed integer value of the specified field.
         /// </returns>
-        public long GetInt64(int i)
+        public override long GetInt64(int i)
         {
             if (CurrentValues[i] == null) return default(long);
 
@@ -567,7 +540,7 @@ namespace CqlSharp
         /// <returns>
         /// The name of the field or the empty string (""), if there is no value to return.
         /// </returns>
-        public string GetName(int i)
+        public override string GetName(int i)
         {
             return Schema[i].Name;
         }
@@ -579,7 +552,7 @@ namespace CqlSharp
         /// <returns>
         /// The index of the named field.
         /// </returns>
-        public int GetOrdinal(string name)
+        public override int GetOrdinal(string name)
         {
             return Schema[name].Index;
         }
@@ -591,7 +564,7 @@ namespace CqlSharp
         /// <returns>
         /// The string value of the specified field.
         /// </returns>
-        public string GetString(int i)
+        public override string GetString(int i)
         {
             return (string)ValueSerialization.Deserialize(CqlType.Varchar, CurrentValues[i]);
         }
@@ -673,7 +646,7 @@ namespace CqlSharp
         /// <returns>
         /// The <see cref="T:System.Object" /> which will contain the field value upon return.
         /// </returns>
-        public object GetValue(int i)
+        public override object GetValue(int i)
         {
             return this[i];
         }
@@ -686,7 +659,7 @@ namespace CqlSharp
         /// The number of instances of <see cref="T:System.Object" /> in the array.
         /// </returns>
         /// <exception cref="System.ArgumentException">values array too small to fit row contents;values</exception>
-        public int GetValues(object[] values)
+        public override int GetValues(object[] values)
         {
             if (CurrentValues.Length > values.Length)
                 throw new ArgumentException("values array too small to fit row contents", "values");
@@ -699,12 +672,12 @@ namespace CqlSharp
             return CurrentValues.Length;
         }
 
-        public bool IsDBNull(int i)
+        public override bool IsDBNull(int i)
         {
             return CurrentValues[i] == null;
         }
 
-        public IEnumerator GetEnumerator()
+        public override IEnumerator GetEnumerator()
         {
             return new DbEnumerator(this, false);
         }
@@ -725,8 +698,9 @@ namespace CqlSharp
         ///   Initializes a new instance of the <see cref="CqlDataReader{T}" /> class.
         /// </summary>
         /// <param name="frame"> The frame. </param>
-        internal CqlDataReader(ResultFrame frame)
-            : base(frame)
+        /// <param name="connectionToClose">connection to close when done </param>
+        internal CqlDataReader(ResultFrame frame, CqlConnection connectionToClose)
+            : base(frame, connectionToClose)
         {
         }
 
@@ -801,10 +775,10 @@ namespace CqlSharp
         ///   Forwards the reader to the next row async.
         /// </summary>
         /// <returns> </returns>
-        public override Task<bool> ReadAsync()
+        public override Task<bool> ReadAsync(CancellationToken cancellationToken)
         {
             _current = null;
-            return base.ReadAsync();
+            return base.ReadAsync(cancellationToken);
         }
     }
 }
