@@ -106,8 +106,13 @@ namespace CqlSharp.Logging
             }
             catch
             {
-                //in case of any loading errors, assume no factories are loaded
-                LoggerFactories = new List<ILoggerFactory>();
+                //in case of any loading errors, load only the loggers that we implement
+                LoggerFactories = new List<ILoggerFactory>()
+                {
+                    new NullLoggerFactory(),
+                    new ConsoleLoggerFactory(),
+                    new DebugLoggerFactory()
+                };
             }
         }
     }
