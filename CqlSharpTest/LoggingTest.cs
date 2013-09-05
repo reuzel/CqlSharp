@@ -6,7 +6,7 @@ using System.Diagnostics;
 namespace CqlSharp.Test
 {
     [TestClass]
-    class LoggingTest
+    public class LoggingTest
     {
 
         [TestMethod]
