@@ -52,7 +52,7 @@ namespace CqlSharp
         /// </summary>
         internal void Fixate()
         {
-            if (_schema != null)
+            if (_schema == null)
             {
 
                 for (int i = 0; i < _parameters.Count; i++)

@@ -64,6 +64,7 @@
   <ItemGroup>
     <Compile Include="ConnectionStrategyTest.cs" />
     <Compile Include="CqlParameterTest.cs" />
+    <Compile Include="LoggingTest.cs" />
     <Compile Include="MemoryTest.cs" />
     <Compile Include="QueryTests.cs" />
     <Compile Include="Properties\AssemblyInfo.cs" />

@@ -14,7 +14,6 @@
 // limitations under the License.
 
 using System;
-using System.Collections.Generic;
 using System.IO;
 using System.Threading;
 using System.Threading.Tasks;
@@ -27,7 +26,10 @@ namespace CqlSharp.Memory
     internal class PoolMemoryStream : Stream
     {
         private const int BufferSize = 8192;
-        private readonly List<byte[]> _buffers;
+        private byte[][] _buffers;
+        private int _bufferCount;
+
+        //private readonly List<byte[]> _buffers;
         private bool _disposed;
         private long _position;
         private long _size;
@@ -37,7 +39,8 @@ namespace CqlSharp.Memory
         /// </summary>
         public PoolMemoryStream()
         {
-            _buffers = new List<byte[]>();
+            _buffers = new byte[10][];
+            _bufferCount = 0;
             _size = 0;
             _position = 0;
             _disposed = false;
@@ -49,7 +52,9 @@ namespace CqlSharp.Memory
         /// <param name="data"> The data. </param>
         public PoolMemoryStream(byte[] data)
         {
-            _buffers = new List<byte[]>();
+            _buffers = new byte[10][];
+            _bufferCount = 0;
+
             _size = 0;
             _position = 0;
             _disposed = false;
@@ -63,7 +68,9 @@ namespace CqlSharp.Memory
         /// <param name="size"> The size. </param>
         public PoolMemoryStream(long size)
         {
-            _buffers = new List<byte[]>();
+            _buffers = new byte[10][];
+            _bufferCount = 0;
+
             _size = 0;
             _position = 0;
             _disposed = false;
@@ -72,12 +79,23 @@ namespace CqlSharp.Memory
         }
 
         /// <summary>
+        /// Adds a buffer.
+        /// </summary>
+        private void AddBuffer()
+        {
+            if (++_bufferCount > _buffers.Length)
+                Array.Resize(ref _buffers, _buffers.Length + 10);
+
+            _buffers[_bufferCount - 1] = MemoryPool.Instance.Take(BufferSize);
+        }
+
+        /// <summary>
         ///   Gets the capacity of the current stream. Capacity will grow or reduce when data is read or written.
         /// </summary>
         /// <value> The capacity. </value>
         public long Capacity
         {
-            get { return _buffers.Count * BufferSize; }
+            get { return _buffers.Length * BufferSize; }
         }
 
         /// <summary>
@@ -296,16 +314,18 @@ namespace CqlSharp.Memory
             int bufferIndex = (int)_size / BufferSize;
 
             //clear redundant buffers
-            for (int i = bufferIndex + 1; i < _buffers.Count; i++)
+            int count = _bufferCount;
+            for (int i = bufferIndex + 1; i < count; i++)
             {
                 MemoryPool.Instance.Return(_buffers[i]);
-                _buffers.RemoveAt(i);
+                _buffers[i] = null;
+                _bufferCount--;
             }
 
             //add new buffers
-            for (int j = _buffers.Count; j <= bufferIndex; j++)
+            for (int j = _bufferCount; j <= bufferIndex; j++)
             {
-                _buffers.Add(MemoryPool.Instance.Take(BufferSize));
+                AddBuffer();
             }
         }
         /// <summary>
@@ -426,9 +446,9 @@ namespace CqlSharp.Memory
             if (_disposed) throw new ObjectDisposedException("PoolMemoryStream");
 
             //allocate buffers if necessary
-            while (_buffers.Count * BufferSize <= _position + count)
+            while (_bufferCount * BufferSize <= _position + count)
             {
-                _buffers.Add(MemoryPool.Instance.Take(BufferSize));
+                AddBuffer();
             }
 
             //get location in buffer
@@ -460,9 +480,9 @@ namespace CqlSharp.Memory
         public override void WriteByte(byte value)
         {
             //allocate buffers if necessary
-            if (_buffers.Count * BufferSize <= _position + 1)
+            if (_bufferCount * BufferSize <= _position + 1)
             {
-                _buffers.Add(MemoryPool.Instance.Take(BufferSize));
+                AddBuffer();
             }
 
             //get location in buffer
@@ -486,10 +506,11 @@ namespace CqlSharp.Memory
 
             _disposed = true;
 
-            foreach (var buffer in _buffers)
-                MemoryPool.Instance.Return(buffer);
-
-            _buffers.Clear();
+            for (int i = 0; i < _bufferCount; i++)
+            {
+                MemoryPool.Instance.Return(_buffers[i]);
+                _buffers[i] = null;
+            }
         }
 
         /// <summary>

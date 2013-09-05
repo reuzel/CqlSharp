@@ -60,8 +60,8 @@ namespace CqlSharp.Serialization
             var keyMembers = new List<Tuple<int, Func<T, object>, CqlType>>();
 
             //set default keyspace and table name to empty strings (nothing)
-            string keyspace = "";
-            string table = "";
+            string keyspace = null;
+            string table = null;
 
             //set default table name to class name if table is not anonymous
             Type type = typeof(T);

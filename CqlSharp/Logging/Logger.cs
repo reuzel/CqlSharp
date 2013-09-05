@@ -57,7 +57,7 @@ namespace CqlSharp.Logging
         public Logger(ILogger logger, LogLevel logLevel)
         {
             _logger = logger;
-            _traceId = Guid.NewGuid();
+            _traceId = FastGuid.NewGuid();
             _logLevel = logLevel;
         }
 

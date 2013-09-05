@@ -46,6 +46,7 @@
     <Reference Include="System.Configuration" />
     <Reference Include="System.Core" />
     <Reference Include="System.Data" />
+    <Reference Include="System.Design" />
     <Reference Include="System.Numerics" />
     <Reference Include="System.Reflection.Context" />
     <Reference Include="System.Xml" />
@@ -57,10 +58,12 @@
       <SubType>Component</SubType>
     </Compile>
     <Compile Include="CqlParameter.cs" />
+    <Compile Include="CqlProviderFactory.cs" />
     <Compile Include="CqlSchemaTableColumnNames.cs" />
     <Compile Include="DiscoveryScope.cs" />
     <Compile Include="Logging\ConsoleLogger.cs" />
     <Compile Include="Logging\DebugLogger.cs" />
+    <Compile Include="Logging\FastGuid.cs" />
     <Compile Include="Logging\ILogger.cs" />
     <Compile Include="Logging\Logger.cs" />
     <Compile Include="Logging\ILoggerFactory.cs" />
@@ -126,7 +129,9 @@
     <Compile Include="CqlCommand.cs">
       <SubType>Component</SubType>
     </Compile>
-    <Compile Include="CqlConnection.cs" />
+    <Compile Include="CqlConnection.cs">
+      <SubType>Component</SubType>
+    </Compile>
     <Compile Include="CqlDataReader.cs" />
     <Compile Include="CqlParameterCollection.cs" />
     <Compile Include="CqlResultType.cs" />

@@ -122,7 +122,7 @@ namespace CqlSharp.Network
             {
                 return _connectionState == 2 ||
                        (_activeRequests == 0 &&
-                        (DateTime.Now.Ticks - Interlocked.Read(ref _lastActivity)) > _maxIdleTicks);
+                        (DateTime.UtcNow.Ticks - Interlocked.Read(ref _lastActivity)) > _maxIdleTicks);
             }
         }
 
@@ -176,7 +176,7 @@ namespace CqlSharp.Network
         private void UpdateLoad(int load, Logger logger)
         {
             var newLoad = Interlocked.Add(ref _load, load);
-            Interlocked.Exchange(ref _lastActivity, DateTime.Now.Ticks);
+            Interlocked.Exchange(ref _lastActivity, DateTime.UtcNow.Ticks);
 
             EventHandler<LoadChangeEvent> handler = OnLoadChange;
             if (handler != null) handler(this, new LoadChangeEvent { LoadDelta = load });

@@ -13,10 +13,10 @@
 // See the License for the specific language governing permissions and
 // limitations under the License.
 
-using System.IO;
-using System.Linq;
 using CqlSharp.Memory;
 using Microsoft.VisualStudio.TestTools.UnitTesting;
+using System.IO;
+using System.Linq;
 
 namespace CqlSharp.Test
 {
@@ -30,7 +30,7 @@ namespace CqlSharp.Test
             const int count = 20000;
             var bytes = new byte[count];
             for (int i = 0; i < count; i++)
-                bytes[i] = (byte) ((i - byte.MinValue)%byte.MaxValue);
+                bytes[i] = (byte)((i - byte.MinValue) % byte.MaxValue);
 
             //act
             var stream = new PoolMemoryStream();
@@ -49,7 +49,7 @@ namespace CqlSharp.Test
             const int count = 20000;
             var bytes = new byte[count];
             for (int i = 0; i < count; i++)
-                bytes[i] = (byte) ((i - byte.MinValue)%byte.MaxValue);
+                bytes[i] = (byte)((i - byte.MinValue) % byte.MaxValue);
 
             //act
             var stream = new PoolMemoryStream();
@@ -80,7 +80,7 @@ namespace CqlSharp.Test
             const int count = 20000;
             var bytes = new byte[count];
             for (int i = 0; i < count; i++)
-                bytes[i] = (byte) ((i - byte.MinValue)%byte.MaxValue);
+                bytes[i] = (byte)((i - byte.MinValue) % byte.MaxValue);
 
             //act
             var stream = new PoolMemoryStream();
@@ -104,7 +104,7 @@ namespace CqlSharp.Test
             const int count = 20000;
             var bytes = new byte[count];
             for (int i = 0; i < count; i++)
-                bytes[i] = (byte) ((i - byte.MinValue)%byte.MaxValue);
+                bytes[i] = (byte)((i - byte.MinValue) % byte.MaxValue);
 
             //act
             var stream = new PoolMemoryStream();
@@ -115,7 +115,7 @@ namespace CqlSharp.Test
 
             Assert.AreEqual(stream.Length, count, "Unexpected stream length!");
             for (int i = 0; i < count; i++)
-                Assert.AreEqual((byte) stream.ReadByte(), bytes[i], "Read byte is not equal to written bytes!");
+                Assert.AreEqual((byte)stream.ReadByte(), bytes[i], "Read byte is not equal to written bytes!");
         }
     }
 }

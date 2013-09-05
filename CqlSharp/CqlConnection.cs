@@ -13,7 +13,6 @@
 // See the License for the specific language governing permissions and
 // limitations under the License.
 
-using System.Data.Common;
 using CqlSharp.Logging;
 using CqlSharp.Network;
 using CqlSharp.Network.Partition;
@@ -21,6 +20,7 @@ using CqlSharp.Protocol;
 using System;
 using System.Collections.Concurrent;
 using System.Data;
+using System.Data.Common;
 using System.Net;
 using System.Threading;
 using System.Threading.Tasks;
@@ -48,6 +48,16 @@ namespace CqlSharp
         static CqlConnection()
         {
             Clusters = new ConcurrentDictionary<string, Cluster>();
+        }
+
+
+        /// <summary>
+        ///   Initializes a new instance of the <see cref="CqlConnection" /> class.
+        /// </summary>
+        public CqlConnection()
+        {
+            _connectionString = string.Empty;
+            _database = string.Empty;
         }
 
         /// <summary>
@@ -374,7 +384,7 @@ namespace CqlSharp
         /// <exception cref="System.NotImplementedException"></exception>
         public override string ServerVersion
         {
-            get { throw new NotImplementedException(); }
+            get { return Cluster.CassandraVersion; }
         }
 
         /// <summary>
@@ -410,8 +420,36 @@ namespace CqlSharp
         {
             if (!_disposed && disposing)
             {
-                Close();
+                if (State == ConnectionState.Connecting)
+                {
+                    try
+                    {
+                        //wait until open is finished (may return immediatly)
+                        _openTask.Wait();
+                    }
+                    // ReSharper disable EmptyGeneralCatchClause
+                    catch
+                    {
+                        //ignore here
+                    }
+                    // ReSharper restore EmptyGeneralCatchClause
+                }
+
+                if (State == ConnectionState.Open)
+                {
+                    //return connection if any
+                    if (_connection != null)
+                    {
+                        Cluster.ConnectionStrategy.ReturnConnection(_connection, ConnectionScope.Connection);
+                        _connection = null;
+                    }
+                }
+
+                //clear cluster
+                Cluster = null;
+
                 _disposed = true;
+
             }
             base.Dispose(disposing);
         }

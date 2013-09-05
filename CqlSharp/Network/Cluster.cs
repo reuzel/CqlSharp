@@ -194,7 +194,7 @@ namespace CqlSharp.Network
 
             if (_nodes == null)
             {
-                var ex = new CqlException("Cannot construct ring from provided seeds!");
+                var ex = new CqlException("Unable to connect to the cluster as none of the provided seeds is reachable.");
                 logger.LogCritical("Unable to setup Cluster based on given configuration: {0}", ex);
                 throw ex;
             }
