@@ -1,7 +1,7 @@
 CqlSharp
 ========
 
-CqlSharp is a high performance, asynchronous ADO.NET driver for [Cassandra](http://cassandra.apache.org/) implementing the CQL binary protocol.
+CqlSharp is a high performance, asynchronous ADO.NET data provider for [Cassandra](http://cassandra.apache.org/) implementing the CQL binary protocol.
 
 Please see the [Wiki](https://github.com/reuzel/CqlSharp/wiki) for more extensive [documentation](https://github.com/reuzel/CqlSharp/wiki).
 

@@ -22,7 +22,7 @@ using System.Runtime.InteropServices;
 // associated with an assembly.
 
 [assembly: AssemblyTitle("CqlSharp")]
-[assembly: AssemblyDescription("Cassandra Binary Protocol Driver for .NET")]
+[assembly: AssemblyDescription("Cassandra Binary Protocol ADO.Net Driver")]
 [assembly: AssemblyConfiguration("")]
 [assembly: AssemblyCompany("Joost Reuzel")]
 [assembly: AssemblyProduct("CqlSharp")]
@@ -51,8 +51,8 @@ using System.Runtime.InteropServices;
 // by using the '*' as shown below:
 // [assembly: AssemblyVersion("1.0.*")]
 
-[assembly: AssemblyVersion("0.15.0.0")]
-[assembly: AssemblyFileVersion("0.15.0.0")]
+[assembly: AssemblyVersion("0.20.0.0")]
+[assembly: AssemblyFileVersion("0.20.0.0")]
 
 #if DEBUG
 [assembly: InternalsVisibleTo("CqlSharp.Fakes")]

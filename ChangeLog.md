@@ -1,4 +1,4 @@
-## Version 0.15.0 - ADO.NET implementation
+## Version 0.20.0 - ADO.NET implementation
 * CqlSharp now implements the ADO.NET interfaces (this is a breaking change!), using the System.Data.Common classes
 * Introduced QueryResult property on CqlCommand to expose Cassandra result information for non-Queries
 * Parameters for prepared queries will be automatically generated when no paramaters are set beforehand
