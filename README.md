@@ -17,6 +17,7 @@ Features
 * CqlSharp is an implementation of the (new) CQL Binary Protocol and therefore requires Cassandra 1.2 and up
 * Query tracing is supported.
 * The API implements the ADO.NET interfaces. If you are familiar with SqlConnection, SqlCommand, and SqlReader, you should be able to use CqlSharp with no difficulty.
+* Query timeouts and cancellation is supported
 * The API is predominately [asynchronous](http://msdn.microsoft.com/en-us/library/vstudio/hh191443.aspx), heavily relying on the System.Threading.Tasks namespace. Synchronous alternatives are available for convenience.
 * Supports mapping of objects to query parameters, or query results to objects. Mapping is tunable by decorating your classes via Table and Column attributes.
 * Configuration is done through connection strings. The simultaneous use of multiple Cassandra clusters is supported.
@@ -28,6 +29,7 @@ Features
 * Load balanced connection management: you can give your queries a load 'factor' and the client will take that into account when picking connections to send queries over.
 * Queries will be automatically retried when connections or nodes fail.
 * Node monitoring: Node failure is automatically detected. Recovery checks occur using an exponential back-off algorithm
+* CqlSharp listens to Cassandra events for node up, new node and node removed messages such that Cluster changes are automatically incorporated
 
 Some non-functionals
 --------------------

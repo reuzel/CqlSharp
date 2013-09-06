@@ -19,7 +19,7 @@ using System.Threading;
 namespace CqlSharp.Logging
 {
     /// <summary>
-    /// Fast way to create GUIDs
+    /// Faster way to create GUIDs at the cost of loss of some randomness
     /// </summary>
     internal static class FastGuid
     {
@@ -31,6 +31,9 @@ namespace CqlSharp.Logging
 
         private static long _counter;
 
+        /// <summary>
+        /// Initializes the <see cref="FastGuid"/> class with the information of single Guid.
+        /// </summary>
         static FastGuid()
         {
             var baseGuid = Guid.NewGuid();

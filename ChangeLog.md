@@ -1,9 +1,9 @@
 ## Version 0.15.0 - ADO.NET implementation
 * CqlSharp now implements the ADO.NET interfaces (this is a breaking change!), using the System.Data.Common classes
-* Some ADO.NET interfaces are implemented explicitly, such that public interfaces expose Cassandra specific info
-* Parameters to prepared queries will be created based on ParameterCreationOption provided to prepare
+* Introduced QueryResult property on CqlCommand to expose Cassandra result information for non-Queries
+* Parameters for prepared queries will be automatically generated when no paramaters are set beforehand
 * ClusterConfig replaced by CqlConnectionStringBuilder (and moved to root namespace)
-* Query cancellation supported
+* Query cancellation now supported
 * Database can be changed from default to something else per CqlConnection when Exclusive strategy is used
 * Some preparation to make ConnectionStrategy extendable like logging
 * Getting and logging more info on Cassandra cluster like name, release, cqlversion, etc.
