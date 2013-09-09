@@ -49,17 +49,17 @@ namespace CqlSharp
         }
 
         /// <summary>
-        ///   Gets the schema.
+        ///   Gets the ResultMetaData.
         /// </summary>
-        /// <value> The schema. </value>
-        internal Schema Schema
+        /// <value> The ResultMetaData. </value>
+        internal MetaData MetaData
         {
             get
             {
-                if (_frame.Schema == null)
+                if (_frame.ResultMetaData == null)
                     throw new InvalidOperationException("No column metadata has been retrieved.");
 
-                return _frame.Schema;
+                return _frame.ResultMetaData;
             }
         }
 
@@ -91,7 +91,7 @@ namespace CqlSharp
         {
             get
             {
-                Column column = Schema[index];
+                Column column = MetaData[index];
                 object value = ValueSerialization.Deserialize(column.CqlType, column.CollectionKeyType, column.CollectionValueType, CurrentValues[index]);
                 return value ?? DBNull.Value;
             }
@@ -107,7 +107,7 @@ namespace CqlSharp
         {
             get
             {
-                Column column = Schema[name];
+                Column column = MetaData[name];
                 object value = ValueSerialization.Deserialize(column.CqlType, column.CollectionKeyType, column.CollectionValueType, CurrentValues[column.Index]);
                 return value ?? DBNull.Value;
             }
@@ -216,7 +216,7 @@ namespace CqlSharp
             table.Columns.Add(CqlSchemaTableColumnNames.CollectionValueType, typeof(string));
             table.Columns.Add(CqlSchemaTableColumnNames.Type, typeof(string));
 
-            foreach (var column in Schema)
+            foreach (var column in MetaData)
             {
                 var row = table.NewRow();
                 row[CqlSchemaTableColumnNames.ColumnOrdinal] = column.Index;
@@ -409,7 +409,7 @@ namespace CqlSharp
         /// </returns>
         public override string GetDataTypeName(int i)
         {
-            return Schema[i].CqlType.ToString();
+            return MetaData[i].CqlType.ToString();
         }
 
         /// <summary>
@@ -462,7 +462,7 @@ namespace CqlSharp
         /// </returns>
         public override Type GetFieldType(int i)
         {
-            return Schema[i].ToType();
+            return MetaData[i].ToType();
         }
 
         /// <summary>
@@ -542,7 +542,7 @@ namespace CqlSharp
         /// </returns>
         public override string GetName(int i)
         {
-            return Schema[i].Name;
+            return MetaData[i].Name;
         }
 
         /// <summary>
@@ -554,7 +554,7 @@ namespace CqlSharp
         /// </returns>
         public override int GetOrdinal(string name)
         {
-            return Schema[name].Index;
+            return MetaData[name].Index;
         }
 
         /// <summary>
@@ -717,7 +717,7 @@ namespace CqlSharp
                     var value = new T();
                     ObjectAccessor<T> accessor = ObjectAccessor<T>.Instance;
 
-                    foreach (Column column in Schema)
+                    foreach (Column column in MetaData)
                     {
                         string name;
                         if (accessor.IsKeySpaceSet)

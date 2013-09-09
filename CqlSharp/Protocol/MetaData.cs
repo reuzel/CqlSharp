@@ -15,19 +15,19 @@
 
 using System.Collections;
 using System.Collections.Generic;
-using System.Linq;
 
 namespace CqlSharp.Protocol
 {
     /// <summary>
     ///   Represents a set of columns descriptions used to describe a select query result, or prepared query input
     /// </summary>
-    internal class Schema : IList<Column>
+    internal class MetaData : IList<Column>
     {
+
         /// <summary>
         ///   The columns
         /// </summary>
-        private readonly IList<Column> _columns;
+        private readonly List<Column> _columns = new List<Column>();
 
         /// <summary>
         ///   The columns by name. Lazy loaded
@@ -35,43 +35,33 @@ namespace CqlSharp.Protocol
         private Dictionary<string, Column> _columnsByName;
 
         /// <summary>
-        ///   Initializes a new instance of the <see cref="Schema" /> class.
+        /// Gets or sets the state of the paging.
         /// </summary>
-        /// <param name="columns"> The columns. </param>
-        internal Schema(IEnumerable<Column> columns)
+        /// <value>
+        /// The state of the paging.
+        /// </value>
+        public byte[] PagingState { get; set; }
+        
+        /// <summary>
+        /// Gets or sets a value indicating whether any columns are specified in this meta Data
+        /// </summary>
+        /// <value>
+        ///   <c>true</c> if [no meta data]; otherwise, <c>false</c>.
+        /// </value>
+        public bool NoMetaData
         {
-            _columns = columns as List<Column> ?? columns.ToList();
+            get { return _columns.Count == 0; }
         }
 
         /// <summary>
-        /// Rebuilds the dictionary with column name to column mappig
+        /// Gets a value indicating whether there are more rows in this query than has been returned.
         /// </summary>
-        private void RebuildNames()
+        /// <value>
+        ///   <c>true</c> if [has more rows]; otherwise, <c>false</c>.
+        /// </value>
+        public bool HasMoreRows
         {
-            if (_columnsByName != null)
-                return;
-
-            _columnsByName = new Dictionary<string, Column>();
-
-            foreach (Column column in _columns)
-            {
-                _columnsByName[column.Name] = column;
-                if (column.Table != null)
-                    _columnsByName[column.TableAndName] = column;
-                if (column.Keyspace != null)
-                    _columnsByName[column.KeySpaceTableAndName] = column;
-            }
-        }
-
-        /// <summary>
-        /// Determines whether the schema holds a column with the given name
-        /// </summary>
-        /// <param name="name">The name.</param>
-        /// <returns></returns>
-        public bool Contains(string name)
-        {
-            RebuildNames();
-            return _columnsByName.ContainsKey(name);
+            get { return PagingState != null; }
         }
 
         /// <summary>
@@ -113,18 +103,6 @@ namespace CqlSharp.Protocol
 
                 _columnsByName = null;
             }
-        }
-
-        /// <summary>
-        /// Tries to get the column by name value.
-        /// </summary>
-        /// <param name="name">The name.</param>
-        /// <param name="column">The column.</param>
-        /// <returns></returns>
-        public bool TryGetValue(string name, out Column column)
-        {
-            RebuildNames();
-            return _columnsByName.TryGetValue(name, out column);
         }
 
         #region IList<Column> Members
@@ -232,6 +210,47 @@ namespace CqlSharp.Protocol
 
         #endregion
 
+        /// <summary>
+        ///   Rebuilds the dictionary with column name to column mappig
+        /// </summary>
+        private void RebuildNames()
+        {
+            if (_columnsByName != null)
+                return;
 
+            _columnsByName = new Dictionary<string, Column>();
+
+            foreach (Column column in _columns)
+            {
+                _columnsByName[column.Name] = column;
+                if (column.Table != null)
+                    _columnsByName[column.TableAndName] = column;
+                if (column.Keyspace != null)
+                    _columnsByName[column.KeySpaceTableAndName] = column;
+            }
+        }
+
+        /// <summary>
+        ///   Determines whether the ResultMetaData holds a column with the given name
+        /// </summary>
+        /// <param name="name"> The name. </param>
+        /// <returns> </returns>
+        public bool Contains(string name)
+        {
+            RebuildNames();
+            return _columnsByName.ContainsKey(name);
+        }
+
+        /// <summary>
+        ///   Tries to get the column by name value.
+        /// </summary>
+        /// <param name="name"> The name. </param>
+        /// <param name="column"> The column. </param>
+        /// <returns> </returns>
+        public bool TryGetValue(string name, out Column column)
+        {
+            RebuildNames();
+            return _columnsByName.TryGetValue(name, out column);
+        }
     }
 }

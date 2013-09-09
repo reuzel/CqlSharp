@@ -13,38 +13,45 @@
 // See the License for the specific language governing permissions and
 // limitations under the License.
 
-using System;
 using System.IO;
-using System.Threading.Tasks;
 
 namespace CqlSharp.Protocol
 {
-    internal class QueryFrame : Frame
+    internal class QueryFrame : QueryFrameBase
     {
-        public QueryFrame(string cql, CqlConsistency cqlConsistency)
+        /// <summary>
+        /// Initializes a new instance of the <see cref="QueryFrame"/> class.
+        /// </summary>
+        /// <param name="cql">The CQL.</param>
+        /// <param name="cqlConsistency">The CQL consistency.</param>
+        /// <param name="version">The version.</param>
+        public QueryFrame(string cql, CqlConsistency cqlConsistency, FrameVersion version)
         {
             Cql = cql;
             CqlConsistency = cqlConsistency;
 
-            Version = FrameVersion.Request | FrameVersion.ProtocolVersion;
+            Version = FrameVersion.Request | version;
             Flags = FrameFlags.None;
             Stream = 0;
             OpCode = FrameOpcode.Query;
         }
 
+        /// <summary>
+        /// Gets or sets the CQL query string.
+        /// </summary>
+        /// <value>
+        /// The CQL.
+        /// </value>
         public string Cql { get; set; }
-
-        public CqlConsistency CqlConsistency { get; set; }
 
         protected override void WriteData(Stream buffer)
         {
             buffer.WriteLongString(Cql);
-            buffer.WriteShort((ushort) CqlConsistency);
-        }
 
-        protected override Task InitializeAsync()
-        {
-            throw new NotSupportedException();
+            if ((Version & FrameVersion.ProtocolVersionMask) == FrameVersion.ProtocolVersion1)
+                buffer.WriteConsistency(CqlConsistency);
+            else
+                WriteQueryParameters(buffer);
         }
     }
 }

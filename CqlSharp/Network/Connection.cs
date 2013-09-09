@@ -154,6 +154,19 @@ namespace CqlSharp.Network
         }
 
         /// <summary>
+        /// Gets the frame version supported by this connection
+        /// </summary>
+        /// <value>
+        /// The frame version.
+        /// </value>
+        /// <exception cref="System.NotImplementedException">
+        /// </exception>
+        public FrameVersion FrameVersion
+        {
+            get { throw new NotImplementedException(); }
+        }
+
+        /// <summary>
         ///   Occurs when [on connection change].
         /// </summary>
         public event EventHandler<ConnectionChangeEvent> OnConnectionChange;

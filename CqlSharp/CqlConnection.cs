@@ -411,7 +411,7 @@ namespace CqlSharp
                 return ConnectionState.Open;
             }
         }
-
+        
         /// <summary>
         /// Releases the unmanaged resources used by the <see cref="T:System.ComponentModel.Component" /> and optionally releases the managed resources.
         /// </summary>

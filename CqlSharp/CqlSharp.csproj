@@ -51,6 +51,7 @@
   </ItemGroup>
   <ItemGroup>
     <Compile Include="ConnectionStrategy.cs" />
+    <Compile Include="CqlBatchType.cs" />
     <Compile Include="CqlConnectionStringBuilder.cs" />
     <Compile Include="CqlDataAdapter.cs">
       <SubType>Component</SubType>
@@ -89,7 +90,11 @@
     <Compile Include="Network\nSnappy\Writer.cs" />
     <Compile Include="Memory\PoolMemoryStream.cs" />
     <Compile Include="Protocol\AlreadyExistsException.cs" />
+    <Compile Include="Protocol\AuthChallengeFrame.cs" />
     <Compile Include="Protocol\AuthenticateFrame.cs" />
+    <Compile Include="Protocol\AuthResponseFrame.cs" />
+    <Compile Include="Protocol\AuthSuccessFrame.cs" />
+    <Compile Include="Protocol\BatchFrame.cs" />
     <Compile Include="Protocol\CredentialsFrame.cs" />
     <Compile Include="Protocol\ErrorCode.cs" />
     <Compile Include="Protocol\ErrorFrame.cs" />
@@ -100,6 +105,7 @@
     <Compile Include="Protocol\PrepareFrame.cs" />
     <Compile Include="Protocol\ProtocolException.cs" />
     <Compile Include="Protocol\QueryFrame.cs" />
+    <Compile Include="Protocol\QueryFrameBase.cs" />
     <Compile Include="Protocol\ReadTimeOutException.cs" />
     <Compile Include="Protocol\ReadyFrame.cs" />
     <Compile Include="Protocol\RegisterFrame.cs" />
@@ -133,7 +139,7 @@
     <Compile Include="CqlDataReader.cs" />
     <Compile Include="CqlParameterCollection.cs" />
     <Compile Include="CqlResultType.cs" />
-    <Compile Include="Protocol\Schema.cs" />
+    <Compile Include="Protocol\MetaData.cs" />
     <Compile Include="CqlSchemaChange.cs" />
     <Compile Include="CqlSetKeyspace.cs" />
     <Compile Include="CqlVoid.cs" />

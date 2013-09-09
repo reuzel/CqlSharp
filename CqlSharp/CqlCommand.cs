@@ -138,6 +138,17 @@ namespace CqlSharp
         public int Load { get; set; }
 
         /// <summary>
+        /// Gets a value indicating whether this command is prepared.
+        /// </summary>
+        /// <value>
+        ///   <c>true</c> if this command is prepared; otherwise, <c>false</c>.
+        /// </value>
+        public bool IsPrepared
+        {
+            get { return _prepared; }
+        }
+
+        /// <summary>
         ///   Gets or sets the consistency level to use with this command Defaults to CqlConsisteny.One.
         /// </summary>
         /// <value> The consistency. </value>
@@ -813,7 +824,7 @@ namespace CqlSharp
                         !string.IsNullOrWhiteSpace(_connection.Database) &&
                         !_connection.Database.Equals(connection.CurrentKeySpace))
                     {
-                        var useFrame = new QueryFrame("use '" + _connection.Database + "';", CqlConsistency.One);
+                        var useFrame = new QueryFrame("use '" + _connection.Database + "';", CqlConsistency.One, connection.FrameVersion);
                         var result = await connection.SendRequestAsync(useFrame, logger, 1, false, token) as ResultFrame;
                         if (result == null || result.ResultOpcode != ResultOpcode.SetKeyspace)
                         {
@@ -897,7 +908,7 @@ namespace CqlSharp
             if (!prepareResults.TryGetValue(connection.Address, out result))
             {
                 //create prepare frame
-                var query = new PrepareFrame(Query);
+                var query = new PrepareFrame(Query, connection.FrameVersion);
 
                 //update frame with tracing option if requested
                 if (EnableTracing)
@@ -924,7 +935,7 @@ namespace CqlSharp
 
             //set parameters collection
             if (_parameters == null || _parameters.Count == 0)
-                _parameters = new CqlParameterCollection(result.Schema);
+                _parameters = new CqlParameterCollection(result.QueryMetaData);
 
             //fix the parameter collection (if not done so already)
             _parameters.Fixate();
@@ -949,12 +960,12 @@ namespace CqlSharp
             {
                 ResultFrame prepareResult = await PrepareInternalAsync(connection, logger, token).ConfigureAwait(false);
                 queryFrame = new ExecuteFrame(prepareResult.PreparedQueryId, Consistency,
-                                              _parameters == null ? null : _parameters.Values);
+                                              _parameters == null ? null : _parameters.Values, connection.FrameVersion);
                 logger.LogVerbose("Sending execute {0} using {1}", Query, connection);
             }
             else
             {
-                queryFrame = new QueryFrame(Query, Consistency);
+                queryFrame = new QueryFrame(Query, Consistency, connection.FrameVersion);
                 logger.LogVerbose("Sending query {0} using {1}", Query, connection);
             }
 

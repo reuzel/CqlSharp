@@ -13,22 +13,19 @@
 // See the License for the specific language governing permissions and
 // limitations under the License.
 
-using System;
-using System.Collections.Generic;
 using System.IO;
-using System.Threading.Tasks;
 
 namespace CqlSharp.Protocol
 {
-    internal class ExecuteFrame : Frame
+    internal class ExecuteFrame : QueryFrameBase
     {
-        public ExecuteFrame(byte[] queryId, CqlConsistency cqlConsistency, params byte[][] prms)
+        public ExecuteFrame(byte[] queryId, CqlConsistency cqlConsistency, byte[][] parameters, FrameVersion version)
         {
             QueryId = queryId;
             CqlConsistency = cqlConsistency;
-            Parameters = prms;
+            Parameters = parameters;
 
-            Version = FrameVersion.Request | FrameVersion.ProtocolVersion;
+            Version = FrameVersion.Request | version;
             Flags = FrameFlags.None;
             Stream = 0;
             OpCode = FrameOpcode.Execute;
@@ -36,22 +33,29 @@ namespace CqlSharp.Protocol
 
         public byte[] QueryId { get; set; }
 
-        public IList<byte[]> Parameters { get; set; }
-
-        public CqlConsistency CqlConsistency { get; set; }
-
         protected override void WriteData(Stream buffer)
         {
             buffer.WriteShortByteArray(QueryId);
-            buffer.WriteShort((ushort)Parameters.Count);
-            foreach (var prm in Parameters)
-                buffer.WriteByteArray(prm);
-            buffer.WriteShort((ushort)CqlConsistency);
-        }
 
-        protected override Task InitializeAsync()
-        {
-            throw new NotSupportedException();
+            if ((Version & FrameVersion.ProtocolVersionMask) == FrameVersion.ProtocolVersion1)
+            {
+                if (Parameters == null)
+                {
+                    buffer.WriteShort(0);
+                }
+                else
+                {
+                    buffer.WriteShort((ushort)Parameters.Count);
+                    foreach (var prm in Parameters)
+                        buffer.WriteByteArray(prm);
+                }
+
+                buffer.WriteConsistency(CqlConsistency);
+            }
+            else
+            {
+                WriteQueryParameters(buffer);
+            }
         }
     }
 }

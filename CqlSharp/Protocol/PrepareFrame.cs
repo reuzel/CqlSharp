@@ -21,11 +21,11 @@ namespace CqlSharp.Protocol
 {
     internal class PrepareFrame : Frame
     {
-        public PrepareFrame(string cql)
+        public PrepareFrame(string cql, FrameVersion version)
         {
             Cql = cql;
 
-            Version = FrameVersion.Request | FrameVersion.ProtocolVersion;
+            Version = FrameVersion.Request | version;
             Flags = FrameFlags.None;
             Stream = 0;
             OpCode = FrameOpcode.Prepare;

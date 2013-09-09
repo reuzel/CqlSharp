@@ -20,8 +20,12 @@ namespace CqlSharp.Protocol
     [Flags]
     internal enum MetadataFlags
     {
-        None = 0x0000,
+        None = 0,
 
-        GlobalTablesSpec = 0x0001,
+        GlobalTablesSpec = 1,
+
+        HasMorePages = 2,
+
+        NoMetaData = 4
     }
 }

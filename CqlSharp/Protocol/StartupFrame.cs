@@ -22,11 +22,11 @@ namespace CqlSharp.Protocol
 {
     internal class StartupFrame : Frame
     {
-        public StartupFrame(string cqlVersion)
+        public StartupFrame(string cqlVersion, FrameVersion version)
         {
-            Options = new Dictionary<string, string> {{"CQL_VERSION", cqlVersion}};
+            Options = new Dictionary<string, string> { { "CQL_VERSION", cqlVersion } };
 
-            Version = FrameVersion.Request | FrameVersion.ProtocolVersion;
+            Version = FrameVersion.Request | version;
             Flags = FrameFlags.None;
             Stream = 0;
             OpCode = FrameOpcode.Startup;

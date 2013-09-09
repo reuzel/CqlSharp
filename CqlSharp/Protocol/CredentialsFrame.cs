@@ -27,7 +27,7 @@ namespace CqlSharp.Protocol
             Username = username;
             Password = password;
 
-            Version = FrameVersion.Request | FrameVersion.ProtocolVersion;
+            Version = FrameVersion.Request | FrameVersion.ProtocolVersion1;
             Flags = FrameFlags.None;
             Stream = 0;
             OpCode = FrameOpcode.Credentials;

@@ -1,4 +1,4 @@
-// CqlSharp - CqlSharp
+﻿// CqlSharp - CqlSharp
 // Copyright (c) 2013 Joost Reuzel
 //   
 // Licensed under the Apache License, Version 2.0 (the "License");
@@ -14,29 +14,31 @@
 // limitations under the License.
 
 using System;
-using System.Collections.Generic;
+using System.Diagnostics;
 using System.IO;
 using System.Threading.Tasks;
 
 namespace CqlSharp.Protocol
 {
-    internal class RegisterFrame : Frame
+    internal class AuthResponseFrame : Frame
     {
-        public RegisterFrame(IList<string> eventTypes, FrameVersion version)
+        public AuthResponseFrame(byte[] saslResponse, FrameVersion version)
         {
-            EventTypes = eventTypes;
-
+            Debug.Assert((version & FrameVersion.ProtocolVersionMask) != FrameVersion.ProtocolVersion1, "Version 1 of the protocol does not support AuthResponse Frames");
+            
             Version = FrameVersion.Request | version;
             Flags = FrameFlags.None;
             Stream = 0;
-            OpCode = FrameOpcode.Register;
+            OpCode = FrameOpcode.AuthResponse;
+
+            SaslResponse = saslResponse;
         }
 
-        public IList<string> EventTypes { get; set; }
+        public byte[] SaslResponse { get; set; }
 
         protected override void WriteData(Stream buffer)
         {
-            buffer.WriteStringList(EventTypes);
+            buffer.WriteByteArray(SaslResponse);
         }
 
         protected override Task InitializeAsync()

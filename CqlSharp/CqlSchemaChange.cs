@@ -18,7 +18,7 @@ using System;
 namespace CqlSharp
 {
     /// <summary>
-    ///   Represents a result of a Cql schema changing query (create/alter/drop/etc.)
+    ///   Represents a result of a Cql ResultMetaData changing query (create/alter/drop/etc.)
     /// </summary>
     public struct CqlSchemaChange : ICqlQueryResult
     {

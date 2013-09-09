@@ -20,8 +20,10 @@ namespace CqlSharp.Protocol
     [Flags]
     internal enum FrameVersion : byte
     {
-        ProtocolVersion = 0x01,
+        ProtocolVersion1 = 0x01,
 
+        ProtocolVersion2 = 0x02,
+        
         ProtocolVersionMask = 0x7F,
 
         Request = 0x00,

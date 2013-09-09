@@ -36,7 +36,7 @@ namespace CqlSharp
         SetKeyspace,
 
         /// <summary>
-        ///   Represents result of schema changing queries (create/alter)
+        ///   Represents result of ResultMetaData changing queries (create/alter)
         /// </summary>
         SchemaChange
     }

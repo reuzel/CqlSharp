@@ -30,18 +30,18 @@ namespace CqlSharp
     {
         private readonly object _syncLock = new object();
         private readonly List<CqlParameter> _parameters;
-        private Schema _schema;
+        private MetaData _metaData;
 
         public CqlParameterCollection()
         {
             _parameters = new List<CqlParameter>();
         }
 
-        internal CqlParameterCollection(Schema schema)
+        internal CqlParameterCollection(MetaData metaData)
         {
-            _schema = schema;
+            _metaData = metaData;
             _parameters = new List<CqlParameter>();
-            foreach (Column column in schema)
+            foreach (Column column in metaData)
             {
                 _parameters.Add(new CqlParameter(column));
             }
@@ -52,7 +52,7 @@ namespace CqlSharp
         /// </summary>
         internal void Fixate()
         {
-            if (_schema == null)
+            if (_metaData == null)
             {
 
                 for (int i = 0; i < _parameters.Count; i++)
@@ -64,8 +64,8 @@ namespace CqlSharp
                     _parameters[i].IsFixed = true;
                 }
 
-                //fill the schema
-                _schema = new Schema(_parameters.Select(p => p.Column));
+                //fill the ResultMetaData
+                _metaData = new MetaData(_parameters.Select(p => p.Column));
             }
         }
 
@@ -132,7 +132,7 @@ namespace CqlSharp
         /// <filterpriority>1</filterpriority>
         public override bool IsReadOnly
         {
-            get { return _schema != null; }
+            get { return _metaData != null; }
         }
 
         /// <summary>
@@ -383,10 +383,10 @@ namespace CqlSharp
             if (parameterName == null)
                 throw new ArgumentNullException("parameterName");
 
-            if (_schema != null)
+            if (_metaData != null)
             {
                 Column c;
-                if (_schema.TryGetValue(parameterName, out c))
+                if (_metaData.TryGetValue(parameterName, out c))
                     return c.Index;
 
                 return -1;
@@ -532,7 +532,7 @@ namespace CqlSharp
         /// <summary>
         ///   Sets the parameters to the values as defined by the properties of the provided object.
         /// </summary>
-        /// <typeparam name="T"> Type of the object holding the parameter values. The names of the properties must match the names of the columns of the schema of the prepared query for them to be usable. </typeparam>
+        /// <typeparam name="T"> Type of the object holding the parameter values. The names of the properties must match the names of the columns of the ResultMetaData of the prepared query for them to be usable. </typeparam>
         /// <param name="source"> The object holding the parameter values. </param>
         public void Set<T>(T source)
         {

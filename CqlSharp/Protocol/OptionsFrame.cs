@@ -21,9 +21,9 @@ namespace CqlSharp.Protocol
 {
     internal class OptionsFrame : Frame
     {
-        public OptionsFrame()
+        public OptionsFrame(FrameVersion version)
         {
-            Version = FrameVersion.Request | FrameVersion.ProtocolVersion;
+            Version = FrameVersion.Request | version;
             Flags = FrameFlags.None;
             Stream = 0;
             OpCode = FrameOpcode.Options;

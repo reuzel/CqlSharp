@@ -196,6 +196,16 @@ namespace CqlSharp.Protocol
         }
 
         /// <summary>
+        /// Writes the consistency.
+        /// </summary>
+        /// <param name="stream">The stream.</param>
+        /// <param name="consistency">The consistency.</param>
+        public static void WriteConsistency(this Stream stream, CqlConsistency consistency)
+        {
+            stream.WriteShort((ushort)consistency);
+        }
+
+        /// <summary>
         ///   Reads the buffer.
         /// </summary>
         /// <param name="stream"> The stream. </param>

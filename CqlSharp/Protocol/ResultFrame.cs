@@ -16,7 +16,6 @@
 using System;
 using System.Collections.Generic;
 using System.IO;
-using System.Threading;
 using System.Threading.Tasks;
 
 namespace CqlSharp.Protocol
@@ -32,7 +31,9 @@ namespace CqlSharp.Protocol
             get { return _count; }
         }
 
-        public Schema Schema { get; private set; }
+        public MetaData QueryMetaData { get; private set; }
+        
+        public MetaData ResultMetaData { get; private set; }
 
         public byte[] PreparedQueryId { get; private set; }
 
@@ -58,7 +59,7 @@ namespace CqlSharp.Protocol
                     break;
 
                 case ResultOpcode.Rows:
-                    Schema = await ReadCqlSchemaAsync().ConfigureAwait(false);
+                    ResultMetaData = await ReadMetaDataAsync().ConfigureAwait(false);
                     _count = await reader.ReadIntAsync().ConfigureAwait(false);
                     break;
 
@@ -74,7 +75,12 @@ namespace CqlSharp.Protocol
 
                 case ResultOpcode.Prepared:
                     PreparedQueryId = await reader.ReadShortBytesAsync().ConfigureAwait(false);
-                    Schema = await ReadCqlSchemaAsync().ConfigureAwait(false);
+                    QueryMetaData =  await ReadMetaDataAsync().ConfigureAwait(false);
+
+                    //read result metadata if version 2
+                    if((Version & FrameVersion.ProtocolVersionMask)==FrameVersion.ProtocolVersion2)
+                        ResultMetaData = await ReadMetaDataAsync().ConfigureAwait(false);
+
                     break;
 
                 default:
@@ -88,8 +94,8 @@ namespace CqlSharp.Protocol
             if (_count == 0)
                 return null;
 
-            var valueBytes = new byte[Schema.Count][];
-            for (int i = 0; i < Schema.Count; i++)
+            var valueBytes = new byte[ResultMetaData.Count][];
+            for (int i = 0; i < ResultMetaData.Count; i++)
                 valueBytes[i] = await Reader.ReadBytesAsync().ConfigureAwait(false);
 
             //reduce the amount of available rows
@@ -112,14 +118,30 @@ namespace CqlSharp.Protocol
             return Reader.BufferRemainingData();
         }
 
-        internal async Task<Schema> ReadCqlSchemaAsync()
+        internal async Task<MetaData> ReadMetaDataAsync()
         {
-            FrameReader reader = Reader;
-            var flags = (MetadataFlags)await reader.ReadIntAsync().ConfigureAwait(false);
-            bool globalTablesSpec = 0 != (flags & MetadataFlags.GlobalTablesSpec);
+            var metaData = new MetaData();
 
+            FrameReader reader = Reader;
+
+            //get flags
+            var flags = (MetadataFlags)await reader.ReadIntAsync().ConfigureAwait(false);
+
+            //get column count
             int colCount = await reader.ReadIntAsync().ConfigureAwait(false);
 
+            //get paging state if present
+            if (flags.HasFlag(MetadataFlags.HasMorePages))
+            {
+                metaData.PagingState = await reader.ReadBytesAsync().ConfigureAwait(false);
+            }
+
+            //stop processing if no metadata flag is set
+            if (flags.HasFlag(MetadataFlags.NoMetaData))
+                return metaData;
+
+            //get the global keyspace,table if present
+            bool globalTablesSpec = flags.HasFlag(MetadataFlags.GlobalTablesSpec);
             string keyspace = null;
             string table = null;
             if (globalTablesSpec)
@@ -128,17 +150,15 @@ namespace CqlSharp.Protocol
                 table = await reader.ReadStringAsync().ConfigureAwait(false);
             }
 
-            var columnSpecs = new List<Column>(colCount);
-            for (int colIdx = 0; colIdx < colCount; ++colIdx)
+            //go and start processing all the columns
+            for (int colIdx = 0; colIdx < colCount; colIdx++)
             {
-                string colKeyspace = keyspace;
-                string colTable = table;
-                if (!globalTablesSpec)
-                {
-                    colKeyspace = await reader.ReadStringAsync().ConfigureAwait(false);
-                    colTable = await reader.ReadStringAsync().ConfigureAwait(false);
-                }
+                //read name
+                string colKeyspace = globalTablesSpec ? keyspace : await reader.ReadStringAsync().ConfigureAwait(false);
+                string colTable = globalTablesSpec ? table : await reader.ReadStringAsync().ConfigureAwait(false);
                 string colName = await reader.ReadStringAsync().ConfigureAwait(false);
+                
+                //read type
                 var colType = (CqlType)await reader.ReadShortAsync().ConfigureAwait(false);
                 string colCustom = null;
                 CqlType? colKeyType = null;
@@ -160,11 +180,12 @@ namespace CqlSharp.Protocol
                         break;
                 }
 
-                columnSpecs.Add(new Column(colIdx, colKeyspace, colTable, colName, colType, colCustom,
+                //add to the MetaData
+                metaData.Add(new Column(colIdx, colKeyspace, colTable, colName, colType, colCustom,
                                               colKeyType, colValueType));
             }
 
-            return new Schema(columnSpecs);
+            return metaData;
         }
     }
 }

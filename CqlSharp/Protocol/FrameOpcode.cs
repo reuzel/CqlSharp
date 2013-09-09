@@ -42,5 +42,13 @@ namespace CqlSharp.Protocol
         Register = 0x0B,
 
         Event = 0x0C,
+
+        Batch = 0x0D,
+
+        AuthChallange = 0x0E,
+
+        AuthResponse = 0x0F,
+
+        AuthSuccess = 0x10
     }
 }
