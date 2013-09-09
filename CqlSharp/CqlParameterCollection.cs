@@ -19,7 +19,6 @@ using System;
 using System.Collections;
 using System.Collections.Generic;
 using System.Data.Common;
-using System.Linq;
 
 namespace CqlSharp
 {
@@ -54,18 +53,15 @@ namespace CqlSharp
         {
             if (_metaData == null)
             {
-
-                for (int i = 0; i < _parameters.Count; i++)
+                _metaData = new MetaData();
+                foreach (CqlParameter param in _parameters)
                 {
-                    //make sure numbering of columns is right
-                    _parameters[i].Column.Index = i;
+                    //add corresponding column to the metaData
+                    _metaData.Add(param.Column);
 
                     //make it unchangable in type and name
-                    _parameters[i].IsFixed = true;
+                    param.IsFixed = true;
                 }
-
-                //fill the ResultMetaData
-                _metaData = new MetaData(_parameters.Select(p => p.Column));
             }
         }
 

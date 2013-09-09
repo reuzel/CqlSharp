@@ -41,7 +41,7 @@ namespace CqlSharp.Protocol
         /// The state of the paging.
         /// </value>
         public byte[] PagingState { get; set; }
-        
+
         /// <summary>
         /// Gets or sets a value indicating whether any columns are specified in this meta Data
         /// </summary>

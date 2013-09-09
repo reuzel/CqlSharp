@@ -163,7 +163,7 @@ namespace CqlSharp.Network
         /// </exception>
         public FrameVersion FrameVersion
         {
-            get { throw new NotImplementedException(); }
+            get { return FrameVersion.ProtocolVersion1; }
         }
 
         /// <summary>
@@ -304,7 +304,7 @@ namespace CqlSharp.Network
                 if (_cluster.Config.AllowCompression)
                 {
                     //check wether compression is supported by getting compression options from server
-                    var options = new OptionsFrame();
+                    var options = new OptionsFrame(FrameVersion);
                     var supported =
                         await SendRequestAsyncInternal(options, logger, 1, true, CancellationToken.None).ConfigureAwait(false) as SupportedFrame;
 
@@ -324,7 +324,7 @@ namespace CqlSharp.Network
                 }
 
                 //submit startup frame
-                var startup = new StartupFrame(_cluster.Config.CqlVersion);
+                var startup = new StartupFrame(_cluster.Config.CqlVersion, FrameVersion);
                 if (_allowCompression)
                 {
                     logger.LogVerbose("Enabling Snappy Compression.");
@@ -674,7 +674,7 @@ namespace CqlSharp.Network
         /// <exception cref="CqlException">Could not register for cluster changes!</exception>
         public async Task RegisterForClusterChangesAsync(Logger logger)
         {
-            var registerframe = new RegisterFrame(new List<string> { "TOPOLOGY_CHANGE", "STATUS_CHANGE" });
+            var registerframe = new RegisterFrame(new List<string> { "TOPOLOGY_CHANGE", "STATUS_CHANGE" }, FrameVersion);
             Frame result = await SendRequestAsync(registerframe, logger, 1, false, CancellationToken.None).ConfigureAwait(false);
 
             if (!(result is ReadyFrame))

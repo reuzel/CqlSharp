@@ -14,7 +14,6 @@
 // limitations under the License.
 
 using System;
-using System.Collections.Generic;
 using System.IO;
 using System.Threading.Tasks;
 
@@ -32,7 +31,7 @@ namespace CqlSharp.Protocol
         }
 
         public MetaData QueryMetaData { get; private set; }
-        
+
         public MetaData ResultMetaData { get; private set; }
 
         public byte[] PreparedQueryId { get; private set; }
@@ -75,10 +74,10 @@ namespace CqlSharp.Protocol
 
                 case ResultOpcode.Prepared:
                     PreparedQueryId = await reader.ReadShortBytesAsync().ConfigureAwait(false);
-                    QueryMetaData =  await ReadMetaDataAsync().ConfigureAwait(false);
+                    QueryMetaData = await ReadMetaDataAsync().ConfigureAwait(false);
 
-                    //read result metadata if version 2
-                    if((Version & FrameVersion.ProtocolVersionMask)==FrameVersion.ProtocolVersion2)
+                    //read result metadata if not version 1 
+                    if ((Version & FrameVersion.ProtocolVersionMask) != FrameVersion.ProtocolVersion1)
                         ResultMetaData = await ReadMetaDataAsync().ConfigureAwait(false);
 
                     break;
@@ -157,7 +156,7 @@ namespace CqlSharp.Protocol
                 string colKeyspace = globalTablesSpec ? keyspace : await reader.ReadStringAsync().ConfigureAwait(false);
                 string colTable = globalTablesSpec ? table : await reader.ReadStringAsync().ConfigureAwait(false);
                 string colName = await reader.ReadStringAsync().ConfigureAwait(false);
-                
+
                 //read type
                 var colType = (CqlType)await reader.ReadShortAsync().ConfigureAwait(false);
                 string colCustom = null;

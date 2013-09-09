@@ -23,34 +23,34 @@ namespace CqlSharp.Test
     [TestClass]
     public class LoggingTest
     {
-        [TestMethod]
-        public void FastGuidIsFast()
-        {
-            const int count = 100000;
+        //[TestMethod]
+        //public void FastGuidIsFast()
+        //{
+        //    const int count = 100000;
 
-            var stopwatch = new Stopwatch();
-            stopwatch.Start();
+        //    var stopwatch = new Stopwatch();
+        //    stopwatch.Start();
 
-            for (int i = 0; i < count; i++)
-            {
-                Guid g = Guid.NewGuid();
-            }
+        //    for (int i = 0; i < count; i++)
+        //    {
+        //        Guid g = Guid.NewGuid();
+        //    }
 
-            stopwatch.Stop();
-            TimeSpan slow = stopwatch.Elapsed;
+        //    stopwatch.Stop();
+        //    TimeSpan slow = stopwatch.Elapsed;
 
-            stopwatch.Reset();
-            stopwatch.Start();
+        //    stopwatch.Reset();
+        //    stopwatch.Start();
 
-            for (int i = 0; i < count; i++)
-            {
-                Guid g = FastGuid.NewGuid();
-            }
+        //    for (int i = 0; i < count; i++)
+        //    {
+        //        Guid g = FastGuid.NewGuid();
+        //    }
 
-            stopwatch.Stop();
-            TimeSpan fast = stopwatch.Elapsed;
+        //    stopwatch.Stop();
+        //    TimeSpan fast = stopwatch.Elapsed;
 
-            Assert.IsTrue(slow > fast);
-        }
+        //    Assert.IsTrue(slow > fast);
+        //}
     }
 }
