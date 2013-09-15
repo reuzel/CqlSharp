@@ -41,7 +41,6 @@ namespace CqlSharp.Network
         private string _name;
         private volatile Ring _nodes;
         private volatile Task _openTask;
-        private ConcurrentDictionary<string, ConcurrentDictionary<IPAddress, ResultFrame>> _prepareResultCache;
         private string _rack;
         private string _release;
         private SemaphoreSlim _throttle;
@@ -232,7 +231,7 @@ namespace CqlSharp.Network
             _throttle = new SemaphoreSlim(concurrent, concurrent);
 
             //setup prepared query cache
-            _prepareResultCache = new ConcurrentDictionary<string, ConcurrentDictionary<IPAddress, ResultFrame>>();
+            PreparedQueryCache = new ConcurrentDictionary<string, ResultFrame>();
 
             //setup maintenance connection
             SetupMaintenanceConnection(logger);
@@ -288,12 +287,7 @@ namespace CqlSharp.Network
         /// <summary>
         ///   Gets the prepare results for the given query
         /// </summary>
-        /// <param name="cql"> The CQL query prepared </param>
-        /// <returns> </returns>
-        internal ConcurrentDictionary<IPAddress, ResultFrame> GetPrepareResultsFor(string cql)
-        {
-            return _prepareResultCache.GetOrAdd(cql, s => new ConcurrentDictionary<IPAddress, ResultFrame>());
-        }
+        internal ConcurrentDictionary<string, ResultFrame> PreparedQueryCache { get; private set; }
 
         /// <summary>
         ///   Gets all nodes that make up the cluster

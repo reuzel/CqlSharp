@@ -21,7 +21,6 @@ using System;
 using System.Collections.Concurrent;
 using System.Data;
 using System.Data.Common;
-using System.Net;
 using System.Threading;
 using System.Threading.Tasks;
 
@@ -411,7 +410,7 @@ namespace CqlSharp
                 return ConnectionState.Open;
             }
         }
-        
+
         /// <summary>
         /// Releases the unmanaged resources used by the <see cref="T:System.ComponentModel.Component" /> and optionally releases the managed resources.
         /// </summary>
@@ -454,9 +453,10 @@ namespace CqlSharp
             base.Dispose(disposing);
         }
 
-        internal ConcurrentDictionary<IPAddress, ResultFrame> GetPrepareResultsFor(string cql)
+        internal ConcurrentDictionary<string, ResultFrame> PreparedQueryCache
         {
-            return Cluster.GetPrepareResultsFor(cql);
+            get { return Cluster.PreparedQueryCache; }
+
         }
     }
 

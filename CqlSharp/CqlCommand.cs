@@ -745,30 +745,45 @@ namespace CqlSharp
         /// <returns> </returns>
         public async Task PrepareAsync(CancellationToken token)
         {
-            //continue?
-            token.ThrowIfCancellationRequested();
-
-            var logger = _connection.LoggerManager.GetLogger("CqlSharp.CqlCommand.Prepare");
-
-            logger.LogVerbose("Waiting on Throttle");
-
-            //wait until allowed
-            _connection.Throttle.Wait();
-            try
+            ResultFrame result;
+            if (!_connection.PreparedQueryCache.TryGetValue(Query, out result))
             {
                 //continue?
                 token.ThrowIfCancellationRequested();
 
-                logger.LogVerbose("State captured, start executing query");
+                var logger = _connection.LoggerManager.GetLogger("CqlSharp.CqlCommand.Prepare");
 
-                await RunWithRetry(PrepareInternalAsync, logger, token).ConfigureAwait(false);
+                logger.LogVerbose("Waiting on Throttle");
 
-                logger.LogQuery("Prepared query {0}", Query);
+                //wait until allowed
+                _connection.Throttle.Wait();
+                try
+                {
+                    //continue?
+                    token.ThrowIfCancellationRequested();
+
+                    logger.LogVerbose("Start executing prepare query");
+
+                    result = await RunWithRetry(PrepareInternalAsync, logger, token).ConfigureAwait(false);
+
+                    logger.LogQuery("Prepared query {0}", Query);
+                }
+                finally
+                {
+                    _connection.Throttle.Release();
+                }
             }
-            finally
-            {
-                _connection.Throttle.Release();
-            }
+
+            //set as prepared
+            _prepared = true;
+
+            //set parameters collection
+            if (_parameters == null || _parameters.Count == 0)
+                _parameters = new CqlParameterCollection(result.QueryMetaData);
+
+            //fix the parameter collection (if not done so already)
+            _parameters.Fixate();
+
         }
 
         /// <summary>
@@ -889,58 +904,40 @@ namespace CqlSharp
         }
 
         /// <summary>
-        ///   Prepares the query async on the given connection. Returns immediatly if the query is already
-        ///   prepared.
+        ///   Prepares the query async on the given connection.
         /// </summary>
         /// <param name="connection"> The connection. </param>
         /// <param name="logger"> The logger. </param>
         /// <param name="token"> The token. </param>
         /// <returns> </returns>
         /// <exception cref="CqlException">Unexpected frame received  + response.OpCode</exception>
-        /// <exception cref="System.Exception">Unexpected frame received  + response.OpCode</exception>
         private async Task<ResultFrame> PrepareInternalAsync(Connection connection, Logger logger,
                                                              CancellationToken token)
         {
-            //check if already prepared for this connection
-            ResultFrame result;
+            //create prepare frame
+            var query = new PrepareFrame(Query, connection.FrameVersion);
 
-            var prepareResults = _connection.GetPrepareResultsFor(Query);
-            if (!prepareResults.TryGetValue(connection.Address, out result))
+            //update frame with tracing option if requested
+            if (EnableTracing)
+                query.Flags |= FrameFlags.Tracing;
+
+            logger.LogVerbose("Sending prepare {0} using {1}", Query, connection);
+
+            //send prepare request
+            using (Frame response = await connection.SendRequestAsync(query, logger, 1, false, token).ConfigureAwait(false))
             {
-                //create prepare frame
-                var query = new PrepareFrame(Query, connection.FrameVersion);
 
-                //update frame with tracing option if requested
-                if (EnableTracing)
-                    query.Flags |= FrameFlags.Tracing;
-
-                logger.LogVerbose("No prepare results available. Sending prepare {0} using {1}", Query, connection);
-
-                //send prepare request
-                Frame response = await connection.SendRequestAsync(query, logger, 1, false, token).ConfigureAwait(false);
-
-                result = response as ResultFrame;
+                var result = response as ResultFrame;
                 if (result == null)
+                {
                     throw new CqlException("Unexpected frame received " + response.OpCode);
+                }
 
-                prepareResults[connection.Address] = result;
+                _connection.PreparedQueryCache[Query] = result;
+                connection.Node.PreparedQueryIds[Query] = result.PreparedQueryId;
+
+                return result;
             }
-            else
-            {
-                logger.LogVerbose("Reusing cached preparation results");
-            }
-
-            //set as prepared
-            _prepared = true;
-
-            //set parameters collection
-            if (_parameters == null || _parameters.Count == 0)
-                _parameters = new CqlParameterCollection(result.QueryMetaData);
-
-            //fix the parameter collection (if not done so already)
-            _parameters.Fixate();
-
-            return result;
         }
 
 
@@ -958,9 +955,16 @@ namespace CqlSharp
             Frame queryFrame;
             if (_prepared)
             {
-                ResultFrame prepareResult = await PrepareInternalAsync(connection, logger, token).ConfigureAwait(false);
-                queryFrame = new ExecuteFrame(prepareResult.PreparedQueryId, Consistency,
-                                              _parameters == null ? null : _parameters.Values, connection.FrameVersion);
+                byte[] queryId;
+                if (!connection.Node.PreparedQueryIds.TryGetValue(Query, out queryId))
+                {
+                    ResultFrame prepareResult =
+                        await PrepareInternalAsync(connection, logger, token).ConfigureAwait(false);
+
+                    queryId = prepareResult.PreparedQueryId;
+                }
+
+                queryFrame = new ExecuteFrame(queryId, Consistency, Parameters.Values, connection.FrameVersion);
                 logger.LogVerbose("Sending execute {0} using {1}", Query, connection);
             }
             else
@@ -973,8 +977,7 @@ namespace CqlSharp
             if (EnableTracing)
                 queryFrame.Flags |= FrameFlags.Tracing;
 
-            Frame response =
-                await connection.SendRequestAsync(queryFrame, logger, Load, false, token).ConfigureAwait(false);
+            Frame response = await connection.SendRequestAsync(queryFrame, logger, Load, false, token).ConfigureAwait(false);
 
             var result = response as ResultFrame;
             if (result != null)

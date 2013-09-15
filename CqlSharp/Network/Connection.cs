@@ -33,10 +33,11 @@ namespace CqlSharp.Network
     /// </summary>
     internal class Connection
     {
-        private readonly IPAddress _address;
+        private readonly Node _node;
+        private readonly int _nr;
+        private readonly CqlConnectionStringBuilder _config;
 
         private readonly Queue<sbyte> _availableQueryIds;
-        private readonly Cluster _cluster;
         private readonly SemaphoreSlim _frameSubmitLock;
         private readonly IDictionary<sbyte, TaskCompletionSource<Frame>> _openRequests;
 
@@ -51,9 +52,9 @@ namespace CqlSharp.Network
 
         private readonly object _syncLock = new object();
         private volatile Task _connectTask;
-        private readonly int _nr;
         private bool _allowCompression;
         private readonly long _maxIdleTicks;
+
 
         /// <summary>
         /// Gets the current key space.
@@ -71,14 +72,13 @@ namespace CqlSharp.Network
         /// <summary>
         /// Initializes a new instance of the <see cref="Connection" /> class.
         /// </summary>
-        /// <param name="address">The address.</param>
-        /// <param name="cluster">The cluster.</param>
+        /// <param name="node">The node.</param>
         /// <param name="nr">The connection nr.</param>
-        public Connection(IPAddress address, Cluster cluster, int nr)
+        public Connection(Node node, int nr)
         {
-            _address = address;
-            _cluster = cluster;
+            _node = node;
             _nr = nr;
+            _config = node.Cluster.Config;
 
             //setup support for multiple queries
             _availableQueryIds = new Queue<sbyte>();
@@ -95,10 +95,10 @@ namespace CqlSharp.Network
             _activeRequests = 0;
             _load = 0;
             _connectionState = 0;
-            _lastActivity = DateTime.Now.Ticks;
+            _lastActivity = DateTime.UtcNow.Ticks;
 
             Logger.Current.LogVerbose("{0} created", this);
-            _maxIdleTicks = TimeSpan.FromSeconds(_cluster.Config.MaxConnectionIdleTime).Ticks;
+            _maxIdleTicks = TimeSpan.FromSeconds(_config.MaxConnectionIdleTime).Ticks;
         }
 
         /// <summary>
@@ -108,6 +108,17 @@ namespace CqlSharp.Network
         public int Load
         {
             get { return _load; }
+        }
+
+        /// <summary>
+        /// Gets the node.
+        /// </summary>
+        /// <value>
+        /// The node.
+        /// </value>
+        public Node Node
+        {
+            get { return _node; }
         }
 
         /// <summary>
@@ -150,7 +161,7 @@ namespace CqlSharp.Network
         /// <value> The address. </value>
         public IPAddress Address
         {
-            get { return _address; }
+            get { return _node.Address; }
         }
 
         /// <summary>
@@ -290,7 +301,7 @@ namespace CqlSharp.Network
             {
                 //create TCP connection
                 _client = new TcpClient();
-                await _client.ConnectAsync(_address, _cluster.Config.Port).ConfigureAwait(false);
+                await _client.ConnectAsync(_node.Address, _config.Port).ConfigureAwait(false);
                 _writeStream = _client.GetStream();
                 _readStream = _client.GetStream();
 
@@ -301,7 +312,7 @@ namespace CqlSharp.Network
 
                 //get compression option
                 _allowCompression = false; //assume false unless
-                if (_cluster.Config.AllowCompression)
+                if (_config.AllowCompression)
                 {
                     //check wether compression is supported by getting compression options from server
                     var options = new OptionsFrame(FrameVersion);
@@ -324,7 +335,7 @@ namespace CqlSharp.Network
                 }
 
                 //submit startup frame
-                var startup = new StartupFrame(_cluster.Config.CqlVersion, FrameVersion);
+                var startup = new StartupFrame(_config.CqlVersion, FrameVersion);
                 if (_allowCompression)
                 {
                     logger.LogVerbose("Enabling Snappy Compression.");
@@ -340,13 +351,13 @@ namespace CqlSharp.Network
                     logger.LogVerbose("Authentication requested, attempting to provide credentials", Address);
 
                     //check if _username is actually set
-                    if (_cluster.Config.Username == null || _cluster.Config.Password == null)
+                    if (_config.Username == null || _config.Password == null)
                         throw new UnauthorizedException("No credentials provided");
 
                     //dispose AuthenticateFrame
                     response.Dispose();
 
-                    var cred = new CredentialsFrame(_cluster.Config.Username, _cluster.Config.Password);
+                    var cred = new CredentialsFrame(_config.Username, _config.Password);
                     response = await SendRequestAsyncInternal(cred, logger, 1, true, CancellationToken.None).ConfigureAwait(false);
                 }
 
@@ -479,7 +490,7 @@ namespace CqlSharp.Network
                     frame.Stream = id;
 
                     //serialize frame outside lock
-                    Stream frameBytes = frame.GetFrameBytes(_allowCompression && !isConnecting, _cluster.Config.CompressionTreshold);
+                    Stream frameBytes = frame.GetFrameBytes(_allowCompression && !isConnecting, _config.CompressionTreshold);
 
                     await _writeLock.WaitAsync(token).ConfigureAwait(false);
                     try
@@ -586,7 +597,7 @@ namespace CqlSharp.Network
         /// </summary>
         private async void StartReadingAsync()
         {
-            var logger = _cluster.LoggerManager.GetLogger("CqlSharp.Connection.ReadLoop");
+            var logger = _node.Cluster.LoggerManager.GetLogger("CqlSharp.Connection.ReadLoop");
 
             //while connected do
             while (_connectionState == 1)

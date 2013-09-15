@@ -318,7 +318,7 @@ namespace CqlSharp.Test
         private static void ShimAllConnections()
         {
             //shim connections to avoid network connections...
-            ShimConnection.ConstructorIPAddressClusterInt32 = (conn, address, conf, nr) =>
+            ShimConnection.ConstructorNodeInt32 = (conn, node, nr) =>
                                                                   {
                                                                       //wrap the new connection in a shim
                                                                       var connection = new ShimConnection(conn);
