@@ -604,6 +604,10 @@ namespace CqlSharp
 
                 logger.LogQuery("Query {0} returned {1} results", Query, result.Count);
 
+                //copy metadata from prepared query cache if necessary
+                if (_prepared && result.ResultMetaData.NoMetaData)
+                    result.ResultMetaData.CopyColumnsFrom(_connection.PreparedQueryCache[Query].ResultMetaData);
+
                 return result;
             }
             finally
@@ -839,7 +843,7 @@ namespace CqlSharp
                         !string.IsNullOrWhiteSpace(_connection.Database) &&
                         !_connection.Database.Equals(connection.CurrentKeySpace))
                     {
-                        var useFrame = new QueryFrame("use '" + _connection.Database + "';", CqlConsistency.One, connection.FrameVersion);
+                        var useFrame = new QueryFrame("use '" + _connection.Database + "';", CqlConsistency.One);
                         var result = await connection.SendRequestAsync(useFrame, logger, 1, false, token) as ResultFrame;
                         if (result == null || result.ResultOpcode != ResultOpcode.SetKeyspace)
                         {
@@ -915,7 +919,7 @@ namespace CqlSharp
                                                              CancellationToken token)
         {
             //create prepare frame
-            var query = new PrepareFrame(Query, connection.FrameVersion);
+            var query = new PrepareFrame(Query);
 
             //update frame with tracing option if requested
             if (EnableTracing)
@@ -952,7 +956,7 @@ namespace CqlSharp
         private async Task<ResultFrame> ExecuteInternalAsync(Connection connection, Logger logger,
                                                              CancellationToken token)
         {
-            Frame queryFrame;
+            QueryFrameBase queryFrame;
             if (_prepared)
             {
                 byte[] queryId;
@@ -964,12 +968,13 @@ namespace CqlSharp
                     queryId = prepareResult.PreparedQueryId;
                 }
 
-                queryFrame = new ExecuteFrame(queryId, Consistency, Parameters.Values, connection.FrameVersion);
+                queryFrame = new ExecuteFrame(queryId, Consistency, Parameters.Values);
+
                 logger.LogVerbose("Sending execute {0} using {1}", Query, connection);
             }
             else
             {
-                queryFrame = new QueryFrame(Query, Consistency, connection.FrameVersion);
+                queryFrame = new QueryFrame(Query, Consistency);
                 logger.LogVerbose("Sending query {0} using {1}", Query, connection);
             }
 

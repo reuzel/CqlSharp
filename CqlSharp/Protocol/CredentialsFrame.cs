@@ -27,7 +27,7 @@ namespace CqlSharp.Protocol
             Username = username;
             Password = password;
 
-            Version = FrameVersion.Request | FrameVersion.ProtocolVersion1;
+            Version = FrameVersion.Request;
             Flags = FrameFlags.None;
             Stream = 0;
             OpCode = FrameOpcode.Credentials;
@@ -40,7 +40,7 @@ namespace CqlSharp.Protocol
 
         protected override void WriteData(Stream buffer)
         {
-            var credentials = new Dictionary<string, string> {{"username", Username}, {"password", Password}};
+            var credentials = new Dictionary<string, string> { { "username", Username }, { "password", Password } };
             buffer.WriteStringMap(credentials);
         }
 

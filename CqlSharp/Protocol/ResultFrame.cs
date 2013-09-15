@@ -32,7 +32,7 @@ namespace CqlSharp.Protocol
 
         public MetaData QueryMetaData { get; private set; }
 
-        public MetaData ResultMetaData { get; private set; }
+        public MetaData ResultMetaData { get; set; }
 
         public byte[] PreparedQueryId { get; private set; }
 

@@ -19,13 +19,14 @@ namespace CqlSharp.Protocol
 {
     internal class ExecuteFrame : QueryFrameBase
     {
-        public ExecuteFrame(byte[] queryId, CqlConsistency cqlConsistency, byte[][] parameters, FrameVersion version)
+        public ExecuteFrame(byte[] queryId, CqlConsistency cqlConsistency, byte[][] parameters)
         {
             QueryId = queryId;
             CqlConsistency = cqlConsistency;
             Parameters = parameters;
+            SkipMetaData = true;
 
-            Version = FrameVersion.Request | version;
+            Version = FrameVersion.Request;
             Flags = FrameFlags.None;
             Stream = 0;
             OpCode = FrameOpcode.Execute;

@@ -14,7 +14,6 @@
 // limitations under the License.
 
 using System;
-using System.Diagnostics;
 using System.IO;
 using System.Threading.Tasks;
 
@@ -22,11 +21,9 @@ namespace CqlSharp.Protocol
 {
     internal class AuthResponseFrame : Frame
     {
-        public AuthResponseFrame(byte[] saslResponse, FrameVersion version)
+        public AuthResponseFrame(byte[] saslResponse)
         {
-            Debug.Assert((version & FrameVersion.ProtocolVersionMask) != FrameVersion.ProtocolVersion1, "Version 1 of the protocol does not support AuthResponse Frames");
-            
-            Version = FrameVersion.Request | version;
+            Version = FrameVersion.Request;
             Flags = FrameFlags.None;
             Stream = 0;
             OpCode = FrameOpcode.AuthResponse;

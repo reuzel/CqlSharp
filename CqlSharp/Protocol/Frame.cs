@@ -38,7 +38,7 @@ namespace CqlSharp.Protocol
         ///   Gets or sets the version.
         /// </summary>
         /// <value> The version. </value>
-        public FrameVersion Version { get; protected set; }
+        public FrameVersion Version { get; set; }
 
         /// <summary>
         ///   Gets or sets the flags.

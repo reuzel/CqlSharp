@@ -27,7 +27,7 @@ namespace CqlSharp.Protocol
         /// <summary>
         ///   The columns
         /// </summary>
-        private readonly List<Column> _columns = new List<Column>();
+        private List<Column> _columns = new List<Column>();
 
         /// <summary>
         ///   The columns by name. Lazy loaded
@@ -251,6 +251,16 @@ namespace CqlSharp.Protocol
         {
             RebuildNames();
             return _columnsByName.TryGetValue(name, out column);
+        }
+
+        /// <summary>
+        /// Copies the columns from an other MetaData instance
+        /// </summary>
+        /// <param name="metaData">The meta data.</param>
+        internal void CopyColumnsFrom(MetaData metaData)
+        {
+            if (metaData != null)
+                _columns = metaData._columns;
         }
     }
 }

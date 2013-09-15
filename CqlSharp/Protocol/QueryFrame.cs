@@ -24,13 +24,12 @@ namespace CqlSharp.Protocol
         /// </summary>
         /// <param name="cql">The CQL.</param>
         /// <param name="cqlConsistency">The CQL consistency.</param>
-        /// <param name="version">The version.</param>
-        public QueryFrame(string cql, CqlConsistency cqlConsistency, FrameVersion version)
+        public QueryFrame(string cql, CqlConsistency cqlConsistency)
         {
             Cql = cql;
             CqlConsistency = cqlConsistency;
 
-            Version = FrameVersion.Request | version;
+            Version = FrameVersion.Request;
             Flags = FrameFlags.None;
             Stream = 0;
             OpCode = FrameOpcode.Query;

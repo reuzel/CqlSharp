@@ -22,11 +22,11 @@ namespace CqlSharp.Protocol
 {
     internal class RegisterFrame : Frame
     {
-        public RegisterFrame(IList<string> eventTypes, FrameVersion version)
+        public RegisterFrame(IList<string> eventTypes)
         {
             EventTypes = eventTypes;
 
-            Version = FrameVersion.Request | version;
+            Version = FrameVersion.Request;
             Flags = FrameFlags.None;
             Stream = 0;
             OpCode = FrameOpcode.Register;

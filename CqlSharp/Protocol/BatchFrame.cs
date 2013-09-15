@@ -1,6 +1,5 @@
 ﻿using System;
 using System.Collections.Generic;
-using System.Diagnostics;
 using System.Threading.Tasks;
 
 namespace CqlSharp.Protocol
@@ -25,12 +24,9 @@ namespace CqlSharp.Protocol
         /// <summary>
         /// Initializes a new instance of the <see cref="BatchFrame"/> class.
         /// </summary>
-        /// <param name="version">The version.</param>
-        public BatchFrame(FrameVersion version)
+        public BatchFrame()
         {
-            Debug.Assert((version & FrameVersion.ProtocolVersionMask) != FrameVersion.ProtocolVersion1, "Version 1 of the protocol does not support Batch Frames");
-
-            Version = FrameVersion.Request | version;
+            Version = FrameVersion.Request;
             Flags = FrameFlags.None;
             Stream = 0;
             OpCode = FrameOpcode.Options;
