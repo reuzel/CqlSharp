@@ -843,7 +843,7 @@ namespace CqlSharp
                         !string.IsNullOrWhiteSpace(_connection.Database) &&
                         !_connection.Database.Equals(connection.CurrentKeySpace))
                     {
-                        var useFrame = new QueryFrame("use '" + _connection.Database + "';", CqlConsistency.One);
+                        var useFrame = new QueryFrame("use '" + _connection.Database + "';", CqlConsistency.One, null);
                         var result = await connection.SendRequestAsync(useFrame, logger, 1, false, token) as ResultFrame;
                         if (result == null || result.ResultOpcode != ResultOpcode.SetKeyspace)
                         {
@@ -974,7 +974,8 @@ namespace CqlSharp
             }
             else
             {
-                queryFrame = new QueryFrame(Query, Consistency);
+                byte[][] values = _parameters != null && _parameters.Count > 0 ? _parameters.Values : null;
+                queryFrame = new QueryFrame(Query, Consistency, values);
                 logger.LogVerbose("Sending query {0} using {1}", Query, connection);
             }
 

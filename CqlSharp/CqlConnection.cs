@@ -40,6 +40,7 @@ namespace CqlSharp
         private volatile Task _openTask;
         private CancellationTokenSource _openCancellationTokenSource;
         private string _connectionString;
+        private int _connectionTimeout;
 
         /// <summary>
         /// Initializes the <see cref="CqlConnection"/> class.
@@ -57,6 +58,7 @@ namespace CqlSharp
         {
             _connectionString = string.Empty;
             _database = string.Empty;
+            _connectionTimeout = 15;
         }
 
         /// <summary>
@@ -67,6 +69,7 @@ namespace CqlSharp
         {
             _connectionString = connectionString;
             _database = string.Empty;
+            _connectionTimeout = 15;
         }
 
         /// <summary>
@@ -76,6 +79,24 @@ namespace CqlSharp
         public CqlConnection(CqlConnectionStringBuilder config)
             : this(config.ToString())
         {
+        }
+
+        /// <summary>
+        /// Gets the time to wait while establishing a connection before terminating the attempt and generating an error.
+        /// </summary>
+        /// <returns>
+        /// The time (in seconds) to wait for a connection to open. The default value is determined by the specific type of connection that you are using.
+        /// </returns>
+        /// <filterpriority>2</filterpriority>
+        public override int ConnectionTimeout { get { return _connectionTimeout; } }
+
+        /// <summary>
+        /// Sets the connection timeout.
+        /// </summary>
+        /// <param name="timeout">The timeout in seconds</param>
+        public void SetConnectionTimeout(int timeout)
+        {
+            _connectionTimeout = timeout < 0 ? 0 : timeout;
         }
 
         /// <summary>

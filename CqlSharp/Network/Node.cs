@@ -15,6 +15,7 @@
 
 using CqlSharp.Logging;
 using CqlSharp.Network.Partition;
+using CqlSharp.Protocol;
 using System;
 using System.Collections;
 using System.Collections.Concurrent;
@@ -92,6 +93,7 @@ namespace CqlSharp.Network
             IsUp = true;
             Tokens = new HashSet<string>();
             _counter = 0;
+            FrameVersion = FrameVersion.ProtocolVersion2;
         }
 
         /// <summary>
@@ -149,6 +151,14 @@ namespace CqlSharp.Network
         {
             get { return _openConnections; }
         }
+
+        /// <summary>
+        /// Gets the frame (protocol) version supported by this node
+        /// </summary>
+        /// <value>
+        /// The frame version.
+        /// </value>
+        public FrameVersion FrameVersion { get; internal set; }
 
         /// <summary>
         /// Gets the prepared query ids.

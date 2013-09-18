@@ -63,7 +63,7 @@ namespace CqlSharp.Test
                     using (logger.ThreadBinding())
                         connection = strategy.GetOrCreateConnection(ConnectionScope.Command, PartitionKey.None);
 
-                    await connection.SendRequestAsync(new QueryFrame("", CqlConsistency.Any), logger, 10, false, CancellationToken.None);
+                    await connection.SendRequestAsync(new QueryFrame("", CqlConsistency.Any, null), logger, 10, false, CancellationToken.None);
                 }
 
                 Assert.AreEqual(nodes.Sum(nd => nd.ConnectionCount), nr);
@@ -103,7 +103,7 @@ namespace CqlSharp.Test
                     using (logger.ThreadBinding())
                         connection = strategy.GetOrCreateConnection(ConnectionScope.Command, PartitionKey.None);
 
-                    await connection.SendRequestAsync(new QueryFrame("", CqlConsistency.Any), logger, 10, false, CancellationToken.None);
+                    await connection.SendRequestAsync(new QueryFrame("", CqlConsistency.Any, null), logger, 10, false, CancellationToken.None);
                 }
 
                 Assert.AreEqual(6, nodes.Sum(nd => nd.ConnectionCount));
@@ -143,7 +143,7 @@ namespace CqlSharp.Test
                     using (logger.ThreadBinding())
                         connection = strategy.GetOrCreateConnection(ConnectionScope.Command, PartitionKey.None);
 
-                    await connection.SendRequestAsync(new QueryFrame("", CqlConsistency.Any), logger, 10, false, CancellationToken.None);
+                    await connection.SendRequestAsync(new QueryFrame("", CqlConsistency.Any, null), logger, 10, false, CancellationToken.None);
                 }
 
                 Assert.AreEqual(4, nodes.Sum(nd => nd.ConnectionCount));
@@ -183,7 +183,7 @@ namespace CqlSharp.Test
                     using (logger.ThreadBinding())
                         connection = strategy.GetOrCreateConnection(ConnectionScope.Command, PartitionKey.None);
 
-                    await connection.SendRequestAsync(new QueryFrame("", CqlConsistency.Any), logger, 10, false, CancellationToken.None);
+                    await connection.SendRequestAsync(new QueryFrame("", CqlConsistency.Any, null), logger, 10, false, CancellationToken.None);
                 }
 
                 Assert.AreEqual(1, nodes.Sum(nd => nd.ConnectionCount));
@@ -223,7 +223,7 @@ namespace CqlSharp.Test
                     using (logger.ThreadBinding())
                         connection = strategy.GetOrCreateConnection(ConnectionScope.Command, PartitionKey.None);
 
-                    await connection.SendRequestAsync(new QueryFrame("", CqlConsistency.Any), logger, 10, false, CancellationToken.None);
+                    await connection.SendRequestAsync(new QueryFrame("", CqlConsistency.Any, null), logger, 10, false, CancellationToken.None);
                 }
 
                 Assert.AreEqual(nodes.Sum(nd => nd.ConnectionCount), 6);
@@ -264,7 +264,7 @@ namespace CqlSharp.Test
                     using (logger.ThreadBinding())
                         connection = strategy.GetOrCreateConnection(ConnectionScope.Command, PartitionKey.None);
 
-                    await connection.SendRequestAsync(new QueryFrame("", CqlConsistency.Any), logger, 10, false, CancellationToken.None);
+                    await connection.SendRequestAsync(new QueryFrame("", CqlConsistency.Any, null), logger, 10, false, CancellationToken.None);
                 }
 
                 Assert.AreEqual(4, nodes.Sum(nd => nd.ConnectionCount));
@@ -306,7 +306,7 @@ namespace CqlSharp.Test
                     using (logger.ThreadBinding())
                         connection = strategy.GetOrCreateConnection(ConnectionScope.Command, PartitionKey.None);
 
-                    await connection.SendRequestAsync(new QueryFrame("", CqlConsistency.Any), logger, 10, false, CancellationToken.None);
+                    await connection.SendRequestAsync(new QueryFrame("", CqlConsistency.Any, null), logger, 10, false, CancellationToken.None);
                 }
 
                 Assert.AreEqual(nodes.Sum(nd => nd.ConnectionCount), 8);

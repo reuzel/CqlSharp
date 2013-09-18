@@ -15,12 +15,17 @@
 
 using System;
 using System.IO;
+using System.Text;
 using System.Threading.Tasks;
 
 namespace CqlSharp.Protocol
 {
     internal class AuthResponseFrame : Frame
     {
+        /// <summary>
+        /// Initializes a new instance of the <see cref="AuthResponseFrame"/> class.
+        /// </summary>
+        /// <param name="saslResponse">The sasl response.</param>
         public AuthResponseFrame(byte[] saslResponse)
         {
             Version = FrameVersion.Request;
@@ -29,6 +34,28 @@ namespace CqlSharp.Protocol
             OpCode = FrameOpcode.AuthResponse;
 
             SaslResponse = saslResponse;
+        }
+
+        /// <summary>
+        /// Initializes a new instance of the <see cref="AuthResponseFrame"/> class.
+        /// </summary>
+        /// <param name="username">The username.</param>
+        /// <param name="password">The password.</param>
+        public AuthResponseFrame(string username, string password)
+        {
+            using (var stream = new MemoryStream())
+            {
+                byte[] userBytes = Encoding.UTF8.GetBytes(username);
+                byte[] passwordBytes = Encoding.UTF8.GetBytes(password);
+
+                stream.WriteByte(0);
+                stream.Write(userBytes, 0, userBytes.Length);
+                stream.WriteByte(0);
+                stream.Write(passwordBytes, 0, passwordBytes.Length);
+                stream.WriteByte(0);
+
+                SaslResponse = stream.ToArray();
+            }
         }
 
         public byte[] SaslResponse { get; set; }
