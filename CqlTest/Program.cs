@@ -49,7 +49,7 @@ namespace CqlTest
                 await _manager.AddCartAsync(_groups[groupId]);
                 long stop = _stopwatch.ElapsedMilliseconds;
                 lock (list) list.AddLast(stop - start);
-                groupId = (groupId + 1) % _groups.Length;
+                groupId = (groupId + 1)%_groups.Length;
                 nr = Interlocked.Increment(ref _count);
             }
         }
@@ -65,7 +65,7 @@ namespace CqlTest
             {
                 Cart cart = carts[cartIndex];
                 cart.GroupId = _groups[groupId];
-                cart.Items = new Dictionary<string, int> { { "item1", nr }, { "item2", nr } };
+                cart.Items = new Dictionary<string, int> {{"item1", nr}, {"item2", nr}};
 
                 long start = _stopwatch.ElapsedMilliseconds;
 
@@ -75,8 +75,8 @@ namespace CqlTest
 
                 lock (list) list.AddLast(stop - start);
 
-                groupId = (groupId + 1) % _groups.Length;
-                cartIndex = (cartIndex + 1) % carts.Length;
+                groupId = (groupId + 1)%_groups.Length;
+                cartIndex = (cartIndex + 1)%carts.Length;
                 nr = Interlocked.Increment(ref _count);
             }
         }
@@ -90,7 +90,7 @@ namespace CqlTest
             while (nr <= _queries)
             {
                 Cart cart = carts[cartIndex];
-                var items = new Dictionary<string, int> { { "item1_" + nr, nr }, { "item2_" + nr, nr } };
+                var items = new Dictionary<string, int> {{"item1_" + nr, nr}, {"item2_" + nr, nr}};
 
                 long start = _stopwatch.ElapsedMilliseconds;
 
@@ -100,7 +100,7 @@ namespace CqlTest
 
                 lock (list) list.AddLast(stop - start);
 
-                cartIndex = (cartIndex + 1) % carts.Length;
+                cartIndex = (cartIndex + 1)%carts.Length;
                 nr = Interlocked.Increment(ref _count);
             }
         }
@@ -123,7 +123,7 @@ namespace CqlTest
 
                 lock (list) list.AddLast(stop - start);
 
-                cartIndex = (cartIndex + 1) % carts.Length;
+                cartIndex = (cartIndex + 1)%carts.Length;
                 nr = Interlocked.Increment(ref _count);
             }
         }
@@ -142,7 +142,7 @@ namespace CqlTest
 
                 lock (list) list.AddLast(stop - start);
 
-                groupId = (groupId + 1) % _groups.Length;
+                groupId = (groupId + 1)%_groups.Length;
                 nr = Interlocked.Increment(ref _count);
             }
         }
@@ -165,7 +165,7 @@ namespace CqlTest
             for (int i = 0; i < prepared; i++)
             {
                 cartTasks[i] = _manager.AddCartAsync(_groups[groupId]);
-                groupId = (groupId + 1) % _groups.Length;
+                groupId = (groupId + 1)%_groups.Length;
             }
 
             Task.WaitAll(cartTasks);
@@ -191,8 +191,8 @@ namespace CqlTest
             _stopwatch.Stop();
 
             //print results
-            Console.WriteLine("Total tasks run: {0} in {1} ({2} req/s)", _count, _stopwatch.Elapsed,
-                              DoubleString((double)queries / _stopwatch.ElapsedMilliseconds * 1000));
+            Console.WriteLine("Total tasks run: {0} in {1} ({2} req/s)", queries, _stopwatch.Elapsed,
+                              DoubleString((double) queries/_stopwatch.ElapsedMilliseconds*1000));
 
 #if debug
             Console.WriteLine(MemoryPool.Instance);
@@ -223,13 +223,13 @@ namespace CqlTest
             Array.Sort(array);
 
             long median;
-            if (array.Length % 2 == 1)
+            if (array.Length%2 == 1)
             {
-                median = array[array.Length / 2 + 1];
+                median = array[array.Length/2 + 1];
             }
             else
             {
-                median = (array[array.Length / 2] + array[array.Length / 2 + 1]) / 2;
+                median = (array[array.Length/2] + array[array.Length/2 + 1])/2;
             }
 
             WriteRow(name, array.Length, DoubleString(array.Average()), DoubleString(median), DoubleString(array[0]),
@@ -255,13 +255,12 @@ namespace CqlTest
         {
             var array = values.ToArray();
             Array.Sort(array);
-            if (array.Length % 2 == 1)
+            if (array.Length%2 == 1)
             {
-                return array[array.Length / 2 + 1];
+                return array[array.Length/2 + 1];
             }
 
-            return (array[array.Length / 2] + array[array.Length / 2 + 1]) / 2;
+            return (array[array.Length/2] + array[array.Length/2 + 1])/2;
         }
-
     }
 }

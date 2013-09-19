@@ -31,14 +31,14 @@ namespace CqlSharp.Protocol
         protected override async Task InitializeAsync()
         {
             FrameReader stream = Reader;
-            var code = (ErrorCode)await stream.ReadIntAsync().ConfigureAwait(false);
+            var code = (ErrorCode) await stream.ReadIntAsync().ConfigureAwait(false);
             string msg = await stream.ReadStringAsync().ConfigureAwait(false);
 
             switch (code)
             {
                 case ErrorCode.Unavailable:
                     {
-                        var cl = (CqlConsistency)await stream.ReadShortAsync().ConfigureAwait(false);
+                        var cl = (CqlConsistency) await stream.ReadShortAsync().ConfigureAwait(false);
                         int required = await stream.ReadIntAsync().ConfigureAwait(false);
                         int alive = await stream.ReadIntAsync().ConfigureAwait(false);
                         Exception = new UnavailableException(msg, cl, required, alive);
@@ -47,7 +47,7 @@ namespace CqlSharp.Protocol
 
                 case ErrorCode.WriteTimeout:
                     {
-                        var cl = (CqlConsistency)await stream.ReadShortAsync().ConfigureAwait(false);
+                        var cl = (CqlConsistency) await stream.ReadShortAsync().ConfigureAwait(false);
                         int received = await stream.ReadIntAsync().ConfigureAwait(false);
                         int blockFor = await stream.ReadIntAsync().ConfigureAwait(false);
                         string writeType = await stream.ReadStringAsync().ConfigureAwait(false);
@@ -57,7 +57,7 @@ namespace CqlSharp.Protocol
 
                 case ErrorCode.ReadTimeout:
                     {
-                        var cl = (CqlConsistency)await stream.ReadShortAsync().ConfigureAwait(false);
+                        var cl = (CqlConsistency) await stream.ReadShortAsync().ConfigureAwait(false);
                         int received = await stream.ReadIntAsync().ConfigureAwait(false);
                         int blockFor = await stream.ReadIntAsync().ConfigureAwait(false);
                         bool dataPresent = 0 != await stream.ReadByteAsync().ConfigureAwait(false);

@@ -13,8 +13,6 @@
 // See the License for the specific language governing permissions and
 // limitations under the License.
 
-using CqlSharp.Logging;
-using CqlSharp.Protocol;
 using System;
 using System.Collections.Generic;
 using System.IO;
@@ -22,6 +20,8 @@ using System.Net;
 using System.Net.Sockets;
 using System.Threading;
 using System.Threading.Tasks;
+using CqlSharp.Logging;
+using CqlSharp.Protocol;
 
 //suppressing warnings about unobserved tasks
 #pragma warning disable 168
@@ -40,6 +40,7 @@ namespace CqlSharp.Network
         private readonly Node _node;
         private readonly int _nr;
         private readonly IDictionary<sbyte, TaskCompletionSource<Frame>> _openRequests;
+        private readonly ManualResetEventSlim _readLoopCompleted;
         private readonly object _syncLock = new object();
 
         private readonly SemaphoreSlim _writeLock;
@@ -52,7 +53,6 @@ namespace CqlSharp.Network
         private int _load;
         private Stream _readStream;
         private Stream _writeStream;
-        private ManualResetEventSlim _readLoopCompleted;
 
 
         /// <summary>
@@ -181,7 +181,7 @@ namespace CqlSharp.Network
             Interlocked.Exchange(ref _lastActivity, DateTime.UtcNow.Ticks);
 
             EventHandler<LoadChangeEvent> handler = OnLoadChange;
-            if (handler != null) handler(this, new LoadChangeEvent { LoadDelta = load });
+            if (handler != null) handler(this, new LoadChangeEvent {LoadDelta = load});
 
             logger.LogVerbose("{0} has now a load of {1}", this, newLoad);
         }
@@ -224,7 +224,7 @@ namespace CqlSharp.Network
                     }
 
                     if (OnConnectionChange != null)
-                        OnConnectionChange(this, new ConnectionChangeEvent { Exception = error, Connected = false });
+                        OnConnectionChange(this, new ConnectionChangeEvent {Exception = error, Connected = false});
                 }
 
                 OnConnectionChange = null;
@@ -278,6 +278,8 @@ namespace CqlSharp.Network
 
             try
             {
+                SupportedFrame supported;
+
                 while (true)
                 {
                     //create TCP connection
@@ -293,14 +295,16 @@ namespace CqlSharp.Network
 
                     //get options from server
                     var options = new OptionsFrame();
-                    SupportedFrame supported;
+
                     try
                     {
                         supported =
-                        await
-                        SendRequestAsyncInternal(options, logger, 1, true, CancellationToken.None).ConfigureAwait(false)
-                        as SupportedFrame;
+                            await
+                            SendRequestAsyncInternal(options, logger, 1, true, CancellationToken.None).ConfigureAwait(
+                                false)
+                            as SupportedFrame;
 
+                        break;
                     }
                     catch (ProtocolException)
                     {
@@ -318,97 +322,95 @@ namespace CqlSharp.Network
                         //throw on other cases
                         throw;
                     }
+                }
 
-                    if (supported == null)
-                        throw new ProtocolException(0, "Expected Supported frame not received");
+                if (supported == null)
+                    throw new ProtocolException(0, "Expected Supported frame not received");
 
-                    _allowCompression = false;
-                    if (_config.AllowCompression)
+                _allowCompression = false;
+                if (_config.AllowCompression)
+                {
+                    IList<string> compressionOptions;
+                    //check if options contain compression
+                    if (supported.SupportedOptions.TryGetValue("COMPRESSION", out compressionOptions))
                     {
-                        IList<string> compressionOptions;
-                        //check if options contain compression
-                        if (supported.SupportedOptions.TryGetValue("COMPRESSION", out compressionOptions))
-                        {
-                            //check wether snappy is supported
-                            _allowCompression = compressionOptions.Contains("snappy");
-                        }
+                        //check wether snappy is supported
+                        _allowCompression = compressionOptions.Contains("snappy");
                     }
+                }
 
-                    //dispose supported frame
-                    supported.Dispose();
+                //dispose supported frame
+                supported.Dispose();
 
-                    //submit startup frame
-                    var startup = new StartupFrame(_config.CqlVersion);
-                    if (_allowCompression)
-                    {
-                        logger.LogVerbose("Enabling Snappy Compression.");
-                        startup.Options["COMPRESSION"] = "snappy";
-                    }
+                //submit startup frame
+                var startup = new StartupFrame(_config.CqlVersion);
+                if (_allowCompression)
+                {
+                    logger.LogVerbose("Enabling Snappy Compression.");
+                    startup.Options["COMPRESSION"] = "snappy";
+                }
 
-                    Frame response =
-                        await
-                        SendRequestAsyncInternal(startup, logger, 1, true, CancellationToken.None).ConfigureAwait(false);
+                Frame response =
+                    await
+                    SendRequestAsyncInternal(startup, logger, 1, true, CancellationToken.None).ConfigureAwait(false);
 
-                    //authenticate if required
-                    var auth = response as AuthenticateFrame;
-                    if (auth != null)
-                    {
-                        logger.LogVerbose("Authentication requested, attempting to provide credentials", Address);
+                //authenticate if required
+                var auth = response as AuthenticateFrame;
+                if (auth != null)
+                {
+                    logger.LogVerbose("Authentication requested, attempting to provide credentials", Address);
 
-                        //check if _username is actually set
-                        if (_config.Username == null || _config.Password == null)
-                            throw new UnauthorizedException("No credentials provided");
+                    //check if _username is actually set
+                    if (_config.Username == null || _config.Password == null)
+                        throw new UnauthorizedException("No credentials provided");
 
-                        //dispose AuthenticateFrame
-                        response.Dispose();
-
-                        if ((Node.FrameVersion & FrameVersion.ProtocolVersionMask) == FrameVersion.ProtocolVersion2)
-                        {
-                            //protocol version2: use SASL AuthResponse to authenticate
-                            var cred = new AuthResponseFrame(_config.Username, _config.Password);
-                            response =
-                                await
-                                SendRequestAsyncInternal(cred, logger, 1, true, CancellationToken.None).ConfigureAwait(
-                                    false);
-
-                            if (!(response is AuthSuccessFrame))
-                            {
-                                throw new UnauthorizedException("Authentication failed: Auth Success frame not received");
-                            }
-                        }
-                        else
-                        {
-                            var cred = new CredentialsFrame(_config.Username, _config.Password);
-                            response =
-                                await
-                                SendRequestAsyncInternal(cred, logger, 1, true, CancellationToken.None).ConfigureAwait(
-                                    false);
-
-                            if (!(response is ReadyFrame))
-                            {
-                                throw new UnauthorizedException("Authentication failed: Ready frame not received");
-                            }
-                        }
-                    }
-                    //no authenticate frame, so ready frame must be received
-                    else if (!(response is ReadyFrame))
-                    {
-                        throw new ProtocolException(0, "Expected Ready frame not received");
-                    }
-
-                    //dispose ready frame
+                    //dispose AuthenticateFrame
                     response.Dispose();
 
-                    using (logger.ThreadBinding())
+                    if ((Node.FrameVersion & FrameVersion.ProtocolVersionMask) == FrameVersion.ProtocolVersion2)
                     {
-                        if (OnConnectionChange != null)
-                            OnConnectionChange(this, new ConnectionChangeEvent { Connected = true });
+                        //protocol version2: use SASL AuthResponse to authenticate
+                        var cred = new AuthResponseFrame(_config.Username, _config.Password);
+                        response =
+                            await
+                            SendRequestAsyncInternal(cred, logger, 1, true, CancellationToken.None).ConfigureAwait(
+                                false);
+
+                        if (!(response is AuthSuccessFrame))
+                        {
+                            throw new UnauthorizedException("Authentication failed: Auth Success frame not received");
+                        }
                     }
+                    else
+                    {
+                        var cred = new CredentialsFrame(_config.Username, _config.Password);
+                        response =
+                            await
+                            SendRequestAsyncInternal(cred, logger, 1, true, CancellationToken.None).ConfigureAwait(
+                                false);
 
-                    logger.LogInfo("{0} is opened using Cql {1}", this, Node.FrameVersion.ToString());
-
-                    return;
+                        if (!(response is ReadyFrame))
+                        {
+                            throw new UnauthorizedException("Authentication failed: Ready frame not received");
+                        }
+                    }
                 }
+                    //no authenticate frame, so ready frame must be received
+                else if (!(response is ReadyFrame))
+                {
+                    throw new ProtocolException(0, "Expected Ready frame not received");
+                }
+
+                //dispose ready frame
+                response.Dispose();
+
+                using (logger.ThreadBinding())
+                {
+                    if (OnConnectionChange != null)
+                        OnConnectionChange(this, new ConnectionChangeEvent {Connected = true});
+                }
+
+                logger.LogInfo("{0} is opened using Cql {1}", this, Node.FrameVersion.ToString());
             }
             catch (Exception ex)
             {
@@ -418,7 +420,6 @@ namespace CqlSharp.Network
                     throw;
                 }
             }
-
         }
 
         /// <summary>
@@ -454,7 +455,7 @@ namespace CqlSharp.Network
         {
             var task = SendRequestAsyncInternal(frame, logger, load, isConnecting, token);
             var cancelTask = new TaskCompletionSource<bool>();
-            using (token.Register(s => ((TaskCompletionSource<bool>)s).TrySetResult(true), cancelTask))
+            using (token.Register(s => ((TaskCompletionSource<bool>) s).TrySetResult(true), cancelTask))
             {
                 //wait for either sendTask or cancellation task to complete
                 if (task != await Task.WhenAny(task, cancelTask.Task).ConfigureAwait(false))
@@ -464,7 +465,7 @@ namespace CqlSharp.Network
                                                          {
                                                              if (sendTask.Exception != null)
                                                              {
-                                                                 var logger1 = (Logger)log;
+                                                                 var logger1 = (Logger) log;
                                                                  logger1.LogWarning(
                                                                      "Cancelled query threw exception: {0}",
                                                                      sendTask.Exception.InnerException);
@@ -577,7 +578,7 @@ namespace CqlSharp.Network
 
                     //check for keyspace change
                     var keyspaceChange = response as ResultFrame;
-                    if (keyspaceChange != null && keyspaceChange.ResultOpcode == ResultOpcode.SetKeyspace)
+                    if (keyspaceChange != null && keyspaceChange.CqlResultType == CqlResultType.SetKeyspace)
                     {
                         CurrentKeySpace = keyspaceChange.Keyspace;
                     }
@@ -687,7 +688,7 @@ namespace CqlSharp.Network
                         {
                             if (frame.OpCode == FrameOpcode.Error)
                             {
-                                var error = (ErrorFrame)frame;
+                                var error = (ErrorFrame) frame;
                                 throw error.Exception;
                             }
 
@@ -716,7 +717,6 @@ namespace CqlSharp.Network
                         //error occured during read operaton, assume connection is dead, switch state
                         Dispose(true, ex);
                     }
-                    
                 }
             }
 
@@ -748,7 +748,7 @@ namespace CqlSharp.Network
         /// <exception cref="CqlException">Could not register for cluster changes!</exception>
         public async Task RegisterForClusterChangesAsync(Logger logger)
         {
-            var registerframe = new RegisterFrame(new List<string> { "TOPOLOGY_CHANGE", "STATUS_CHANGE" });
+            var registerframe = new RegisterFrame(new List<string> {"TOPOLOGY_CHANGE", "STATUS_CHANGE"});
             Frame result =
                 await SendRequestAsync(registerframe, logger, 1, false, CancellationToken.None).ConfigureAwait(false);
 

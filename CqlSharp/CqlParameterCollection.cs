@@ -13,12 +13,12 @@
 // See the License for the specific language governing permissions and
 // limitations under the License.
 
-using CqlSharp.Protocol;
-using CqlSharp.Serialization;
 using System;
 using System.Collections;
 using System.Collections.Generic;
 using System.Data.Common;
+using CqlSharp.Protocol;
+using CqlSharp.Serialization;
 
 namespace CqlSharp
 {
@@ -27,8 +27,8 @@ namespace CqlSharp
     /// </summary>
     public class CqlParameterCollection : DbParameterCollection
     {
-        private readonly object _syncLock = new object();
         private readonly List<CqlParameter> _parameters;
+        private readonly object _syncLock = new object();
         private MetaData _metaData;
 
         public CqlParameterCollection()
@@ -47,32 +47,11 @@ namespace CqlSharp
         }
 
         /// <summary>
-        /// Fixates this instance.
+        ///   Gets or sets the <see cref="CqlParameter" /> with the specified parameter name.
         /// </summary>
-        internal void Fixate()
-        {
-            if (_metaData == null)
-            {
-                _metaData = new MetaData();
-                foreach (CqlParameter param in _parameters)
-                {
-                    //add corresponding column to the metaData
-                    _metaData.Add(param.Column);
-
-                    //make it unchangable in type and name
-                    param.IsFixed = true;
-                }
-            }
-        }
-
-        /// <summary>
-        /// Gets or sets the <see cref="CqlParameter"/> with the specified parameter name.
-        /// </summary>
-        /// <value>
-        /// The <see cref="CqlParameter"/>.
-        /// </value>
-        /// <param name="paramName">Name of the parameter.</param>
-        /// <returns></returns>
+        /// <value> The <see cref="CqlParameter" /> . </value>
+        /// <param name="paramName"> Name of the parameter. </param>
+        /// <returns> </returns>
         public new CqlParameter this[string paramName]
         {
             get { return GetCqlParameter(paramName); }
@@ -80,10 +59,10 @@ namespace CqlSharp
         }
 
         /// <summary>
-        /// Gets and sets the <see cref="T:System.Data.Common.DbParameter" /> at the specified index.
+        ///   Gets and sets the <see cref="T:System.Data.Common.DbParameter" /> at the specified index.
         /// </summary>
-        /// <param name="index">The index.</param>
-        /// <returns></returns>
+        /// <param name="index"> The index. </param>
+        /// <returns> </returns>
         public new CqlParameter this[int index]
         {
             get { return _parameters[index]; }
@@ -142,6 +121,48 @@ namespace CqlSharp
         }
 
         /// <summary>
+        ///   Gets the serialized values of this CqlParameterCollection
+        /// </summary>
+        /// <value> The values. </value>
+        internal byte[][] Values
+        {
+            get
+            {
+                var values = new byte[Count][];
+                for (int i = 0; i < Count; i++)
+                {
+                    CqlParameter param = this[i];
+
+                    if (param.Value == DBNull.Value) continue;
+
+                    values[i] = ValueSerialization.Serialize(param.CqlType, param.CollectionKeyType,
+                                                             param.CollectionValueType, param.Value);
+                }
+
+                return values;
+            }
+        }
+
+        /// <summary>
+        ///   Fixates this instance.
+        /// </summary>
+        internal void Fixate()
+        {
+            if (_metaData == null)
+            {
+                _metaData = new MetaData();
+                foreach (CqlParameter param in _parameters)
+                {
+                    //add corresponding column to the metaData
+                    _metaData.Add(param.Column);
+
+                    //make it unchangable in type and name
+                    param.IsFixed = true;
+                }
+            }
+        }
+
+        /// <summary>
         ///   Adds the specified <see cref="T:System.Data.Common.DbParameter" /> object to the <see
         ///    cref="T:System.Data.Common.DbParameterCollection" />.
         /// </summary>
@@ -151,14 +172,14 @@ namespace CqlSharp
         /// <filterpriority>1</filterpriority>
         public override int Add(object value)
         {
-            return Add((CqlParameter)value);
+            return Add((CqlParameter) value);
         }
 
         /// <summary>
-        /// Adds the specified parameter.
+        ///   Adds the specified parameter.
         /// </summary>
-        /// <param name="parameter">The parameter.</param>
-        /// <returns></returns>
+        /// <param name="parameter"> The parameter. </param>
+        /// <returns> </returns>
         public int Add(CqlParameter parameter)
         {
             CheckIfFixed();
@@ -168,13 +189,13 @@ namespace CqlSharp
         }
 
         /// <summary>
-        /// Adds a new parameter with the specified name and value. The name will be
-        /// parsed to extract table and keyspace information (if any). The parameter type
-        /// will be guessed from the object value.
+        ///   Adds a new parameter with the specified name and value. The name will be
+        ///   parsed to extract table and keyspace information (if any). The parameter type
+        ///   will be guessed from the object value.
         /// </summary>
-        /// <param name="name">The name.</param>
-        /// <param name="value">The value.</param>
-        /// <returns></returns>
+        /// <param name="name"> The name. </param>
+        /// <param name="value"> The value. </param>
+        /// <returns> </returns>
         public CqlParameter Add(string name, object value)
         {
             var parameter = new CqlParameter(name, value);
@@ -183,13 +204,13 @@ namespace CqlSharp
         }
 
         /// <summary>
-        /// Adds a new parameter with the specified name and type
+        ///   Adds a new parameter with the specified name and type
         /// </summary>
-        /// <param name="name">The name.</param>
-        /// <param name="type">The type.</param>
-        /// <param name="keyType">Type of the key.</param>
-        /// <param name="valueType">Type of the value.</param>
-        /// <returns></returns>
+        /// <param name="name"> The name. </param>
+        /// <param name="type"> The type. </param>
+        /// <param name="keyType"> Type of the key. </param>
+        /// <param name="valueType"> Type of the value. </param>
+        /// <returns> </returns>
         public CqlParameter Add(string name, CqlType type, CqlType? keyType = null, CqlType? valueType = null)
         {
             var parameter = new CqlParameter(name, type, keyType, valueType);
@@ -198,15 +219,16 @@ namespace CqlSharp
         }
 
         /// <summary>
-        /// Adds a new parameter with the specified name and type
+        ///   Adds a new parameter with the specified name and type
         /// </summary>
-        /// <param name="table">The table.</param>
-        /// <param name="name">The name.</param>
-        /// <param name="type">The type.</param>
-        /// <param name="keyType">Type of the key.</param>
-        /// <param name="valueType">Type of the value.</param>
-        /// <returns></returns>
-        public CqlParameter Add(string table, string name, CqlType type, CqlType? keyType = null, CqlType? valueType = null)
+        /// <param name="table"> The table. </param>
+        /// <param name="name"> The name. </param>
+        /// <param name="type"> The type. </param>
+        /// <param name="keyType"> Type of the key. </param>
+        /// <param name="valueType"> Type of the value. </param>
+        /// <returns> </returns>
+        public CqlParameter Add(string table, string name, CqlType type, CqlType? keyType = null,
+                                CqlType? valueType = null)
         {
             var parameter = new CqlParameter(table, name, type, keyType, valueType);
             Add(parameter);
@@ -214,16 +236,17 @@ namespace CqlSharp
         }
 
         /// <summary>
-        /// Adds a new parameter with the specified name and type
+        ///   Adds a new parameter with the specified name and type
         /// </summary>
-        /// <param name="keyspace">The name of the keyspace.</param>
-        /// <param name="table">The name of the table.</param>
-        /// <param name="name">The name of the column.</param>
-        /// <param name="type">The type.</param>
-        /// <param name="keyType">Type of the key (if the type if a map).</param>
-        /// <param name="valueType">Type of the value (if the type is a map, set, or list).</param>
-        /// <returns></returns>
-        public CqlParameter Add(string keyspace, string table, string name, CqlType type, CqlType? keyType = null, CqlType? valueType = null)
+        /// <param name="keyspace"> The name of the keyspace. </param>
+        /// <param name="table"> The name of the table. </param>
+        /// <param name="name"> The name of the column. </param>
+        /// <param name="type"> The type. </param>
+        /// <param name="keyType"> Type of the key (if the type if a map). </param>
+        /// <param name="valueType"> Type of the value (if the type is a map, set, or list). </param>
+        /// <returns> </returns>
+        public CqlParameter Add(string keyspace, string table, string name, CqlType type, CqlType? keyType = null,
+                                CqlType? valueType = null)
         {
             var parameter = new CqlParameter(keyspace, table, name, type, keyType, valueType);
             Add(parameter);
@@ -231,13 +254,14 @@ namespace CqlSharp
         }
 
         /// <summary>
-        /// Checks the difference fixed.
+        ///   Checks the difference fixed.
         /// </summary>
         /// <exception cref="System.InvalidOperationException">Collection is readonly</exception>
         private void CheckIfFixed()
         {
             if (IsReadOnly)
-                throw new InvalidOperationException("Can't change the CqlParameterCollection after it has been used to prepare or run a query");
+                throw new InvalidOperationException(
+                    "Can't change the CqlParameterCollection after it has been used to prepare or run a query");
         }
 
         /// <summary>
@@ -250,7 +274,7 @@ namespace CqlSharp
         /// <filterpriority>1</filterpriority>
         public override bool Contains(object value)
         {
-            return _parameters.Contains((CqlParameter)value);
+            return _parameters.Contains((CqlParameter) value);
         }
 
         /// <summary>
@@ -273,7 +297,7 @@ namespace CqlSharp
         /// <filterpriority>2</filterpriority>
         public override int IndexOf(object value)
         {
-            return _parameters.IndexOf((CqlParameter)value);
+            return _parameters.IndexOf((CqlParameter) value);
         }
 
         /// <summary>
@@ -286,7 +310,7 @@ namespace CqlSharp
         {
             CheckIfFixed();
 
-            var param = (CqlParameter)value;
+            var param = (CqlParameter) value;
             _parameters.Insert(index, param);
         }
 
@@ -299,7 +323,7 @@ namespace CqlSharp
         {
             CheckIfFixed();
 
-            var param = (CqlParameter)value;
+            var param = (CqlParameter) value;
             _parameters.Remove(param);
         }
 
@@ -334,7 +358,7 @@ namespace CqlSharp
         /// <param name="value"> The new <see cref="T:System.Data.Common.DbParameter" /> value. </param>
         protected override void SetParameter(int index, DbParameter value)
         {
-            SetParameter(index, (CqlParameter)value);
+            SetParameter(index, (CqlParameter) value);
         }
 
         /// <summary>
@@ -353,7 +377,7 @@ namespace CqlSharp
         /// <param name="value"> The new <see cref="T:System.Data.Common.DbParameter" /> value. </param>
         protected override void SetParameter(string parameterName, DbParameter value)
         {
-            SetParameter(parameterName, (CqlParameter)value);
+            SetParameter(parameterName, (CqlParameter) value);
         }
 
         /// <summary>
@@ -396,10 +420,10 @@ namespace CqlSharp
         }
 
         /// <summary>
-        /// Gets the index of the parameter with the given name.
+        ///   Gets the index of the parameter with the given name.
         /// </summary>
-        /// <param name="parameterName">Name of the parameter.</param>
-        /// <returns></returns>
+        /// <param name="parameterName"> Name of the parameter. </param>
+        /// <returns> </returns>
         /// <exception cref="System.IndexOutOfRangeException">Parameter with the given name is not found</exception>
         private int GetIndex(string parameterName)
         {
@@ -473,7 +497,7 @@ namespace CqlSharp
             if (array == null)
                 throw new ArgumentNullException("array");
 
-            var c = (ICollection)_parameters;
+            var c = (ICollection) _parameters;
             c.CopyTo(array, index);
         }
 
@@ -496,32 +520,6 @@ namespace CqlSharp
             foreach (CqlParameter cqlParameter in values)
             {
                 _parameters.Add(cqlParameter);
-            }
-
-        }
-
-        /// <summary>
-        /// Gets the serialized values of this CqlParameterCollection
-        /// </summary>
-        /// <value>
-        /// The values.
-        /// </value>
-        internal byte[][] Values
-        {
-            get
-            {
-                var values = new byte[Count][];
-                for (int i = 0; i < Count; i++)
-                {
-                    CqlParameter param = this[i];
-
-                    if (param.Value == DBNull.Value) continue;
-
-                    values[i] = ValueSerialization.Serialize(param.CqlType, param.CollectionKeyType,
-                                                             param.CollectionValueType, param.Value);
-                }
-
-                return values;
             }
         }
 

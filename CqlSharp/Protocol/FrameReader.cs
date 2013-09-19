@@ -13,14 +13,14 @@
 // See the License for the specific language governing permissions and
 // limitations under the License.
 
-using CqlSharp.Memory;
-using CqlSharp.Network.nSnappy;
 using System;
 using System.Collections.Generic;
 using System.IO;
 using System.Net;
 using System.Text;
 using System.Threading.Tasks;
+using CqlSharp.Memory;
+using CqlSharp.Network.nSnappy;
 
 namespace CqlSharp.Protocol
 {
@@ -42,7 +42,7 @@ namespace CqlSharp.Protocol
 
         public FrameReader(Stream innerStream, int length)
         {
-            int bufferSize = Math.Min(4 * 1024, length);
+            int bufferSize = Math.Min(4*1024, length);
             _buffer = MemoryPool.Instance.Take(bufferSize);
 
             _remainingInBuffer = 0;
@@ -150,12 +150,13 @@ namespace CqlSharp.Protocol
             //load all remaining frame data
             while (_unreadFromStream > 0)
             {
-                _remainingInBuffer += await ReadAsync(newBuffer, _remainingInBuffer, newSize - _remainingInBuffer).ConfigureAwait(false);
+                _remainingInBuffer +=
+                    await ReadAsync(newBuffer, _remainingInBuffer, newSize - _remainingInBuffer).ConfigureAwait(false);
             }
         }
 
         /// <summary>
-        /// Decompresses the frame contents async.
+        ///   Decompresses the frame contents async.
         /// </summary>
         public async Task DecompressAsync()
         {
@@ -265,7 +266,6 @@ namespace CqlSharp.Protocol
 
             while (!TryGetSegmentFromBuffer(size))
             {
-
                 //fill up the buffer with more data
                 int offset = _position + _remainingInBuffer;
                 int extra = await ReadAsync(_buffer, offset, _buffer.Length - offset).ConfigureAwait(false);

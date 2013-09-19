@@ -13,10 +13,10 @@
 // See the License for the specific language governing permissions and
 // limitations under the License.
 
-using CqlSharp.Network.Partition;
 using System;
 using System.Collections.Concurrent;
 using System.Threading;
+using CqlSharp.Network.Partition;
 
 namespace CqlSharp.Network
 {
@@ -45,7 +45,7 @@ namespace CqlSharp.Network
             _nodes = nodes;
             _config = config;
             _connections = new ConcurrentStack<Connection>();
-            _rndGen = new Random((int)DateTime.Now.Ticks);
+            _rndGen = new Random((int) DateTime.Now.Ticks);
             _connectionCount = 0;
         }
 
@@ -68,7 +68,7 @@ namespace CqlSharp.Network
                     int offset = _rndGen.Next(count);
                     for (int i = 0; i < count; i++)
                     {
-                        connection = _nodes[(offset + i) % count].GetConnection();
+                        connection = _nodes[(offset + i)%count].GetConnection();
                         if (connection != null)
                             return connection;
                     }
@@ -92,7 +92,7 @@ namespace CqlSharp.Network
                 int offset = _rndGen.Next(count);
                 for (int i = 0; i < count; i++)
                 {
-                    connection = _nodes[(offset + i) % count].CreateConnection();
+                    connection = _nodes[(offset + i)%count].CreateConnection();
                     if (connection != null)
                     {
                         Interlocked.Increment(ref _connectionCount);

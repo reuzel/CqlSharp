@@ -13,15 +13,16 @@
 // See the License for the specific language governing permissions and
 // limitations under the License.
 
-using CqlSharp.Logging;
-using CqlSharp.Network;
-using CqlSharp.Network.Partition;
-using CqlSharp.Protocol;
 using System;
 using System.Data;
 using System.Data.Common;
 using System.Threading;
 using System.Threading.Tasks;
+using CqlSharp.Logging;
+using CqlSharp.Memory;
+using CqlSharp.Network;
+using CqlSharp.Network.Partition;
+using CqlSharp.Protocol;
 
 namespace CqlSharp
 {
@@ -66,7 +67,7 @@ namespace CqlSharp
         /// <param name="cql"> The CQL. </param>
         /// <param name="level"> The level. </param>
         public CqlCommand(IDbConnection connection, string cql, CqlConsistency level)
-            : this((CqlConnection)connection, cql, level)
+            : this((CqlConnection) connection, cql, level)
         {
         }
 
@@ -86,7 +87,7 @@ namespace CqlSharp
         /// <param name="connection"> The connection. </param>
         /// <param name="cql"> The CQL. </param>
         public CqlCommand(IDbConnection connection, string cql)
-            : this((CqlConnection)connection, cql, CqlConsistency.One)
+            : this((CqlConnection) connection, cql, CqlConsistency.One)
         {
         }
 
@@ -106,7 +107,7 @@ namespace CqlSharp
         /// </summary>
         /// <param name="connection"> The connection. </param>
         public CqlCommand(IDbConnection connection)
-            : this((CqlConnection)connection, "", CqlConsistency.One)
+            : this((CqlConnection) connection, "", CqlConsistency.One)
         {
         }
 
@@ -138,11 +139,9 @@ namespace CqlSharp
         public int Load { get; set; }
 
         /// <summary>
-        /// Gets a value indicating whether this command is prepared.
+        ///   Gets a value indicating whether this command is prepared.
         /// </summary>
-        /// <value>
-        ///   <c>true</c> if this command is prepared; otherwise, <c>false</c>.
-        /// </value>
+        /// <value> <c>true</c> if this command is prepared; otherwise, <c>false</c> . </value>
         public bool IsPrepared
         {
             get { return _prepared; }
@@ -214,9 +213,9 @@ namespace CqlSharp
         }
 
         /// <summary>
-        /// Gets the collection of <see cref="T:System.Data.Common.DbParameter" /> objects.
+        ///   Gets the collection of <see cref="T:System.Data.Common.DbParameter" /> objects.
         /// </summary>
-        /// <returns>The parameters of the SQL statement or stored procedure.</returns>
+        /// <returns> The parameters of the SQL statement or stored procedure. </returns>
         protected override DbParameterCollection DbParameterCollection
         {
             get { return Parameters; }
@@ -279,9 +278,9 @@ namespace CqlSharp
         }
 
         /// <summary>
-        /// Gets or sets the <see cref="T:CqlSharp.CqlConnection" /> used by this <see cref="T:CqlSharp.CqlCommand" />.
+        ///   Gets or sets the <see cref="T:CqlSharp.CqlConnection" /> used by this <see cref="T:CqlSharp.CqlCommand" />.
         /// </summary>
-        /// <returns>The connection to the data source.</returns>
+        /// <returns> The connection to the data source. </returns>
         public new CqlConnection Connection
         {
             get { return _connection; }
@@ -289,21 +288,22 @@ namespace CqlSharp
         }
 
         /// <summary>
-        /// Gets or sets the <see cref="T:System.Data.Common.DbConnection" /> used by this <see cref="T:System.Data.Common.DbCommand" />.
+        ///   Gets or sets the <see cref="T:System.Data.Common.DbConnection" /> used by this <see
+        ///    cref="T:System.Data.Common.DbCommand" />.
         /// </summary>
-        /// <returns>The connection to the data source.</returns>
+        /// <returns> The connection to the data source. </returns>
         protected override DbConnection DbConnection
         {
             get { return Connection; }
-            set { Connection = (CqlConnection)value; }
+            set { Connection = (CqlConnection) value; }
         }
 
         /// <summary>
-        /// Gets or sets the <see cref="P:System.Data.Common.DbCommand.DbTransaction" /> within which this <see cref="T:System.Data.Common.DbCommand" /> object executes.
+        ///   Gets or sets the <see cref="P:System.Data.Common.DbCommand.DbTransaction" /> within which this <see
+        ///    cref="T:System.Data.Common.DbCommand" /> object executes.
         /// </summary>
-        /// <returns>The transaction within which a Command object of a .NET Framework data provider executes. The default value is a null reference (Nothing in Visual Basic).</returns>
-        /// <exception cref="System.NotSupportedException">
-        /// </exception>
+        /// <returns> The transaction within which a Command object of a .NET Framework data provider executes. The default value is a null reference (Nothing in Visual Basic). </returns>
+        /// <exception cref="System.NotSupportedException"></exception>
         protected override DbTransaction DbTransaction
         {
             get { throw new NotSupportedException(); }
@@ -311,16 +311,17 @@ namespace CqlSharp
         }
 
         /// <summary>
-        /// Gets or sets a value indicating whether the command object should be visible in a customized interface control.
+        ///   Gets or sets a value indicating whether the command object should be visible in a customized interface control.
         /// </summary>
-        /// <returns>true, if the command object should be visible in a control; otherwise false. The default is true.</returns>
+        /// <returns> true, if the command object should be visible in a control; otherwise false. The default is true. </returns>
         public override bool DesignTimeVisible { get; set; }
 
 
         /// <summary>
-        /// Gets or sets how command results are applied to the <see cref="T:System.Data.DataRow" /> when used by the Update method of a <see cref="T:System.Data.Common.DbDataAdapter" />.
+        ///   Gets or sets how command results are applied to the <see cref="T:System.Data.DataRow" /> when used by the Update method of a <see
+        ///    cref="T:System.Data.Common.DbDataAdapter" />.
         /// </summary>
-        /// <returns>One of the <see cref="T:System.Data.UpdateRowSource" /> values. The default is Both unless the command is automatically generated. Then the default is None.</returns>
+        /// <returns> One of the <see cref="T:System.Data.UpdateRowSource" /> values. The default is Both unless the command is automatically generated. Then the default is None. </returns>
         public override UpdateRowSource UpdatedRowSource { get; set; }
 
         /// <summary>
@@ -376,7 +377,7 @@ namespace CqlSharp
 
             //setup new token
             _cancelTokenSource = CommandTimeout > 0
-                                     ? new CancellationTokenSource(CommandTimeout * 1000)
+                                     ? new CancellationTokenSource(CommandTimeout*1000)
                                      : new CancellationTokenSource();
             return _cancelTokenSource.Token;
         }
@@ -593,9 +594,9 @@ namespace CqlSharp
                 logger.LogVerbose("Start executing query");
 
                 ResultFrame result =
-                    await RunWithRetry(ExecuteInternalAsync, logger, cancellationToken).ConfigureAwait(false);
+                    await RunWithRetry(SendQueryAsync, logger, cancellationToken).ConfigureAwait(false);
 
-                if (result.ResultOpcode != ResultOpcode.Rows)
+                if (result.CqlResultType != CqlResultType.Rows)
                 {
                     var ex = new CqlException("Can not create a DataReader for non-select query.");
                     logger.LogError("Error executing reader: {0}", ex);
@@ -685,21 +686,21 @@ namespace CqlSharp
             {
                 logger.LogVerbose("Start executing query");
 
-                ResultFrame result = await RunWithRetry(ExecuteInternalAsync, logger, token).ConfigureAwait(false);
-                switch (result.ResultOpcode)
+                ResultFrame result = await RunWithRetry(SendQueryAsync, logger, token).ConfigureAwait(false);
+                switch (result.CqlResultType)
                 {
-                    case ResultOpcode.Rows:
+                    case CqlResultType.Rows:
                         var reader = new CqlDataReader(result, null);
                         _queryResult = reader;
                         logger.LogQuery("Query {0} returned {1} results", Query, reader.Count);
                         return -1;
 
-                    case ResultOpcode.Void:
+                    case CqlResultType.Void:
                         logger.LogQuery("Query {0} executed succesfully", Query);
-                        _queryResult = new CqlVoid { TracingId = result.TracingId };
+                        _queryResult = new CqlVoid {TracingId = result.TracingId};
                         return 1;
 
-                    case ResultOpcode.SchemaChange:
+                    case CqlResultType.SchemaChange:
                         logger.LogQuery("Query {0} resulted in {1}.{2} {3}", Query, result.Keyspace, result.Table,
                                         result.Change);
 
@@ -713,7 +714,7 @@ namespace CqlSharp
 
                         return -1;
 
-                    case ResultOpcode.SetKeyspace:
+                    case CqlResultType.SetKeyspace:
                         logger.LogQuery("Query {0} resulted in keyspace set to {1}", Query, result.Keyspace);
                         _queryResult = new CqlSetKeyspace
                                            {
@@ -747,36 +748,33 @@ namespace CqlSharp
         /// </summary>
         /// <param name="token"> The cancellation token. </param>
         /// <returns> </returns>
-        public async Task PrepareAsync(CancellationToken token)
+        public Task PrepareAsync(CancellationToken token)
         {
+            var logger = _connection.LoggerManager.GetLogger("CqlSharp.CqlCommand.Prepare");
+
             ResultFrame result;
-            if (!_connection.PreparedQueryCache.TryGetValue(Query, out result))
+            if (_connection.PreparedQueryCache.TryGetValue(Query, out result))
             {
-                //continue?
-                token.ThrowIfCancellationRequested();
+                FinalizePrepare(result, true);
 
-                var logger = _connection.LoggerManager.GetLogger("CqlSharp.CqlCommand.Prepare");
+                logger.LogVerbose("Prepared query {0} from Cache", Query);
 
-                logger.LogVerbose("Waiting on Throttle");
-
-                //wait until allowed
-                _connection.Throttle.Wait();
-                try
-                {
-                    //continue?
-                    token.ThrowIfCancellationRequested();
-
-                    logger.LogVerbose("Start executing prepare query");
-
-                    result = await RunWithRetry(PrepareInternalAsync, logger, token).ConfigureAwait(false);
-
-                    logger.LogQuery("Prepared query {0}", Query);
-                }
-                finally
-                {
-                    _connection.Throttle.Release();
-                }
+                //return a already completed task
+                return TaskCache.CompletedTask;
             }
+
+            //nothing from cache, go the long way
+            return PrepareAsyncInternal(token, logger);
+        }
+
+        /// <summary>
+        ///   Finalizes a prepare operation.
+        /// </summary>
+        /// <param name="result"> The result. </param>
+        /// <param name="fromCache"> if set to <c>true</c> [from cache]. </param>
+        private void FinalizePrepare(ResultFrame result, bool fromCache)
+        {
+            _queryResult = new CqlPrepared {TracingId = result.TracingId, FromCache = fromCache};
 
             //set as prepared
             _prepared = true;
@@ -787,26 +785,72 @@ namespace CqlSharp
 
             //fix the parameter collection (if not done so already)
             _parameters.Fixate();
-
         }
+
+        /// <summary>
+        ///   Prepares the command asynchronous by sending an actual prepare request to the server.
+        /// </summary>
+        /// <param name="token"> The cancellation token. </param>
+        /// <param name="logger"> </param>
+        /// <returns> </returns>
+        private async Task PrepareAsyncInternal(CancellationToken token, Logger logger)
+        {
+            //continue?
+            token.ThrowIfCancellationRequested();
+
+            logger.LogVerbose("Waiting on Throttle");
+
+            //wait until allowed
+            _connection.Throttle.Wait();
+
+            try
+            {
+                //continue?
+                token.ThrowIfCancellationRequested();
+
+                logger.LogVerbose("Start executing prepare query");
+
+                ResultFrame result = await RunWithRetry(SendPrepareAsync, logger, token).ConfigureAwait(false);
+
+                FinalizePrepare(result, false);
+
+                logger.LogQuery("Prepared query {0}", Query);
+            }
+            finally
+            {
+                _connection.Throttle.Release();
+            }
+        }
+
 
         /// <summary>
         ///   Creates a prepared (or compiled) version of the command on the data source.
         /// </summary>
         public override void Prepare()
         {
-            try
+            var logger = _connection.LoggerManager.GetLogger("CqlSharp.CqlCommand.Prepare");
+
+            ResultFrame result;
+            if (_connection.PreparedQueryCache.TryGetValue(Query, out result))
             {
-                var token = SetupCancellationToken();
-                PrepareAsync(token).Wait();
+                FinalizePrepare(result, true);
+                logger.LogVerbose("Prepared query {0} from Cache", Query);
             }
-            catch (AggregateException aex)
+            else
             {
-                throw aex.InnerException;
-            }
-            finally
-            {
-                _cancelTokenSource = null;
+                try
+                {
+                    var token = SetupCancellationToken();
+                    PrepareAsyncInternal(token, logger).Wait();
+                }
+                catch (AggregateException aex)
+                {
+                    throw aex.InnerException;
+                }
+                finally
+                {
+                    _cancelTokenSource = null;
+                }
             }
         }
 
@@ -845,7 +889,7 @@ namespace CqlSharp
                     {
                         var useFrame = new QueryFrame("use '" + _connection.Database + "';", CqlConsistency.One, null);
                         var result = await connection.SendRequestAsync(useFrame, logger, 1, false, token) as ResultFrame;
-                        if (result == null || result.ResultOpcode != ResultOpcode.SetKeyspace)
+                        if (result == null || result.CqlResultType != CqlResultType.SetKeyspace)
                         {
                             if (result != null) result.Dispose();
                             throw new CqlException("Unexpected frame received");
@@ -915,8 +959,8 @@ namespace CqlSharp
         /// <param name="token"> The token. </param>
         /// <returns> </returns>
         /// <exception cref="CqlException">Unexpected frame received  + response.OpCode</exception>
-        private async Task<ResultFrame> PrepareInternalAsync(Connection connection, Logger logger,
-                                                             CancellationToken token)
+        private async Task<ResultFrame> SendPrepareAsync(Connection connection, Logger logger,
+                                                         CancellationToken token)
         {
             //create prepare frame
             var query = new PrepareFrame(Query);
@@ -928,9 +972,10 @@ namespace CqlSharp
             logger.LogVerbose("Sending prepare {0} using {1}", Query, connection);
 
             //send prepare request
-            using (Frame response = await connection.SendRequestAsync(query, logger, 1, false, token).ConfigureAwait(false))
+            using (
+                Frame response = await connection.SendRequestAsync(query, logger, 1, false, token).ConfigureAwait(false)
+                )
             {
-
                 var result = response as ResultFrame;
                 if (result == null)
                 {
@@ -953,8 +998,8 @@ namespace CqlSharp
         /// <param name="token"> The token. </param>
         /// <returns> </returns>
         /// <exception cref="CqlException">Unexpected frame received</exception>
-        private async Task<ResultFrame> ExecuteInternalAsync(Connection connection, Logger logger,
-                                                             CancellationToken token)
+        private async Task<ResultFrame> SendQueryAsync(Connection connection, Logger logger,
+                                                       CancellationToken token)
         {
             QueryFrameBase queryFrame;
             if (_prepared)
@@ -963,7 +1008,7 @@ namespace CqlSharp
                 if (!connection.Node.PreparedQueryIds.TryGetValue(Query, out queryId))
                 {
                     ResultFrame prepareResult =
-                        await PrepareInternalAsync(connection, logger, token).ConfigureAwait(false);
+                        await SendPrepareAsync(connection, logger, token).ConfigureAwait(false);
 
                     queryId = prepareResult.PreparedQueryId;
                 }
@@ -983,7 +1028,8 @@ namespace CqlSharp
             if (EnableTracing)
                 queryFrame.Flags |= FrameFlags.Tracing;
 
-            Frame response = await connection.SendRequestAsync(queryFrame, logger, Load, false, token).ConfigureAwait(false);
+            Frame response =
+                await connection.SendRequestAsync(queryFrame, logger, Load, false, token).ConfigureAwait(false);
 
             var result = response as ResultFrame;
             if (result != null)
@@ -1004,22 +1050,18 @@ namespace CqlSharp
         }
 
         /// <summary>
-        /// Creates a new instance of a <see cref="T:CqlSharp.CqlParameter" /> object.
+        ///   Creates a new instance of a <see cref="T:CqlSharp.CqlParameter" /> object.
         /// </summary>
-        /// <returns>
-        /// A <see cref="T:CqlSharp.CqlParameter" /> object.
-        /// </returns>
+        /// <returns> A <see cref="T:CqlSharp.CqlParameter" /> object. </returns>
         public new CqlParameter CreateParameter()
         {
             return new CqlParameter();
         }
 
         /// <summary>
-        /// Creates a new instance of a <see cref="T:System.Data.Common.DbParameter" /> object.
+        ///   Creates a new instance of a <see cref="T:System.Data.Common.DbParameter" /> object.
         /// </summary>
-        /// <returns>
-        /// A <see cref="T:System.Data.Common.DbParameter" /> object.
-        /// </returns>
+        /// <returns> A <see cref="T:System.Data.Common.DbParameter" /> object. </returns>
         protected override DbParameter CreateDbParameter()
         {
             return CreateParameter();

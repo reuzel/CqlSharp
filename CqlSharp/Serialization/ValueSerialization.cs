@@ -13,7 +13,6 @@
 // See the License for the specific language governing permissions and
 // limitations under the License.
 
-using CqlSharp.Protocol;
 using System;
 using System.Collections;
 using System.Collections.Generic;
@@ -21,6 +20,7 @@ using System.IO;
 using System.Net;
 using System.Numerics;
 using System.Text;
+using CqlSharp.Protocol;
 
 namespace CqlSharp.Serialization
 {
@@ -32,10 +32,10 @@ namespace CqlSharp.Serialization
     /// </remarks>
     internal static class ValueSerialization
     {
-
         private static readonly bool IsLittleEndian = BitConverter.IsLittleEndian;
 
-        public static byte[] Serialize(CqlType type, CqlType? collectionKeyType, CqlType? collectionValueType, object data)
+        public static byte[] Serialize(CqlType type, CqlType? collectionKeyType, CqlType? collectionValueType,
+                                       object data)
         {
             //null value check
             if (data == null || data == DBNull.Value)
@@ -49,7 +49,7 @@ namespace CqlSharp.Serialization
                     if (!collectionValueType.HasValue)
                         throw new CqlException("Column collection type must has its value type set");
 
-                    var coll = (IEnumerable)data;
+                    var coll = (IEnumerable) data;
                     using (var ms = new MemoryStream())
                     {
                         //write length placeholder
@@ -75,10 +75,10 @@ namespace CqlSharp.Serialization
                     if (!collectionValueType.HasValue)
                         throw new CqlException("Column map type must has its value type set");
 
-                    var map = (IDictionary)data;
+                    var map = (IDictionary) data;
                     using (var ms = new MemoryStream())
                     {
-                        ms.WriteShort((ushort)map.Count);
+                        ms.WriteShort((ushort) map.Count);
                         foreach (DictionaryEntry de in map)
                         {
                             byte[] rawDataKey = Serialize(collectionKeyType.Value, de.Key);
@@ -117,7 +117,7 @@ namespace CqlSharp.Serialization
                     break;
 
                 case CqlType.Blob:
-                    rawData = (byte[])data;
+                    rawData = (byte[]) data;
                     break;
 
                 case CqlType.Double:
@@ -132,7 +132,7 @@ namespace CqlSharp.Serialization
 
                 case CqlType.Timestamp:
                     if (data is long)
-                        rawData = BitConverter.GetBytes((long)data);
+                        rawData = BitConverter.GetBytes((long) data);
                     else
                         rawData = BitConverter.GetBytes(Convert.ToDateTime(data).ToTimestamp());
 
@@ -157,7 +157,7 @@ namespace CqlSharp.Serialization
                         rawData = BigInteger.Parse(dataString).ToByteArray();
                     else
                     {
-                        var integer = (BigInteger)data;
+                        var integer = (BigInteger) data;
                         rawData = integer.ToByteArray();
                     }
 
@@ -171,7 +171,7 @@ namespace CqlSharp.Serialization
 
                 case CqlType.Uuid:
                 case CqlType.Timeuuid:
-                    var guid = (Guid)data;
+                    var guid = (Guid) data;
 
                     //return null if Guid is a nil Guid
                     if (guid == default(Guid))
@@ -192,7 +192,7 @@ namespace CqlSharp.Serialization
                     break;
 
                 case CqlType.Inet:
-                    rawData = ((IPAddress)data).GetAddressBytes();
+                    rawData = ((IPAddress) data).GetAddressBytes();
                     break;
 
                 default:
@@ -202,7 +202,8 @@ namespace CqlSharp.Serialization
             return rawData;
         }
 
-        public static object Deserialize(CqlType type, CqlType? collectionKeyType, CqlType? collectionValueType, byte[] rawData)
+        public static object Deserialize(CqlType type, CqlType? collectionKeyType, CqlType? collectionValueType,
+                                         byte[] rawData)
         {
             //skip parsing and return null value when rawData is null
             if (rawData == null)
@@ -220,7 +221,7 @@ namespace CqlSharp.Serialization
                         throw new CqlException("Can't deserialize a list without a list content type");
 
                     Type typedColl = type.ToType(collectionKeyType, collectionValueType);
-                    var list = (IList)Activator.CreateInstance(typedColl);
+                    var list = (IList) Activator.CreateInstance(typedColl);
                     using (var ms = new MemoryStream(rawData))
                     {
                         ushort nbElem = ms.ReadShort();
@@ -239,8 +240,8 @@ namespace CqlSharp.Serialization
                         throw new CqlException("Can't deserialize a set without a set content type");
 
                     Type colType = collectionValueType.Value.ToType();
-                    Type tempListType = typeof(List<>).MakeGenericType(colType);
-                    var tempList = (IList)Activator.CreateInstance(tempListType);
+                    Type tempListType = typeof (List<>).MakeGenericType(colType);
+                    var tempList = (IList) Activator.CreateInstance(tempListType);
                     using (var ms = new MemoryStream(rawData))
                     {
                         ushort nbElem = ms.ReadShort();
@@ -264,7 +265,7 @@ namespace CqlSharp.Serialization
                         throw new CqlException("Column map type must has its value type set");
 
                     Type typedDic = type.ToType(collectionKeyType, collectionValueType);
-                    var dic = (IDictionary)Activator.CreateInstance(typedDic);
+                    var dic = (IDictionary) Activator.CreateInstance(typedDic);
                     using (var ms = new MemoryStream(rawData))
                     {
                         ushort nbElem = ms.ReadShort();
@@ -352,10 +353,5 @@ namespace CqlSharp.Serialization
 
             return data;
         }
-
-
-
-
-
     }
 }

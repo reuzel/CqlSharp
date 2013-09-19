@@ -1,28 +1,32 @@
-﻿using System;
+﻿// CqlSharp - CqlSharp
+// Copyright (c) 2013 Joost Reuzel
+//   
+// Licensed under the Apache License, Version 2.0 (the "License");
+// you may not use this file except in compliance with the License.
+// You may obtain a copy of the License at
+//   
+// http://www.apache.org/licenses/LICENSE-2.0
+//  
+// Unless required by applicable law or agreed to in writing, software
+// distributed under the License is distributed on an "AS IS" BASIS,
+// WITHOUT WARRANTIES OR CONDITIONS OF ANY KIND, either express or implied.
+// See the License for the specific language governing permissions and
+// limitations under the License.
+
+using System;
 using System.Collections.Generic;
+using System.IO;
 using System.Threading.Tasks;
 
 namespace CqlSharp.Protocol
 {
     /// <summary>
-    /// Frame holding a batch of statements
+    ///   Frame holding a batch of statements
     /// </summary>
     internal class BatchFrame : Frame
     {
-
         /// <summary>
-        /// Structure to hold values of commands
-        /// </summary>
-        public class BatchedCommand
-        {
-            public bool IsPrepared { get; set; }
-            public byte[] QueryId { get; set; }
-            public string CqlQuery { get; set; }
-            public byte[][] ParameterValues { get; set; }
-        }
-
-        /// <summary>
-        /// Initializes a new instance of the <see cref="BatchFrame"/> class.
+        ///   Initializes a new instance of the <see cref="BatchFrame" /> class.
         /// </summary>
         public BatchFrame()
         {
@@ -33,40 +37,34 @@ namespace CqlSharp.Protocol
         }
 
         /// <summary>
-        /// Gets or sets the type of the batch.
+        ///   Gets or sets the type of the batch.
         /// </summary>
-        /// <value>
-        /// The type.
-        /// </value>
+        /// <value> The type. </value>
         public CqlBatchType Type { get; set; }
 
         /// <summary>
-        /// Gets or sets the commands.
+        ///   Gets or sets the commands.
         /// </summary>
-        /// <value>
-        /// The commands.
-        /// </value>
+        /// <value> The commands. </value>
         public IList<BatchedCommand> Commands { get; set; }
 
         /// <summary>
-        /// Gets or sets the CQL consistency.
+        ///   Gets or sets the CQL consistency.
         /// </summary>
-        /// <value>
-        /// The CQL consistency.
-        /// </value>
+        /// <value> The CQL consistency. </value>
         public CqlConsistency CqlConsistency { get; set; }
 
         /// <summary>
-        /// Writes the data to buffer.
+        ///   Writes the data to buffer.
         /// </summary>
-        /// <param name="buffer">The buffer.</param>
-        protected override void WriteData(System.IO.Stream buffer)
+        /// <param name="buffer"> The buffer. </param>
+        protected override void WriteData(Stream buffer)
         {
-            buffer.WriteByte((byte)Type);
-            buffer.WriteShort((ushort)Commands.Count);
+            buffer.WriteByte((byte) Type);
+            buffer.WriteShort((ushort) Commands.Count);
             foreach (var command in Commands)
             {
-                buffer.WriteByte(command.IsPrepared ? (byte)1 : (byte)0);
+                buffer.WriteByte(command.IsPrepared ? (byte) 1 : (byte) 0);
                 if (command.IsPrepared)
                 {
                     buffer.WriteByte(1);
@@ -80,7 +78,7 @@ namespace CqlSharp.Protocol
 
                 if (command.ParameterValues != null)
                 {
-                    var length = (ushort)command.ParameterValues.Length;
+                    var length = (ushort) command.ParameterValues.Length;
                     buffer.WriteShort(length);
                     for (var i = 0; i < length; i++)
                         buffer.WriteByteArray(command.ParameterValues[i]);
@@ -92,17 +90,31 @@ namespace CqlSharp.Protocol
             }
 
             buffer.WriteConsistency(CqlConsistency);
-
         }
 
         /// <summary>
-        /// Initialize frame contents from the stream
+        ///   Initialize frame contents from the stream
         /// </summary>
-        /// <returns></returns>
+        /// <returns> </returns>
         /// <exception cref="System.NotSupportedException"></exception>
         protected override Task InitializeAsync()
         {
             throw new NotSupportedException();
         }
+
+        #region Nested type: BatchedCommand
+
+        /// <summary>
+        ///   Structure to hold values of commands
+        /// </summary>
+        public class BatchedCommand
+        {
+            public bool IsPrepared { get; set; }
+            public byte[] QueryId { get; set; }
+            public string CqlQuery { get; set; }
+            public byte[][] ParameterValues { get; set; }
+        }
+
+        #endregion
     }
 }

@@ -13,12 +13,12 @@
 // See the License for the specific language governing permissions and
 // limitations under the License.
 
-using CqlSharp.Memory;
 using System;
 using System.Collections.Generic;
 using System.IO;
 using System.Net;
 using System.Text;
+using CqlSharp.Memory;
 
 namespace CqlSharp.Protocol
 {
@@ -38,8 +38,8 @@ namespace CqlSharp.Protocol
             //if (BitConverter.IsLittleEndian) Array.Reverse(buffer);
             //stream.Write(buffer, 0, buffer.Length);
 
-            stream.WriteByte((byte)(data >> 8));
-            stream.WriteByte((byte)(data));
+            stream.WriteByte((byte) (data >> 8));
+            stream.WriteByte((byte) (data));
         }
 
         /// <summary>
@@ -54,10 +54,10 @@ namespace CqlSharp.Protocol
             //stream.Write(buffer, 0, buffer.Length);
 
 
-            stream.WriteByte((byte)(data >> 24));
-            stream.WriteByte((byte)(data >> 16));
-            stream.WriteByte((byte)(data >> 8));
-            stream.WriteByte((byte)(data));
+            stream.WriteByte((byte) (data >> 24));
+            stream.WriteByte((byte) (data >> 16));
+            stream.WriteByte((byte) (data >> 8));
+            stream.WriteByte((byte) (data));
         }
 
         /// <summary>
@@ -73,7 +73,7 @@ namespace CqlSharp.Protocol
             //stream.Write(bufStr, 0, len);
 
             int len = Encoding.UTF8.GetByteCount(data);
-            stream.WriteShort((ushort)len);
+            stream.WriteShort((ushort) len);
 
             byte[] bufStr = MemoryPool.Instance.Take(len);
             Encoding.UTF8.GetBytes(data, 0, data.Length, bufStr, 0);
@@ -88,7 +88,7 @@ namespace CqlSharp.Protocol
         /// <param name="data"> The data. </param>
         public static void WriteStringList(this Stream stream, IList<string> data)
         {
-            stream.WriteShort((ushort)data.Count);
+            stream.WriteShort((ushort) data.Count);
             foreach (string s in data)
             {
                 stream.WriteString(s);
@@ -123,7 +123,7 @@ namespace CqlSharp.Protocol
         /// <param name="dic"> The dic. </param>
         public static void WriteStringMap(this Stream stream, IDictionary<string, string> dic)
         {
-            stream.WriteShort((ushort)dic.Count);
+            stream.WriteShort((ushort) dic.Count);
             foreach (var kvp in dic)
             {
                 stream.WriteString(kvp.Key);
@@ -142,7 +142,7 @@ namespace CqlSharp.Protocol
                 stream.WriteShort(0);
             else
             {
-                var len = (ushort)data.Length;
+                var len = (ushort) data.Length;
                 stream.WriteShort(len);
                 stream.Write(data, 0, len);
             }
@@ -173,7 +173,7 @@ namespace CqlSharp.Protocol
         public static void WriteInet(this Stream stream, IPEndPoint endpoint)
         {
             byte[] ip = endpoint.Address.GetAddressBytes();
-            stream.Write(new[] { (byte)ip.Length }, 0, 1);
+            stream.Write(new[] {(byte) ip.Length}, 0, 1);
             stream.Write(ip, 0, ip.Length);
             stream.WriteInt(endpoint.Port);
         }
@@ -196,13 +196,13 @@ namespace CqlSharp.Protocol
         }
 
         /// <summary>
-        /// Writes the consistency.
+        ///   Writes the consistency.
         /// </summary>
-        /// <param name="stream">The stream.</param>
-        /// <param name="consistency">The consistency.</param>
+        /// <param name="stream"> The stream. </param>
+        /// <param name="consistency"> The consistency. </param>
         public static void WriteConsistency(this Stream stream, CqlConsistency consistency)
         {
-            stream.WriteShort((ushort)consistency);
+            stream.WriteShort((ushort) consistency);
         }
 
         /// <summary>
@@ -252,7 +252,7 @@ namespace CqlSharp.Protocol
 
                 value = (value << 8) + read;
             }
-            return (ushort)value;
+            return (ushort) value;
         }
 
         /// <summary>

@@ -13,8 +13,8 @@
 // See the License for the specific language governing permissions and
 // limitations under the License.
 
-using CqlSharp.Network.Partition;
 using System.Linq;
+using CqlSharp.Network.Partition;
 
 namespace CqlSharp.Network
 {
@@ -37,11 +37,11 @@ namespace CqlSharp.Network
         #region Implementation of IConnectionStrategy
 
         /// <summary>
-        /// Gets or creates connection to the cluster.
+        ///   Gets or creates connection to the cluster.
         /// </summary>
-        /// <param name="scope">The scope.</param>
-        /// <param name="partitionKey">The partition key.</param>
-        /// <returns></returns>
+        /// <param name="scope"> The scope. </param>
+        /// <param name="partitionKey"> The partition key. </param>
+        /// <returns> </returns>
         /// <exception cref="CqlException">Can not connect to any node of the cluster! All connectivity to the cluster seems to be lost</exception>
         public Connection GetOrCreateConnection(ConnectionScope scope, PartitionKey partitionKey)
         {
@@ -66,10 +66,10 @@ namespace CqlSharp.Network
         }
 
         /// <summary>
-        /// Invoked when a connection is no longer in use by the application
+        ///   Invoked when a connection is no longer in use by the application
         /// </summary>
-        /// <param name="connection">The connection no longer used.</param>
-        /// <param name="scope">The scope.</param>
+        /// <param name="connection"> The connection no longer used. </param>
+        /// <param name="scope"> The scope. </param>
         public void ReturnConnection(Connection connection, ConnectionScope scope)
         {
             _baseStrategy.ReturnConnection(connection, scope);
@@ -81,8 +81,5 @@ namespace CqlSharp.Network
         }
 
         #endregion
-
-
-
     }
 }

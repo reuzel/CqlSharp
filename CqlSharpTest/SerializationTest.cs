@@ -1,4 +1,4 @@
-﻿// CqlSharp - CqlSharpTest
+﻿// CqlSharp - CqlSharp.Test
 // Copyright (c) 2013 Joost Reuzel
 //   
 // Licensed under the Apache License, Version 2.0 (the "License");
@@ -13,21 +13,22 @@
 // See the License for the specific language governing permissions and
 // limitations under the License.
 
-using CqlSharp.Protocol;
-using CqlSharp.Serialization;
-using Microsoft.VisualStudio.TestTools.UnitTesting;
 using System;
 using System.Collections.Generic;
 using System.Linq;
 using System.Net;
 using System.Numerics;
+using CqlSharp.Protocol;
+using CqlSharp.Serialization;
+using Microsoft.VisualStudio.TestTools.UnitTesting;
 
 namespace CqlSharp.Test
 {
     [TestClass]
     public class SerializationTest
     {
-        private const string ConnectionString = "server=localhost;throttle=100;ConnectionStrategy=Exclusive;loggerfactory=debug";
+        private const string ConnectionString =
+            "server=localhost;throttle=100;ConnectionStrategy=Exclusive;loggerfactory=debug";
 
         private const string CreateKsCql =
             @"CREATE KEYSPACE Test WITH replication = {'class': 'SimpleStrategy', 'replication_factor' : 1} and durable_writes = 'false';";
@@ -147,11 +148,11 @@ namespace CqlSharp.Test
                 var values = new Types
                                  {
                                      aASCIIString = "hello world!",
-                                     aBlob = new byte[] { 1, 2, 3, 4 },
+                                     aBlob = new byte[] {1, 2, 3, 4},
                                      aBool = true,
                                      aDouble = 1.234,
                                      aFloat = 5.789f,
-                                     aInet = new IPAddress(new byte[] { 127, 0, 0, 1 }),
+                                     aInet = new IPAddress(new byte[] {127, 0, 0, 1}),
                                      aInt = 10,
                                      aLong = 56789012456,
                                      aTextString = "some other text with \u005C unicode",
@@ -160,10 +161,10 @@ namespace CqlSharp.Test
                                      aUUID = Guid.NewGuid(),
                                      aTimestamp = DateTime.Now,
                                      aVarint = new BigInteger(12345678901234),
-                                     aList = new List<string> { "string 1", "string 2" },
-                                     aSet = new HashSet<int> { 1, 3, 3 },
+                                     aList = new List<string> {"string 1", "string 2"},
+                                     aSet = new HashSet<int> {1, 3, 3},
                                      aMap =
-                                         new Dictionary<long, string> { { 1, "value 1" }, { 2, "value 2" }, { 3, "value 3" } },
+                                         new Dictionary<long, string> {{1, "value 1"}, {2, "value 2"}, {3, "value 3"}},
                                  };
 
                 var insertCmd = new CqlCommand(connection, insertCql);
@@ -233,11 +234,11 @@ namespace CqlSharp.Test
                 insertCmd.Prepare();
 
                 insertCmd.Parameters["aasciistring"].Value = "hello world!";
-                insertCmd.Parameters["ablob"].Value = new byte[] { 1, 2, 3, 4 };
+                insertCmd.Parameters["ablob"].Value = new byte[] {1, 2, 3, 4};
                 insertCmd.Parameters["abool"].Value = true;
                 insertCmd.Parameters["adouble"].Value = 1.234;
                 insertCmd.Parameters["afloat"].Value = 5.789f;
-                insertCmd.Parameters["ainet"].Value = new IPAddress(new byte[] { 127, 0, 0, 1 });
+                insertCmd.Parameters["ainet"].Value = new IPAddress(new byte[] {127, 0, 0, 1});
                 insertCmd.Parameters["aint"].Value = 10;
                 insertCmd.Parameters["along"].Value = 56789012456;
                 insertCmd.Parameters["atextstring"].Value = "some other text with \u005C unicode";
@@ -246,10 +247,10 @@ namespace CqlSharp.Test
                 insertCmd.Parameters["auuid"].Value = Guid.NewGuid();
                 insertCmd.Parameters["atimestamp"].Value = DateTime.Now;
                 insertCmd.Parameters["avarint"].Value = new BigInteger(12345678901234);
-                insertCmd.Parameters["alist"].Value = new List<string> { "string 1", "string 2" };
-                insertCmd.Parameters["aset"].Value = new HashSet<int> { 1, 3, 3 };
+                insertCmd.Parameters["alist"].Value = new List<string> {"string 1", "string 2"};
+                insertCmd.Parameters["aset"].Value = new HashSet<int> {1, 3, 3};
                 insertCmd.Parameters["amap"].Value =
-                    new Dictionary<long, string> { { 1, "value 1" }, { 2, "value 2" }, { 3, "value 3" } };
+                    new Dictionary<long, string> {{1, "value 1"}, {2, "value 2"}, {3, "value 3"}};
 
                 insertCmd.ExecuteNonQuery();
 
@@ -306,10 +307,10 @@ namespace CqlSharp.Test
                 Assert.AreEqual(insertCmd.Parameters["along"].Value, aLong);
                 Assert.AreEqual(insertCmd.Parameters["atimeuuid"].Value, aTimeUUID);
                 Assert.AreEqual(insertCmd.Parameters["auuid"].Value, aUUID);
-                Assert.IsTrue(((byte[])insertCmd.Parameters["ablob"].Value).SequenceEqual(aBlob));
-                Assert.IsTrue(((List<string>)insertCmd.Parameters["alist"].Value).SequenceEqual(aList));
-                Assert.IsTrue(((HashSet<int>)insertCmd.Parameters["aset"].Value).SequenceEqual(aSet));
-                foreach (var entry in ((Dictionary<long, string>)insertCmd.Parameters["amap"].Value))
+                Assert.IsTrue(((byte[]) insertCmd.Parameters["ablob"].Value).SequenceEqual(aBlob));
+                Assert.IsTrue(((List<string>) insertCmd.Parameters["alist"].Value).SequenceEqual(aList));
+                Assert.IsTrue(((HashSet<int>) insertCmd.Parameters["aset"].Value).SequenceEqual(aSet));
+                foreach (var entry in ((Dictionary<long, string>) insertCmd.Parameters["amap"].Value))
                 {
                     var val = aMap[entry.Key];
                     Assert.AreEqual(entry.Value, val);
@@ -368,7 +369,6 @@ namespace CqlSharp.Test
 
             using (var connection = new CqlConnection(ConnectionString))
             {
-
                 string aAsciiString;
                 string aVarcharString;
                 BigInteger? aVarint;
@@ -538,25 +538,25 @@ namespace CqlSharp.Test
                 connection.Open();
 
                 var values = new Types
-                {
-                    aInt = 2,
-                    aASCIIString = default(string),
-                    aBlob = default(byte[]),
-                    aBool = default(bool),
-                    aDouble = default(double),
-                    aFloat = default(float),
-                    aInet = default(IPAddress),
-                    aLong = default(long),
-                    aTextString = default(string),
-                    aVarcharString = default(string),
-                    aTimeUUID = default(Guid),
-                    aUUID = default(Guid),
-                    aTimestamp = default(DateTime),
-                    aVarint = default(BigInteger),
-                    aList = default(List<string>),
-                    aSet = default(HashSet<int>),
-                    aMap = default(Dictionary<long, string>)
-                };
+                                 {
+                                     aInt = 2,
+                                     aASCIIString = default(string),
+                                     aBlob = default(byte[]),
+                                     aBool = default(bool),
+                                     aDouble = default(double),
+                                     aFloat = default(float),
+                                     aInet = default(IPAddress),
+                                     aLong = default(long),
+                                     aTextString = default(string),
+                                     aVarcharString = default(string),
+                                     aTimeUUID = default(Guid),
+                                     aUUID = default(Guid),
+                                     aTimestamp = default(DateTime),
+                                     aVarint = default(BigInteger),
+                                     aList = default(List<string>),
+                                     aSet = default(HashSet<int>),
+                                     aMap = default(Dictionary<long, string>)
+                                 };
 
                 var insertCmd = new CqlCommand(connection, insertCql);
                 insertCmd.Prepare();
@@ -621,25 +621,25 @@ namespace CqlSharp.Test
                 connection.Open();
 
                 var values = new NullableTypes
-                {
-                    aInt = 3,
-                    aASCIIString = null,
-                    aBlob = null,
-                    aBool = null,
-                    aDouble = null,
-                    aFloat = null,
-                    aInet = null,
-                    aLong = null,
-                    aTextString = null,
-                    aVarcharString = null,
-                    aTimeUUID = null,
-                    aUUID = null,
-                    aTimestamp = null,
-                    aVarint = null,
-                    aList = null,
-                    aSet = null,
-                    aMap = null
-                };
+                                 {
+                                     aInt = 3,
+                                     aASCIIString = null,
+                                     aBlob = null,
+                                     aBool = null,
+                                     aDouble = null,
+                                     aFloat = null,
+                                     aInet = null,
+                                     aLong = null,
+                                     aTextString = null,
+                                     aVarcharString = null,
+                                     aTimeUUID = null,
+                                     aUUID = null,
+                                     aTimestamp = null,
+                                     aVarint = null,
+                                     aList = null,
+                                     aSet = null,
+                                     aMap = null
+                                 };
 
                 var insertCmd = new CqlCommand(connection, insertCql);
                 insertCmd.Prepare();
@@ -716,30 +716,9 @@ namespace CqlSharp.Test
             }
         }
 
-        #region Nested type: Types
-
         // ReSharper disable InconsistentNaming
 
-        public class Types
-        {
-            public int aInt { get; set; }
-            public long aLong { get; set; }
-            public BigInteger aVarint { get; set; }
-            public string aTextString { get; set; }
-            public string aVarcharString { get; set; }
-            public string aASCIIString { get; set; }
-            public byte[] aBlob { get; set; }
-            public bool aBool { get; set; }
-            public double aDouble { get; set; }
-            public float aFloat { get; set; }
-            public DateTime aTimestamp { get; set; }
-            public Guid aTimeUUID { get; set; }
-            public Guid aUUID { get; set; }
-            public IPAddress aInet { get; set; }
-            public List<string> aList { get; set; }
-            public HashSet<int> aSet { get; set; }
-            public Dictionary<long, string> aMap { get; set; }
-        }
+        #region Nested type: NullableTypes
 
         [CqlTable("types")]
         public class NullableTypes
@@ -763,9 +742,33 @@ namespace CqlSharp.Test
             public Dictionary<long, string> aMap { get; set; }
         }
 
-        // ReSharper restore InconsistentNaming
+        #endregion
 
+        #region Nested type: Types
+
+        public class Types
+        {
+            public int aInt { get; set; }
+            public long aLong { get; set; }
+            public BigInteger aVarint { get; set; }
+            public string aTextString { get; set; }
+            public string aVarcharString { get; set; }
+            public string aASCIIString { get; set; }
+            public byte[] aBlob { get; set; }
+            public bool aBool { get; set; }
+            public double aDouble { get; set; }
+            public float aFloat { get; set; }
+            public DateTime aTimestamp { get; set; }
+            public Guid aTimeUUID { get; set; }
+            public Guid aUUID { get; set; }
+            public IPAddress aInet { get; set; }
+            public List<string> aList { get; set; }
+            public HashSet<int> aSet { get; set; }
+            public Dictionary<long, string> aMap { get; set; }
+        }
 
         #endregion
+
+        // ReSharper restore InconsistentNaming
     }
 }

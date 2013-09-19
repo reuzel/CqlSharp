@@ -142,6 +142,7 @@ namespace CqlSharp.Test
             [CqlIgnore]
 // ReSharper disable UnusedAutoPropertyAccessor.Local
                 public byte[] Value2 { get; set; }
+
 // ReSharper restore UnusedAutoPropertyAccessor.Local
         }
 

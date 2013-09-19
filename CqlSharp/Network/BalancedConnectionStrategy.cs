@@ -13,9 +13,9 @@
 // See the License for the specific language governing permissions and
 // limitations under the License.
 
-using CqlSharp.Network.Partition;
 using System.Linq;
 using System.Threading;
+using CqlSharp.Network.Partition;
 
 namespace CqlSharp.Network
 {
@@ -99,11 +99,9 @@ namespace CqlSharp.Network
         }
 
         /// <summary>
-        /// Gets a value indicating whether [provide exclusive connections].
+        ///   Gets a value indicating whether [provide exclusive connections].
         /// </summary>
-        /// <value>
-        /// <c>true</c> if [provide exclusive connections]; otherwise, <c>false</c>.
-        /// </value>
+        /// <value> <c>true</c> if [provide exclusive connections]; otherwise, <c>false</c> . </value>
         public bool ProvidesExclusiveConnections
         {
             get { return false; }

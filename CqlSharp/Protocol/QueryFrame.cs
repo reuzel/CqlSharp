@@ -20,11 +20,11 @@ namespace CqlSharp.Protocol
     internal class QueryFrame : QueryFrameBase
     {
         /// <summary>
-        /// Initializes a new instance of the <see cref="QueryFrame" /> class.
+        ///   Initializes a new instance of the <see cref="QueryFrame" /> class.
         /// </summary>
-        /// <param name="cql">The CQL.</param>
-        /// <param name="cqlConsistency">The CQL consistency.</param>
-        /// <param name="parameters">The parameters.</param>
+        /// <param name="cql"> The CQL. </param>
+        /// <param name="cqlConsistency"> The CQL consistency. </param>
+        /// <param name="parameters"> The parameters. </param>
         public QueryFrame(string cql, CqlConsistency cqlConsistency, byte[][] parameters)
         {
             Cql = cql;
@@ -39,11 +39,9 @@ namespace CqlSharp.Protocol
         }
 
         /// <summary>
-        /// Gets or sets the CQL query string.
+        ///   Gets or sets the CQL query string.
         /// </summary>
-        /// <value>
-        /// The CQL.
-        /// </value>
+        /// <value> The CQL. </value>
         public string Cql { get; set; }
 
         protected override void WriteData(Stream buffer)

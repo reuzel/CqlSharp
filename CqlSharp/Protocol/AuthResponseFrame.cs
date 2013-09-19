@@ -23,9 +23,9 @@ namespace CqlSharp.Protocol
     internal class AuthResponseFrame : Frame
     {
         /// <summary>
-        /// Initializes a new instance of the <see cref="AuthResponseFrame"/> class.
+        ///   Initializes a new instance of the <see cref="AuthResponseFrame" /> class.
         /// </summary>
-        /// <param name="saslResponse">The sasl response.</param>
+        /// <param name="saslResponse"> The sasl response. </param>
         public AuthResponseFrame(byte[] saslResponse)
         {
             Version = FrameVersion.Request;
@@ -37,10 +37,10 @@ namespace CqlSharp.Protocol
         }
 
         /// <summary>
-        /// Initializes a new instance of the <see cref="AuthResponseFrame"/> class.
+        ///   Initializes a new instance of the <see cref="AuthResponseFrame" /> class.
         /// </summary>
-        /// <param name="username">The username.</param>
-        /// <param name="password">The password.</param>
+        /// <param name="username"> The username. </param>
+        /// <param name="password"> The password. </param>
         public AuthResponseFrame(string username, string password)
         {
             using (var stream = new MemoryStream())

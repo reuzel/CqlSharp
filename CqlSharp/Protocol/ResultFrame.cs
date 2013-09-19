@@ -23,7 +23,7 @@ namespace CqlSharp.Protocol
     {
         private volatile int _count;
 
-        public ResultOpcode ResultOpcode { get; private set; }
+        public CqlResultType CqlResultType { get; private set; }
 
         public int Count
         {
@@ -51,28 +51,28 @@ namespace CqlSharp.Protocol
         {
             FrameReader reader = Reader;
 
-            ResultOpcode = (ResultOpcode)await reader.ReadIntAsync().ConfigureAwait(false);
-            switch (ResultOpcode)
+            CqlResultType = (CqlResultType) await reader.ReadIntAsync().ConfigureAwait(false);
+            switch (CqlResultType)
             {
-                case ResultOpcode.Void:
+                case CqlResultType.Void:
                     break;
 
-                case ResultOpcode.Rows:
+                case CqlResultType.Rows:
                     ResultMetaData = await ReadMetaDataAsync().ConfigureAwait(false);
                     _count = await reader.ReadIntAsync().ConfigureAwait(false);
                     break;
 
-                case ResultOpcode.SetKeyspace:
+                case CqlResultType.SetKeyspace:
                     Keyspace = await reader.ReadStringAsync().ConfigureAwait(false);
                     break;
 
-                case ResultOpcode.SchemaChange:
+                case CqlResultType.SchemaChange:
                     Change = await reader.ReadStringAsync().ConfigureAwait(false);
                     Keyspace = await reader.ReadStringAsync().ConfigureAwait(false);
                     Table = await reader.ReadStringAsync().ConfigureAwait(false);
                     break;
 
-                case ResultOpcode.Prepared:
+                case CqlResultType.Prepared:
                     PreparedQueryId = await reader.ReadShortBytesAsync().ConfigureAwait(false);
                     QueryMetaData = await ReadMetaDataAsync().ConfigureAwait(false);
 
@@ -85,7 +85,6 @@ namespace CqlSharp.Protocol
                 default:
                     throw new ArgumentException("Unexpected ResultOpcode");
             }
-
         }
 
         public async Task<byte[][]> ReadNextDataRowAsync()
@@ -124,7 +123,7 @@ namespace CqlSharp.Protocol
             FrameReader reader = Reader;
 
             //get flags
-            var flags = (MetadataFlags)await reader.ReadIntAsync().ConfigureAwait(false);
+            var flags = (MetadataFlags) await reader.ReadIntAsync().ConfigureAwait(false);
 
             //get column count
             int colCount = await reader.ReadIntAsync().ConfigureAwait(false);
@@ -158,7 +157,7 @@ namespace CqlSharp.Protocol
                 string colName = await reader.ReadStringAsync().ConfigureAwait(false);
 
                 //read type
-                var colType = (CqlType)await reader.ReadShortAsync().ConfigureAwait(false);
+                var colType = (CqlType) await reader.ReadShortAsync().ConfigureAwait(false);
                 string colCustom = null;
                 CqlType? colKeyType = null;
                 CqlType? colValueType = null;
@@ -170,18 +169,18 @@ namespace CqlSharp.Protocol
 
                     case CqlType.List:
                     case CqlType.Set:
-                        colValueType = (CqlType)await reader.ReadShortAsync().ConfigureAwait(false);
+                        colValueType = (CqlType) await reader.ReadShortAsync().ConfigureAwait(false);
                         break;
 
                     case CqlType.Map:
-                        colKeyType = (CqlType)await reader.ReadShortAsync().ConfigureAwait(false);
-                        colValueType = (CqlType)await reader.ReadShortAsync().ConfigureAwait(false);
+                        colKeyType = (CqlType) await reader.ReadShortAsync().ConfigureAwait(false);
+                        colValueType = (CqlType) await reader.ReadShortAsync().ConfigureAwait(false);
                         break;
                 }
 
                 //add to the MetaData
                 metaData.Add(new Column(colIdx, colKeyspace, colTable, colName, colType, colCustom,
-                                              colKeyType, colValueType));
+                                        colKeyType, colValueType));
             }
 
             return metaData;

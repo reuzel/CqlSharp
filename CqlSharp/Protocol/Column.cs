@@ -23,11 +23,11 @@ namespace CqlSharp.Protocol
     /// </summary>
     internal class Column
     {
-        private string _ksTableName;
-        private string _tableName;
         private string _keyspace;
-        private string _table;
+        private string _ksTableName;
         private string _name;
+        private string _table;
+        private string _tableName;
 
         public Column()
         {
@@ -46,7 +46,7 @@ namespace CqlSharp.Protocol
         /// <param name="collectionKeyType"> Type of the collection key. </param>
         /// <param name="collectionValueType"> Type of the collection value. </param>
         internal Column(int index, string keyspace, string table, string name, CqlType cqlType,
-                           string customData, CqlType? collectionKeyType, CqlType? collectionValueType)
+                        string customData, CqlType? collectionKeyType, CqlType? collectionValueType)
         {
             Index = index;
             Keyspace = keyspace;
@@ -128,18 +128,18 @@ namespace CqlSharp.Protocol
         }
 
         /// <summary>
-        /// Returns the .NET type representing the column type
+        ///   Returns the .NET type representing the column type
         /// </summary>
-        /// <returns></returns>
+        /// <returns> </returns>
         public Type ToType()
         {
             return CqlType.ToType(CollectionKeyType, CollectionValueType);
         }
 
         /// <summary>
-        /// Guesses the type of the column from the .NET type
+        ///   Guesses the type of the column from the .NET type
         /// </summary>
-        /// <param name="type">The type.</param>
+        /// <param name="type"> The type. </param>
         /// <exception cref="CqlException">Unsupported type</exception>
         public void GuessType(Type type)
         {
@@ -152,17 +152,17 @@ namespace CqlSharp.Protocol
                 var genericType = type.GetGenericTypeDefinition();
 
                 //check for collection types
-                if (genericType == typeof(List<>))
+                if (genericType == typeof (List<>))
                 {
                     cqlType = CqlType.List;
                     valueType = type.GetGenericArguments()[0].ToCqlType();
                 }
-                else if (genericType == typeof(HashSet<>))
+                else if (genericType == typeof (HashSet<>))
                 {
                     cqlType = CqlType.Set;
                     valueType = type.GetGenericArguments()[0].ToCqlType();
                 }
-                else if (genericType == typeof(Dictionary<,>))
+                else if (genericType == typeof (Dictionary<,>))
                 {
                     cqlType = CqlType.Map;
                     keyType = type.GetGenericArguments()[0].ToCqlType();

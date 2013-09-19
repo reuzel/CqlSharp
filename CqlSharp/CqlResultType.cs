@@ -18,26 +18,31 @@ namespace CqlSharp
     /// <summary>
     ///   Types of result of a Cql query
     /// </summary>
-    public enum CqlResultType
+    public enum CqlResultType : short
     {
         /// <summary>
         ///   Represents result of queries with no results (e.g. insert or update)
         /// </summary>
-        Void,
+        Void = 0x0001,
 
         /// <summary>
         ///   Represents result of select queries
         /// </summary>
-        Rows,
+        Rows = 0x0002,
 
         /// <summary>
         ///   Represents result of use queries
         /// </summary>
-        SetKeyspace,
+        SetKeyspace = 0x0003,
+
+        /// <summary>
+        ///   Represents the result of a prepare query
+        /// </summary>
+        Prepared = 0x0004,
 
         /// <summary>
         ///   Represents result of ResultMetaData changing queries (create/alter)
         /// </summary>
-        SchemaChange
+        SchemaChange = 0x0005
     }
 }

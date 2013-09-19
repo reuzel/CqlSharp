@@ -89,7 +89,7 @@ namespace CqlSharp
         IDbCommand IDbDataAdapter.SelectCommand
         {
             get { return _selectCommand; }
-            set { _selectCommand = (CqlCommand)value; }
+            set { _selectCommand = (CqlCommand) value; }
         }
 
         /// <summary>
@@ -100,7 +100,7 @@ namespace CqlSharp
         IDbCommand IDbDataAdapter.InsertCommand
         {
             get { return _insertCommand; }
-            set { _insertCommand = (CqlCommand)value; }
+            set { _insertCommand = (CqlCommand) value; }
         }
 
         /// <summary>
@@ -111,7 +111,7 @@ namespace CqlSharp
         IDbCommand IDbDataAdapter.UpdateCommand
         {
             get { return _updateCommand; }
-            set { _updateCommand = (CqlCommand)value; }
+            set { _updateCommand = (CqlCommand) value; }
         }
 
         /// <summary>
@@ -122,11 +122,10 @@ namespace CqlSharp
         IDbCommand IDbDataAdapter.DeleteCommand
         {
             get { return _deleteCommand; }
-            set { _deleteCommand = (CqlCommand)value; }
+            set { _deleteCommand = (CqlCommand) value; }
         }
 
         #endregion
-
 
         /*
          * Implement abstract methods inherited from DbDataAdapter.
@@ -170,10 +169,10 @@ namespace CqlSharp
         /// <param name="value"> An <see cref="T:System.Data.Common.RowUpdatingEventArgs" /> that contains the event data. </param>
         protected override void OnRowUpdating(RowUpdatingEventArgs value)
         {
-            var handler = (CqlRowUpdatingEventHandler)Events[EventRowUpdating];
+            var handler = (CqlRowUpdatingEventHandler) Events[EventRowUpdating];
             if ((null != handler) && (value is CqlRowUpdatingEventArgs))
             {
-                handler(this, (CqlRowUpdatingEventArgs)value);
+                handler(this, (CqlRowUpdatingEventArgs) value);
             }
         }
 
@@ -183,10 +182,10 @@ namespace CqlSharp
         /// <param name="value"> A <see cref="T:System.Data.Common.RowUpdatedEventArgs" /> that contains the event data. </param>
         protected override void OnRowUpdated(RowUpdatedEventArgs value)
         {
-            var handler = (CqlRowUpdatedEventHandler)Events[EventRowUpdated];
+            var handler = (CqlRowUpdatedEventHandler) Events[EventRowUpdated];
             if ((null != handler) && (value is CqlRowUpdatedEventArgs))
             {
-                handler(this, (CqlRowUpdatedEventArgs)value);
+                handler(this, (CqlRowUpdatedEventArgs) value);
             }
         }
 
@@ -238,7 +237,7 @@ namespace CqlSharp
         ///    cref="M:System.Data.Common.DbDataAdapter.Update(System.Data.DataSet)" /> . </returns>
         public new CqlCommand Command
         {
-            get { return (CqlCommand)base.Command; }
+            get { return (CqlCommand) base.Command; }
             set { base.Command = value; }
         }
     }
@@ -268,7 +267,7 @@ namespace CqlSharp
         ///    cref="M:System.Data.Common.DbDataAdapter.Update(System.Data.DataSet)" /> is called. </returns>
         public new CqlCommand Command
         {
-            get { return (CqlCommand)base.Command; }
+            get { return (CqlCommand) base.Command; }
         }
     }
 }

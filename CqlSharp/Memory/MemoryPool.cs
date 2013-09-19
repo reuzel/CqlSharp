@@ -24,10 +24,8 @@ namespace CqlSharp.Memory
     /// </summary>
     internal class MemoryPool
     {
-        private readonly byte[] _emptyArray = new byte[0];
-
         /// <summary>
-        /// Number of pools, each pool in exponential size
+        ///   Number of pools, each pool in exponential size
         /// </summary>
         private const int MaxPools = 7;
 
@@ -45,6 +43,9 @@ namespace CqlSharp.Memory
         ///   The buffer pools
         /// </summary>
         private readonly ConcurrentQueue<byte[]>[] _bufferPools;
+
+        private readonly byte[] _emptyArray = new byte[0];
+
         private readonly int[] _sizes;
 
         /// <summary>
@@ -57,7 +58,7 @@ namespace CqlSharp.Memory
             for (int i = 0; i < MaxPools; i++)
             {
                 _bufferPools[i] = new ConcurrentQueue<byte[]>();
-                _sizes[i] = (int)Math.Pow(2, i) * 1024;
+                _sizes[i] = (int) Math.Pow(2, i)*1024;
             }
         }
 

@@ -13,9 +13,6 @@
 // See the License for the specific language governing permissions and
 // limitations under the License.
 
-using CqlSharp.Logging;
-using CqlSharp.Network.Partition;
-using CqlSharp.Protocol;
 using System;
 using System.Collections;
 using System.Collections.Concurrent;
@@ -23,6 +20,9 @@ using System.Collections.Generic;
 using System.Linq;
 using System.Net;
 using System.Threading;
+using CqlSharp.Logging;
+using CqlSharp.Network.Partition;
+using CqlSharp.Protocol;
 
 namespace CqlSharp.Network
 {
@@ -53,6 +53,11 @@ namespace CqlSharp.Network
         private Timer _connectionCleanupTimer;
 
         /// <summary>
+        ///   Counter used to give each connection a unique number (per node)
+        /// </summary>
+        private int _counter;
+
+        /// <summary>
         ///   The failure count, used to (exponentially) increase the time before node is returned to up status
         /// </summary>
         private int _failureCount;
@@ -71,11 +76,6 @@ namespace CqlSharp.Network
         ///   The timer used to restore the node to up status
         /// </summary>
         private Timer _reactivateTimer;
-
-        /// <summary>
-        /// Counter used to give each connection a unique number (per node)
-        /// </summary>
-        private int _counter;
 
         /// <summary>
         ///   Initializes a new instance of the <see cref="Node" /> class.
@@ -97,11 +97,9 @@ namespace CqlSharp.Network
         }
 
         /// <summary>
-        /// Gets the cluster.
+        ///   Gets the cluster.
         /// </summary>
-        /// <value>
-        /// The cluster.
-        /// </value>
+        /// <value> The cluster. </value>
         public Cluster Cluster { get; private set; }
 
         /// <summary>
@@ -153,20 +151,49 @@ namespace CqlSharp.Network
         }
 
         /// <summary>
-        /// Gets the frame (protocol) version supported by this node
+        ///   Gets the frame (protocol) version supported by this node
         /// </summary>
-        /// <value>
-        /// The frame version.
-        /// </value>
+        /// <value> The frame version. </value>
         public FrameVersion FrameVersion { get; internal set; }
 
         /// <summary>
-        /// Gets the prepared query ids.
+        ///   Gets the prepared query ids.
         /// </summary>
-        /// <value>
-        /// The prepared query ids.
-        /// </value>
+        /// <value> The prepared query ids. </value>
         public ConcurrentDictionary<string, byte[]> PreparedQueryIds { get; private set; }
+
+        #region IEnumerable<Connection> Members
+
+        /// <summary>
+        ///   Returns an enumerator that iterates through the collection.
+        /// </summary>
+        /// <returns> A <see cref="T:System.Collections.Generic.IEnumerator`1" /> that can be used to iterate through the collection. </returns>
+        /// <filterpriority>1</filterpriority>
+        public IEnumerator<Connection> GetEnumerator()
+        {
+            _connectionLock.EnterReadLock();
+            try
+            {
+                var connections = new List<Connection>(_connections);
+                return ((IEnumerable<Connection>) connections).GetEnumerator();
+            }
+            finally
+            {
+                _connectionLock.ExitReadLock();
+            }
+        }
+
+        /// <summary>
+        ///   Returns an enumerator that iterates through a collection.
+        /// </summary>
+        /// <returns> An <see cref="T:System.Collections.IEnumerator" /> object that can be used to iterate through the collection. </returns>
+        /// <filterpriority>2</filterpriority>
+        IEnumerator IEnumerable.GetEnumerator()
+        {
+            return GetEnumerator();
+        }
+
+        #endregion
 
         /// <summary>
         ///   Gets an existing connection, or creates one if treshold is reached.
@@ -190,36 +217,6 @@ namespace CqlSharp.Network
                 Logger.Current.LogWarning("Connection to {0} not available, while node is up!", Address);
 
             return c;
-        }
-
-        /// <summary>
-        ///   Returns an enumerator that iterates through the collection.
-        /// </summary>
-        /// <returns> A <see cref="T:System.Collections.Generic.IEnumerator`1" /> that can be used to iterate through the collection. </returns>
-        /// <filterpriority>1</filterpriority>
-        public IEnumerator<Connection> GetEnumerator()
-        {
-            _connectionLock.EnterReadLock();
-            try
-            {
-                var connections = new List<Connection>(_connections);
-                return ((IEnumerable<Connection>)connections).GetEnumerator();
-            }
-            finally
-            {
-                _connectionLock.ExitReadLock();
-            }
-
-        }
-
-        /// <summary>
-        ///   Returns an enumerator that iterates through a collection.
-        /// </summary>
-        /// <returns> An <see cref="T:System.Collections.IEnumerator" /> object that can be used to iterate through the collection. </returns>
-        /// <filterpriority>2</filterpriority>
-        IEnumerator IEnumerable.GetEnumerator()
-        {
-            return GetEnumerator();
         }
 
         /// <summary>
@@ -380,7 +377,7 @@ namespace CqlSharp.Network
             if (ReferenceEquals(null, obj)) return false;
             if (ReferenceEquals(this, obj)) return true;
             if (obj.GetType() != GetType()) return false;
-            return Equals((Node)obj);
+            return Equals((Node) obj);
         }
 
         /// <summary>
@@ -401,7 +398,7 @@ namespace CqlSharp.Network
         {
             unchecked
             {
-                return ((Address != null ? Address.GetHashCode() : 0) * 397) ^ Cluster.Config.Port;
+                return ((Address != null ? Address.GetHashCode() : 0)*397) ^ Cluster.Config.Port;
             }
         }
 
@@ -416,7 +413,7 @@ namespace CqlSharp.Network
                 IsUp = false;
 
                 //calculate the time, before retry
-                int due = Math.Min(Cluster.Config.MaxDownTime, 2 ^ (_failureCount) * Cluster.Config.MinDownTime);
+                int due = Math.Min(Cluster.Config.MaxDownTime, 2 ^ (_failureCount)*Cluster.Config.MinDownTime);
 
                 //next time wait a bit longer before accepting new connections (but not too long)
                 if (due < Cluster.Config.MaxDownTime) _failureCount++;
@@ -448,16 +445,12 @@ namespace CqlSharp.Network
         }
 
         /// <summary>
-        /// Returns a <see cref="System.String" /> that represents this instance.
+        ///   Returns a <see cref="System.String" /> that represents this instance.
         /// </summary>
-        /// <returns>
-        /// A <see cref="System.String" /> that represents this instance.
-        /// </returns>
+        /// <returns> A <see cref="System.String" /> that represents this instance. </returns>
         public override string ToString()
         {
             return string.Format("Node {0} (DC:{1} Rack:{2})", Address, DataCenter, Rack);
         }
-
-
     }
 }

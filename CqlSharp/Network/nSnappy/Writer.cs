@@ -1,13 +1,30 @@
+// CqlSharp - CqlSharp
+// Copyright (c) 2013 Joost Reuzel
+//   
+// Licensed under the Apache License, Version 2.0 (the "License");
+// you may not use this file except in compliance with the License.
+// You may obtain a copy of the License at
+//   
+// http://www.apache.org/licenses/LICENSE-2.0
+//  
+// Unless required by applicable law or agreed to in writing, software
+// distributed under the License is distributed on an "AS IS" BASIS,
+// WITHOUT WARRANTIES OR CONDITIONS OF ANY KIND, either express or implied.
+// See the License for the specific language governing permissions and
+// limitations under the License.
+
+using System.Diagnostics;
+using System.Text;
 using CqlSharp.Memory;
 
 namespace CqlSharp.Network.nSnappy
 {
-    [System.Diagnostics.DebuggerDisplay("Value: {DebugString}")]
-    class Writer
+    [DebuggerDisplay("Value: {DebugString}")]
+    internal class Writer
     {
         private readonly byte[] _buffer;
-        private int _index;
         private readonly int _length;
+        private int _index;
 
         public Writer(int len)
         {
@@ -19,8 +36,9 @@ namespace CqlSharp.Network.nSnappy
         // ReSharper disable UnusedMember.Local
         private string DebugString
         {
-            get { return System.Text.Encoding.ASCII.GetString(_buffer, 0, _index); }
+            get { return Encoding.ASCII.GetString(_buffer, 0, _index); }
         }
+
         // ReSharper restore UnusedMember.Local
 
         public bool Append(Pointer ip, int len)
@@ -59,7 +77,8 @@ namespace CqlSharp.Network.nSnappy
             int spaceLeft = _length - _index;
 
             if (_index <= offset - 1u)
-            {  // -1u catches offset==0
+            {
+                // -1u catches offset==0
                 return false;
             }
 
@@ -124,6 +143,5 @@ namespace CqlSharp.Network.nSnappy
         {
             return _buffer;
         }
-
     }
 }

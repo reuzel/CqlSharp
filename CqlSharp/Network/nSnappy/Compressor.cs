@@ -1,7 +1,22 @@
-using CqlSharp.Memory;
+// CqlSharp - CqlSharp
+// Copyright (c) 2013 Joost Reuzel
+//   
+// Licensed under the Apache License, Version 2.0 (the "License");
+// you may not use this file except in compliance with the License.
+// You may obtain a copy of the License at
+//   
+// http://www.apache.org/licenses/LICENSE-2.0
+//  
+// Unless required by applicable law or agreed to in writing, software
+// distributed under the License is distributed on an "AS IS" BASIS,
+// WITHOUT WARRANTIES OR CONDITIONS OF ANY KIND, either express or implied.
+// See the License for the specific language governing permissions and
+// limitations under the License.
+
 using System;
 using System.Diagnostics;
 using System.IO;
+using CqlSharp.Memory;
 
 namespace CqlSharp.Network.nSnappy
 {
@@ -9,7 +24,7 @@ namespace CqlSharp.Network.nSnappy
     {
         public static int Compress(Stream input, Stream output)
         {
-            var length = (int)(input.Length - input.Position);
+            var length = (int) (input.Length - input.Position);
 
             var varInt = new VarInt32(length).GetEncodedValue();
             output.Write(varInt, 0, varInt.Length);
@@ -52,7 +67,7 @@ namespace CqlSharp.Network.nSnappy
             var nextEmit = new Pointer(source);
             var baseIp = new Pointer(ip);
 
-            Func<Pointer, int, uint> hashPtr = (value, offset) => (value.ToUInt32(offset) * 0x1e35a7bd) >> shift;
+            Func<Pointer, int, uint> hashPtr = (value, offset) => (value.ToUInt32(offset)*0x1e35a7bd) >> shift;
 
             if (length >= inputMarginBytes)
             {
@@ -87,7 +102,6 @@ namespace CqlSharp.Network.nSnappy
                         Debug.Assert(candidate < ip);
 
                         hashTable[hash] = ip - baseIp;
-
                     } while (ip.ToUInt32() != candidate.ToUInt32());
 
                     Debug.Assert(nextEmit + 16 <= length);
@@ -124,7 +138,6 @@ namespace CqlSharp.Network.nSnappy
 
                         candidateBytes = candidate.ToUInt32();
                         hashTable[curHash] = ip - baseIp;
-
                     } while (inputBytes.ToUInt32(1) == candidateBytes);
 
                     nextHash = hashPtr(inputBytes, 2);
@@ -132,7 +145,7 @@ namespace CqlSharp.Network.nSnappy
                 }
             }
 
-        emit_remainder:
+            emit_remainder:
             if (nextEmit < length)
             {
                 op = EmitLiteral(op, nextEmit, length - nextEmit, false);
@@ -219,13 +232,13 @@ namespace CqlSharp.Network.nSnappy
                 int lenMinus4 = len - 4;
                 Debug.Assert(lenMinus4 < 8); // Must fit in 3 bits
 
-                op[0] = (byte)(CompressorTag.Copy1ByteOffset | ((lenMinus4) << 2) | ((offset >> 8) << 5));
-                op[1] = (byte)(offset & 0xff);
+                op[0] = (byte) (CompressorTag.Copy1ByteOffset | ((lenMinus4) << 2) | ((offset >> 8) << 5));
+                op[1] = (byte) (offset & 0xff);
                 op = op + 2;
             }
             else
             {
-                op[0] = (byte)(CompressorTag.Copy2ByteOffset | ((len - 1) << 2));
+                op[0] = (byte) (CompressorTag.Copy2ByteOffset | ((len - 1) << 2));
                 op += 1;
 
                 op.WriteUInt16(offset);
@@ -241,7 +254,7 @@ namespace CqlSharp.Network.nSnappy
             if (n < 60)
             {
                 var value = CompressorTag.Literal | (n << 2);
-                dest[0] = (byte)value;
+                dest[0] = (byte) value;
                 dest += 1;
 
                 if (allowFastPath && length <= 16)
@@ -259,7 +272,7 @@ namespace CqlSharp.Network.nSnappy
                 int count = 0;
                 while (n > 0)
                 {
-                    dest[count] = (byte)(n & 0xff);
+                    dest[count] = (byte) (n & 0xff);
                     n >>= 8;
                     count++;
                 }
@@ -267,7 +280,7 @@ namespace CqlSharp.Network.nSnappy
                 Debug.Assert(count >= 1);
                 Debug.Assert(count <= 4);
 
-                tmp[0] = (byte)(CompressorTag.Literal | (59 + count) << 2);
+                tmp[0] = (byte) (CompressorTag.Literal | (59 + count) << 2);
                 dest += count;
             }
 
@@ -300,7 +313,7 @@ namespace CqlSharp.Network.nSnappy
 
         private static int MaxCompressedOutput(int size)
         {
-            return 32 + size + size / 6;
+            return 32 + size + size/6;
         }
     }
 }

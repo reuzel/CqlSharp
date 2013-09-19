@@ -24,7 +24,7 @@ namespace CqlSharp.Protocol
     {
         public StartupFrame(string cqlVersion)
         {
-            Options = new Dictionary<string, string> { { "CQL_VERSION", cqlVersion } };
+            Options = new Dictionary<string, string> {{"CQL_VERSION", cqlVersion}};
 
             Version = FrameVersion.Request;
             Flags = FrameFlags.None;

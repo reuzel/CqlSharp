@@ -40,7 +40,7 @@ namespace CqlSharp.Protocol
 
         protected override void WriteData(Stream buffer)
         {
-            var credentials = new Dictionary<string, string> { { "username", Username }, { "password", Password } };
+            var credentials = new Dictionary<string, string> {{"username", Username}, {"password", Password}};
             buffer.WriteStringMap(credentials);
         }
 

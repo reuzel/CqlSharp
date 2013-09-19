@@ -46,7 +46,7 @@ namespace CqlSharp.Protocol
                 }
                 else
                 {
-                    buffer.WriteShort((ushort)Parameters.Count);
+                    buffer.WriteShort((ushort) Parameters.Count);
                     foreach (var prm in Parameters)
                         buffer.WriteByteArray(prm);
                 }

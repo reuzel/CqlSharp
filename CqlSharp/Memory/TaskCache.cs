@@ -24,7 +24,7 @@ namespace CqlSharp.Memory
     /// </summary>
     internal static class TaskCache
     {
-        private const int CacheSize = 2 * 1024; //cache int and short values up to 2048
+        private const int CacheSize = 2*1024; //cache int and short values up to 2048
 
         private static readonly Task<byte>[] ByteTaskCache;
 
@@ -38,7 +38,7 @@ namespace CqlSharp.Memory
         {
             ByteTaskCache = new Task<byte>[256];
             for (int i = 0; i < 256; i++)
-                ByteTaskCache[i] = Task.FromResult((byte)(i - Byte.MinValue));
+                ByteTaskCache[i] = Task.FromResult((byte) (i - Byte.MinValue));
 
             ShortTaskCache = new Task<ushort>[CacheSize];
             for (ushort i = 0; i < CacheSize; i++)

@@ -23,7 +23,6 @@ namespace CqlSharp.Protocol
     /// </summary>
     internal class MetaData : IList<Column>
     {
-
         /// <summary>
         ///   The columns
         /// </summary>
@@ -35,30 +34,24 @@ namespace CqlSharp.Protocol
         private Dictionary<string, Column> _columnsByName;
 
         /// <summary>
-        /// Gets or sets the state of the paging.
+        ///   Gets or sets the state of the paging.
         /// </summary>
-        /// <value>
-        /// The state of the paging.
-        /// </value>
+        /// <value> The state of the paging. </value>
         public byte[] PagingState { get; set; }
 
         /// <summary>
-        /// Gets or sets a value indicating whether any columns are specified in this meta Data
+        ///   Gets or sets a value indicating whether any columns are specified in this meta Data
         /// </summary>
-        /// <value>
-        ///   <c>true</c> if [no meta data]; otherwise, <c>false</c>.
-        /// </value>
+        /// <value> <c>true</c> if [no meta data]; otherwise, <c>false</c> . </value>
         public bool NoMetaData
         {
             get { return _columns.Count == 0; }
         }
 
         /// <summary>
-        /// Gets a value indicating whether there are more rows in this query than has been returned.
+        ///   Gets a value indicating whether there are more rows in this query than has been returned.
         /// </summary>
-        /// <value>
-        ///   <c>true</c> if [has more rows]; otherwise, <c>false</c>.
-        /// </value>
+        /// <value> <c>true</c> if [has more rows]; otherwise, <c>false</c> . </value>
         public bool HasMoreRows
         {
             get { return PagingState != null; }
@@ -254,9 +247,9 @@ namespace CqlSharp.Protocol
         }
 
         /// <summary>
-        /// Copies the columns from an other MetaData instance
+        ///   Copies the columns from an other MetaData instance
         /// </summary>
-        /// <param name="metaData">The meta data.</param>
+        /// <param name="metaData"> The meta data. </param>
         internal void CopyColumnsFrom(MetaData metaData)
         {
             if (metaData != null)

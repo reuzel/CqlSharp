@@ -31,7 +31,7 @@ namespace CqlSharp
         /// <returns> </returns>
         public static long ToTimestamp(this DateTime datetime)
         {
-            return (long)datetime.ToUniversalTime().Subtract(Epoch).TotalMilliseconds;
+            return (long) datetime.ToUniversalTime().Subtract(Epoch).TotalMilliseconds;
         }
 
         /// <summary>
@@ -53,13 +53,13 @@ namespace CqlSharp
         /// <returns> </returns>
         public static long ToLong(this byte[] bytes, int offset = 0)
         {
-            long value = (long)bytes[offset] << 56;
-            value |= (long)bytes[offset + 1] << 48;
-            value |= (long)bytes[offset + 2] << 40;
-            value |= (long)bytes[offset + 3] << 32;
-            value |= (long)bytes[offset + 4] << 24;
-            value |= (long)bytes[offset + 5] << 16;
-            value |= (long)bytes[offset + 6] << 8;
+            long value = (long) bytes[offset] << 56;
+            value |= (long) bytes[offset + 1] << 48;
+            value |= (long) bytes[offset + 2] << 40;
+            value |= (long) bytes[offset + 3] << 32;
+            value |= (long) bytes[offset + 4] << 24;
+            value |= (long) bytes[offset + 5] << 16;
+            value |= (long) bytes[offset + 6] << 8;
             value |= bytes[offset + 7];
 
             return value;
@@ -91,28 +91,27 @@ namespace CqlSharp
         public static ushort ToShort(this byte[] bytes, int offset = 0)
         {
             int value = bytes[offset] << 8 | bytes[offset + 1];
-            return (ushort)value;
+            return (ushort) value;
         }
 
         /// <summary>
-        ///  converts the array to a Guid value
+        ///   converts the array to a Guid value
         /// </summary>
-        /// <param name="bytes">The bytes.</param>
-        /// <param name="offset">The offset.</param>
-        /// <returns></returns>
+        /// <param name="bytes"> The bytes. </param>
+        /// <param name="offset"> The offset. </param>
+        /// <returns> </returns>
         public static Guid ToGuid(this byte[] bytes, int offset = 0)
         {
             unchecked
             {
                 int a = bytes.ToInt(offset);
-                var b = (short)bytes.ToShort(offset + 4);
-                var c = (short)bytes.ToShort(offset + 6);
+                var b = (short) bytes.ToShort(offset + 4);
+                var c = (short) bytes.ToShort(offset + 6);
 
-                return new Guid(a, b, c, bytes[offset + 8], bytes[offset + 9], bytes[offset + 10], bytes[offset + 11], bytes[offset + 12], bytes[offset + 13],
-                            bytes[offset + 14], bytes[offset + 15]);
-
+                return new Guid(a, b, c, bytes[offset + 8], bytes[offset + 9], bytes[offset + 10], bytes[offset + 11],
+                                bytes[offset + 12], bytes[offset + 13],
+                                bytes[offset + 14], bytes[offset + 15]);
             }
-
         }
     }
 }

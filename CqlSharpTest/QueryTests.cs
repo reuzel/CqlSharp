@@ -1,4 +1,4 @@
-﻿// CqlSharp - CqlSharpTest
+﻿// CqlSharp - CqlSharp.Test
 // Copyright (c) 2013 Joost Reuzel
 //   
 // Licensed under the Apache License, Version 2.0 (the "License");
@@ -13,29 +13,31 @@
 // See the License for the specific language governing permissions and
 // limitations under the License.
 
-using CqlSharp.Protocol;
-using CqlSharp.Serialization;
-using CqlSharp.Tracing;
-using Microsoft.VisualStudio.TestTools.UnitTesting;
+using System;
 using System.Data;
 using System.Linq;
 using System.Threading;
 using System.Threading.Tasks;
+using CqlSharp.Protocol;
+using CqlSharp.Serialization;
+using CqlSharp.Tracing;
+using Microsoft.VisualStudio.TestTools.UnitTesting;
 
 namespace CqlSharp.Test
 {
     [TestClass]
     public class QueryTests
     {
-        private const string ConnectionString = "server=localhost;throttle=256;MaxConnectionIdleTime=3600;ConnectionStrategy=PartitionAware;loggerfactory=debug;loglevel=query";
+        private const string ConnectionString =
+            "server=localhost;throttle=256;MaxConnectionIdleTime=3600;ConnectionStrategy=PartitionAware;loggerfactory=debug;loglevel=verbose";
 
-        [TestInitialize]
-        public void Init()
+        [ClassInitialize]
+        public static void Init(TestContext context)
         {
             const string createKsCql =
                 @"CREATE KEYSPACE Test WITH replication = {'class': 'SimpleStrategy', 'replication_factor' : 1} and durable_writes = 'false';";
             const string createTableCql = @"create table Test.BasicFlow (id int primary key, value text, ignored text);";
-            const string truncateTableCql = @"truncate Test.BasicFlow;";
+
 
             using (var connection = new CqlConnection(ConnectionString))
             {
@@ -59,14 +61,12 @@ namespace CqlSharp.Test
                 }
                 catch (AlreadyExistsException)
                 {
-                    var truncTable = new CqlCommand(connection, truncateTableCql);
-                    truncTable.ExecuteNonQuery();
                 }
             }
         }
 
-        [TestCleanup]
-        public void Cleanup()
+        [ClassCleanup]
+        public static void Cleanup()
         {
             const string dropCql = @"drop keyspace Test;";
 
@@ -86,8 +86,22 @@ namespace CqlSharp.Test
             }
         }
 
+        [TestInitialize]
+        public void PrepareTest()
+        {
+            const string truncateTableCql = @"truncate Test.BasicFlow;";
+
+            using (var connection = new CqlConnection(ConnectionString))
+            {
+                connection.Open();
+                var truncTable = new CqlCommand(connection, truncateTableCql);
+                truncTable.ExecuteNonQuery();
+            }
+        }
+
+
         [TestMethod]
-        public async Task BasicInsertSelect()
+        public async Task BasicPrepareInsertSelect()
         {
             //Assume
             const string insertCql = @"insert into Test.BasicFlow (id,value) values (?,?);";
@@ -102,14 +116,14 @@ namespace CqlSharp.Test
                 var cmd = new CqlCommand(connection, insertCql, CqlConsistency.One);
                 await cmd.PrepareAsync();
 
-                var b = new BasicFlowData { Id = 123, Data = "Hallo", Ignored = "none" };
+                var b = new BasicFlowData {Id = 123, Data = "Hallo", Ignored = "none"};
                 cmd.PartitionKey.Set(b);
                 cmd.Parameters.Set(b);
 
                 await cmd.ExecuteNonQueryAsync();
 
                 //select data
-                var selectCmd = new CqlCommand(connection, retrieveCql, CqlConsistency.One) { EnableTracing = true };
+                var selectCmd = new CqlCommand(connection, retrieveCql, CqlConsistency.One) {EnableTracing = true};
                 await selectCmd.PrepareAsync();
 
                 CqlDataReader<BasicFlowData> reader = await selectCmd.ExecuteReaderAsync<BasicFlowData>();
@@ -125,10 +139,155 @@ namespace CqlSharp.Test
                 {
                     Assert.Fail("Read should have succeeded");
                 }
+            }
+        }
 
-                Assert.IsTrue(reader.TracingId.HasValue, "Expected a tracing id");
+        [TestMethod]
+        public async Task BasicInsertSelect()
+        {
+            //Assume
+            const string insertCql = @"insert into Test.BasicFlow (id,value) values (789,'Hallo 789');";
+            const string retrieveCql = @"select * from Test.BasicFlow;";
 
-                var tracer = new QueryTraceCommand(connection, reader.TracingId.Value);
+            //Act
+            using (var connection = new CqlConnection(ConnectionString))
+            {
+                await connection.OpenAsync();
+
+                //insert data
+                var cmd = new CqlCommand(connection, insertCql, CqlConsistency.One);
+                await cmd.ExecuteNonQueryAsync();
+
+                //select data
+                var selectCmd = new CqlCommand(connection, retrieveCql, CqlConsistency.One);
+                await selectCmd.PrepareAsync();
+
+                CqlDataReader reader = await selectCmd.ExecuteReaderAsync();
+                Assert.AreEqual(1, reader.Count);
+                if (await reader.ReadAsync())
+                {
+                    Assert.AreEqual(789, reader["id"]);
+                    Assert.AreEqual("Hallo 789", reader["value"]);
+                    Assert.AreEqual(DBNull.Value, reader["ignored"]);
+                }
+                else
+                {
+                    Assert.Fail("Read should have succeeded");
+                }
+            }
+        }
+
+
+        [TestMethod]
+        public async Task PrepareNoArguments()
+        {
+            //Assume
+            const string insertCql = @"insert into Test.BasicFlow (id,value) values (2, 'Hallo 2');";
+
+            //Act
+            using (var connection = new CqlConnection(ConnectionString))
+            {
+                await connection.OpenAsync();
+
+                //prepare command
+                var cmd = new CqlCommand(connection, insertCql, CqlConsistency.One);
+                await cmd.PrepareAsync();
+
+                Assert.IsTrue(cmd.IsPrepared);
+                Assert.AreEqual(0, cmd.Parameters.Count);
+                Assert.IsTrue(cmd.Parameters.IsReadOnly);
+                Assert.IsTrue(cmd.Parameters.IsFixedSize);
+                Assert.IsInstanceOfType(cmd.LastQueryResult, typeof (CqlPrepared));
+                var prepareResult = (CqlPrepared) cmd.LastQueryResult;
+                Assert.IsFalse(prepareResult.FromCache);
+            }
+        }
+
+        [TestMethod]
+        public async Task PrepareAndReprepare()
+        {
+            //Assume
+            const string insertCql = @"insert into Test.BasicFlow (id,value) values (2, ?);";
+
+            //Act
+            using (var connection = new CqlConnection(ConnectionString))
+            {
+                await connection.OpenAsync();
+
+                //prepare command
+                var cmd = new CqlCommand(connection, insertCql, CqlConsistency.One);
+                await cmd.PrepareAsync();
+
+                Assert.IsTrue(cmd.IsPrepared);
+                Assert.AreEqual(1, cmd.Parameters.Count);
+                Assert.IsTrue(cmd.Parameters.IsReadOnly);
+                Assert.IsTrue(cmd.Parameters.IsFixedSize);
+                Assert.IsInstanceOfType(cmd.LastQueryResult, typeof (CqlPrepared));
+                var prepareResult = (CqlPrepared) cmd.LastQueryResult;
+                Assert.IsFalse(prepareResult.FromCache);
+
+                //reprepare
+                var cmd2 = new CqlCommand(connection, insertCql, CqlConsistency.One);
+                await cmd2.PrepareAsync();
+
+                Assert.IsTrue(cmd2.IsPrepared);
+                Assert.AreEqual(1, cmd2.Parameters.Count);
+                Assert.IsTrue(cmd2.Parameters.IsReadOnly);
+                Assert.IsTrue(cmd2.Parameters.IsFixedSize);
+                Assert.IsInstanceOfType(cmd2.LastQueryResult, typeof (CqlPrepared));
+                var prepareResult2 = (CqlPrepared) cmd2.LastQueryResult;
+                Assert.IsTrue(prepareResult2.FromCache);
+            }
+        }
+
+
+        [TestMethod]
+        public async Task InsertTracing()
+        {
+            //Assume
+            const string insertCql = @"insert into Test.BasicFlow (id,value) values (567,'Hallo 567');";
+
+            //Act
+            using (var connection = new CqlConnection(ConnectionString))
+            {
+                await connection.OpenAsync();
+
+                //insert data
+                var cmd = new CqlCommand(connection, insertCql, CqlConsistency.One);
+                cmd.EnableTracing = true;
+                await cmd.ExecuteNonQueryAsync();
+
+                Assert.IsInstanceOfType(cmd.LastQueryResult, typeof (CqlVoid));
+                Assert.IsTrue(cmd.LastQueryResult.TracingId.HasValue, "Expected a tracing id");
+
+                var tracer = new QueryTraceCommand(connection, cmd.LastQueryResult.TracingId.Value);
+                TracingSession session = await tracer.GetTraceSessionAsync(CancellationToken.None);
+
+                Assert.IsNotNull(session);
+            }
+        }
+
+
+        [TestMethod]
+        public async Task PrepareTracing()
+        {
+            //Assume
+            const string insertCql = @"insert into Test.BasicFlow (id,value) values (542,'Hallo 542');";
+
+            //Act
+            using (var connection = new CqlConnection(ConnectionString))
+            {
+                await connection.OpenAsync();
+
+                //insert data
+                var cmd = new CqlCommand(connection, insertCql, CqlConsistency.One);
+                cmd.EnableTracing = true;
+                await cmd.PrepareAsync();
+
+                Assert.IsInstanceOfType(cmd.LastQueryResult, typeof (CqlPrepared));
+                Assert.IsTrue(cmd.LastQueryResult.TracingId.HasValue, "Expected a tracing id");
+
+                var tracer = new QueryTraceCommand(connection, cmd.LastQueryResult.TracingId.Value);
                 TracingSession session = await tracer.GetTraceSessionAsync(CancellationToken.None);
 
                 Assert.IsNotNull(session);
@@ -139,7 +298,7 @@ namespace CqlSharp.Test
         public async Task BasicInsertSelectOnSynchronizationContext()
         {
             SynchronizationContext.SetSynchronizationContext(new STASynchronizationContext());
-            await BasicInsertSelect();
+            await BasicPrepareInsertSelect();
         }
 
         [TestMethod]
@@ -156,16 +315,26 @@ namespace CqlSharp.Test
 
                 //define command
                 var cmd = new CqlCommand(connection, insertCql, CqlConsistency.One);
-                cmd.Parameters.Add("id", CqlType.Int);
-                cmd.Parameters.Add("value", CqlType.Text);
 
-                //set data
-                var b = new BasicFlowData { Id = 123, Data = "Hallo", Ignored = "none" };
-                cmd.PartitionKey.Set(b);
-                cmd.Parameters.Set(b);
+                //add parameters, infer Cql types
+                cmd.Parameters.Add("id", 123);
+                cmd.Parameters.Add("value", "Hallo");
 
-                //execute
-                await cmd.ExecuteNonQueryAsync();
+                try
+                {
+                    //execute
+                    await cmd.ExecuteNonQueryAsync();
+                }
+                catch (InvalidException)
+                {
+                    Assert.IsNotNull(connection.ServerVersion);
+                    if (String.Compare(connection.ServerVersion, "2.0.0", StringComparison.Ordinal) < 0)
+                    {
+                        return;
+                    }
+
+                    throw;
+                }
 
                 //select data
                 var selectCmd = new CqlCommand(connection, retrieveCql, CqlConsistency.One);
@@ -193,8 +362,6 @@ namespace CqlSharp.Test
             const string insertCql = @"insert into Test.BasicFlow (id,value) values (?,?);";
             const string retrieveCql = @"select id,value,ignored from Test.BasicFlow;";
 
-            const int insertCount = 1000;
-
             //Act
 
             using (IDbConnection connection = new CqlConnection(ConnectionString))
@@ -205,35 +372,34 @@ namespace CqlSharp.Test
                 cmd.Parameters.Add(new CqlParameter("id", CqlType.Int));
                 cmd.Parameters.Add(new CqlParameter("value", CqlType.Text));
 
-                for (int i = 0; i < insertCount; i++)
-                {
-                    cmd.Prepare();
+                cmd.Prepare();
 
-                    ((IDbDataParameter)cmd.Parameters["id"]).Value = i;
-                    ((IDbDataParameter)cmd.Parameters["value"]).Value = "Hallo " + i;
+                ((IDbDataParameter) cmd.Parameters["id"]).Value = 456;
+                ((IDbDataParameter) cmd.Parameters["value"]).Value = "Hallo 456";
 
-                    cmd.ExecuteNonQuery();
-                }
+                cmd.ExecuteNonQuery();
 
-                var presence = new bool[insertCount];
-
-                IDbCommand selectCmd = new CqlCommand(connection, retrieveCql, CqlConsistency.One) { EnableTracing = true };
+                IDbCommand selectCmd = new CqlCommand(connection, retrieveCql, CqlConsistency.One)
+                                           {EnableTracing = true};
                 IDataReader reader = selectCmd.ExecuteReader();
 
                 DataTable schema = reader.GetSchemaTable();
                 Assert.AreEqual(3, schema.Rows.Count);
-                Assert.IsTrue(schema.Rows.Cast<DataRow>().Any(row => row[CqlSchemaTableColumnNames.ColumnName].Equals("ignored")));
+                Assert.IsTrue(
+                    schema.Rows.Cast<DataRow>().Any(row => row[CqlSchemaTableColumnNames.ColumnName].Equals("ignored")));
 
-                while (reader.Read())
+                if (reader.Read())
                 {
                     int id = reader.GetInt32(0);
                     string value = reader.GetString(1);
+                    Assert.AreEqual(456, id);
                     Assert.IsTrue(reader.IsDBNull(2));
-                    Assert.AreEqual("Hallo " + id, value);
-                    presence[id] = true;
+                    Assert.AreEqual("Hallo 456", value);
                 }
-
-                Assert.IsTrue(presence.All(p => p));
+                else
+                {
+                    Assert.Fail("Read should have succeeded");
+                }
             }
         }
     }
@@ -243,8 +409,7 @@ namespace CqlSharp.Test
     [CqlTable("basicflow", Keyspace = "test")]
     public class BasicFlowData
     {
-        [CqlColumn("id", PartitionKeyIndex = 0, CqlType = CqlType.Int)]
-        public int Id;
+        [CqlColumn("id", PartitionKeyIndex = 0, CqlType = CqlType.Int)] public int Id;
 
         [CqlColumn("value")]
         public string Data { get; set; }

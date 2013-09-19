@@ -13,10 +13,9 @@
 // See the License for the specific language governing permissions and
 // limitations under the License.
 
-using CqlSharp.Memory;
-using Microsoft.VisualStudio.TestTools.UnitTesting;
 using System.IO;
 using System.Linq;
+using Microsoft.VisualStudio.TestTools.UnitTesting;
 
 namespace CqlSharp.Test
 {
@@ -30,15 +29,15 @@ namespace CqlSharp.Test
             const int count = 20000;
             var bytes = new byte[count];
             for (int i = 0; i < count; i++)
-                bytes[i] = (byte)((i - byte.MinValue) % byte.MaxValue);
+                bytes[i] = (byte) ((i - byte.MinValue)%byte.MaxValue);
 
             //act
             var stream = new PoolMemoryStream();
             stream.Write(bytes, 0, count);
 
             //assert
-            Assert.AreEqual(stream.Length, count, "Unexpected stream length");
-            Assert.AreEqual(stream.Position, count, "Unexpected position");
+            Assert.AreEqual<long>(stream.Length, count, "Unexpected stream length");
+            Assert.AreEqual<long>(stream.Position, count, "Unexpected position");
             Assert.IsTrue(stream.Capacity >= count, "Unexpected capacity");
         }
 
@@ -49,7 +48,7 @@ namespace CqlSharp.Test
             const int count = 20000;
             var bytes = new byte[count];
             for (int i = 0; i < count; i++)
-                bytes[i] = (byte)((i - byte.MinValue) % byte.MaxValue);
+                bytes[i] = (byte) ((i - byte.MinValue)%byte.MaxValue);
 
             //act
             var stream = new PoolMemoryStream();
@@ -66,7 +65,7 @@ namespace CqlSharp.Test
             } while (read > 0);
 
             //assert
-            Assert.AreEqual(stream.Length, actual, "not all written bytes can be read");
+            Assert.AreEqual<long>(stream.Length, actual, "not all written bytes can be read");
             Assert.IsTrue(readBytes.SequenceEqual(bytes), "returned bytes differ from written bytes");
 
 
@@ -80,7 +79,7 @@ namespace CqlSharp.Test
             const int count = 20000;
             var bytes = new byte[count];
             for (int i = 0; i < count; i++)
-                bytes[i] = (byte)((i - byte.MinValue) % byte.MaxValue);
+                bytes[i] = (byte) ((i - byte.MinValue)%byte.MaxValue);
 
             //act
             var stream = new PoolMemoryStream();
@@ -93,7 +92,7 @@ namespace CqlSharp.Test
             var readBytes = target.ToArray();
 
             //assert
-            Assert.AreEqual(stream.Length, readBytes.Length, "not all written bytes are copied");
+            Assert.AreEqual<long>(stream.Length, readBytes.Length, "not all written bytes are copied");
             Assert.IsTrue(readBytes.SequenceEqual(bytes), "returned bytes differ from written bytes");
         }
 
@@ -104,7 +103,7 @@ namespace CqlSharp.Test
             const int count = 20000;
             var bytes = new byte[count];
             for (int i = 0; i < count; i++)
-                bytes[i] = (byte)((i - byte.MinValue) % byte.MaxValue);
+                bytes[i] = (byte) ((i - byte.MinValue)%byte.MaxValue);
 
             //act
             var stream = new PoolMemoryStream();
@@ -113,9 +112,9 @@ namespace CqlSharp.Test
 
             stream.Position = 0;
 
-            Assert.AreEqual(stream.Length, count, "Unexpected stream length!");
+            Assert.AreEqual<long>(stream.Length, count, "Unexpected stream length!");
             for (int i = 0; i < count; i++)
-                Assert.AreEqual((byte)stream.ReadByte(), bytes[i], "Read byte is not equal to written bytes!");
+                Assert.AreEqual((byte) stream.ReadByte(), bytes[i], "Read byte is not equal to written bytes!");
         }
     }
 }

@@ -26,8 +26,8 @@ namespace CqlSharp.Memory
     internal class PoolMemoryStream : Stream
     {
         private const int BufferSize = 8192;
-        private byte[][] _buffers;
         private int _bufferCount;
+        private byte[][] _buffers;
 
         //private readonly List<byte[]> _buffers;
         private bool _disposed;
@@ -79,23 +79,12 @@ namespace CqlSharp.Memory
         }
 
         /// <summary>
-        /// Adds a buffer.
-        /// </summary>
-        private void AddBuffer()
-        {
-            if (++_bufferCount > _buffers.Length)
-                Array.Resize(ref _buffers, _buffers.Length + 10);
-
-            _buffers[_bufferCount - 1] = MemoryPool.Instance.Take(BufferSize);
-        }
-
-        /// <summary>
         ///   Gets the capacity of the current stream. Capacity will grow or reduce when data is read or written.
         /// </summary>
         /// <value> The capacity. </value>
         public long Capacity
         {
-            get { return _buffers.Length * BufferSize; }
+            get { return _buffers.Length*BufferSize; }
         }
 
         /// <summary>
@@ -201,8 +190,8 @@ namespace CqlSharp.Memory
             get
             {
                 //get location in buffer
-                var bufferIndex = (int)((index) / BufferSize);
-                var bufferOffset = (int)((index) % BufferSize);
+                var bufferIndex = (int) ((index)/BufferSize);
+                var bufferOffset = (int) ((index)%BufferSize);
 
                 //copy value to internal buffers
                 return _buffers[bufferIndex][bufferOffset];
@@ -211,12 +200,23 @@ namespace CqlSharp.Memory
             set
             {
                 //get location in buffer
-                var bufferIndex = (int)((index) / BufferSize);
-                var bufferOffset = (int)((index) % BufferSize);
+                var bufferIndex = (int) ((index)/BufferSize);
+                var bufferOffset = (int) ((index)%BufferSize);
 
                 //copy value to internal buffers
                 _buffers[bufferIndex][bufferOffset] = value;
             }
+        }
+
+        /// <summary>
+        ///   Adds a buffer.
+        /// </summary>
+        private void AddBuffer()
+        {
+            if (++_bufferCount > _buffers.Length)
+                Array.Resize(ref _buffers, _buffers.Length + 10);
+
+            _buffers[_bufferCount - 1] = MemoryPool.Instance.Take(BufferSize);
         }
 
         /// <summary>
@@ -311,7 +311,7 @@ namespace CqlSharp.Memory
 
             _size = value;
 
-            int bufferIndex = (int)_size / BufferSize;
+            int bufferIndex = (int) _size/BufferSize;
 
             //clear redundant buffers
             int count = _bufferCount;
@@ -328,16 +328,18 @@ namespace CqlSharp.Memory
                 AddBuffer();
             }
         }
+
         /// <summary>
-        /// Asynchronously reads a sequence of bytes from the current stream, advances the position within the stream by the number of bytes read, and monitors cancellation requests.
+        ///   Asynchronously reads a sequence of bytes from the current stream, advances the position within the stream by the number of bytes read, and monitors cancellation requests.
         /// </summary>
-        /// <param name="buffer">The buffer to write the data into.</param>
-        /// <param name="offset">The byte offset in <paramref name="buffer" /> at which to begin writing data from the stream.</param>
-        /// <param name="count">The maximum number of bytes to read.</param>
-        /// <param name="cancellationToken">The token to monitor for cancellation requests. The default value is <see cref="P:System.Threading.CancellationToken.None" /> .</param>
-        /// <returns>
-        /// A task that represents the asynchronous read operation. The value of the <paramref><name>int</name></paramref> parameter contains the total number of bytes read into the buffer. The result value can be less than the number of bytes requested if the number of bytes currently available is less than the requested number, or it can be 0 (zero) if the end of the stream has been reached.
-        /// </returns>
+        /// <param name="buffer"> The buffer to write the data into. </param>
+        /// <param name="offset"> The byte offset in <paramref name="buffer" /> at which to begin writing data from the stream. </param>
+        /// <param name="count"> The maximum number of bytes to read. </param>
+        /// <param name="cancellationToken"> The token to monitor for cancellation requests. The default value is <see
+        ///    cref="P:System.Threading.CancellationToken.None" /> . </param>
+        /// <returns> A task that represents the asynchronous read operation. The value of the <paramref>
+        ///                                                                                      <name>int</name>
+        ///                                                                                    </paramref> parameter contains the total number of bytes read into the buffer. The result value can be less than the number of bytes requested if the number of bytes currently available is less than the requested number, or it can be 0 (zero) if the end of the stream has been reached. </returns>
         public override Task<int> ReadAsync(byte[] buffer, int offset, int count, CancellationToken cancellationToken)
         {
             int read = Read(buffer, offset, count);
@@ -374,10 +376,10 @@ namespace CqlSharp.Memory
             if (_disposed) throw new ObjectDisposedException("PoolMemoryStream");
 
             //get location in buffer
-            var bufferIndex = (int)(_position / BufferSize);
-            var bufferOffset = (int)(_position % BufferSize);
+            var bufferIndex = (int) (_position/BufferSize);
+            var bufferOffset = (int) (_position%BufferSize);
 
-            var maxReadable = (int)Math.Min(count, _size - _position);
+            var maxReadable = (int) Math.Min(count, _size - _position);
             var toRead = maxReadable;
             while (toRead > 0)
             {
@@ -446,14 +448,14 @@ namespace CqlSharp.Memory
             if (_disposed) throw new ObjectDisposedException("PoolMemoryStream");
 
             //allocate buffers if necessary
-            while (_bufferCount * BufferSize <= _position + count)
+            while (_bufferCount*BufferSize <= _position + count)
             {
                 AddBuffer();
             }
 
             //get location in buffer
-            var bufferIndex = (int)(_position / BufferSize);
-            var bufferOffset = (int)(_position % BufferSize);
+            var bufferIndex = (int) (_position/BufferSize);
+            var bufferOffset = (int) (_position%BufferSize);
 
             //move position ahead
             _position += count;
@@ -480,14 +482,14 @@ namespace CqlSharp.Memory
         public override void WriteByte(byte value)
         {
             //allocate buffers if necessary
-            if (_bufferCount * BufferSize <= _position + 1)
+            if (_bufferCount*BufferSize <= _position + 1)
             {
                 AddBuffer();
             }
 
             //get location in buffer
-            var bufferIndex = (int)(_position / BufferSize);
-            var bufferOffset = (int)(_position % BufferSize);
+            var bufferIndex = (int) (_position/BufferSize);
+            var bufferOffset = (int) (_position%BufferSize);
 
             //move position ahead
             _position++;
@@ -534,14 +536,14 @@ namespace CqlSharp.Memory
 
             long toCopy = _size - _position;
 
-            var bufferIndex = (int)(_position / BufferSize);
-            var bufferOffset = (int)(_position % BufferSize);
+            var bufferIndex = (int) (_position/BufferSize);
+            var bufferOffset = (int) (_position%BufferSize);
 
             while (toCopy > 0)
             {
                 if (_disposed) throw new ObjectDisposedException("PoolMemoryStream");
 
-                var writeSize = (int)Math.Min((long)BufferSize - bufferOffset, toCopy);
+                var writeSize = (int) Math.Min((long) BufferSize - bufferOffset, toCopy);
                 destination.Write(_buffers[bufferIndex], bufferOffset, writeSize);
                 bufferIndex++;
                 bufferOffset = 0;
@@ -567,15 +569,15 @@ namespace CqlSharp.Memory
 
             long toCopy = _size - _position;
 
-            var bufferIndex = (int)(_position / BufferSize);
-            var bufferOffset = (int)(_position % BufferSize);
+            var bufferIndex = (int) (_position/BufferSize);
+            var bufferOffset = (int) (_position%BufferSize);
 
             while (toCopy > 0)
             {
                 cancellationToken.ThrowIfCancellationRequested();
                 if (_disposed) throw new ObjectDisposedException("PoolMemoryStream");
 
-                var writeSize = (int)Math.Min((long)BufferSize - bufferOffset, toCopy);
+                var writeSize = (int) Math.Min((long) BufferSize - bufferOffset, toCopy);
                 await destination.WriteAsync(_buffers[bufferIndex], bufferOffset, writeSize).ConfigureAwait(false);
                 bufferIndex++;
                 bufferOffset = 0;

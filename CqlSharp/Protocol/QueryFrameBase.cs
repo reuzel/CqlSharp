@@ -1,3 +1,18 @@
+// CqlSharp - CqlSharp
+// Copyright (c) 2013 Joost Reuzel
+//   
+// Licensed under the Apache License, Version 2.0 (the "License");
+// you may not use this file except in compliance with the License.
+// You may obtain a copy of the License at
+//   
+// http://www.apache.org/licenses/LICENSE-2.0
+//  
+// Unless required by applicable law or agreed to in writing, software
+// distributed under the License is distributed on an "AS IS" BASIS,
+// WITHOUT WARRANTIES OR CONDITIONS OF ANY KIND, either express or implied.
+// See the License for the specific language governing permissions and
+// limitations under the License.
+
 using System;
 using System.Collections.Generic;
 using System.IO;
@@ -40,9 +55,9 @@ namespace CqlSharp.Protocol
         public byte[] PagingState { get; set; }
 
         /// <summary>
-        /// The consistency level for the serial phase of conditional updates. That consitency
-        /// can only be either SERIAL or LOCAL_SERIAL and if not present, it defaults to SERIAL.
-        /// This option will be ignored for anything else that a conditional update/insert.
+        ///   The consistency level for the serial phase of conditional updates. That consitency
+        ///   can only be either SERIAL or LOCAL_SERIAL and if not present, it defaults to SERIAL.
+        ///   This option will be ignored for anything else that a conditional update/insert.
         /// </summary>
         /// <value> The serial consistency. </value>
         /// <exception cref="CqlException">Serial Consistency can only be LocalSerial or Serial</exception>
@@ -62,17 +77,17 @@ namespace CqlSharp.Protocol
         {
             buffer.WriteConsistency(CqlConsistency);
 
-            var flags = (byte)((Parameters != null ? 1 : 0) |
-                               (SkipMetaData ? 2 : 0) |
-                               (PageSize.HasValue ? 4 : 0) |
-                               (PagingState != null ? 8 : 0) |
-                               (SerialConsistency.HasValue ? 16 : 0));
+            var flags = (byte) ((Parameters != null ? 1 : 0) |
+                                (SkipMetaData ? 2 : 0) |
+                                (PageSize.HasValue ? 4 : 0) |
+                                (PagingState != null ? 8 : 0) |
+                                (SerialConsistency.HasValue ? 16 : 0));
 
             buffer.WriteByte(flags);
 
             if (Parameters != null)
             {
-                buffer.WriteShort((ushort)Parameters.Count);
+                buffer.WriteShort((ushort) Parameters.Count);
                 foreach (var value in Parameters)
                     buffer.WriteByteArray(value);
             }
@@ -89,7 +104,7 @@ namespace CqlSharp.Protocol
 
             if (SerialConsistency.HasValue)
             {
-                buffer.WriteShort((ushort)SerialConsistency.Value);
+                buffer.WriteShort((ushort) SerialConsistency.Value);
             }
         }
 

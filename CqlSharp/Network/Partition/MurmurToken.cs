@@ -54,12 +54,12 @@ namespace CqlSharp.Network.Partition
             if (obj == null || !(obj is MurmurToken))
                 return false;
 
-            return _value == ((MurmurToken)obj)._value;
+            return _value == ((MurmurToken) obj)._value;
         }
 
         public override int GetHashCode()
         {
-            return (int)(_value ^ ((long)((ulong)_value >> 32)));
+            return (int) (_value ^ ((long) ((ulong) _value >> 32)));
         }
     }
 }

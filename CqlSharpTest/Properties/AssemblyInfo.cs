@@ -1,4 +1,4 @@
-﻿// CqlSharp - CqlSharpTest
+﻿// CqlSharp - CqlSharp.Test
 // Copyright (c) 2013 Joost Reuzel
 //   
 // Licensed under the Apache License, Version 2.0 (the "License");

@@ -13,11 +13,11 @@
 // See the License for the specific language governing permissions and
 // limitations under the License.
 
-using CqlSharp.Protocol;
-using CqlSharp.Serialization;
 using System;
 using System.Data;
 using System.Data.Common;
+using CqlSharp.Protocol;
+using CqlSharp.Serialization;
 
 namespace CqlSharp
 {
@@ -26,7 +26,7 @@ namespace CqlSharp
     /// </summary>
     public class CqlParameter : DbParameter
     {
-        private static readonly char[] TableSeperator = new[] { '.' };
+        private static readonly char[] TableSeperator = new[] {'.'};
         private readonly Column _column;
         private bool _isNullable;
         private object _value;
@@ -49,9 +49,9 @@ namespace CqlSharp
         }
 
         /// <summary>
-        /// Initializes a new instance of the <see cref="CqlParameter"/> class.
+        ///   Initializes a new instance of the <see cref="CqlParameter" /> class.
         /// </summary>
-        /// <param name="name">The name.</param>
+        /// <param name="name"> The name. </param>
         public CqlParameter(string name)
             : this()
         {
@@ -59,11 +59,11 @@ namespace CqlSharp
         }
 
         /// <summary>
-        /// Initializes a new instance of the <see cref="CqlParameter" /> class.
-        /// The type of the parameter will be guessed from the value.
+        ///   Initializes a new instance of the <see cref="CqlParameter" /> class.
+        ///   The type of the parameter will be guessed from the value.
         /// </summary>
-        /// <param name="name">The name.</param>
-        /// <param name="value">The value.</param>
+        /// <param name="name"> The name. </param>
+        /// <param name="value"> The value. </param>
         public CqlParameter(string name, object value)
             : this()
         {
@@ -73,12 +73,12 @@ namespace CqlSharp
         }
 
         /// <summary>
-        /// Initializes a new instance of the <see cref="CqlParameter" /> class.
+        ///   Initializes a new instance of the <see cref="CqlParameter" /> class.
         /// </summary>
-        /// <param name="name">The name.</param>
-        /// <param name="type">The type.</param>
-        /// <param name="keyType">Type of the key (in case of a map).</param>
-        /// <param name="valueType">Type of the value (in case of a map, set or list).</param>
+        /// <param name="name"> The name. </param>
+        /// <param name="type"> The type. </param>
+        /// <param name="keyType"> Type of the key (in case of a map). </param>
+        /// <param name="valueType"> Type of the value (in case of a map, set or list). </param>
         public CqlParameter(string name, CqlType type, CqlType? keyType = null, CqlType? valueType = null)
             : this()
         {
@@ -89,13 +89,13 @@ namespace CqlSharp
         }
 
         /// <summary>
-        /// Initializes a new instance of the <see cref="CqlParameter" /> class.
+        ///   Initializes a new instance of the <see cref="CqlParameter" /> class.
         /// </summary>
-        /// <param name="table">The table.</param>
-        /// <param name="name">The name.</param>
-        /// <param name="type">The type.</param>
-        /// <param name="keyType">Type of the key (in case of a map).</param>
-        /// <param name="valueType">Type of the value (in case of a map, set or list).</param>
+        /// <param name="table"> The table. </param>
+        /// <param name="name"> The name. </param>
+        /// <param name="type"> The type. </param>
+        /// <param name="keyType"> Type of the key (in case of a map). </param>
+        /// <param name="valueType"> Type of the value (in case of a map, set or list). </param>
         public CqlParameter(string table, string name, CqlType type, CqlType? keyType = null, CqlType? valueType = null)
             : this()
         {
@@ -107,15 +107,16 @@ namespace CqlSharp
         }
 
         /// <summary>
-        /// Initializes a new instance of the <see cref="CqlParameter" /> class.
+        ///   Initializes a new instance of the <see cref="CqlParameter" /> class.
         /// </summary>
-        /// <param name="keyspace">The keyspace.</param>
-        /// <param name="table">The table.</param>
-        /// <param name="name">The name.</param>
-        /// <param name="type">The type.</param>
-        /// <param name="keyType">Type of the key (in case of a map).</param>
-        /// <param name="valueType">Type of the value (in case of a map, set or list).</param>
-        public CqlParameter(string keyspace, string table, string name, CqlType type, CqlType? keyType = null, CqlType? valueType = null)
+        /// <param name="keyspace"> The keyspace. </param>
+        /// <param name="table"> The table. </param>
+        /// <param name="name"> The name. </param>
+        /// <param name="type"> The type. </param>
+        /// <param name="keyType"> Type of the key (in case of a map). </param>
+        /// <param name="valueType"> Type of the value (in case of a map, set or list). </param>
+        public CqlParameter(string keyspace, string table, string name, CqlType type, CqlType? keyType = null,
+                            CqlType? valueType = null)
             : this()
         {
             Keyspace = keyspace;
@@ -127,48 +128,25 @@ namespace CqlSharp
         }
 
         /// <summary>
-        /// Gets a value indicating whether this paramater is fixed, implying that type and name can no
-        /// longer be changed.
+        ///   Gets a value indicating whether this paramater is fixed, implying that type and name can no
+        ///   longer be changed.
         /// </summary>
-        /// <value>
-        ///   <c>true</c> if [is fixed]; otherwise, <c>false</c>.
-        /// </value>
-        public bool IsFixed
-        {
-            get;
-            internal set;
-        }
+        /// <value> <c>true</c> if [is fixed]; otherwise, <c>false</c> . </value>
+        public bool IsFixed { get; internal set; }
 
         /// <summary>
-        /// Checks if the type or name of the parameter may be changed
+        ///   Gets the column .
         /// </summary>
-        /// <exception cref="System.InvalidOperationException">Can't change the type or name of a CqlParameter after it has been prepared, or used with a query</exception>
-        private void CheckFixed()
-        {
-            if (IsFixed)
-                throw new InvalidOperationException("Can't change the type or name of a CqlParameter after it has been used to prepare or run a query");
-        }
-
-        /// <summary>
-        /// Gets the column .
-        /// </summary>
-        /// <value>
-        /// The column.
-        /// </value>
+        /// <value> The column. </value>
         internal Column Column
         {
-            get
-            {
-                return _column;
-            }
+            get { return _column; }
         }
 
         /// <summary>
-        /// Gets or sets the type of the column.
+        ///   Gets or sets the type of the column.
         /// </summary>
-        /// <value>
-        /// The type of the CQL.
-        /// </value>
+        /// <value> The type of the CQL. </value>
         public CqlType CqlType
         {
             get { return _column.CqlType; }
@@ -181,11 +159,9 @@ namespace CqlSharp
         }
 
         /// <summary>
-        /// Gets or sets the type of the collection value.
+        ///   Gets or sets the type of the collection value.
         /// </summary>
-        /// <value>
-        /// The type of the collection value.
-        /// </value>
+        /// <value> The type of the collection value. </value>
         public CqlType? CollectionValueType
         {
             get { return _column.CollectionValueType; }
@@ -197,11 +173,9 @@ namespace CqlSharp
         }
 
         /// <summary>
-        /// Gets or sets the type of the collection key.
+        ///   Gets or sets the type of the collection key.
         /// </summary>
-        /// <value>
-        /// The type of the collection key.
-        /// </value>
+        /// <value> The type of the collection key. </value>
         public CqlType? CollectionKeyType
         {
             get { return _column.CollectionKeyType; }
@@ -213,11 +187,9 @@ namespace CqlSharp
         }
 
         /// <summary>
-        /// Gets or sets the name of the column.
+        ///   Gets or sets the name of the column.
         /// </summary>
-        /// <value>
-        /// The name of the column.
-        /// </value>
+        /// <value> The name of the column. </value>
         public string ColumnName
         {
             get { return _column.Name; }
@@ -229,11 +201,9 @@ namespace CqlSharp
         }
 
         /// <summary>
-        /// Gets or sets the table.
+        ///   Gets or sets the table.
         /// </summary>
-        /// <value>
-        /// The table.
-        /// </value>
+        /// <value> The table. </value>
         public string Table
         {
             get { return _column.Table; }
@@ -245,11 +215,9 @@ namespace CqlSharp
         }
 
         /// <summary>
-        /// Gets or sets the keyspace.
+        ///   Gets or sets the keyspace.
         /// </summary>
-        /// <value>
-        /// The keyspace.
-        /// </value>
+        /// <value> The keyspace. </value>
         public string Keyspace
         {
             get { return _column.Keyspace; }
@@ -301,7 +269,7 @@ namespace CqlSharp
 
         /// <summary>
         ///   Gets or sets the name of the <see cref="T:System.Data.IDataParameter" />. The name will be parsed to
-        /// attempt to derive keyspace and table information from it. Eg."test.dummies" will be parsed in ColumnName dummies and KeySpace test
+        ///   attempt to derive keyspace and table information from it. Eg."test.dummies" will be parsed in ColumnName dummies and KeySpace test
         /// </summary>
         /// <returns> The name of the <see cref="T:System.Data.IDataParameter" /> . The default is an empty string. </returns>
         public override string ParameterName
@@ -312,19 +280,6 @@ namespace CqlSharp
                 CheckFixed();
                 SetParameterName(value);
             }
-        }
-
-        /// <summary>
-        /// Sets the name of the parameter.
-        /// </summary>
-        /// <param name="value">The value.</param>
-        private void SetParameterName(string value)
-        {
-            string[] parts = value.Split(TableSeperator, 3, StringSplitOptions.RemoveEmptyEntries);
-            int count = parts.Length;
-            _column.Name = parts[count - 1];
-            _column.Table = count > 1 ? parts[count - 2] : null;
-            _column.Keyspace = count > 2 ? parts[count - 3] : null;
         }
 
         /// <summary>
@@ -343,7 +298,7 @@ namespace CqlSharp
 
         /// <summary>
         ///   Gets or sets the value of the parameter. If no type information was provided earlier, the type of the parameter will be
-        /// guessed from the value's type.
+        ///   guessed from the value's type.
         /// </summary>
         /// <returns> An <see cref="T:System.Object" /> that is the value of the parameter. The default value is null. </returns>
         public override object Value
@@ -372,11 +327,11 @@ namespace CqlSharp
         }
 
         /// <summary>
-        /// Sets or gets a value which indicates whether the source column is nullable. This allows <see cref="T:System.Data.Common.DbCommandBuilder" /> to correctly generate Update statements for nullable columns.
+        ///   Sets or gets a value which indicates whether the source column is nullable. This allows <see
+        ///    cref="T:System.Data.Common.DbCommandBuilder" /> to correctly generate Update statements for nullable columns.
         /// </summary>
-        /// <returns>true if the source column is nullable; false if it is not.</returns>
-        /// <exception cref="System.NotImplementedException">
-        /// </exception>
+        /// <returns> true if the source column is nullable; false if it is not. </returns>
+        /// <exception cref="System.NotImplementedException"></exception>
         public override bool SourceColumnNullMapping
         {
             get { return IsNullable; }
@@ -384,7 +339,31 @@ namespace CqlSharp
         }
 
         /// <summary>
-        /// Resets the DbType property to its original settings.
+        ///   Checks if the type or name of the parameter may be changed
+        /// </summary>
+        /// <exception cref="System.InvalidOperationException">Can't change the type or name of a CqlParameter after it has been prepared, or used with a query</exception>
+        private void CheckFixed()
+        {
+            if (IsFixed)
+                throw new InvalidOperationException(
+                    "Can't change the type or name of a CqlParameter after it has been used to prepare or run a query");
+        }
+
+        /// <summary>
+        ///   Sets the name of the parameter.
+        /// </summary>
+        /// <param name="value"> The value. </param>
+        private void SetParameterName(string value)
+        {
+            string[] parts = value.Split(TableSeperator, 3, StringSplitOptions.RemoveEmptyEntries);
+            int count = parts.Length;
+            _column.Name = parts[count - 1];
+            _column.Table = count > 1 ? parts[count - 2] : null;
+            _column.Keyspace = count > 2 ? parts[count - 3] : null;
+        }
+
+        /// <summary>
+        ///   Resets the DbType property to its original settings.
         /// </summary>
         /// <exception cref="System.NotImplementedException"></exception>
         public override void ResetDbType()

@@ -1,3 +1,18 @@
+// CqlSharp - CqlSharp
+// Copyright (c) 2013 Joost Reuzel
+//   
+// Licensed under the Apache License, Version 2.0 (the "License");
+// you may not use this file except in compliance with the License.
+// You may obtain a copy of the License at
+//   
+// http://www.apache.org/licenses/LICENSE-2.0
+//  
+// Unless required by applicable law or agreed to in writing, software
+// distributed under the License is distributed on an "AS IS" BASIS,
+// WITHOUT WARRANTIES OR CONDITIONS OF ANY KIND, either express or implied.
+// See the License for the specific language governing permissions and
+// limitations under the License.
+
 using System;
 
 namespace CqlSharp.Network.nSnappy
@@ -27,6 +42,21 @@ namespace CqlSharp.Network.nSnappy
             get { return _buffer; }
         }
 
+        public byte this[int offset]
+        {
+            get { return _buffer[_position + offset]; }
+            set { _buffer[_position + offset] = value; }
+        }
+
+        #region IEquatable<Pointer> Members
+
+        public bool Equals(Pointer other)
+        {
+            return Equals(other._buffer, _buffer) && other._position == _position;
+        }
+
+        #endregion
+
         public static implicit operator int(Pointer pointer)
         {
             return pointer._position;
@@ -39,18 +69,12 @@ namespace CqlSharp.Network.nSnappy
 
         public static Pointer operator +(Pointer pointer, uint value)
         {
-            return new Pointer(pointer._buffer, (int)(pointer._position + value), pointer._name);
+            return new Pointer(pointer._buffer, (int) (pointer._position + value), pointer._name);
         }
 
         public static Pointer operator -(Pointer pointer, int value)
         {
             return new Pointer(pointer._buffer, pointer._position - value, pointer._name);
-        }
-
-        public byte this[int offset]
-        {
-            get { return _buffer[_position + offset]; }
-            set { _buffer[_position + offset] = value; }
         }
 
         public void Copy(Pointer source, int length)
@@ -69,8 +93,8 @@ namespace CqlSharp.Network.nSnappy
 
         public void WriteUInt16(int value)
         {
-            _buffer[_position] = (byte)(value & 0xff);
-            _buffer[_position + 1] = (byte)(value >> 8 & 0xff);
+            _buffer[_position] = (byte) (value & 0xff);
+            _buffer[_position + 1] = (byte) (value >> 8 & 0xff);
         }
 
         public uint ToUInt32(int offset = 0)
@@ -89,27 +113,22 @@ namespace CqlSharp.Network.nSnappy
         {
             var name = _name ?? "<???>";
             return _position == 0
-                    ? string.Format("{0}[{1}]", name, _buffer.Length)
-                    : string.Format("{0}[{1}]+{2}", name, _buffer.Length, _position);
-        }
-
-        public bool Equals(Pointer other)
-        {
-            return Equals(other._buffer, _buffer) && other._position == _position;
+                       ? string.Format("{0}[{1}]", name, _buffer.Length)
+                       : string.Format("{0}[{1}]+{2}", name, _buffer.Length, _position);
         }
 
         public override bool Equals(object obj)
         {
             if (ReferenceEquals(null, obj)) return false;
-            if (obj.GetType() != typeof(Pointer)) return false;
-            return Equals((Pointer)obj);
+            if (obj.GetType() != typeof (Pointer)) return false;
+            return Equals((Pointer) obj);
         }
 
         public override int GetHashCode()
         {
             unchecked
             {
-                return (_buffer.GetHashCode() * 397) ^ _position;
+                return (_buffer.GetHashCode()*397) ^ _position;
             }
         }
 

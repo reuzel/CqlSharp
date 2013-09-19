@@ -27,9 +27,9 @@ namespace CqlSharp.Network.Partition
     {
         private readonly ReaderWriterLockSlim _nodeLock;
         private readonly List<Node> _nodes;
-        private volatile int _nodeCount;
         private readonly string _partitioner;
         private readonly List<IToken> _tokens;
+        private volatile int _nodeCount;
         private Dictionary<IToken, List<Node>> _tokenMap;
 
         /// <summary>
@@ -39,7 +39,7 @@ namespace CqlSharp.Network.Partition
         /// <param name="partitioner"> </param>
         public Ring(IEnumerable<Node> nodes, string partitioner)
         {
-            _nodes = nodes is List<Node> ? (List<Node>)nodes : new List<Node>(nodes);
+            _nodes = nodes is List<Node> ? (List<Node>) nodes : new List<Node>(nodes);
             _nodeCount = _nodes.Count;
             _tokens = new List<IToken>();
             _partitioner = partitioner;

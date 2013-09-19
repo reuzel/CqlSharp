@@ -13,9 +13,9 @@
 // See the License for the specific language governing permissions and
 // limitations under the License.
 
-using CqlSharp.Network.Partition;
 using System;
 using System.Threading;
+using CqlSharp.Network.Partition;
 
 namespace CqlSharp.Network
 {
@@ -38,17 +38,17 @@ namespace CqlSharp.Network
         {
             _nodes = nodes;
             _config = config;
-            _rnd = new Random((int)DateTime.Now.Ticks);
+            _rnd = new Random((int) DateTime.Now.Ticks);
         }
 
         #region IConnectionStrategy Members
 
         /// <summary>
-        /// Gets or creates connection to the cluster.
+        ///   Gets or creates connection to the cluster.
         /// </summary>
-        /// <param name="scope">The scope.</param>
-        /// <param name="partitionKey">The partition key.</param>
-        /// <returns></returns>
+        /// <param name="scope"> The scope. </param>
+        /// <param name="partitionKey"> The partition key. </param>
+        /// <returns> </returns>
         public Connection GetOrCreateConnection(ConnectionScope scope, PartitionKey partitionKey)
         {
             //provide connections on command level only
@@ -63,7 +63,7 @@ namespace CqlSharp.Network
             //try to get an unused connection from a random node
             for (int i = 0; i < count; i++)
             {
-                Node randomNode = _nodes[(offset + i) % count];
+                Node randomNode = _nodes[(offset + i)%count];
 
                 //skip if node is down
                 if (!randomNode.IsUp) continue;
@@ -98,10 +98,10 @@ namespace CqlSharp.Network
 
 
         /// <summary>
-        /// Invoked when a connection is no longer in use by the application
+        ///   Invoked when a connection is no longer in use by the application
         /// </summary>
-        /// <param name="connection">The connection no longer used.</param>
-        /// <param name="scope">The scope.</param>
+        /// <param name="connection"> The connection no longer used. </param>
+        /// <param name="scope"> The scope. </param>
         public void ReturnConnection(Connection connection, ConnectionScope scope)
         {
             //no-op

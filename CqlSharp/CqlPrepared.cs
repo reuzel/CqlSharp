@@ -13,18 +13,26 @@
 // See the License for the specific language governing permissions and
 // limitations under the License.
 
-namespace CqlSharp.Protocol
+using System;
+
+namespace CqlSharp
 {
-    internal enum ResultOpcode : short
+    /// <summary>
+    ///   Represents the result of a query that does not have actual result values
+    /// </summary>
+    public struct CqlPrepared : ICqlQueryResult
     {
-        Void = 0x0001,
+        public bool FromCache { get; internal set; }
 
-        Rows = 0x0002,
+        #region ICqlQueryResult Members
 
-        SetKeyspace = 0x0003,
+        public CqlResultType ResultType
+        {
+            get { return CqlResultType.Prepared; }
+        }
 
-        Prepared = 0x0004,
+        public Guid? TracingId { get; internal set; }
 
-        SchemaChange = 0x0005,
+        #endregion
     }
 }

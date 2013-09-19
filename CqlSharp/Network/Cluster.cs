@@ -13,9 +13,6 @@
 // See the License for the specific language governing permissions and
 // limitations under the License.
 
-using CqlSharp.Logging;
-using CqlSharp.Network.Partition;
-using CqlSharp.Protocol;
 using System;
 using System.Collections.Concurrent;
 using System.Collections.Generic;
@@ -23,6 +20,9 @@ using System.Linq;
 using System.Net;
 using System.Threading;
 using System.Threading.Tasks;
+using CqlSharp.Logging;
+using CqlSharp.Network.Partition;
+using CqlSharp.Protocol;
 
 namespace CqlSharp.Network
 {
@@ -77,11 +77,9 @@ namespace CqlSharp.Network
         }
 
         /// <summary>
-        /// Gets the logger manager.
+        ///   Gets the logger manager.
         /// </summary>
-        /// <value>
-        /// The logger manager.
-        /// </value>
+        /// <value> The logger manager. </value>
         public LoggerManager LoggerManager
         {
             get { return _loggerManager; }
@@ -141,6 +139,11 @@ namespace CqlSharp.Network
         {
             get { return _cqlVersion; }
         }
+
+        /// <summary>
+        ///   Gets the prepare results for the given query
+        /// </summary>
+        internal ConcurrentDictionary<string, ResultFrame> PreparedQueryCache { get; private set; }
 
         /// <summary>
         ///   Opens the cluster for queries.
@@ -223,7 +226,7 @@ namespace CqlSharp.Network
 
             //setup throttle
             int concurrent = _config.MaxConcurrentQueries <= 0
-                                 ? _nodes.Count * _config.MaxConnectionsPerNode * 256
+                                 ? _nodes.Count*_config.MaxConnectionsPerNode*256
                                  : _config.MaxConcurrentQueries;
 
             logger.LogInfo("Cluster is configured to allow {0} parallel queries", concurrent);
@@ -285,11 +288,6 @@ namespace CqlSharp.Network
         }
 
         /// <summary>
-        ///   Gets the prepare results for the given query
-        /// </summary>
-        internal ConcurrentDictionary<string, ResultFrame> PreparedQueryCache { get; private set; }
-
-        /// <summary>
         ///   Gets all nodes that make up the cluster
         /// </summary>
         /// <param name="seed"> The reference. </param>
@@ -331,7 +329,7 @@ namespace CqlSharp.Network
                 _name, _release, _cqlVersion, partitioner);
 
             //create list of nodes that make up the cluster, and add the seed
-            var found = new List<Node> { seed };
+            var found = new List<Node> {seed};
 
             //get the peers
             using (
@@ -344,11 +342,11 @@ namespace CqlSharp.Network
                 while (await result.ReadAsync().ConfigureAwait(false))
                 {
                     //create a new node
-                    var newNode = new Node((IPAddress)result["rpc_address"], this)
+                    var newNode = new Node((IPAddress) result["rpc_address"], this)
                                       {
-                                          DataCenter = (string)result["data_center"],
-                                          Rack = (string)result["rack"],
-                                          Tokens = (ISet<string>)result["tokens"]
+                                          DataCenter = (string) result["data_center"],
+                                          Rack = (string) result["rack"],
+                                          Tokens = (ISet<string>) result["tokens"]
                                       };
 
                     //add it if it is in scope
@@ -379,7 +377,7 @@ namespace CqlSharp.Network
 
             var query = new QueryFrame(cql, CqlConsistency.One, null);
             var result =
-                (ResultFrame)await connection.SendRequestAsync(query, logger, 1, false, token).ConfigureAwait(false);
+                (ResultFrame) await connection.SendRequestAsync(query, logger, 1, false, token).ConfigureAwait(false);
             var reader = new CqlDataReader(result, null);
 
             logger.LogVerbose("Query {0} returned {1} results", cql, reader.Count);
@@ -426,7 +424,7 @@ namespace CqlSharp.Network
             if (args.Change.Equals(ClusterChange.New))
             {
                 //get the connection from which we received the event
-                var connection = (Connection)source;
+                var connection = (Connection) source;
 
                 //get the new peer
                 using (
@@ -438,11 +436,11 @@ namespace CqlSharp.Network
                 {
                     if (await result.ReadAsync().ConfigureAwait(false))
                     {
-                        var newNode = new Node((IPAddress)result["rpc_address"], this)
+                        var newNode = new Node((IPAddress) result["rpc_address"], this)
                                           {
-                                              DataCenter = (string)result["data_center"],
-                                              Rack = (string)result["rack"],
-                                              Tokens = (ISet<string>)result["tokens"]
+                                              DataCenter = (string) result["data_center"],
+                                              Rack = (string) result["rack"],
+                                              Tokens = (ISet<string>) result["tokens"]
                                           };
 
 

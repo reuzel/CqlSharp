@@ -13,30 +13,28 @@
 // See the License for the specific language governing permissions and
 // limitations under the License.
 
-using CqlSharp.Network.Partition;
 using System;
 using System.Collections.Generic;
 using System.Linq;
 using System.Linq.Expressions;
 using System.Reflection;
+using CqlSharp.Network.Partition;
 
 namespace CqlSharp.Serialization
 {
     /// <summary>
-    /// Provides access to object fields and properties based on columnn descriptions.
+    ///   Provides access to object fields and properties based on columnn descriptions.
     /// </summary>
-    /// <typeparam name="T"></typeparam>
+    /// <typeparam name="T"> </typeparam>
     internal class ObjectAccessor<T>
     {
         /// <summary>
-        /// Singleton instance
+        ///   Singleton instance
         /// </summary>
         public static readonly ObjectAccessor<T> Instance = new ObjectAccessor<T>();
 
         private readonly Func<T, object>[] _partitionKeyReadFuncs;
         private readonly CqlType[] _partitionKeyTypes;
-        public bool IsKeySpaceSet { get; private set; }
-        public bool IsTableSet { get; private set; }
 
         /// <summary>
         ///   Read functions to used to read member or property values
@@ -49,7 +47,7 @@ namespace CqlSharp.Serialization
         private readonly Dictionary<string, Action<T, object>> _writeFuncs;
 
         /// <summary>
-        /// Prevents a default instance of the <see cref="ObjectAccessor{T}" /> class from being created.
+        ///   Prevents a default instance of the <see cref="ObjectAccessor{T}" /> class from being created.
         /// </summary>
         private ObjectAccessor()
         {
@@ -64,13 +62,13 @@ namespace CqlSharp.Serialization
             string table = null;
 
             //set default table name to class name if table is not anonymous
-            Type type = typeof(T);
+            Type type = typeof (T);
             IsTableSet = !type.IsAnonymous();
             if (IsTableSet)
                 table = type.Name.ToLower();
 
             //check for CqlTable attribute
-            var tableAttribute = Attribute.GetCustomAttribute(type, typeof(CqlTableAttribute)) as CqlTableAttribute;
+            var tableAttribute = Attribute.GetCustomAttribute(type, typeof (CqlTableAttribute)) as CqlTableAttribute;
             if (tableAttribute != null)
             {
                 //overwrite keyspace if any
@@ -129,8 +127,6 @@ namespace CqlSharp.Serialization
                     var setter = MakeFieldSetterDelegate(field);
                     AddWriteFunc(setter, name, table, keyspace);
                 }
-
-
             }
 
             //sort keyMembers on partitionIndex
@@ -138,6 +134,9 @@ namespace CqlSharp.Serialization
             _partitionKeyReadFuncs = keyMembers.Select(km => km.Item2).ToArray();
             _partitionKeyTypes = keyMembers.Select(km => km.Item3).ToArray();
         }
+
+        public bool IsKeySpaceSet { get; private set; }
+        public bool IsTableSet { get; private set; }
 
         private void AddWriteFunc(Action<T, object> setter, string column, string table, string keyspace)
         {
@@ -162,17 +161,18 @@ namespace CqlSharp.Serialization
         }
 
         /// <summary>
-        /// Sets the partition key member.
+        ///   Sets the partition key member.
         /// </summary>
-        /// <param name="keyMembers">The key members.</param>
-        /// <param name="member">The member.</param>
-        /// <param name="reader">The reader.</param>
+        /// <param name="keyMembers"> The key members. </param>
+        /// <param name="member"> The member. </param>
+        /// <param name="reader"> The reader. </param>
         /// <exception cref="System.ArgumentException">CqlType must be set on ColumnAttribute if PartitionKeyIndex is set.</exception>
-        private void SetPartitionKeyMember(List<Tuple<int, Func<T, object>, CqlType>> keyMembers, MemberInfo member, Func<T, object> reader)
+        private void SetPartitionKeyMember(List<Tuple<int, Func<T, object>, CqlType>> keyMembers, MemberInfo member,
+                                           Func<T, object> reader)
         {
             //check for column attribute
             var columnAttribute =
-                Attribute.GetCustomAttribute(member, typeof(CqlColumnAttribute)) as CqlColumnAttribute;
+                Attribute.GetCustomAttribute(member, typeof (CqlColumnAttribute)) as CqlColumnAttribute;
 
             if (columnAttribute != null)
             {
@@ -183,7 +183,7 @@ namespace CqlSharp.Serialization
 
                     //add the member
                     keyMembers.Add(new Tuple<int, Func<T, object>, CqlType>(columnAttribute.PartitionKeyIndex, reader,
-                                                                     columnAttribute.CqlType));
+                                                                            columnAttribute.CqlType));
                 }
             }
         }
@@ -197,7 +197,7 @@ namespace CqlSharp.Serialization
         {
             //check for ignore attribute
             var ignoreAttribute =
-                Attribute.GetCustomAttribute(member, typeof(CqlIgnoreAttribute)) as CqlIgnoreAttribute;
+                Attribute.GetCustomAttribute(member, typeof (CqlIgnoreAttribute)) as CqlIgnoreAttribute;
 
             //return null if ignore attribute is set
             if (ignoreAttribute != null)
@@ -205,7 +205,7 @@ namespace CqlSharp.Serialization
 
             //check for column attribute
             var columnAttribute =
-                Attribute.GetCustomAttribute(member, typeof(CqlColumnAttribute)) as CqlColumnAttribute;
+                Attribute.GetCustomAttribute(member, typeof (CqlColumnAttribute)) as CqlColumnAttribute;
 
             return columnAttribute != null ? columnAttribute.Column : member.Name.ToLower();
         }
@@ -242,14 +242,12 @@ namespace CqlSharp.Serialization
         }
 
         /// <summary>
-        /// Tries to set a property or field of the specified object, based on the column description
+        ///   Tries to set a property or field of the specified object, based on the column description
         /// </summary>
-        /// <param name="column">The column name.</param>
-        /// <param name="target">The target.</param>
-        /// <param name="value">The value.</param>
-        /// <returns>
-        /// true if the property or field value is set
-        /// </returns>
+        /// <param name="column"> The column name. </param>
+        /// <param name="target"> The target. </param>
+        /// <param name="value"> The value. </param>
+        /// <returns> true if the property or field value is set </returns>
         /// <exception cref="System.ArgumentNullException">column or target are null</exception>
         public bool TrySetValue(string column, T target, object value)
         {
@@ -289,20 +287,20 @@ namespace CqlSharp.Serialization
         }
 
 
-        static Func<T, object> MakeGetterDelegate(PropertyInfo property)
+        private static Func<T, object> MakeGetterDelegate(PropertyInfo property)
         {
             MethodInfo getMethod = property.GetGetMethod();
-            var target = Expression.Parameter(typeof(T));
-            var body = Expression.Convert(Expression.Call(target, getMethod), typeof(object));
+            var target = Expression.Parameter(typeof (T));
+            var body = Expression.Convert(Expression.Call(target, getMethod), typeof (object));
             return Expression.Lambda<Func<T, object>>(body, target)
                 .Compile();
         }
 
-        static Action<T, object> MakeSetterDelegate(PropertyInfo property)
+        private static Action<T, object> MakeSetterDelegate(PropertyInfo property)
         {
             MethodInfo setMethod = property.GetSetMethod();
-            var target = Expression.Parameter(typeof(T));
-            var value = Expression.Parameter(typeof(object));
+            var target = Expression.Parameter(typeof (T));
+            var value = Expression.Parameter(typeof (object));
             var valueOrDefault = Expression.Condition(
                 Expression.Equal(value, Expression.Constant(null)),
                 Expression.Default(property.PropertyType),
@@ -312,18 +310,18 @@ namespace CqlSharp.Serialization
                 .Compile();
         }
 
-        static Func<T, object> MakeFieldGetterDelegate(FieldInfo property)
+        private static Func<T, object> MakeFieldGetterDelegate(FieldInfo property)
         {
-            var target = Expression.Parameter(typeof(T));
-            var body = Expression.Convert(Expression.Field(target, property), typeof(object));
+            var target = Expression.Parameter(typeof (T));
+            var body = Expression.Convert(Expression.Field(target, property), typeof (object));
             return Expression.Lambda<Func<T, object>>(body, target).Compile();
         }
 
-        static Action<T, object> MakeFieldSetterDelegate(FieldInfo property)
+        private static Action<T, object> MakeFieldSetterDelegate(FieldInfo property)
         {
-            var target = Expression.Parameter(typeof(T));
+            var target = Expression.Parameter(typeof (T));
             var field = Expression.Field(target, property);
-            var value = Expression.Parameter(typeof(object));
+            var value = Expression.Parameter(typeof (object));
             var valueOrDefault = Expression.Condition(
                 Expression.Equal(value, Expression.Constant(null)),
                 Expression.Default(property.FieldType),
@@ -332,7 +330,4 @@ namespace CqlSharp.Serialization
             return Expression.Lambda<Action<T, object>>(body, target, value).Compile();
         }
     }
-
-
-
 }
