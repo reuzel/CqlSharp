@@ -13,15 +13,15 @@
 // See the License for the specific language governing permissions and
 // limitations under the License.
 
+using CqlSharp.Protocol;
+using CqlSharp.Serialization;
+using CqlSharp.Tracing;
+using Microsoft.VisualStudio.TestTools.UnitTesting;
 using System;
 using System.Data;
 using System.Linq;
 using System.Threading;
 using System.Threading.Tasks;
-using CqlSharp.Protocol;
-using CqlSharp.Serialization;
-using CqlSharp.Tracing;
-using Microsoft.VisualStudio.TestTools.UnitTesting;
 
 namespace CqlSharp.Test
 {
@@ -116,14 +116,14 @@ namespace CqlSharp.Test
                 var cmd = new CqlCommand(connection, insertCql, CqlConsistency.One);
                 await cmd.PrepareAsync();
 
-                var b = new BasicFlowData {Id = 123, Data = "Hallo", Ignored = "none"};
+                var b = new BasicFlowData { Id = 123, Data = "Hallo", Ignored = "none" };
                 cmd.PartitionKey.Set(b);
                 cmd.Parameters.Set(b);
 
                 await cmd.ExecuteNonQueryAsync();
 
                 //select data
-                var selectCmd = new CqlCommand(connection, retrieveCql, CqlConsistency.One) {EnableTracing = true};
+                var selectCmd = new CqlCommand(connection, retrieveCql, CqlConsistency.One) { EnableTracing = true };
                 await selectCmd.PrepareAsync();
 
                 CqlDataReader<BasicFlowData> reader = await selectCmd.ExecuteReaderAsync<BasicFlowData>();
@@ -177,6 +177,53 @@ namespace CqlSharp.Test
             }
         }
 
+        [TestMethod]
+        public async Task SelectWithPaging()
+        {
+            //Assume
+            const string insertCql = @"insert into Test.BasicFlow (id,value) values (?,?);";
+            const string retrieveCql = @"select * from Test.BasicFlow;";
+
+            //Act
+            using (var connection = new CqlConnection(ConnectionString))
+            {
+                await connection.OpenAsync();
+
+                //insert data
+                var cmd = new CqlCommand(connection, insertCql, CqlConsistency.One);
+                await cmd.PrepareAsync();
+
+                for (int i = 0; i < 100; i++)
+                {
+                    cmd.Parameters[0].Value = i;
+                    cmd.Parameters[1].Value = "Hello " + i;
+                    await cmd.ExecuteNonQueryAsync();
+                }
+
+                //select data
+                var selectCmd = new CqlCommand(connection, retrieveCql, CqlConsistency.One);
+                selectCmd.PageSize = 10;
+
+                CqlDataReader reader = await selectCmd.ExecuteReaderAsync();
+                Assert.AreEqual(10, reader.Count);
+
+                var results = new bool[100];
+                for (int i = 0; i < 100; i++)
+                {
+                    if (await reader.ReadAsync())
+                    {
+                        results[(int)reader["id"]] = true;
+                        Assert.AreEqual("Hello " + reader["id"], reader["value"]);
+                    }
+                    else
+                    {
+                        Assert.Fail("Read should have succeeded");
+                    }
+                }
+
+                Assert.IsTrue(results.All(p => p));
+            }
+        }
 
         [TestMethod]
         public async Task PrepareNoArguments()
@@ -197,8 +244,8 @@ namespace CqlSharp.Test
                 Assert.AreEqual(0, cmd.Parameters.Count);
                 Assert.IsTrue(cmd.Parameters.IsReadOnly);
                 Assert.IsTrue(cmd.Parameters.IsFixedSize);
-                Assert.IsInstanceOfType(cmd.LastQueryResult, typeof (CqlPrepared));
-                var prepareResult = (CqlPrepared) cmd.LastQueryResult;
+                Assert.IsInstanceOfType(cmd.LastQueryResult, typeof(CqlPrepared));
+                var prepareResult = (CqlPrepared)cmd.LastQueryResult;
                 Assert.IsFalse(prepareResult.FromCache);
             }
         }
@@ -222,8 +269,8 @@ namespace CqlSharp.Test
                 Assert.AreEqual(1, cmd.Parameters.Count);
                 Assert.IsTrue(cmd.Parameters.IsReadOnly);
                 Assert.IsTrue(cmd.Parameters.IsFixedSize);
-                Assert.IsInstanceOfType(cmd.LastQueryResult, typeof (CqlPrepared));
-                var prepareResult = (CqlPrepared) cmd.LastQueryResult;
+                Assert.IsInstanceOfType(cmd.LastQueryResult, typeof(CqlPrepared));
+                var prepareResult = (CqlPrepared)cmd.LastQueryResult;
                 Assert.IsFalse(prepareResult.FromCache);
 
                 //reprepare
@@ -234,8 +281,8 @@ namespace CqlSharp.Test
                 Assert.AreEqual(1, cmd2.Parameters.Count);
                 Assert.IsTrue(cmd2.Parameters.IsReadOnly);
                 Assert.IsTrue(cmd2.Parameters.IsFixedSize);
-                Assert.IsInstanceOfType(cmd2.LastQueryResult, typeof (CqlPrepared));
-                var prepareResult2 = (CqlPrepared) cmd2.LastQueryResult;
+                Assert.IsInstanceOfType(cmd2.LastQueryResult, typeof(CqlPrepared));
+                var prepareResult2 = (CqlPrepared)cmd2.LastQueryResult;
                 Assert.IsTrue(prepareResult2.FromCache);
             }
         }
@@ -257,7 +304,7 @@ namespace CqlSharp.Test
                 cmd.EnableTracing = true;
                 await cmd.ExecuteNonQueryAsync();
 
-                Assert.IsInstanceOfType(cmd.LastQueryResult, typeof (CqlVoid));
+                Assert.IsInstanceOfType(cmd.LastQueryResult, typeof(CqlVoid));
                 Assert.IsTrue(cmd.LastQueryResult.TracingId.HasValue, "Expected a tracing id");
 
                 var tracer = new QueryTraceCommand(connection, cmd.LastQueryResult.TracingId.Value);
@@ -284,7 +331,7 @@ namespace CqlSharp.Test
                 cmd.EnableTracing = true;
                 await cmd.PrepareAsync();
 
-                Assert.IsInstanceOfType(cmd.LastQueryResult, typeof (CqlPrepared));
+                Assert.IsInstanceOfType(cmd.LastQueryResult, typeof(CqlPrepared));
                 Assert.IsTrue(cmd.LastQueryResult.TracingId.HasValue, "Expected a tracing id");
 
                 var tracer = new QueryTraceCommand(connection, cmd.LastQueryResult.TracingId.Value);
@@ -374,13 +421,12 @@ namespace CqlSharp.Test
 
                 cmd.Prepare();
 
-                ((IDbDataParameter) cmd.Parameters["id"]).Value = 456;
-                ((IDbDataParameter) cmd.Parameters["value"]).Value = "Hallo 456";
+                ((IDbDataParameter)cmd.Parameters["id"]).Value = 456;
+                ((IDbDataParameter)cmd.Parameters["value"]).Value = "Hallo 456";
 
                 cmd.ExecuteNonQuery();
 
-                IDbCommand selectCmd = new CqlCommand(connection, retrieveCql, CqlConsistency.One)
-                                           {EnableTracing = true};
+                IDbCommand selectCmd = new CqlCommand(connection, retrieveCql, CqlConsistency.One) { EnableTracing = true };
                 IDataReader reader = selectCmd.ExecuteReader();
 
                 DataTable schema = reader.GetSchemaTable();
@@ -409,7 +455,8 @@ namespace CqlSharp.Test
     [CqlTable("basicflow", Keyspace = "test")]
     public class BasicFlowData
     {
-        [CqlColumn("id", PartitionKeyIndex = 0, CqlType = CqlType.Int)] public int Id;
+        [CqlColumn("id", PartitionKeyIndex = 0, CqlType = CqlType.Int)]
+        public int Id;
 
         [CqlColumn("value")]
         public string Data { get; set; }

@@ -378,7 +378,7 @@ namespace CqlSharp.Network
             var query = new QueryFrame(cql, CqlConsistency.One, null);
             var result =
                 (ResultFrame) await connection.SendRequestAsync(query, logger, 1, false, token).ConfigureAwait(false);
-            var reader = new CqlDataReader(result, null);
+            var reader = new CqlDataReader(null, result, null);
 
             logger.LogVerbose("Query {0} returned {1} results", cql, reader.Count);
 

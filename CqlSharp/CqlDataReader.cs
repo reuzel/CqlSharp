@@ -13,6 +13,8 @@
 // See the License for the specific language governing permissions and
 // limitations under the License.
 
+using CqlSharp.Protocol;
+using CqlSharp.Serialization;
 using System;
 using System.Collections;
 using System.Collections.Generic;
@@ -22,8 +24,6 @@ using System.Net;
 using System.Numerics;
 using System.Threading;
 using System.Threading.Tasks;
-using CqlSharp.Protocol;
-using CqlSharp.Serialization;
 
 namespace CqlSharp
 {
@@ -33,19 +33,22 @@ namespace CqlSharp
     public class CqlDataReader : DbDataReader, ICqlQueryResult
     {
         private readonly CqlConnection _connectionToClose;
-        private readonly ResultFrame _frame;
+        private ResultFrame _frame;
         protected byte[][] CurrentValues;
         private int _disposed;
+        private readonly CqlCommand _command;
 
         /// <summary>
         ///   Initializes a new instance of the <see cref="CqlDataReader" /> class.
         /// </summary>
+        /// <param name="command">The command that created this datareader </param>
         /// <param name="frame"> The frame. </param>
         /// <param name="connectionToClose"> connection to close when done </param>
-        internal CqlDataReader(ResultFrame frame, CqlConnection connectionToClose)
+        internal CqlDataReader(CqlCommand command, ResultFrame frame, CqlConnection connectionToClose)
         {
             _frame = frame;
             _connectionToClose = connectionToClose;
+            _command = command;
         }
 
         /// <summary>
@@ -69,11 +72,12 @@ namespace CqlSharp
         /// <value> <c>true</c> if this instance has more rows; otherwise, <c>false</c> . </value>
         public override bool HasRows
         {
-            get { return _frame.Count > 0; }
+            get { return _frame.Count > 0 || _frame.ResultMetaData.HasMoreRows; }
         }
 
         /// <summary>
-        ///   Gets the amount of results that can be read from this DataReader
+        ///   Gets the amount of results that can be read from this DataReader. Note that this 
+        /// number may be inaccurate if paging is used as more rows may be available in a next page.
         /// </summary>
         /// <value> The count. </value>
         public int Count
@@ -190,6 +194,7 @@ namespace CqlSharp
         /// <returns> </returns>
         public override async Task<bool> ReadAsync(CancellationToken cancellationToken)
         {
+            //read next row from frame
             if (_frame.Count > 0)
             {
                 cancellationToken.ThrowIfCancellationRequested();
@@ -197,6 +202,21 @@ namespace CqlSharp
                 return true;
             }
 
+            //fetch next row from next page frame (if any)
+            if (_frame.ResultMetaData.HasMoreRows)
+            {
+                //get next page of data
+                cancellationToken.ThrowIfCancellationRequested();
+                _command.PagingState = _frame.ResultMetaData.PagingState;
+                _frame = await _command.ExecuteReaderAsyncInternal(CommandBehavior.Default, cancellationToken).ConfigureAwait(false);
+                _command.PagingState = null;
+
+                //get first row in this new page
+                CurrentValues = await _frame.ReadNextDataRowAsync().ConfigureAwait(false);
+                return true;
+            }
+
+            //nothing else there...
             return false;
         }
 
@@ -243,14 +263,14 @@ namespace CqlSharp
         public override DataTable GetSchemaTable()
         {
             var table = new DataTable();
-            table.Columns.Add(CqlSchemaTableColumnNames.ColumnOrdinal, typeof (int));
-            table.Columns.Add(CqlSchemaTableColumnNames.KeySpaceName, typeof (string));
-            table.Columns.Add(CqlSchemaTableColumnNames.TableName, typeof (string));
-            table.Columns.Add(CqlSchemaTableColumnNames.ColumnName, typeof (string));
-            table.Columns.Add(CqlSchemaTableColumnNames.CqlType, typeof (string));
-            table.Columns.Add(CqlSchemaTableColumnNames.CollectionKeyType, typeof (string));
-            table.Columns.Add(CqlSchemaTableColumnNames.CollectionValueType, typeof (string));
-            table.Columns.Add(CqlSchemaTableColumnNames.Type, typeof (string));
+            table.Columns.Add(CqlSchemaTableColumnNames.ColumnOrdinal, typeof(int));
+            table.Columns.Add(CqlSchemaTableColumnNames.KeySpaceName, typeof(string));
+            table.Columns.Add(CqlSchemaTableColumnNames.TableName, typeof(string));
+            table.Columns.Add(CqlSchemaTableColumnNames.ColumnName, typeof(string));
+            table.Columns.Add(CqlSchemaTableColumnNames.CqlType, typeof(string));
+            table.Columns.Add(CqlSchemaTableColumnNames.CollectionKeyType, typeof(string));
+            table.Columns.Add(CqlSchemaTableColumnNames.CollectionValueType, typeof(string));
+            table.Columns.Add(CqlSchemaTableColumnNames.Type, typeof(string));
 
             foreach (var column in MetaData)
             {
@@ -292,7 +312,7 @@ namespace CqlSharp
         public override bool GetBoolean(int i)
         {
             if (CurrentValues[i] == null) return default(bool);
-            return (bool) ValueSerialization.Deserialize(CqlType.Boolean, CurrentValues[i]);
+            return (bool)ValueSerialization.Deserialize(CqlType.Boolean, CurrentValues[i]);
         }
 
         /// <summary>
@@ -326,15 +346,15 @@ namespace CqlSharp
             if (CurrentValues[i] == null)
                 return 0;
 
-            var value = (byte[]) ValueSerialization.Deserialize(CqlType.Blob, CurrentValues[i]);
+            var value = (byte[])ValueSerialization.Deserialize(CqlType.Blob, CurrentValues[i]);
 
             if (fieldOffset < 0 || fieldOffset >= value.Length)
                 throw new ArgumentOutOfRangeException("fieldOffset", fieldOffset,
                                                       "The field offset is larger than the stored string");
 
             //copy string to buffer
-            var copySize = (int) Math.Min(length, value.Length - fieldOffset);
-            Buffer.BlockCopy(value, (int) fieldOffset, buffer, bufferoffset, copySize);
+            var copySize = (int)Math.Min(length, value.Length - fieldOffset);
+            Buffer.BlockCopy(value, (int)fieldOffset, buffer, bufferoffset, copySize);
             return copySize;
         }
 
@@ -345,7 +365,7 @@ namespace CqlSharp
         /// <returns> The bytes value of the specified field. </returns>
         public byte[] GetBytes(int i)
         {
-            return (byte[]) ValueSerialization.Deserialize(CqlType.Blob, CurrentValues[i]);
+            return (byte[])ValueSerialization.Deserialize(CqlType.Blob, CurrentValues[i]);
         }
 
         /// <summary>
@@ -379,15 +399,15 @@ namespace CqlSharp
             if (CurrentValues[i] == null)
                 return 0;
 
-            var value = (string) ValueSerialization.Deserialize(CqlType.Varchar, CurrentValues[i]);
+            var value = (string)ValueSerialization.Deserialize(CqlType.Varchar, CurrentValues[i]);
 
             if (fieldoffset < 0 || fieldoffset >= value.Length)
                 throw new ArgumentOutOfRangeException("fieldoffset", fieldoffset,
                                                       "The field offset is larger than the stored string");
 
             //copy string to buffer
-            var copySize = (int) Math.Min(length, value.Length - fieldoffset);
-            value.CopyTo((int) fieldoffset, buffer, bufferoffset, copySize);
+            var copySize = (int)Math.Min(length, value.Length - fieldoffset);
+            value.CopyTo((int)fieldoffset, buffer, bufferoffset, copySize);
             return copySize;
         }
 
@@ -410,7 +430,7 @@ namespace CqlSharp
         {
             if (CurrentValues[i] == null) return default(DateTime);
 
-            return (DateTime) ValueSerialization.Deserialize(CqlType.Timestamp, CurrentValues[i]);
+            return (DateTime)ValueSerialization.Deserialize(CqlType.Timestamp, CurrentValues[i]);
         }
 
         /// <summary>
@@ -433,7 +453,7 @@ namespace CqlSharp
         {
             if (CurrentValues[i] == null) return default(double);
 
-            return (double) ValueSerialization.Deserialize(CqlType.Double, CurrentValues[i]);
+            return (double)ValueSerialization.Deserialize(CqlType.Double, CurrentValues[i]);
         }
 
         /// <summary>
@@ -457,7 +477,7 @@ namespace CqlSharp
         {
             if (CurrentValues[i] == null) return default(float);
 
-            return (float) ValueSerialization.Deserialize(CqlType.Float, CurrentValues[i]);
+            return (float)ValueSerialization.Deserialize(CqlType.Float, CurrentValues[i]);
         }
 
         /// <summary>
@@ -469,7 +489,7 @@ namespace CqlSharp
         {
             if (CurrentValues[i] == null) return default(Guid);
 
-            return (Guid) ValueSerialization.Deserialize(CqlType.Uuid, CurrentValues[i]);
+            return (Guid)ValueSerialization.Deserialize(CqlType.Uuid, CurrentValues[i]);
         }
 
         /// <summary>
@@ -491,7 +511,7 @@ namespace CqlSharp
         public override int GetInt32(int i)
         {
             if (CurrentValues[i] == null) return default(int);
-            return (int) ValueSerialization.Deserialize(CqlType.Int, CurrentValues[i]);
+            return (int)ValueSerialization.Deserialize(CqlType.Int, CurrentValues[i]);
         }
 
         /// <summary>
@@ -503,7 +523,7 @@ namespace CqlSharp
         {
             if (CurrentValues[i] == null) return default(long);
 
-            return (long) ValueSerialization.Deserialize(CqlType.Bigint, CurrentValues[i]);
+            return (long)ValueSerialization.Deserialize(CqlType.Bigint, CurrentValues[i]);
         }
 
         /// <summary>
@@ -533,7 +553,7 @@ namespace CqlSharp
         /// <returns> The string value of the specified field. </returns>
         public override string GetString(int i)
         {
-            return (string) ValueSerialization.Deserialize(CqlType.Varchar, CurrentValues[i]);
+            return (string)ValueSerialization.Deserialize(CqlType.Varchar, CurrentValues[i]);
         }
 
         /// <summary>
@@ -543,7 +563,7 @@ namespace CqlSharp
         /// <returns> The IPAddress value of the specified field. </returns>
         public IPAddress GetIPAddress(int i)
         {
-            return (IPAddress) ValueSerialization.Deserialize(CqlType.Inet, CurrentValues[i]);
+            return (IPAddress)ValueSerialization.Deserialize(CqlType.Inet, CurrentValues[i]);
         }
 
         /// <summary>
@@ -555,7 +575,7 @@ namespace CqlSharp
         {
             if (CurrentValues[i] == null) return default(BigInteger);
 
-            return (BigInteger) ValueSerialization.Deserialize(CqlType.Varint, CurrentValues[i]);
+            return (BigInteger)ValueSerialization.Deserialize(CqlType.Varint, CurrentValues[i]);
         }
 
         /// <summary>
@@ -566,8 +586,8 @@ namespace CqlSharp
         /// <returns> The Set value of the specified field. </returns>
         public HashSet<T> GetSet<T>(int i)
         {
-            CqlType setType = typeof (T).ToCqlType();
-            return (HashSet<T>) ValueSerialization.Deserialize(CqlType.Set, null, setType, CurrentValues[i]);
+            CqlType setType = typeof(T).ToCqlType();
+            return (HashSet<T>)ValueSerialization.Deserialize(CqlType.Set, null, setType, CurrentValues[i]);
         }
 
         /// <summary>
@@ -578,8 +598,8 @@ namespace CqlSharp
         /// <returns> The list value of the specified field. </returns>
         public List<T> GetList<T>(int i)
         {
-            CqlType listType = typeof (T).ToCqlType();
-            return (List<T>) ValueSerialization.Deserialize(CqlType.List, null, listType, CurrentValues[i]);
+            CqlType listType = typeof(T).ToCqlType();
+            return (List<T>)ValueSerialization.Deserialize(CqlType.List, null, listType, CurrentValues[i]);
         }
 
         /// <summary>
@@ -591,8 +611,8 @@ namespace CqlSharp
         /// <returns> The list value of the specified field. </returns>
         public Dictionary<TKey, TValue> GetDictionary<TKey, TValue>(int i)
         {
-            CqlType keyType = typeof (TKey).ToCqlType();
-            CqlType valueType = typeof (TValue).ToCqlType();
+            CqlType keyType = typeof(TKey).ToCqlType();
+            CqlType valueType = typeof(TValue).ToCqlType();
             return
                 (Dictionary<TKey, TValue>)
                 ValueSerialization.Deserialize(CqlType.Map, keyType, valueType, CurrentValues[i]);
@@ -650,12 +670,13 @@ namespace CqlSharp
         private T _current;
 
         /// <summary>
-        ///   Initializes a new instance of the <see cref="CqlDataReader{T}" /> class.
+        /// Initializes a new instance of the <see cref="CqlDataReader{T}" /> class.
         /// </summary>
-        /// <param name="frame"> The frame. </param>
-        /// <param name="connectionToClose"> connection to close when done </param>
-        internal CqlDataReader(ResultFrame frame, CqlConnection connectionToClose)
-            : base(frame, connectionToClose)
+        /// <param name="command">The command.</param>
+        /// <param name="frame">The frame.</param>
+        /// <param name="connectionToClose">connection to close when done</param>
+        internal CqlDataReader(CqlCommand command, ResultFrame frame, CqlConnection connectionToClose)
+            : base(command, frame, connectionToClose)
         {
         }
 

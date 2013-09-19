@@ -58,7 +58,7 @@ namespace CqlSharp.Test
 
                 for (int i = 0; i < nr; i++)
                 {
-                    System.Net.Connection connection;
+                    Connection connection;
 
                     using (logger.ThreadBinding())
                         connection = strategy.GetOrCreateConnection(ConnectionScope.Command, PartitionKey.None);
@@ -100,7 +100,7 @@ namespace CqlSharp.Test
 
                 for (int i = 0; i < nr; i++)
                 {
-                    System.Net.Connection connection;
+                    Connection connection;
 
                     using (logger.ThreadBinding())
                         connection = strategy.GetOrCreateConnection(ConnectionScope.Command, PartitionKey.None);
@@ -142,7 +142,7 @@ namespace CqlSharp.Test
 
                 for (int i = 0; i < nr; i++)
                 {
-                    System.Net.Connection connection;
+                    Connection connection;
 
                     using (logger.ThreadBinding())
                         connection = strategy.GetOrCreateConnection(ConnectionScope.Command, PartitionKey.None);
@@ -184,7 +184,7 @@ namespace CqlSharp.Test
 
                 for (int i = 0; i < nr; i++)
                 {
-                    System.Net.Connection connection;
+                    Connection connection;
 
                     using (logger.ThreadBinding())
                         connection = strategy.GetOrCreateConnection(ConnectionScope.Command, PartitionKey.None);
@@ -226,7 +226,7 @@ namespace CqlSharp.Test
 
                 for (int i = 0; i < nr; i++)
                 {
-                    System.Net.Connection connection;
+                    Connection connection;
 
                     using (logger.ThreadBinding())
                         connection = strategy.GetOrCreateConnection(ConnectionScope.Command, PartitionKey.None);
@@ -269,7 +269,7 @@ namespace CqlSharp.Test
 
                 for (int i = 0; i < nr; i++)
                 {
-                    System.Net.Connection connection;
+                    Connection connection;
 
                     using (logger.ThreadBinding())
                         connection = strategy.GetOrCreateConnection(ConnectionScope.Command, PartitionKey.None);
@@ -313,7 +313,7 @@ namespace CqlSharp.Test
 
                 for (int i = 0; i < nr; i++)
                 {
-                    System.Net.Connection connection;
+                    Connection connection;
 
                     using (logger.ThreadBinding())
                         connection = strategy.GetOrCreateConnection(ConnectionScope.Command, PartitionKey.None);

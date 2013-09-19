@@ -325,6 +325,19 @@ namespace CqlSharp
         public override UpdateRowSource UpdatedRowSource { get; set; }
 
         /// <summary>
+        ///   Enables rows to be returned/queried in batches of the give page size.
+        /// </summary>
+        /// <value> The size of the page. If PageSize &lt; = 0; no paging will be applied, otherwise the number indicates the number of rows to fetch in each batch. Default = 0 </value>
+        public int PageSize { get; set; }
+
+        /// <summary>
+        ///   Gets or sets the state used to fetch a next page of results. This value is set/reset by a 
+        ///   DataReader instance
+        /// </summary>
+        /// <value> The state of the paging. </value>
+        internal byte[] PagingState { get; set; }
+
+        /// <summary>
         ///   Executes the query, and returns the value of the first column of the first row.
         /// </summary>
         /// <returns> </returns>
@@ -468,7 +481,7 @@ namespace CqlSharp
         {
             var result = await ExecuteReaderAsyncInternal(behavior, cancellationToken);
 
-            var reader = new CqlDataReader(result,
+            var reader = new CqlDataReader(this, result,
                                            behavior.HasFlag(CommandBehavior.CloseConnection) ? _connection : null);
             _queryResult = reader;
             return reader;
@@ -520,7 +533,7 @@ namespace CqlSharp
         {
             var result = await ExecuteReaderAsyncInternal(behavior, cancellationToken);
 
-            var reader = new CqlDataReader<T>(result,
+            var reader = new CqlDataReader<T>(this, result,
                                               behavior.HasFlag(CommandBehavior.CloseConnection) ? _connection : null);
             _queryResult = reader;
             return reader;
@@ -568,8 +581,8 @@ namespace CqlSharp
         /// <param name="cancellationToken"> The cancellation token. </param>
         /// <returns> </returns>
         /// <exception cref="System.ArgumentException">Command behavior not supported;behavior</exception>
-        private async Task<ResultFrame> ExecuteReaderAsyncInternal(CommandBehavior behavior,
-                                                                   CancellationToken cancellationToken)
+        internal async Task<ResultFrame> ExecuteReaderAsyncInternal(CommandBehavior behavior,
+                                                                    CancellationToken cancellationToken)
         {
             //clear last result
             _queryResult = null;
@@ -690,7 +703,7 @@ namespace CqlSharp
                 switch (result.CqlResultType)
                 {
                     case CqlResultType.Rows:
-                        var reader = new CqlDataReader(result, null);
+                        var reader = new CqlDataReader(this, result, null);
                         _queryResult = reader;
                         logger.LogQuery("Query {0} returned {1} results", Query, reader.Count);
                         return -1;
@@ -1022,6 +1035,17 @@ namespace CqlSharp
                 byte[][] values = _parameters != null && _parameters.Count > 0 ? _parameters.Values : null;
                 queryFrame = new QueryFrame(Query, Consistency, values);
                 logger.LogVerbose("Sending query {0} using {1}", Query, connection);
+            }
+
+            //set page size (if any)
+            if (PageSize > 0)
+                queryFrame.PageSize = PageSize;
+
+            //set paging state
+            if (PagingState != null)
+            {
+                logger.LogVerbose("Query is to fetch a next page of data");
+                queryFrame.PagingState = PagingState;
             }
 
             //update frame with tracing option if requested

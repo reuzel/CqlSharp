@@ -15,6 +15,7 @@
 
 using System.IO;
 using System.Linq;
+using CqlSharp.Memory;
 using Microsoft.VisualStudio.TestTools.UnitTesting;
 
 namespace CqlSharp.Test
