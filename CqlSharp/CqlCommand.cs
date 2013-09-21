@@ -13,16 +13,16 @@
 // See the License for the specific language governing permissions and
 // limitations under the License.
 
-using System;
-using System.Data;
-using System.Data.Common;
-using System.Threading;
-using System.Threading.Tasks;
 using CqlSharp.Logging;
 using CqlSharp.Memory;
 using CqlSharp.Network;
 using CqlSharp.Network.Partition;
 using CqlSharp.Protocol;
+using System;
+using System.Data;
+using System.Data.Common;
+using System.Threading;
+using System.Threading.Tasks;
 
 namespace CqlSharp
 {
@@ -67,7 +67,7 @@ namespace CqlSharp
         /// <param name="cql"> The CQL. </param>
         /// <param name="level"> The level. </param>
         public CqlCommand(IDbConnection connection, string cql, CqlConsistency level)
-            : this((CqlConnection) connection, cql, level)
+            : this((CqlConnection)connection, cql, level)
         {
         }
 
@@ -87,7 +87,7 @@ namespace CqlSharp
         /// <param name="connection"> The connection. </param>
         /// <param name="cql"> The CQL. </param>
         public CqlCommand(IDbConnection connection, string cql)
-            : this((CqlConnection) connection, cql, CqlConsistency.One)
+            : this((CqlConnection)connection, cql, CqlConsistency.One)
         {
         }
 
@@ -107,7 +107,7 @@ namespace CqlSharp
         /// </summary>
         /// <param name="connection"> The connection. </param>
         public CqlCommand(IDbConnection connection)
-            : this((CqlConnection) connection, "", CqlConsistency.One)
+            : this((CqlConnection)connection, "", CqlConsistency.One)
         {
         }
 
@@ -118,6 +118,14 @@ namespace CqlSharp
             : this(null, "", CqlConsistency.One)
         {
         }
+
+        /// <summary>
+        /// Gets or sets a value indicating whether to use local serial for Compare-And-Set (CAS) write operations.
+        /// </summary>
+        /// <value>
+        /// <c>true</c> if use local serial for Compare-And-Set (CAS)  write operations; otherwise, <c>false</c>.
+        /// </value>
+        public bool UseCASLocalSerial { get; set; }
 
         /// <summary>
         ///   Gets or sets a value indicating whether to use response buffering.
@@ -295,7 +303,7 @@ namespace CqlSharp
         protected override DbConnection DbConnection
         {
             get { return Connection; }
-            set { Connection = (CqlConnection) value; }
+            set { Connection = (CqlConnection)value; }
         }
 
         /// <summary>
@@ -390,7 +398,7 @@ namespace CqlSharp
 
             //setup new token
             _cancelTokenSource = CommandTimeout > 0
-                                     ? new CancellationTokenSource(CommandTimeout*1000)
+                                     ? new CancellationTokenSource(CommandTimeout * 1000)
                                      : new CancellationTokenSource();
             return _cancelTokenSource.Token;
         }
@@ -710,7 +718,7 @@ namespace CqlSharp
 
                     case CqlResultType.Void:
                         logger.LogQuery("Query {0} executed succesfully", Query);
-                        _queryResult = new CqlVoid {TracingId = result.TracingId};
+                        _queryResult = new CqlVoid { TracingId = result.TracingId };
                         return 1;
 
                     case CqlResultType.SchemaChange:
@@ -787,7 +795,7 @@ namespace CqlSharp
         /// <param name="fromCache"> if set to <c>true</c> [from cache]. </param>
         private void FinalizePrepare(ResultFrame result, bool fromCache)
         {
-            _queryResult = new CqlPrepared {TracingId = result.TracingId, FromCache = fromCache};
+            _queryResult = new CqlPrepared { TracingId = result.TracingId, FromCache = fromCache };
 
             //set as prepared
             _prepared = true;
@@ -1046,6 +1054,13 @@ namespace CqlSharp
             {
                 logger.LogVerbose("Query is to fetch a next page of data");
                 queryFrame.PagingState = PagingState;
+            }
+
+            //set local serial
+            if (UseCASLocalSerial)
+            {
+                logger.LogVerbose("Using LocalSerial consistency for CAS prepare and propose");
+                queryFrame.SerialConsistency = SerialConsistency.LocalSerial;
             }
 
             //update frame with tracing option if requested

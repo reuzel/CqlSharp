@@ -111,6 +111,7 @@
     <Compile Include="Protocol\ReadyFrame.cs" />
     <Compile Include="Protocol\RegisterFrame.cs" />
     <Compile Include="Protocol\ResultFrame.cs" />
+    <Compile Include="Protocol\SerialConsistency.cs" />
     <Compile Include="Protocol\StartupFrame.cs" />
     <Compile Include="Protocol\SupportedFrame.cs" />
     <Compile Include="Protocol\SyntaxException.cs" />

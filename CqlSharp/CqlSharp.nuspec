@@ -10,11 +10,46 @@
     <projectUrl>https://github.com/reuzel/CqlSharp/wiki</projectUrl>
     <iconUrl>https://raw.github.com/reuzel/CqlSharp/master/logo.png</iconUrl>
     <requireLicenseAcceptance>false</requireLicenseAcceptance>
-    <description>
+    <summary>
       CqlSharp is a high performance, asynchronous Cassandra CQL binary protocol client implementing the ADO.NET data provider interfaces. 
     
       See https://github.com/reuzel/CqlSharp/wiki/Features for an extensive feature list.
+    </summary>
+    <description>
+      CqlSharp is a high performance, asynchronous Cassandra CQL binary protocol client implementing the ADO.NET data provider interfaces.
+
+      It's main features are:
+      * The API implements the ADO.NET interfaces. If you are familiar with SqlConnection, SqlCommand, and SqlReader, you should be able to use CqlSharp with no difficulty.
+      * CqlSharp is an implementation of the (new) CQL Binary Protocol and therefore requires Cassandra 1.2 and up
+      * CqlSharp supports all the binary protocol v2 features: batching, paging, bound query variables, result schema caching, and check-and-set (CAS) statements.
+      * Supports fast mapping of objects to query parameters, or query results to objects. Mapping is tunable by decorating your classes via Table and Column attributes.
+      * CqlSharp allows for partition/token aware routing of queries. This allows queries to be directly sent to the Cassandra nodes that are the 'owner' of that data.
+      * Query timeouts and cancellation is supported
+      * Query tracing is supported.
+      * Provides an extendable logging infrastructure using MEF. Related log statements can be correlated through "Activity GUIDs"
+      * CqlSharp supports Snappy compression of queries and responses
+      * The API is predominately [asynchronous](http://msdn.microsoft.com/en-us/library/vstudio/hh191443.aspx), heavily relying on the System.Threading.Tasks namespace. Synchronous alternatives are available for convenience.
+      * Configuration is done through connection strings. The simultaneous use of multiple Cassandra clusters is supported.
+      * Most behavioral aspects of the CqlSharp are configurable: max number of connections, new connection threshold, discovery scope, max connection idle time, etc. etc.
+      * Relative Node Discovery: given the 'seed' nodes in your connection string, CqlSharp may find other nodes for you: all nodes in your cluster, nodes in the same data center, or the nodes in the same rack
+      * Load balanced connection management: you can give your queries a load 'factor' and the client will take that into account when picking connections to send queries over.
+      * Queries will be automatically retried when connections or nodes fail.
+      * Node monitoring: Node failure is automatically detected. Recovery checks occur using an exponential back-off algorithm
+      * CqlSharp listens to Cassandra events for node up, new node and node removed messages such that Cluster changes are automatically incorporated
+
+      See https://github.com/reuzel/CqlSharp/wiki/Features for an extensive feature list.
     </description>
+    <releaseNotes>
+      Version 0.30.0 - Binary Protocol V2 support
+
+      * Batch support via CqlTransaction. Add the command to the CqlTransaction and executes will be buffered. When CqlTransaction is committed it will create and submit a batch statement.
+      * Paging support. CqlCommand can be given a page size: when iterating over a query result, the data will be fetched in "chunks" of the given page size
+      * Use of bound parameters with non-prepared queries
+      * Performance: when using Cql protocol v2, cached result metadata will be used, reducing network overhead
+      * Performance: Prepare() better utilizes caching, less Task creation overhead
+
+      See https://github.com/reuzel/CqlSharp/blob/master/ChangeLog.md for the full changelog.
+    </releaseNotes>
     <copyright>Copyright 2013 Joost Reuzel</copyright>
     <tags>Cassandra CQL ADO.NET client database provider driver nosql net45 TPL async high-performance</tags>
   </metadata>

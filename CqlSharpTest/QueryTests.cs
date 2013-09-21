@@ -178,6 +178,61 @@ namespace CqlSharp.Test
         }
 
         [TestMethod]
+        public async Task CASInsertSelect()
+        {
+            //Assume
+            const string insertCql = @"insert into Test.BasicFlow (id,value) values (901,'Hallo 901') if not exists;";
+            const string insertCql2 = @"insert into Test.BasicFlow (id,value) values (901,'Hallo 901.2') if not exists;";
+
+            const string retrieveCql = @"select * from Test.BasicFlow;";
+
+            //Act
+            using (var connection = new CqlConnection(ConnectionString))
+            {
+                await connection.OpenAsync();
+
+                //skip when server version is below 2.0.0
+                if (String.Compare(connection.ServerVersion, "2.0.0", StringComparison.Ordinal) < 0)
+                    return;
+
+                //insert data
+                var cmd = new CqlCommand(connection, insertCql, CqlConsistency.Any);
+                cmd.UseCASLocalSerial = true;
+                await cmd.ExecuteNonQueryAsync();
+                var result = cmd.LastQueryResult as CqlDataReader;
+                Assert.IsNotNull(result);
+                Assert.IsTrue(await result.ReadAsync());
+                Assert.IsTrue((bool)result["[applied]"]);
+
+                var cmd2 = new CqlCommand(connection, insertCql2, CqlConsistency.Any);
+                await cmd2.ExecuteNonQueryAsync();
+                var result2 = cmd2.LastQueryResult as CqlDataReader;
+                Assert.IsNotNull(result2);
+                Assert.IsTrue(await result2.ReadAsync());
+                Assert.IsFalse((bool)result2["[applied]"]);
+                Assert.AreEqual("Hallo 901", result2["value"]);
+
+                //select data
+                var selectCmd = new CqlCommand(connection, retrieveCql, CqlConsistency.One);
+                await selectCmd.PrepareAsync();
+
+                CqlDataReader reader = await selectCmd.ExecuteReaderAsync();
+                Assert.AreEqual(1, reader.Count);
+                if (await reader.ReadAsync())
+                {
+                    Assert.AreEqual(901, reader["id"]);
+                    Assert.AreEqual("Hallo 901", reader["value"]);
+                    Assert.AreEqual(DBNull.Value, reader["ignored"]);
+                }
+                else
+                {
+                    Assert.Fail("Read should have succeeded");
+                }
+            }
+        }
+
+
+        [TestMethod]
         public async Task SelectWithPaging()
         {
             //Assume
@@ -205,7 +260,12 @@ namespace CqlSharp.Test
                 selectCmd.PageSize = 10;
 
                 CqlDataReader reader = await selectCmd.ExecuteReaderAsync();
-                Assert.AreEqual(10, reader.Count);
+
+                //no paging when version < 2.0.0 is used...
+                if (String.Compare(connection.ServerVersion, "2.0.0", StringComparison.Ordinal) < 0)
+                    Assert.AreEqual(100, reader.Count);
+                else
+                    Assert.AreEqual(10, reader.Count);
 
                 var results = new bool[100];
                 for (int i = 0; i < 100; i++)

@@ -13,17 +13,18 @@ The latest release of CqlSharp can be found as a [package on NuGet](http://nuget
 Features
 --------
 
-* CqlSharp is 100% written in C#, and requires .NET 4.5. It has no dependencies on other packages or libraries.
-* CqlSharp is an implementation of the (new) CQL Binary Protocol and therefore requires Cassandra 1.2 and up
-* Query tracing is supported.
 * The API implements the ADO.NET interfaces. If you are familiar with SqlConnection, SqlCommand, and SqlReader, you should be able to use CqlSharp with no difficulty.
+* CqlSharp is an implementation of the (new) CQL Binary Protocol and therefore requires Cassandra 1.2 and up
+* CqlSharp supports all the binary protocol v2 features: batching, paging, bound query variables, result schema caching, and check-and-set (CAS) statements.
+* Supports fast mapping of objects to query parameters, or query results to objects. Mapping is tunable by decorating your classes via Table and Column attributes.
+* CqlSharp allows for partition/token aware routing of queries. This allows queries to be directly sent to the Cassandra nodes that are the 'owner' of that data.
 * Query timeouts and cancellation is supported
+* Query tracing is supported.
+* CqlSharp supports Snappy compression of queries and responses
 * The API is predominately [asynchronous](http://msdn.microsoft.com/en-us/library/vstudio/hh191443.aspx), heavily relying on the System.Threading.Tasks namespace. Synchronous alternatives are available for convenience.
-* Supports mapping of objects to query parameters, or query results to objects. Mapping is tunable by decorating your classes via Table and Column attributes.
+* CqlSharp is 100% written in C#, and requires .NET 4.5. It has no dependencies on other packages or libraries.
 * Configuration is done through connection strings. The simultaneous use of multiple Cassandra clusters is supported.
 * Rows returned from select queries are read via a pull-model, allowing for large result sets to be processed efficiently. Query results may be buffered in memory as well.
-* CqlSharp allows for partition/token aware routing of queries. This allows queries to be directly sent to the Cassandra nodes that are the 'owner' of that data.
-* CqlSharp supports Snappy compression of queries and responses
 * Most behavioral aspects of the CqlSharp are configurable: max number of connections, new connection threshold, discovery scope, max connection idle time, etc. etc.
 * Relative Node Discovery: given the 'seed' nodes in your connection string, CqlSharp may find other nodes for you: all nodes in your cluster, nodes in the same data center, or the nodes in the same rack
 * Load balanced connection management: you can give your queries a load 'factor' and the client will take that into account when picking connections to send queries over.

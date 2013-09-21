@@ -22,8 +22,6 @@ namespace CqlSharp.Protocol
 {
     internal abstract class QueryFrameBase : Frame
     {
-        private CqlConsistency? _serialConsistency;
-
         /// <summary>
         ///   Gets or sets the CQL consistency.
         /// </summary>
@@ -61,23 +59,17 @@ namespace CqlSharp.Protocol
         /// </summary>
         /// <value> The serial consistency. </value>
         /// <exception cref="CqlException">Serial Consistency can only be LocalSerial or Serial</exception>
-        public CqlConsistency? SerialConsistency
-        {
-            get { return _serialConsistency; }
-            set
-            {
-                if (value != null && value != CqlConsistency.LocalSerial && value != CqlConsistency.Serial)
-                    throw new CqlException("Serial Consistency can only be LocalSerial or Serial");
+        public SerialConsistency? SerialConsistency { get; set; }
 
-                _serialConsistency = value;
-            }
-        }
-
+        /// <summary>
+        /// Writes the query parameters.
+        /// </summary>
+        /// <param name="buffer">The buffer.</param>
         protected void WriteQueryParameters(Stream buffer)
         {
             buffer.WriteConsistency(CqlConsistency);
 
-            var flags = (byte) ((Parameters != null ? 1 : 0) |
+            var flags = (byte)((Parameters != null ? 1 : 0) |
                                 (SkipMetaData ? 2 : 0) |
                                 (PageSize.HasValue ? 4 : 0) |
                                 (PagingState != null ? 8 : 0) |
@@ -87,7 +79,7 @@ namespace CqlSharp.Protocol
 
             if (Parameters != null)
             {
-                buffer.WriteShort((ushort) Parameters.Count);
+                buffer.WriteShort((ushort)Parameters.Count);
                 foreach (var value in Parameters)
                     buffer.WriteByteArray(value);
             }
@@ -104,7 +96,7 @@ namespace CqlSharp.Protocol
 
             if (SerialConsistency.HasValue)
             {
-                buffer.WriteShort((ushort) SerialConsistency.Value);
+                buffer.WriteShort((ushort)SerialConsistency.Value);
             }
         }
 
