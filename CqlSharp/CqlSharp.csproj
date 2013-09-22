@@ -51,6 +51,7 @@
   </ItemGroup>
   <ItemGroup>
     <Compile Include="ConnectionStrategy.cs" />
+    <Compile Include="CqlBatchTransaction.cs" />
     <Compile Include="CqlBatchType.cs" />
     <Compile Include="CqlConnectionStringBuilder.cs" />
     <Compile Include="CqlDataAdapter.cs">

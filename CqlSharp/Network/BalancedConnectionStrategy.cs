@@ -13,9 +13,9 @@
 // See the License for the specific language governing permissions and
 // limitations under the License.
 
+using CqlSharp.Network.Partition;
 using System.Linq;
 using System.Threading;
-using CqlSharp.Network.Partition;
 
 namespace CqlSharp.Network
 {
@@ -62,6 +62,10 @@ namespace CqlSharp.Network
             Node leastUsedNode =
                 _nodes.Where(n => n.IsUp).SmallestOrDefault(
                     n => n.ConnectionCount > 0 ? n.Load : _config.NewConnectionTreshold - 1);
+
+            //no node found! weird...
+            if (leastUsedNode == null)
+                return null;
 
             //try get a connection from it
             Connection connection = leastUsedNode.GetConnection();

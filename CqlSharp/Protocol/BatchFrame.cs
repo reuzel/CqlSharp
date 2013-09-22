@@ -28,12 +28,16 @@ namespace CqlSharp.Protocol
         /// <summary>
         ///   Initializes a new instance of the <see cref="BatchFrame" /> class.
         /// </summary>
-        public BatchFrame()
+        public BatchFrame(CqlBatchType batchType, CqlConsistency consistency)
         {
             Version = FrameVersion.Request;
             Flags = FrameFlags.None;
             Stream = 0;
-            OpCode = FrameOpcode.Options;
+            OpCode = FrameOpcode.Batch;
+
+            Type = batchType;
+            CqlConsistency = consistency;
+            Commands = new List<BatchedCommand>();
         }
 
         /// <summary>
@@ -46,7 +50,7 @@ namespace CqlSharp.Protocol
         ///   Gets or sets the commands.
         /// </summary>
         /// <value> The commands. </value>
-        public IList<BatchedCommand> Commands { get; set; }
+        public IList<BatchedCommand> Commands { get; private set; }
 
         /// <summary>
         ///   Gets or sets the CQL consistency.
@@ -60,11 +64,14 @@ namespace CqlSharp.Protocol
         /// <param name="buffer"> The buffer. </param>
         protected override void WriteData(Stream buffer)
         {
-            buffer.WriteByte((byte) Type);
-            buffer.WriteShort((ushort) Commands.Count);
+            if ((Version & FrameVersion.ProtocolVersionMask) == FrameVersion.ProtocolVersion1)
+                throw new ProtocolException(ErrorCode.Protocol,
+                                            "Batch frames are supported from Cassandra Version 2.0.0 and up.");
+
+            buffer.WriteByte((byte)Type);
+            buffer.WriteShort((ushort)Commands.Count);
             foreach (var command in Commands)
             {
-                buffer.WriteByte(command.IsPrepared ? (byte) 1 : (byte) 0);
                 if (command.IsPrepared)
                 {
                     buffer.WriteByte(1);
@@ -78,7 +85,7 @@ namespace CqlSharp.Protocol
 
                 if (command.ParameterValues != null)
                 {
-                    var length = (ushort) command.ParameterValues.Length;
+                    var length = (ushort)command.ParameterValues.Length;
                     buffer.WriteShort(length);
                     for (var i = 0; i < length; i++)
                         buffer.WriteByteArray(command.ParameterValues[i]);

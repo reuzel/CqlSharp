@@ -1,9 +1,10 @@
 ## Version 0.30.0 - Binary Protocol V2 support
-* Batch support via CqlTransaction. Add the command to the CqlTransaction and executes will be buffered. When CqlTransaction
+* Batch support via CqlBatchTransaction. Assign the command to the CqlBatchTransaction and executes will be buffered. When CqlBatchTransaction
 is committed it will create and submit a batch statement.
 * Paging support. CqlCommand can be given a page size: when iterating over a query result, the data will be fetched in "chunks"
  of the given page size
 * Use of bound parameters with non-prepared queries
+* Support for Serial_Local for CompareAndSet (CAS) statements
 * Performance: when using Cql protocol v2, cached result metadata will be used, reducing network overhead
 * Performance: Prepare() better utilizes caching, less Task creation overhead
 

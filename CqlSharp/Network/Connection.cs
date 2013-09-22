@@ -13,6 +13,8 @@
 // See the License for the specific language governing permissions and
 // limitations under the License.
 
+using CqlSharp.Logging;
+using CqlSharp.Protocol;
 using System;
 using System.Collections.Generic;
 using System.IO;
@@ -20,8 +22,6 @@ using System.Net;
 using System.Net.Sockets;
 using System.Threading;
 using System.Threading.Tasks;
-using CqlSharp.Logging;
-using CqlSharp.Protocol;
 
 //suppressing warnings about unobserved tasks
 #pragma warning disable 168
@@ -181,7 +181,7 @@ namespace CqlSharp.Network
             Interlocked.Exchange(ref _lastActivity, DateTime.UtcNow.Ticks);
 
             EventHandler<LoadChangeEvent> handler = OnLoadChange;
-            if (handler != null) handler(this, new LoadChangeEvent {LoadDelta = load});
+            if (handler != null) handler(this, new LoadChangeEvent { LoadDelta = load });
 
             logger.LogVerbose("{0} has now a load of {1}", this, newLoad);
         }
@@ -224,7 +224,7 @@ namespace CqlSharp.Network
                     }
 
                     if (OnConnectionChange != null)
-                        OnConnectionChange(this, new ConnectionChangeEvent {Exception = error, Connected = false});
+                        OnConnectionChange(this, new ConnectionChangeEvent { Exception = error, Connected = false });
                 }
 
                 OnConnectionChange = null;
@@ -395,7 +395,7 @@ namespace CqlSharp.Network
                         }
                     }
                 }
-                    //no authenticate frame, so ready frame must be received
+                //no authenticate frame, so ready frame must be received
                 else if (!(response is ReadyFrame))
                 {
                     throw new ProtocolException(0, "Expected Ready frame not received");
@@ -407,7 +407,7 @@ namespace CqlSharp.Network
                 using (logger.ThreadBinding())
                 {
                     if (OnConnectionChange != null)
-                        OnConnectionChange(this, new ConnectionChangeEvent {Connected = true});
+                        OnConnectionChange(this, new ConnectionChangeEvent { Connected = true });
                 }
 
                 logger.LogInfo("{0} is opened using Cql {1}", this, Node.FrameVersion.ToString());
@@ -455,7 +455,7 @@ namespace CqlSharp.Network
         {
             var task = SendRequestAsyncInternal(frame, logger, load, isConnecting, token);
             var cancelTask = new TaskCompletionSource<bool>();
-            using (token.Register(s => ((TaskCompletionSource<bool>) s).TrySetResult(true), cancelTask))
+            using (token.Register(s => ((TaskCompletionSource<bool>)s).TrySetResult(true), cancelTask))
             {
                 //wait for either sendTask or cancellation task to complete
                 if (task != await Task.WhenAny(task, cancelTask.Task).ConfigureAwait(false))
@@ -465,7 +465,7 @@ namespace CqlSharp.Network
                                                          {
                                                              if (sendTask.Exception != null)
                                                              {
-                                                                 var logger1 = (Logger) log;
+                                                                 var logger1 = (Logger)log;
                                                                  logger1.LogWarning(
                                                                      "Cancelled query threw exception: {0}",
                                                                      sendTask.Exception.InnerException);
@@ -603,7 +603,8 @@ namespace CqlSharp.Network
                     }
 
                     //allow another frame to be send
-                    _frameSubmitLock.Release();
+                    if (_connectionState != 2)
+                        _frameSubmitLock.Release();
 
                     //reduce load, we are done
                     Interlocked.Decrement(ref _activeRequests);
@@ -688,7 +689,7 @@ namespace CqlSharp.Network
                         {
                             if (frame.OpCode == FrameOpcode.Error)
                             {
-                                var error = (ErrorFrame) frame;
+                                var error = (ErrorFrame)frame;
                                 throw error.Exception;
                             }
 
@@ -748,7 +749,7 @@ namespace CqlSharp.Network
         /// <exception cref="CqlException">Could not register for cluster changes!</exception>
         public async Task RegisterForClusterChangesAsync(Logger logger)
         {
-            var registerframe = new RegisterFrame(new List<string> {"TOPOLOGY_CHANGE", "STATUS_CHANGE"});
+            var registerframe = new RegisterFrame(new List<string> { "TOPOLOGY_CHANGE", "STATUS_CHANGE" });
             Frame result =
                 await SendRequestAsync(registerframe, logger, 1, false, CancellationToken.None).ConfigureAwait(false);
 

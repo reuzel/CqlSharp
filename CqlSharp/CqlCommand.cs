@@ -176,6 +176,22 @@ namespace CqlSharp
             }
         }
 
+        #region CommandText
+
+        /// <summary>
+        ///   Gets or sets the text command to run against the data source.
+        /// </summary>
+        /// <returns> The text command to execute. The default value is an empty string (""). </returns>
+        public override string CommandText
+        {
+            get { return _commandText; }
+            set
+            {
+                _commandText = value;
+                _query = null;
+            }
+        }
+
         /// <summary>
         ///   Gets the query.
         /// </summary>
@@ -204,6 +220,21 @@ namespace CqlSharp
             }
         }
 
+        #endregion
+
+        #region Parameters
+
+        /// <summary>
+        /// Gets a value indicating whether this command has any parameters.
+        /// </summary>
+        /// <value>
+        ///   <c>true</c> if  this command has any parameters; otherwise, <c>false</c>.
+        /// </value>
+        public bool HasParameters
+        {
+            get { return _parameters != null && _parameters.Count > 0; }
+        }
+
         /// <summary>
         ///   Gets the parameters that need to be set before executing a prepared query
         /// </summary>
@@ -230,18 +261,25 @@ namespace CqlSharp
         }
 
         /// <summary>
-        ///   Gets or sets the text command to run against the data source.
+        ///   Creates a new instance of a <see cref="T:CqlSharp.CqlParameter" /> object.
         /// </summary>
-        /// <returns> The text command to execute. The default value is an empty string (""). </returns>
-        public override string CommandText
+        /// <returns> A <see cref="T:CqlSharp.CqlParameter" /> object. </returns>
+        public new CqlParameter CreateParameter()
         {
-            get { return _commandText; }
-            set
-            {
-                _commandText = value;
-                _query = null;
-            }
+            return new CqlParameter();
         }
+
+        /// <summary>
+        ///   Creates a new instance of a <see cref="T:System.Data.Common.DbParameter" /> object.
+        /// </summary>
+        /// <returns> A <see cref="T:System.Data.Common.DbParameter" /> object. </returns>
+        protected override DbParameter CreateDbParameter()
+        {
+            return CreateParameter();
+        }
+
+        #endregion
+
 
         /// <summary>
         ///   Gets or sets the wait time before terminating the attempt to execute a command and generating an error.
@@ -314,9 +352,15 @@ namespace CqlSharp
         /// <exception cref="System.NotSupportedException"></exception>
         protected override DbTransaction DbTransaction
         {
-            get { throw new NotSupportedException(); }
-            set { throw new NotSupportedException(); }
+            get { return Transaction; }
+            set { Transaction = (CqlBatchTransaction)value; }
         }
+
+        /// <summary>
+        /// Gets or sets the <see cref="T:CqlSharp.CqlBatchTransaction" /> within which this <see cref="T:CqlSharp.CqlCommand" /> object executes.
+        /// </summary>
+        /// <returns>The transaction within which a Command object of a .NET Framework data provider executes. The default value is a null reference (Nothing in Visual Basic).</returns>
+        public new CqlBatchTransaction Transaction { get; set; }
 
         /// <summary>
         ///   Gets or sets a value indicating whether the command object should be visible in a customized interface control.
@@ -608,7 +652,7 @@ namespace CqlSharp
             logger.LogVerbose("Waiting on Throttle");
 
             //wait until allowed
-            _connection.Throttle.Wait();
+            _connection.Throttle.Wait(cancellationToken);
 
             try
             {
@@ -695,13 +739,17 @@ namespace CqlSharp
 
             var logger = _connection.LoggerManager.GetLogger("CqlSharp.CqlCommand.ExecuteNonQuery");
 
+            //attempt to add to the current transaction if any
+            if (EnlistInTransactionIfAny())
+            {
+                logger.LogVerbose("Query {0} was enlisted with a CqlBatchTransaction", Query);
+                return 1;
+            }
+
             logger.LogVerbose("Waiting on Throttle");
 
             //wait until allowed
-            _connection.Throttle.Wait();
-
-            //continue?
-            token.ThrowIfCancellationRequested();
+            _connection.Throttle.Wait(token);
 
             try
             {
@@ -752,6 +800,103 @@ namespace CqlSharp
             finally
             {
                 _connection.Throttle.Release();
+            }
+        }
+
+        #region Batch
+
+        /// <summary>
+        /// Executes a batch
+        /// </summary>
+        internal void ExecuteBatch()
+        {
+            try
+            {
+                var token = SetupCancellationToken();
+                ExecuteBatchAsync(token).Wait();
+            }
+            catch (AggregateException aex)
+            {
+                throw aex.InnerException;
+            }
+        }
+
+        /// <summary>
+        /// Executes the batch asynchronous.
+        /// </summary>
+        /// <param name="token">The token.</param>
+        /// <returns></returns>
+        /// <exception cref="CqlException">Unexpected type of result received</exception>
+        internal async Task ExecuteBatchAsync(CancellationToken token)
+        {
+            //check token first
+            token.ThrowIfCancellationRequested();
+
+            var logger = _connection.LoggerManager.GetLogger("CqlSharp.CqlBatchTransaction.Commit");
+
+            logger.LogVerbose("Waiting on Throttle");
+
+            //wait until allowed
+            _connection.Throttle.Wait();
+
+            try
+            {
+                //continue?
+                token.ThrowIfCancellationRequested();
+
+                logger.LogVerbose("Start executing batch");
+
+                ResultFrame result = await RunWithRetry(SendBatchAsync, logger, token).ConfigureAwait(false);
+                switch (result.CqlResultType)
+                {
+                    case CqlResultType.Void:
+                        logger.LogQuery("Bath executed succesfully");
+                        _queryResult = new CqlVoid { TracingId = result.TracingId };
+                        break;
+
+                    default:
+                        throw new CqlException("Unexpected type of result received");
+                }
+            }
+            finally
+            {
+                _connection.Throttle.Release();
+            }
+        }
+
+        #endregion
+
+
+        #region Prepare
+
+        /// <summary>
+        ///   Creates a prepared (or compiled) version of the command on the data source.
+        /// </summary>
+        public override void Prepare()
+        {
+            var logger = _connection.LoggerManager.GetLogger("CqlSharp.CqlCommand.Prepare");
+
+            ResultFrame result;
+            if (_connection.PreparedQueryCache.TryGetValue(Query, out result))
+            {
+                FinalizePrepare(result, true);
+                logger.LogVerbose("Prepared query {0} from Cache", Query);
+            }
+            else
+            {
+                try
+                {
+                    var token = SetupCancellationToken();
+                    PrepareAsyncInternal(token, logger).Wait();
+                }
+                catch (AggregateException aex)
+                {
+                    throw aex.InnerException;
+                }
+                finally
+                {
+                    _cancelTokenSource = null;
+                }
             }
         }
 
@@ -844,37 +989,11 @@ namespace CqlSharp
         }
 
 
-        /// <summary>
-        ///   Creates a prepared (or compiled) version of the command on the data source.
-        /// </summary>
-        public override void Prepare()
-        {
-            var logger = _connection.LoggerManager.GetLogger("CqlSharp.CqlCommand.Prepare");
 
-            ResultFrame result;
-            if (_connection.PreparedQueryCache.TryGetValue(Query, out result))
-            {
-                FinalizePrepare(result, true);
-                logger.LogVerbose("Prepared query {0} from Cache", Query);
-            }
-            else
-            {
-                try
-                {
-                    var token = SetupCancellationToken();
-                    PrepareAsyncInternal(token, logger).Wait();
-                }
-                catch (AggregateException aex)
-                {
-                    throw aex.InnerException;
-                }
-                finally
-                {
-                    _cancelTokenSource = null;
-                }
-            }
-        }
+        #endregion
 
+
+        #region Frame submission
 
         /// <summary>
         ///   Runs the given function, and retries it on a new connection when I/O or node errors occur
@@ -1089,21 +1208,79 @@ namespace CqlSharp
         }
 
         /// <summary>
-        ///   Creates a new instance of a <see cref="T:CqlSharp.CqlParameter" /> object.
+        /// Adds this command to the current batch transaction.
         /// </summary>
-        /// <returns> A <see cref="T:CqlSharp.CqlParameter" /> object. </returns>
-        public new CqlParameter CreateParameter()
+        private bool EnlistInTransactionIfAny()
         {
-            return new CqlParameter();
+            if (Transaction != null)
+            {
+                var batchedCommand = new BatchFrame.BatchedCommand
+                                         {
+                                             IsPrepared = IsPrepared,
+                                             CqlQuery = Query,
+                                             ParameterValues = HasParameters ? Parameters.Values : null
+                                         };
+
+                Transaction.Commands.Add(batchedCommand);
+
+                return true;
+            }
+
+            return false;
         }
 
         /// <summary>
-        ///   Creates a new instance of a <see cref="T:System.Data.Common.DbParameter" /> object.
+        ///   Executes the query async on the given connection
         /// </summary>
-        /// <returns> A <see cref="T:System.Data.Common.DbParameter" /> object. </returns>
-        protected override DbParameter CreateDbParameter()
+        /// <param name="connection"> The connection. </param>
+        /// <param name="logger"> The logger. </param>
+        /// <param name="token"> The token. </param>
+        /// <returns> </returns>
+        /// <exception cref="CqlException">Unexpected frame received</exception>
+        private async Task<ResultFrame> SendBatchAsync(Connection connection, Logger logger,
+                                                       CancellationToken token)
         {
-            return CreateParameter();
+            var batchFrame = new BatchFrame(Transaction.BatchType, Transaction.Consistency);
+            foreach (var command in Transaction.Commands)
+            {
+                if (command.IsPrepared)
+                {
+                    byte[] queryId;
+                    if (!connection.Node.PreparedQueryIds.TryGetValue(command.CqlQuery, out queryId))
+                    {
+                        ResultFrame prepareResult =
+                            await SendPrepareAsync(connection, logger, token).ConfigureAwait(false);
+
+                        queryId = prepareResult.PreparedQueryId;
+                    }
+                    command.QueryId = queryId;
+                }
+
+                batchFrame.Commands.Add(command);
+            }
+
+            //update frame with tracing option if requested
+            if (EnableTracing)
+                batchFrame.Flags |= FrameFlags.Tracing;
+
+            logger.LogVerbose("Sending batch command using {0}", connection);
+
+            Frame response =
+                await connection.SendRequestAsync(batchFrame, logger, Load, false, token).ConfigureAwait(false);
+
+            var result = response as ResultFrame;
+            if (result != null)
+            {
+                return result;
+            }
+
+            //unexpected frame received!
+            response.Dispose();
+            throw new CqlException("Unexpected frame received " + response.OpCode);
         }
+
+        #endregion
+
+
     }
 }

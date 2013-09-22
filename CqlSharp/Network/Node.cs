@@ -13,6 +13,9 @@
 // See the License for the specific language governing permissions and
 // limitations under the License.
 
+using CqlSharp.Logging;
+using CqlSharp.Network.Partition;
+using CqlSharp.Protocol;
 using System;
 using System.Collections;
 using System.Collections.Concurrent;
@@ -20,9 +23,6 @@ using System.Collections.Generic;
 using System.Linq;
 using System.Net;
 using System.Threading;
-using CqlSharp.Logging;
-using CqlSharp.Network.Partition;
-using CqlSharp.Protocol;
 
 namespace CqlSharp.Network
 {
@@ -175,7 +175,7 @@ namespace CqlSharp.Network
             try
             {
                 var connections = new List<Connection>(_connections);
-                return ((IEnumerable<Connection>) connections).GetEnumerator();
+                return ((IEnumerable<Connection>)connections).GetEnumerator();
             }
             finally
             {
@@ -377,7 +377,7 @@ namespace CqlSharp.Network
             if (ReferenceEquals(null, obj)) return false;
             if (ReferenceEquals(this, obj)) return true;
             if (obj.GetType() != GetType()) return false;
-            return Equals((Node) obj);
+            return Equals((Node)obj);
         }
 
         /// <summary>
@@ -398,7 +398,7 @@ namespace CqlSharp.Network
         {
             unchecked
             {
-                return ((Address != null ? Address.GetHashCode() : 0)*397) ^ Cluster.Config.Port;
+                return ((Address != null ? Address.GetHashCode() : 0) * 397) ^ Cluster.Config.Port;
             }
         }
 
@@ -409,11 +409,18 @@ namespace CqlSharp.Network
         {
             lock (_statusLock)
             {
+                //first failure, retry immediatly to make sure node is really down
+                if (_failureCount == 0)
+                {
+                    _failureCount++;
+                    return;
+                }
+
                 //we're down
                 IsUp = false;
 
                 //calculate the time, before retry
-                int due = Math.Min(Cluster.Config.MaxDownTime, 2 ^ (_failureCount)*Cluster.Config.MinDownTime);
+                int due = Math.Min(Cluster.Config.MaxDownTime, 2 ^ (_failureCount - 1) * Cluster.Config.MinDownTime);
 
                 //next time wait a bit longer before accepting new connections (but not too long)
                 if (due < Cluster.Config.MaxDownTime) _failureCount++;

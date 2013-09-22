@@ -508,6 +508,95 @@ namespace CqlSharp.Test
                 }
             }
         }
+
+        [TestMethod]
+        public async Task BatchInsertLogged()
+        {
+            await BatchInsertInternal(CqlBatchType.Logged);
+        }
+
+        [TestMethod]
+        public async Task BatchInsertUnlogged()
+        {
+            await BatchInsertInternal(CqlBatchType.Unlogged);
+        }
+
+        private async Task BatchInsertInternal(CqlBatchType batchType)
+        {
+            //Assume
+            const string insertCql = @"insert into Test.BasicFlow (id,value) values (?,?);";
+            const string retrieveCql = @"select id,value,ignored from Test.BasicFlow;";
+
+            //Act
+            using (var connection = new CqlConnection(ConnectionString))
+            {
+                await connection.OpenAsync();
+                var transaction = connection.BeginTransaction();
+                transaction.BatchType = batchType;
+
+                //insert data
+                var cmd = new CqlCommand(connection, insertCql, CqlConsistency.One);
+                cmd.Transaction = transaction;
+
+                await cmd.PrepareAsync();
+
+                for (int i = 0; i < 10; i++)
+                {
+                    cmd.Parameters[0].Value = i;
+                    cmd.Parameters[1].Value = "Hello " + i;
+                    await cmd.ExecuteNonQueryAsync();
+                }
+
+                var cmd2 = new CqlCommand(connection, insertCql, CqlConsistency.One);
+                cmd2.Transaction = transaction;
+                cmd2.Parameters.Add("id", CqlType.Int);
+                cmd2.Parameters.Add("value", CqlType.Text);
+
+                for (int i = 10; i < 20; i++)
+                {
+                    cmd2.Parameters[0].Value = i;
+                    cmd2.Parameters[1].Value = "Hello " + i;
+                    await cmd2.ExecuteNonQueryAsync();
+                }
+
+                try
+                {
+                    await transaction.CommitAsync();
+                }
+                catch (ProtocolException pex)
+                {
+                    //skip when server version is below 2.0.0
+                    if (pex.Code == ErrorCode.Protocol && String.Compare(connection.ServerVersion, "2.0.0", StringComparison.Ordinal) < 0)
+                        return;
+
+                    throw;
+                }
+
+                //select data
+                var selectCmd = new CqlCommand(connection, retrieveCql, CqlConsistency.One);
+                CqlDataReader reader = await selectCmd.ExecuteReaderAsync();
+                Assert.AreEqual(20, reader.Count);
+
+                var results = new bool[20];
+                for (int i = 0; i < 20; i++)
+                {
+                    if (await reader.ReadAsync())
+                    {
+                        results[(int) reader["id"]] = true;
+                        Assert.AreEqual("Hello " + reader["id"], reader["value"]);
+                    }
+                    else
+                    {
+                        Assert.Fail("Read should have succeeded");
+                    }
+                }
+
+                Assert.IsTrue(results.All(p => p));
+
+                Assert.IsNotNull(transaction.LastBatchResult);
+               
+            }
+        }
     }
 
     #region Nested type: BasicFlowData

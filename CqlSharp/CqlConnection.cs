@@ -13,16 +13,16 @@
 // See the License for the specific language governing permissions and
 // limitations under the License.
 
+using CqlSharp.Logging;
+using CqlSharp.Network;
+using CqlSharp.Network.Partition;
+using CqlSharp.Protocol;
 using System;
 using System.Collections.Concurrent;
 using System.Data;
 using System.Data.Common;
 using System.Threading;
 using System.Threading.Tasks;
-using CqlSharp.Logging;
-using CqlSharp.Network;
-using CqlSharp.Network.Partition;
-using CqlSharp.Protocol;
 
 namespace CqlSharp
 {
@@ -237,7 +237,26 @@ namespace CqlSharp
         /// <exception cref="System.NotSupportedException"></exception>
         protected override DbTransaction BeginDbTransaction(IsolationLevel isolationLevel)
         {
-            throw new NotSupportedException();
+            return BeginTransaction();
+        }
+
+        /// <summary>
+        /// Begins the transaction.
+        /// </summary>
+        /// <returns></returns>
+        public new CqlBatchTransaction BeginTransaction()
+        {
+            return new CqlBatchTransaction(this);
+        }
+
+        /// <summary>
+        /// Begins the transaction.
+        /// </summary>
+        /// <param name="isolationLevel">The isolation level.</param>
+        /// <returns></returns>
+        public new CqlBatchTransaction BeginTransaction(IsolationLevel isolationLevel)
+        {
+            return new CqlBatchTransaction(this);
         }
 
         /// <summary>
@@ -437,7 +456,7 @@ namespace CqlSharp
                         //wait until open is finished (may return immediatly)
                         _openTask.Wait();
                     }
-                        // ReSharper disable EmptyGeneralCatchClause
+                    // ReSharper disable EmptyGeneralCatchClause
                     catch
                     {
                         //ignore here
