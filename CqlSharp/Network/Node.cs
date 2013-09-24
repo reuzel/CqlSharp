@@ -254,8 +254,8 @@ namespace CqlSharp.Network
                         //create cleanup timer if it does not exist yet
                         if (_connectionCleanupTimer == null)
                             _connectionCleanupTimer = new Timer(RemoveIdleConnections, null,
-                                                                _cluster.Config.MaxConnectionIdleTime,
-                                                                _cluster.Config.MaxConnectionIdleTime);
+                                                                TimeSpan.FromSeconds(_cluster.Config.MaxConnectionIdleTime),
+                                                                TimeSpan.FromSeconds(_cluster.Config.MaxConnectionIdleTime));
                     }
                 }
                 finally

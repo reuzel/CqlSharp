@@ -45,7 +45,7 @@ namespace CqlSharp.Network
             _nodes = nodes;
             _config = config;
             _connections = new ConcurrentStack<Connection>();
-            _rndGen = new Random((int)DateTime.Now.Ticks);
+            _rndGen = new Random((int)DateTime.UtcNow.Ticks);
             _connectionCount = 0;
         }
 
@@ -80,7 +80,10 @@ namespace CqlSharp.Network
                 while (_connections.TryPop(out connection))
                 {
                     if (connection.IsConnected)
+                    {
+                        connection.AllowCleanup = false;
                         return connection;
+                    }
                 }
             }
 
@@ -102,8 +105,13 @@ namespace CqlSharp.Network
                                                                      Interlocked.Decrement(ref _connectionCount);
                                                              };
 
+                        //if infrastructure scope, push connection to list of available connections for other use
                         if (scope == ConnectionScope.Infrastructure)
                             _connections.Push(connection);
+                        else
+                            //disable cleanup of this connection while it is in reserved for exclusive use
+                            connection.AllowCleanup = false;
+
 
                         return connection;
                     }
@@ -116,6 +124,7 @@ namespace CqlSharp.Network
 
         public void ReturnConnection(Connection connection, ConnectionScope scope)
         {
+            connection.AllowCleanup = true;
             _connections.Push(connection);
         }
 

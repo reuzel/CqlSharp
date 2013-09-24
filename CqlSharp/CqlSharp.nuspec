@@ -15,6 +15,9 @@
     
       See https://github.com/reuzel/CqlSharp/wiki/Features for an extensive feature list.
     </description>
+    <releaseNotes>
+      This version solves a critical connection idle timer bug, preventing CqlSharp to be used in the US.
+    </releaseNotes>
     <copyright>Copyright 2013 Joost Reuzel</copyright>
     <tags>Cassandra CQL ADO.NET client database provider driver nosql net45 TPL async high-performance</tags>
   </metadata>

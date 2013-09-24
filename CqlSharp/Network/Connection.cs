@@ -95,10 +95,12 @@ namespace CqlSharp.Network
             _activeRequests = 0;
             _load = 0;
             _connectionState = 0;
-            _lastActivity = DateTime.Now.Ticks;
+            _lastActivity = DateTime.UtcNow.Ticks;
 
             Logger.Current.LogVerbose("{0} created", this);
             _maxIdleTicks = TimeSpan.FromSeconds(_cluster.Config.MaxConnectionIdleTime).Ticks;
+
+            AllowCleanup = true;
         }
 
         /// <summary>
@@ -113,7 +115,8 @@ namespace CqlSharp.Network
         /// <summary>
         ///   Gets a value indicating whether this instance is idle. An connection is idle if it
         ///   has failed or was disconnected, or when the load is zero and the last activity is older
-        ///   than the configured MaxConnectionIdleTime.
+        ///   than the configured MaxConnectionIdleTime, cleanup is allowed and the connection is actually
+        ///   connected to a server.
         /// </summary>
         /// <value> <c>true</c> if this instance is idle; otherwise, <c>false</c> . </value>
         public bool IsIdle
@@ -121,8 +124,7 @@ namespace CqlSharp.Network
             get
             {
                 return _connectionState == 2 ||
-                       (_activeRequests == 0 &&
-                        (DateTime.UtcNow.Ticks - Interlocked.Read(ref _lastActivity)) > _maxIdleTicks);
+                       (AllowCleanup && _connectionState == 1 && _activeRequests == 0 && (DateTime.UtcNow.Ticks - Interlocked.Read(ref _lastActivity)) > _maxIdleTicks);
             }
         }
 
@@ -167,6 +169,12 @@ namespace CqlSharp.Network
         /// Occurs when [on cluster change].
         /// </summary>
         public event EventHandler<ClusterChangedEvent> OnClusterChange;
+
+        /// <summary>
+        /// Indicates whether automatic cleanup of this connection is allowed. Typically set to prevent
+        /// a connection to be cleaned up, when it is exclusively reserved for use by an application
+        /// </summary>
+        public bool AllowCleanup { get; set; }
 
         /// <summary>
         /// Updates the load of this connection, and will trigger a corresponding event

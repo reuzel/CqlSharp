@@ -1,3 +1,6 @@
+## Version 0.20.1 - ADO.NET implementation
+* Critical bug fix: connection idle bug due to comparison of datetimes in different timezones, Issue #15
+
 ## Version 0.20.0 - ADO.NET implementation
 * CqlSharp now implements the ADO.NET interfaces (this is a breaking change!), using the System.Data.Common classes
 * Introduced QueryResult property on CqlCommand to expose Cassandra result information for non-Queries
