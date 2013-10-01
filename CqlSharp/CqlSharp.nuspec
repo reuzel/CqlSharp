@@ -16,8 +16,8 @@
       See https://github.com/reuzel/CqlSharp/wiki/Features for an extensive feature list.
     </summary>
     <description>
-      CqlSharp is a high performance, asynchronous Cassandra CQL binary protocol client implementing the ADO.NET data provider interfaces.
-
+      CqlSharp is a high performance, asynchronous Cassandra CQL binary protocol client implementing the ADO.NET data provider interfaces. 
+    
       It's main features are:
       * The API implements the ADO.NET interfaces. If you are familiar with SqlConnection, SqlCommand, and SqlReader, you should be able to use CqlSharp with no difficulty.
       * CqlSharp is an implementation of the (new) CQL Binary Protocol and therefore requires Cassandra 1.2 and up

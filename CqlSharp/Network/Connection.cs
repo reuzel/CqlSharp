@@ -86,6 +86,8 @@ namespace CqlSharp.Network
 
             Logger.Current.LogVerbose("{0} created", this);
             _maxIdleTicks = TimeSpan.FromSeconds(_config.MaxConnectionIdleTime).Ticks;
+
+            AllowCleanup = true;
         }
 
         /// <summary>
@@ -115,7 +117,8 @@ namespace CqlSharp.Network
         /// <summary>
         ///   Gets a value indicating whether this instance is idle. An connection is idle if it
         ///   has failed or was disconnected, or when the load is zero and the last activity is older
-        ///   than the configured MaxConnectionIdleTime.
+        ///   than the configured MaxConnectionIdleTime, cleanup is allowed and the connection is actually
+        ///   connected to a server.
         /// </summary>
         /// <value> <c>true</c> if this instance is idle; otherwise, <c>false</c> . </value>
         public bool IsIdle
@@ -123,8 +126,7 @@ namespace CqlSharp.Network
             get
             {
                 return _connectionState == 2 ||
-                       (_activeRequests == 0 &&
-                        (DateTime.UtcNow.Ticks - Interlocked.Read(ref _lastActivity)) > _maxIdleTicks);
+                       (AllowCleanup && _connectionState == 1 && _activeRequests == 0 && (DateTime.UtcNow.Ticks - Interlocked.Read(ref _lastActivity)) > _maxIdleTicks);
             }
         }
 
@@ -171,7 +173,13 @@ namespace CqlSharp.Network
         public event EventHandler<ClusterChangedEvent> OnClusterChange;
 
         /// <summary>
-        ///   Updates the load of this connection, and will trigger a corresponding event
+        /// Indicates whether automatic cleanup of this connection is allowed. Typically set to prevent
+        /// a connection to be cleaned up, when it is exclusively reserved for use by an application
+        /// </summary>
+        public bool AllowCleanup { get; set; }
+
+        /// <summary>
+        /// Updates the load of this connection, and will trigger a corresponding event
         /// </summary>
         /// <param name="load"> The load. </param>
         /// <param name="logger"> The logger. </param>
@@ -282,16 +290,16 @@ namespace CqlSharp.Network
 
                 while (true)
                 {
-                    //create TCP connection
-                    _client = new TcpClient();
+                //create TCP connection
+                _client = new TcpClient();
                     await _client.ConnectAsync(_node.Address, _config.Port).ConfigureAwait(false);
-                    _writeStream = _client.GetStream();
-                    _readStream = _client.GetStream();
+                _writeStream = _client.GetStream();
+                _readStream = _client.GetStream();
 
-                    logger.LogVerbose("TCP connection to {0} is opened", Address);
+                logger.LogVerbose("TCP connection to {0} is opened", Address);
 
-                    //start readloop
-                    StartReadingAsync();
+                //start readloop
+                StartReadingAsync();
 
                     //get options from server
                     var options = new OptionsFrame();
@@ -310,7 +318,7 @@ namespace CqlSharp.Network
                     {
                         //attempt to connect using lower protocol version if possible
                         if ((Node.FrameVersion & FrameVersion.ProtocolVersionMask) == FrameVersion.ProtocolVersion2)
-                        {
+                {
                             Node.FrameVersion = FrameVersion.ProtocolVersion1;
                             TcpClient client = _client;
                             _client = null;
@@ -324,8 +332,8 @@ namespace CqlSharp.Network
                     }
                 }
 
-                if (supported == null)
-                    throw new ProtocolException(0, "Expected Supported frame not received");
+                    if (supported == null)
+                        throw new ProtocolException(0, "Expected Supported frame not received");
 
                 _allowCompression = false;
                 if (_config.AllowCompression)
@@ -339,8 +347,8 @@ namespace CqlSharp.Network
                     }
                 }
 
-                //dispose supported frame
-                supported.Dispose();
+                    //dispose supported frame
+                    supported.Dispose();
 
                 //submit startup frame
                 var startup = new StartupFrame(_config.CqlVersion);
@@ -379,7 +387,7 @@ namespace CqlSharp.Network
                         if (!(response is AuthSuccessFrame))
                         {
                             throw new UnauthorizedException("Authentication failed: Auth Success frame not received");
-                        }
+                }
                     }
                     else
                     {
@@ -389,7 +397,7 @@ namespace CqlSharp.Network
                             SendRequestAsyncInternal(cred, logger, 1, true, CancellationToken.None).ConfigureAwait(
                                 false);
 
-                        if (!(response is ReadyFrame))
+                if (!(response is ReadyFrame))
                         {
                             throw new UnauthorizedException("Authentication failed: Ready frame not received");
                         }
@@ -462,14 +470,14 @@ namespace CqlSharp.Network
                 {
                     //ignore/log any exception of the handled task
                     var logError = task.ContinueWith((sendTask, log) =>
-                                                         {
-                                                             if (sendTask.Exception != null)
-                                                             {
-                                                                 var logger1 = (Logger)log;
+                                          {
+                                              if (sendTask.Exception != null)
+                                              {
+                                                  var logger1 = (Logger)log;
                                                                  logger1.LogWarning(
                                                                      "Cancelled query threw exception: {0}",
                                                                      sendTask.Exception.InnerException);
-                                                             }
+                                              }
                                                          }, logger,
                                                      TaskContinuationOptions.OnlyOnFaulted |
                                                      TaskContinuationOptions.ExecuteSynchronously);
@@ -604,7 +612,7 @@ namespace CqlSharp.Network
 
                     //allow another frame to be send
                     if (_connectionState != 2)
-                        _frameSubmitLock.Release();
+                    _frameSubmitLock.Release();
 
                     //reduce load, we are done
                     Interlocked.Decrement(ref _activeRequests);

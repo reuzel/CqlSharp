@@ -38,7 +38,7 @@ namespace CqlSharp.Network
         {
             _nodes = nodes;
             _config = config;
-            _rnd = new Random((int) DateTime.Now.Ticks);
+            _rnd = new Random((int)DateTime.UtcNow.Ticks);
         }
 
         #region IConnectionStrategy Members
