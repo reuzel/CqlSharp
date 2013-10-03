@@ -100,13 +100,32 @@ namespace CqlSharp
         {
             get
             {
-                if (State != ConnectionState.Open)
-                    throw new InvalidOperationException("CqlConnection must be open before further use.");
+                if (string.IsNullOrWhiteSpace(ConnectionString))
+                    throw new CqlException("ConnectionString must be set, before any operation on CqlConnection will succeed.");
+
+                if (_cluster == null)
+                {
+                    //get or add cluster based on connection string
+                    _cluster = Clusters.GetOrAdd(ConnectionString, connString =>
+                                                                       {
+                                                                           //connection string unknown, create a new config 
+                                                                           var cc =
+                                                                               new CqlConnectionStringBuilder(connString);
+
+                                                                           //get normalized connection string
+                                                                           string normalizedConnectionString =
+                                                                               cc.ToString();
+
+                                                                           //get or add based on normalized string
+                                                                           return
+                                                                               Clusters.GetOrAdd(
+                                                                                   normalizedConnectionString,
+                                                                                   new Cluster(cc));
+                                                                       });
+                }
 
                 return _cluster;
             }
-
-            set { _cluster = value; }
         }
 
         /// <summary>
@@ -115,7 +134,13 @@ namespace CqlSharp
         /// <value> The throttle. </value>
         internal SemaphoreSlim Throttle
         {
-            get { return Cluster.Throttle; }
+            get
+            {
+                if (State != ConnectionState.Open)
+                    throw new InvalidOperationException("CqlConnection must be open before further use.");
+
+                return Cluster.Throttle;
+            }
         }
 
         /// <summary>
@@ -142,7 +167,13 @@ namespace CqlSharp
         /// <value> <c>true</c> if [provides exclusive connections]; otherwise, <c>false</c> . </value>
         internal bool ProvidesExclusiveConnections
         {
-            get { return Cluster.ConnectionStrategy.ProvidesExclusiveConnections; }
+            get
+            {
+                if (State != ConnectionState.Open)
+                    throw new InvalidOperationException("CqlConnection must be open before further use.");
+
+                return Cluster.ConnectionStrategy.ProvidesExclusiveConnections;
+            }
         }
 
         /// <summary>
@@ -161,7 +192,13 @@ namespace CqlSharp
         /// <returns> The name of the database server to which to connect. The default value is an empty string. </returns>
         public override string DataSource
         {
-            get { return Cluster.Name; }
+            get
+            {
+                if (State != ConnectionState.Open)
+                    throw new InvalidOperationException("CqlConnection must be open before further use.");
+
+                return Cluster.Name;
+            }
         }
 
         /// <summary>
@@ -176,7 +213,10 @@ namespace CqlSharp
                 if (_disposed)
                     throw new ObjectDisposedException("CqlConnection");
 
-                return _database;
+                if (State == ConnectionState.Open)
+                    return _database;
+
+                return Config.Database;
             }
         }
 
@@ -187,7 +227,13 @@ namespace CqlSharp
         /// <exception cref="System.NotImplementedException"></exception>
         public override string ServerVersion
         {
-            get { return Cluster.CassandraVersion; }
+            get
+            {
+                if (State != ConnectionState.Open)
+                    throw new InvalidOperationException("CqlConnection must be open before further use.");
+
+                return Cluster.CassandraVersion;
+            }
         }
 
         /// <summary>
@@ -217,7 +263,13 @@ namespace CqlSharp
 
         internal ConcurrentDictionary<string, ResultFrame> PreparedQueryCache
         {
-            get { return Cluster.PreparedQueryCache; }
+            get
+            {
+                if (State != ConnectionState.Open)
+                    throw new InvalidOperationException("CqlConnection must be open before further use.");
+
+                return Cluster.PreparedQueryCache;
+            }
         }
 
         /// <summary>
@@ -305,7 +357,10 @@ namespace CqlSharp
                 }
 
                 //clear cluster
-                Cluster = null;
+                _cluster = null;
+
+                //clear database
+                _database = string.Empty;
 
                 //clear open task, such that open can be run again
                 _openTask = null;
@@ -386,39 +441,19 @@ namespace CqlSharp
         /// <exception cref="System.ObjectDisposedException">CqlConnection</exception>
         private async Task OpenAsyncInternal(CancellationToken cancellationToken)
         {
-            //get or add cluster based on connection string
-            Cluster cluster = Clusters.GetOrAdd(ConnectionString, connString =>
-                                                                      {
-                                                                          //connection string unknown, create a new config 
-                                                                          var cc =
-                                                                              new CqlConnectionStringBuilder(connString);
-
-                                                                          //get normalized connection string
-                                                                          string normalizedConnectionString =
-                                                                              cc.ToString();
-
-                                                                          //get or add based on normalized string
-                                                                          return
-                                                                              Clusters.GetOrAdd(
-                                                                                  normalizedConnectionString,
-                                                                                  new Cluster(cc));
-                                                                      });
-
-            //set the cluster
-            Cluster = cluster;
-
-            //overwrite connectionstring with normalized version
-            ConnectionString = cluster.Config.ToString();
 
             //get a logger
-            var logger = cluster.LoggerManager.GetLogger("CqlSharp.CqlConnection.Open");
+            var logger = LoggerManager.GetLogger("CqlSharp.CqlConnection.Open");
 
             //make sure the cluster is open for connections
-            await cluster.OpenAsync(logger, cancellationToken).ConfigureAwait(false);
+            await Cluster.OpenAsync(logger, cancellationToken).ConfigureAwait(false);
 
             //get a connection
-            _connection = cluster.ConnectionStrategy.GetOrCreateConnection(ConnectionScope.Connection,
+            _connection = Cluster.ConnectionStrategy.GetOrCreateConnection(ConnectionScope.Connection,
                                                                            PartitionKey.None);
+
+            //set database to its default
+            _database = Cluster.Config.Database;
         }
 
         /// <summary>
@@ -475,7 +510,10 @@ namespace CqlSharp
                 }
 
                 //clear cluster
-                Cluster = null;
+                _cluster = null;
+
+                //clear database
+                _database = string.Empty;
 
                 _disposed = true;
             }

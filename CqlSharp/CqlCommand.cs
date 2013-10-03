@@ -1027,7 +1027,11 @@ namespace CqlSharp
                         !string.IsNullOrWhiteSpace(_connection.Database) &&
                         !_connection.Database.Equals(connection.CurrentKeySpace))
                     {
-                        var useFrame = new QueryFrame("use '" + _connection.Database + "';", CqlConsistency.One, null);
+                        var useQuery = "use \"" + _connection.Database.Trim() + "\";";
+
+                        logger.LogVerbose("Changing Database: {0} using {1}", useQuery, connection);
+
+                        var useFrame = new QueryFrame(useQuery, CqlConsistency.One, null);
                         var result = await connection.SendRequestAsync(useFrame, logger, 1, false, token) as ResultFrame;
                         if (result == null || result.CqlResultType != CqlResultType.SetKeyspace)
                         {

@@ -13,10 +13,11 @@
 // See the License for the specific language governing permissions and
 // limitations under the License.
 
+using CqlSharp.Network.Partition;
 using System;
 using System.Collections.Concurrent;
+using System.Linq;
 using System.Threading;
-using CqlSharp.Network.Partition;
 
 namespace CqlSharp.Network
 {
@@ -46,7 +47,9 @@ namespace CqlSharp.Network
             _config = config;
             _connections = new ConcurrentStack<Connection>();
             _rndGen = new Random((int)DateTime.UtcNow.Ticks);
-            _connectionCount = 0;
+            _connectionCount = _nodes.Sum(n => n.ConnectionCount);
+            if (_connectionCount > 0)
+                _connections.PushRange(_nodes.SelectMany(n => n).ToArray());
         }
 
         #region IConnectionStrategy Members
@@ -68,7 +71,7 @@ namespace CqlSharp.Network
                     int offset = _rndGen.Next(count);
                     for (int i = 0; i < count; i++)
                     {
-                        connection = _nodes[(offset + i)%count].GetConnection();
+                        connection = _nodes[(offset + i) % count].GetConnection();
                         if (connection != null)
                             return connection;
                     }
@@ -83,8 +86,8 @@ namespace CqlSharp.Network
                     {
                         connection.AllowCleanup = false;
                         return connection;
+                    }
                 }
-            }
             }
 
             //check if we may create another connection if we didn't find a connection yet
@@ -95,7 +98,7 @@ namespace CqlSharp.Network
                 int offset = _rndGen.Next(count);
                 for (int i = 0; i < count; i++)
                 {
-                    connection = _nodes[(offset + i)%count].CreateConnection();
+                    connection = _nodes[(offset + i) % count].CreateConnection();
                     if (connection != null)
                     {
                         Interlocked.Increment(ref _connectionCount);

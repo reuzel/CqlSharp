@@ -42,11 +42,15 @@
     <releaseNotes>
       Version 0.30.0 - Binary Protocol V2 support
 
-      * Batch (logged, unlogged and counter) support via CqlBatchTransaction. Add the command to the CqlBatchTransaction and executes will be buffered. When CqlBatchTransaction is committed it will create and submit a batch statement.
+      * Allowing default database to be set via connectionstring, regardless of connectionstrategy in use
+      * Batch support via CqlBatchTransaction. Assign the command to the CqlBatchTransaction and executes will be buffered. When CqlBatchTransaction is committed it will create and submit a batch statement.
       * Paging support. CqlCommand can be given a page size: when iterating over a query result, the data will be fetched in "chunks" of the given page size
       * Use of bound parameters with non-prepared queries
+      * Support for Serial_Local for CompareAndSet (CAS) statements
       * Performance: when using Cql protocol v2, cached result metadata will be used, reducing network overhead
       * Performance: Prepare() better utilizes caching, less Task creation overhead
+      * Fix: ChangeDatabase function uses correct use syntax
+      * Fix: ConnectionStratagies are better aware of existing connections on startup.
 
       See https://github.com/reuzel/CqlSharp/blob/master/ChangeLog.md for the full changelog.
     </releaseNotes>

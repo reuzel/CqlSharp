@@ -290,16 +290,16 @@ namespace CqlSharp.Network
 
                 while (true)
                 {
-                //create TCP connection
-                _client = new TcpClient();
+                    //create TCP connection
+                    _client = new TcpClient();
                     await _client.ConnectAsync(_node.Address, _config.Port).ConfigureAwait(false);
-                _writeStream = _client.GetStream();
-                _readStream = _client.GetStream();
+                    _writeStream = _client.GetStream();
+                    _readStream = _client.GetStream();
 
-                logger.LogVerbose("TCP connection to {0} is opened", Address);
+                    logger.LogVerbose("TCP connection to {0} is opened", Address);
 
-                //start readloop
-                StartReadingAsync();
+                    //start readloop
+                    StartReadingAsync();
 
                     //get options from server
                     var options = new OptionsFrame();
@@ -318,7 +318,7 @@ namespace CqlSharp.Network
                     {
                         //attempt to connect using lower protocol version if possible
                         if ((Node.FrameVersion & FrameVersion.ProtocolVersionMask) == FrameVersion.ProtocolVersion2)
-                {
+                        {
                             Node.FrameVersion = FrameVersion.ProtocolVersion1;
                             TcpClient client = _client;
                             _client = null;
@@ -332,8 +332,8 @@ namespace CqlSharp.Network
                     }
                 }
 
-                    if (supported == null)
-                        throw new ProtocolException(0, "Expected Supported frame not received");
+                if (supported == null)
+                    throw new ProtocolException(0, "Expected Supported frame not received");
 
                 _allowCompression = false;
                 if (_config.AllowCompression)
@@ -347,8 +347,8 @@ namespace CqlSharp.Network
                     }
                 }
 
-                    //dispose supported frame
-                    supported.Dispose();
+                //dispose supported frame
+                supported.Dispose();
 
                 //submit startup frame
                 var startup = new StartupFrame(_config.CqlVersion);
@@ -387,7 +387,7 @@ namespace CqlSharp.Network
                         if (!(response is AuthSuccessFrame))
                         {
                             throw new UnauthorizedException("Authentication failed: Auth Success frame not received");
-                }
+                        }
                     }
                     else
                     {
@@ -397,7 +397,7 @@ namespace CqlSharp.Network
                             SendRequestAsyncInternal(cred, logger, 1, true, CancellationToken.None).ConfigureAwait(
                                 false);
 
-                if (!(response is ReadyFrame))
+                        if (!(response is ReadyFrame))
                         {
                             throw new UnauthorizedException("Authentication failed: Ready frame not received");
                         }
@@ -474,11 +474,11 @@ namespace CqlSharp.Network
                                               if (sendTask.Exception != null)
                                               {
                                                   var logger1 = (Logger)log;
-                                                                 logger1.LogWarning(
-                                                                     "Cancelled query threw exception: {0}",
-                                                                     sendTask.Exception.InnerException);
+                                                  logger1.LogWarning(
+                                                      "Cancelled query threw exception: {0}",
+                                                      sendTask.Exception.InnerException);
                                               }
-                                                         }, logger,
+                                          }, logger,
                                                      TaskContinuationOptions.OnlyOnFaulted |
                                                      TaskContinuationOptions.ExecuteSynchronously);
 
@@ -588,6 +588,7 @@ namespace CqlSharp.Network
                     var keyspaceChange = response as ResultFrame;
                     if (keyspaceChange != null && keyspaceChange.CqlResultType == CqlResultType.SetKeyspace)
                     {
+                        logger.LogVerbose("{0} changed KeySpace to \"{1}\"", this, keyspaceChange.Keyspace);
                         CurrentKeySpace = keyspaceChange.Keyspace;
                     }
 
@@ -612,7 +613,7 @@ namespace CqlSharp.Network
 
                     //allow another frame to be send
                     if (_connectionState != 2)
-                    _frameSubmitLock.Release();
+                        _frameSubmitLock.Release();
 
                     //reduce load, we are done
                     Interlocked.Decrement(ref _activeRequests);

@@ -1,4 +1,5 @@
 ## Version 0.30.0 - Binary Protocol V2 support
+* Allowing default database to be set via connectionstring, regardless of connectionstrategy in use
 * Batch support via CqlBatchTransaction. Assign the command to the CqlBatchTransaction and executes will be buffered. When CqlBatchTransaction
 is committed it will create and submit a batch statement.
 * Paging support. CqlCommand can be given a page size: when iterating over a query result, the data will be fetched in "chunks"
@@ -7,8 +8,10 @@ is committed it will create and submit a batch statement.
 * Support for Serial_Local for CompareAndSet (CAS) statements
 * Performance: when using Cql protocol v2, cached result metadata will be used, reducing network overhead
 * Performance: Prepare() better utilizes caching, less Task creation overhead
+* Fix: ChangeDatabase function uses correct use syntax
+* Fix: ConnectionStratagies are better aware of existing connections on startup.
 
-## Version 0.20.1 - ADO.NET implementation
+## Version 0.20.1 - Oops
 * Critical bug fix: connection idle bug due to comparison of datetimes in different timezones, Issue #15
 
 ## Version 0.20.0 - ADO.NET implementation

@@ -29,7 +29,7 @@ namespace CqlSharp.Test
     public class QueryTests
     {
         private const string ConnectionString =
-            "server=localhost;throttle=256;MaxConnectionIdleTime=3600;ConnectionStrategy=PartitionAware;loggerfactory=debug;loglevel=verbose";
+            "server=localhost;throttle=256;MaxConnectionIdleTime=3600;ConnectionStrategy=Exclusive;loggerfactory=debug;loglevel=verbose";
 
         [ClassInitialize]
         public static void Init(TestContext context)
@@ -177,6 +177,47 @@ namespace CqlSharp.Test
             }
         }
 
+        [TestMethod]
+        public async Task ChangeDatabaseThenInsertSelect()
+        {
+            //Assume
+            const string insertCql = @"insert into BasicFlow (id,value) values (901,'Hallo 901');";
+            const string retrieveCql = @"select * from BasicFlow;";
+
+            //Act
+            using (var connection = new CqlConnection(ConnectionString))
+            {
+                Assert.AreEqual("", connection.Database);
+
+                await connection.OpenAsync();
+
+                //change database
+                connection.ChangeDatabase("test");
+
+                Assert.AreEqual("test", connection.Database);
+
+                //insert data
+                var cmd = new CqlCommand(connection, insertCql, CqlConsistency.One);
+                await cmd.ExecuteNonQueryAsync();
+
+                //select data
+                var selectCmd = new CqlCommand(connection, retrieveCql, CqlConsistency.One);
+                CqlDataReader reader = await selectCmd.ExecuteReaderAsync();
+
+                Assert.AreEqual(1, reader.Count);
+                if (await reader.ReadAsync())
+                {
+                    Assert.AreEqual(901, reader["id"]);
+                    Assert.AreEqual("Hallo 901", reader["value"]);
+                    Assert.AreEqual(DBNull.Value, reader["ignored"]);
+                }
+                else
+                {
+                    Assert.Fail("Read should have succeeded");
+                }
+            }
+        }
+        
         [TestMethod]
         public async Task CASInsertSelect()
         {
@@ -582,7 +623,7 @@ namespace CqlSharp.Test
                 {
                     if (await reader.ReadAsync())
                     {
-                        results[(int) reader["id"]] = true;
+                        results[(int)reader["id"]] = true;
                         Assert.AreEqual("Hello " + reader["id"], reader["value"]);
                     }
                     else
@@ -594,7 +635,7 @@ namespace CqlSharp.Test
                 Assert.IsTrue(results.All(p => p));
 
                 Assert.IsNotNull(transaction.LastBatchResult);
-               
+
             }
         }
     }

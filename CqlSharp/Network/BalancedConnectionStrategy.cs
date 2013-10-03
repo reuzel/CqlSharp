@@ -41,7 +41,7 @@ namespace CqlSharp.Network
         {
             _nodes = nodes;
             _config = config;
-            _connectionCount = 0;
+            _connectionCount = _nodes.Sum(n => n.ConnectionCount);
         }
 
         #region IConnectionStrategy Members

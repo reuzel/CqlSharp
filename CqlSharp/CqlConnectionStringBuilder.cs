@@ -13,6 +13,7 @@
 // See the License for the specific language governing permissions and
 // limitations under the License.
 
+using CqlSharp.Logging;
 using System;
 using System.Collections;
 using System.Collections.Generic;
@@ -21,7 +22,6 @@ using System.Data.Common;
 using System.Linq;
 using System.Net;
 using System.Net.Sockets;
-using CqlSharp.Logging;
 
 namespace CqlSharp
 {
@@ -40,6 +40,7 @@ namespace CqlSharp
                       {Keyword.Port, 9042},
                       {Keyword.Username, null},
                       {Keyword.Password, null},
+                      {Keyword.Database, string.Empty},
                       {Keyword.DiscoveryScope, DiscoveryScope.None},
                       {Keyword.ConnectionStrategy, ConnectionStrategy.Balanced},
                       {Keyword.CqlVersion, "3.0.2"},
@@ -69,6 +70,10 @@ namespace CqlSharp
                     {"nodes", Keyword.Servers},
                     {"node", Keyword.Servers},
                     {"port", Keyword.Port},
+                    {"database", Keyword.Database},
+                    {"keyspace", Keyword.Database},
+                    {"default database", Keyword.Database},
+                    {"default keyspace", Keyword.Database},
                     {"discovery scope", Keyword.DiscoveryScope},
                     {"discoveryscope", Keyword.DiscoveryScope},
                     {"connection strategy", Keyword.ConnectionStrategy},
@@ -209,7 +214,7 @@ namespace CqlSharp
         {
             get
             {
-                var servers = (string) _values[Keyword.Servers];
+                var servers = (string)_values[Keyword.Servers];
                 return servers.Split(',');
             }
             set { SetValue(Keyword.Servers, value); }
@@ -269,8 +274,19 @@ namespace CqlSharp
         /// <value> The port. Default: 9042 </value>
         public int Port
         {
-            get { return (int) _values[Keyword.Port]; }
+            get { return (int)_values[Keyword.Port]; }
             set { SetValue(Keyword.Port, value); }
+        }
+
+
+        /// <summary>
+        ///   Gets or sets the default database or keyspace to use
+        /// </summary>
+        /// <value>The database. If empty or null, no default database will be set. Default: empty string</value>
+        public string Database
+        {
+            get { return (string)_values[Keyword.Database] ?? string.Empty; }
+            set { SetValue(Keyword.Database, value ?? string.Empty); }
         }
 
         /// <summary>
@@ -279,7 +295,7 @@ namespace CqlSharp
         /// <value> The discovery scope. Default: None </value>
         public DiscoveryScope DiscoveryScope
         {
-            get { return (DiscoveryScope) _values[Keyword.DiscoveryScope]; }
+            get { return (DiscoveryScope)_values[Keyword.DiscoveryScope]; }
             set { SetValue(Keyword.DiscoveryScope, value); }
         }
 
@@ -290,7 +306,7 @@ namespace CqlSharp
         /// <value> The connection strategy. Default: Balanced </value>
         public ConnectionStrategy ConnectionStrategy
         {
-            get { return (ConnectionStrategy) _values[Keyword.ConnectionStrategy]; }
+            get { return (ConnectionStrategy)_values[Keyword.ConnectionStrategy]; }
             set { SetValue(Keyword.ConnectionStrategy, value); }
         }
 
@@ -300,7 +316,7 @@ namespace CqlSharp
         /// <value> The username. Default: null </value>
         public string Username
         {
-            get { return (string) _values[Keyword.Username]; }
+            get { return (string)_values[Keyword.Username]; }
             set { SetValue(Keyword.Username, value); }
         }
 
@@ -310,7 +326,7 @@ namespace CqlSharp
         /// <value> The password. Default: null </value>
         public string Password
         {
-            get { return (string) _values[Keyword.Password]; }
+            get { return (string)_values[Keyword.Password]; }
             set { SetValue(Keyword.Password, value); }
         }
 
@@ -320,7 +336,7 @@ namespace CqlSharp
         /// <value> The CQL version. Default: 3.0.0 </value>
         public string CqlVersion
         {
-            get { return (string) _values[Keyword.CqlVersion]; }
+            get { return (string)_values[Keyword.CqlVersion]; }
             set { SetValue(Keyword.CqlVersion, value); }
         }
 
@@ -331,7 +347,7 @@ namespace CqlSharp
         /// <value> The max down time in ms. Default: 1 hour </value>
         public int MaxDownTime
         {
-            get { return (int) _values[Keyword.MaxDownTime]; }
+            get { return (int)_values[Keyword.MaxDownTime]; }
             set { SetValue(Keyword.MaxDownTime, value); }
         }
 
@@ -341,7 +357,7 @@ namespace CqlSharp
         /// <value> The min down time in ms. Default 500ms </value>
         public int MinDownTime
         {
-            get { return (int) _values[Keyword.MinDownTime]; }
+            get { return (int)_values[Keyword.MinDownTime]; }
             set { SetValue(Keyword.MinDownTime, value); }
         }
 
@@ -351,7 +367,7 @@ namespace CqlSharp
         /// <value> The max connections per node. Default 2 </value>
         public int MaxConnectionsPerNode
         {
-            get { return (int) _values[Keyword.MaxConnectionsPerNode]; }
+            get { return (int)_values[Keyword.MaxConnectionsPerNode]; }
             set { SetValue(Keyword.MaxConnectionsPerNode, value); }
         }
 
@@ -361,7 +377,7 @@ namespace CqlSharp
         /// <value> The max connections. When 0 or negative, no maximum. Default: -1 </value>
         public int MaxConnections
         {
-            get { return (int) _values[Keyword.MaxConnections]; }
+            get { return (int)_values[Keyword.MaxConnections]; }
             set { SetValue(Keyword.MaxConnections, value); }
         }
 
@@ -372,7 +388,7 @@ namespace CqlSharp
         /// <value> The new connection treshold. Default: 10 </value>
         public int NewConnectionTreshold
         {
-            get { return (int) _values[Keyword.NewConnectionTreshold]; }
+            get { return (int)_values[Keyword.NewConnectionTreshold]; }
             set { SetValue(Keyword.NewConnectionTreshold, value); }
         }
 
@@ -383,7 +399,7 @@ namespace CqlSharp
         /// <value> The max concurrent queries. if 0 or negative, the max will be calculated by the number of found nodes in the cluster * MaxConnectionsPerNode * 2. </value>
         public int MaxConcurrentQueries
         {
-            get { return (int) _values[Keyword.MaxConcurrentQueries]; }
+            get { return (int)_values[Keyword.MaxConcurrentQueries]; }
             set { SetValue(Keyword.MaxConcurrentQueries, value); }
         }
 
@@ -393,7 +409,7 @@ namespace CqlSharp
         /// <value> The max connection idle time in seconds. Default 10 seconds. </value>
         public int MaxConnectionIdleTime
         {
-            get { return (int) _values[Keyword.MaxConnectionIdleTime]; }
+            get { return (int)_values[Keyword.MaxConnectionIdleTime]; }
             set { SetValue(Keyword.MaxConnectionIdleTime, value); }
         }
 
@@ -403,7 +419,7 @@ namespace CqlSharp
         /// <value> The max query retries. Default 3. </value>
         public int MaxQueryRetries
         {
-            get { return (int) _values[Keyword.MaxQueryRetries]; }
+            get { return (int)_values[Keyword.MaxQueryRetries]; }
             set { SetValue(Keyword.MaxQueryRetries, value); }
         }
 
@@ -413,7 +429,7 @@ namespace CqlSharp
         /// <value> The logger factory. </value>
         public string LoggerFactory
         {
-            get { return (string) _values[Keyword.LoggerFactory]; }
+            get { return (string)_values[Keyword.LoggerFactory]; }
             set { SetValue(Keyword.LoggerFactory, value); }
         }
 
@@ -423,7 +439,7 @@ namespace CqlSharp
         /// <value> The log level. </value>
         public LogLevel LogLevel
         {
-            get { return (LogLevel) _values[Keyword.LogLevel]; }
+            get { return (LogLevel)_values[Keyword.LogLevel]; }
             set { SetValue(Keyword.LogLevel, value); }
         }
 
@@ -433,7 +449,7 @@ namespace CqlSharp
         /// <value> <c>true</c> if [use buffering]; otherwise, <c>false</c> . </value>
         public bool UseBuffering
         {
-            get { return (bool) _values[Keyword.UseBuffering]; }
+            get { return (bool)_values[Keyword.UseBuffering]; }
             set { SetValue(Keyword.UseBuffering, value); }
         }
 
@@ -443,7 +459,7 @@ namespace CqlSharp
         /// <value> <c>true</c> if [allow compression]; otherwise, <c>false</c> . </value>
         public bool AllowCompression
         {
-            get { return (bool) _values[Keyword.AllowCompression]; }
+            get { return (bool)_values[Keyword.AllowCompression]; }
             set { SetValue(Keyword.AllowCompression, value); }
         }
 
@@ -453,7 +469,7 @@ namespace CqlSharp
         /// <value> The compression treshold. </value>
         public int CompressionTreshold
         {
-            get { return (int) _values[Keyword.CompressionTreshold]; }
+            get { return (int)_values[Keyword.CompressionTreshold]; }
             set { SetValue(Keyword.CompressionTreshold, value); }
         }
 
@@ -465,7 +481,7 @@ namespace CqlSharp
         ///    cref="T:System.Data.Common.DbConnectionStringBuilder" /> . </returns>
         public override ICollection Keys
         {
-            get { return Enum.GetNames(typeof (Keyword)); }
+            get { return Enum.GetNames(typeof(Keyword)); }
         }
 
         /// <summary>
@@ -524,6 +540,9 @@ namespace CqlSharp
                         sanatizedValue = value.ToString();
                         break;
                     case Keyword.Password:
+                        sanatizedValue = value.ToString();
+                        break;
+                    case Keyword.Database:
                         sanatizedValue = value.ToString();
                         break;
                     case Keyword.DiscoveryScope:
@@ -615,9 +634,9 @@ namespace CqlSharp
                 throw new ArgumentNullException("value");
 
             if (value is T)
-                return (T) value;
+                return (T)value;
 
-            return (T) Enum.Parse(typeof (T), value.ToString(), true);
+            return (T)Enum.Parse(typeof(T), value.ToString(), true);
         }
 
         /// <summary>
@@ -708,6 +727,7 @@ namespace CqlSharp
             Port,
             Username,
             Password,
+            Database,
             DiscoveryScope,
             ConnectionStrategy,
             CqlVersion,
