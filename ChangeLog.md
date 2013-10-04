@@ -1,5 +1,6 @@
 ## Version 0.30.0 - Binary Protocol V2 support
 * Allowing default database to be set via connectionstring, regardless of connectionstrategy in use
+* Sasl Authentication support. PasswordAuthenticator is supported out-of-the-box. Extendable via MEF by providing IAuthenticator and IAuthenticatorFactory implementations.
 * Batch support via CqlBatchTransaction. Assign the command to the CqlBatchTransaction and executes will be buffered. When CqlBatchTransaction
 is committed it will create and submit a batch statement.
 * Paging support. CqlCommand can be given a page size: when iterating over a query result, the data will be fetched in "chunks"

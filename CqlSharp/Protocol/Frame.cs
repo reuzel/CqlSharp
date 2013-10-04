@@ -13,12 +13,12 @@
 // See the License for the specific language governing permissions and
 // limitations under the License.
 
+using CqlSharp.Memory;
+using CqlSharp.Network.nSnappy;
 using System;
 using System.IO;
 using System.Threading;
 using System.Threading.Tasks;
-using CqlSharp.Memory;
-using CqlSharp.Network.nSnappy;
 
 namespace CqlSharp.Protocol
 {
@@ -88,10 +88,10 @@ namespace CqlSharp.Protocol
         public Stream GetFrameBytes(bool compress, int compressTreshold)
         {
             var buffer = new PoolMemoryStream();
-            buffer.WriteByte((byte) Version);
-            buffer.WriteByte((byte) Flags);
-            buffer.WriteByte(unchecked((byte) Stream));
-            buffer.WriteByte((byte) OpCode);
+            buffer.WriteByte((byte)Version);
+            buffer.WriteByte((byte)Flags);
+            buffer.WriteByte(unchecked((byte)Stream));
+            buffer.WriteByte((byte)OpCode);
 
             //write length placeholder
             buffer.WriteInt(0);
@@ -113,7 +113,7 @@ namespace CqlSharp.Protocol
                     //add compression to flags
                     Flags |= FrameFlags.Compression;
                     buffer.Position = 1;
-                    buffer.WriteByte((byte) Flags);
+                    buffer.WriteByte((byte)Flags);
 
                     //overwrite data with compressed data
                     buffer.Position = 8;
@@ -125,7 +125,7 @@ namespace CqlSharp.Protocol
 
             //overwrite length with real value
             buffer.Position = 4;
-            buffer.WriteInt((int) buffer.Length - 8);
+            buffer.WriteInt((int)buffer.Length - 8);
 
             //reset buffer position
             buffer.Position = 0;
@@ -158,7 +158,7 @@ namespace CqlSharp.Protocol
             int length = BitConverter.ToInt32(header, 4);
 
             Frame frame;
-            switch ((FrameOpcode) header[3])
+            switch ((FrameOpcode)header[3])
             {
                 case FrameOpcode.Error:
                     frame = new ErrorFrame();
@@ -168,6 +168,9 @@ namespace CqlSharp.Protocol
                     break;
                 case FrameOpcode.Authenticate:
                     frame = new AuthenticateFrame();
+                    break;
+                case FrameOpcode.AuthSuccess:
+                    frame = new AuthSuccessFrame();
                     break;
                 case FrameOpcode.Supported:
                     frame = new SupportedFrame();
@@ -179,13 +182,13 @@ namespace CqlSharp.Protocol
                     frame = new EventFrame();
                     break;
                 default:
-                    throw new ProtocolException(0, "Unexpected OpCode received.");
+                    throw new ProtocolException(0, string.Format("Unexpected OpCode {0:X} received.", header[3]));
             }
 
-            frame.Version = (FrameVersion) header[0];
-            frame.Flags = (FrameFlags) header[1];
-            frame.Stream = unchecked((sbyte) header[2]);
-            frame.OpCode = (FrameOpcode) header[3];
+            frame.Version = (FrameVersion)header[0];
+            frame.Flags = (FrameFlags)header[1];
+            frame.Stream = unchecked((sbyte)header[2]);
+            frame.OpCode = (FrameOpcode)header[3];
             frame.Length = length;
 
             //wrap the stream in a window, that will be completely read when disposed

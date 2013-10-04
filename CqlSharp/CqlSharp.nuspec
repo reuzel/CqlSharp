@@ -16,12 +16,12 @@
       See https://github.com/reuzel/CqlSharp/wiki/Features for an extensive feature list.
     </summary>
     <description>
-      CqlSharp is a high performance, asynchronous Cassandra CQL binary protocol client implementing the ADO.NET data provider interfaces. 
-    
+      CqlSharp is a high performance, asynchronous Cassandra CQL binary protocol client implementing the ADO.NET data provider interfaces.
+
       It's main features are:
       * The API implements the ADO.NET interfaces. If you are familiar with SqlConnection, SqlCommand, and SqlReader, you should be able to use CqlSharp with no difficulty.
       * CqlSharp is an implementation of the (new) CQL Binary Protocol and therefore requires Cassandra 1.2 and up
-      * CqlSharp supports all the binary protocol v2 features: batching, paging, bound query variables, result schema caching, and check-and-set (CAS) statements.
+      * CqlSharp supports all the binary protocol v2 features: batching, paging, bound query variables, result schema caching, check-and-set (CAS) statements, and sasl-authentication
       * Supports fast mapping of objects to query parameters, or query results to objects. Mapping is tunable by decorating your classes via Table and Column attributes.
       * CqlSharp allows for partition/token aware routing of queries. This allows queries to be directly sent to the Cassandra nodes that are the 'owner' of that data.
       * Query timeouts and cancellation is supported
@@ -43,6 +43,7 @@
       Version 0.30.0 - Binary Protocol V2 support
 
       * Allowing default database to be set via connectionstring, regardless of connectionstrategy in use
+      * Sasl Authentication support. PasswordAuthenticator is supported out-of-the-box. Extendable via MEF by providing IAuthenticator and IAuthenticatorFactory implementations.
       * Batch support via CqlBatchTransaction. Assign the command to the CqlBatchTransaction and executes will be buffered. When CqlBatchTransaction is committed it will create and submit a batch statement.
       * Paging support. CqlCommand can be given a page size: when iterating over a query result, the data will be fetched in "chunks" of the given page size
       * Use of bound parameters with non-prepared queries

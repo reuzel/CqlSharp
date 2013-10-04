@@ -29,7 +29,7 @@ namespace CqlSharp.Test
     public class QueryTests
     {
         private const string ConnectionString =
-            "server=localhost;throttle=256;MaxConnectionIdleTime=3600;ConnectionStrategy=Exclusive;loggerfactory=debug;loglevel=verbose";
+            "server=localhost;throttle=256;MaxConnectionIdleTime=3600;ConnectionStrategy=Exclusive;loggerfactory=debug;loglevel=verbose;username=cassandra;password=cassandra";
 
         [ClassInitialize]
         public static void Init(TestContext context)
@@ -217,7 +217,7 @@ namespace CqlSharp.Test
                 }
             }
         }
-        
+
         [TestMethod]
         public async Task CASInsertSelect()
         {

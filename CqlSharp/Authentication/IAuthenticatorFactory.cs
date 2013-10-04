@@ -1,4 +1,4 @@
-// CqlSharp - CqlSharp
+﻿// CqlSharp - CqlSharp
 // Copyright (c) 2013 Joost Reuzel
 //   
 // Licensed under the Apache License, Version 2.0 (the "License");
@@ -13,42 +13,20 @@
 // See the License for the specific language governing permissions and
 // limitations under the License.
 
-namespace CqlSharp.Protocol
+namespace CqlSharp.Authentication
 {
-    internal enum FrameOpcode : byte
+    public interface IAuthenticatorFactory
     {
-        Error = 0x00,
+        /// <summary>
+        ///   The full class name of the Cassandra authenticator this authenticator factory can be used with
+        /// </summary>
+        /// <value> The name </value>
+        string Name { get; }
 
-        Startup = 0x01,
-
-        Ready = 0x02,
-
-        Authenticate = 0x03,
-
-        Credentials = 0x04,
-
-        Options = 0x05,
-
-        Supported = 0x06,
-
-        Query = 0x07,
-
-        Result = 0x08,
-
-        Prepare = 0x09,
-
-        Execute = 0x0A,
-
-        Register = 0x0B,
-
-        Event = 0x0C,
-
-        Batch = 0x0D,
-
-        AuthChallenge = 0x0E,
-
-        AuthResponse = 0x0F,
-
-        AuthSuccess = 0x10
+        /// <summary>
+        /// Creates a Authenticator implementation.
+        /// </summary>
+        /// <param name="config">The configuration.</param>
+        IAuthenticator CreateAuthenticator(CqlConnectionStringBuilder config);
     }
 }

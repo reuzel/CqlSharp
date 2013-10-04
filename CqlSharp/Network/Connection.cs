@@ -13,11 +13,14 @@
 // See the License for the specific language governing permissions and
 // limitations under the License.
 
+using CqlSharp.Authentication;
+using CqlSharp.Extensions;
 using CqlSharp.Logging;
 using CqlSharp.Protocol;
 using System;
 using System.Collections.Generic;
 using System.IO;
+using System.Linq;
 using System.Net;
 using System.Net.Sockets;
 using System.Threading;
@@ -366,31 +369,71 @@ namespace CqlSharp.Network
                 var auth = response as AuthenticateFrame;
                 if (auth != null)
                 {
-                    logger.LogVerbose("Authentication requested, attempting to provide credentials", Address);
-
-                    //check if _username is actually set
-                    if (_config.Username == null || _config.Password == null)
-                        throw new UnauthorizedException("No credentials provided");
+                    logger.LogVerbose("Authentication requested, attempting to provide credentials");
 
                     //dispose AuthenticateFrame
                     response.Dispose();
 
-                    if ((Node.FrameVersion & FrameVersion.ProtocolVersionMask) == FrameVersion.ProtocolVersion2)
+                    if ((response.Version & FrameVersion.ProtocolVersionMask) == FrameVersion.ProtocolVersion2)
                     {
                         //protocol version2: use SASL AuthResponse to authenticate
-                        var cred = new AuthResponseFrame(_config.Username, _config.Password);
-                        response =
-                            await
-                            SendRequestAsyncInternal(cred, logger, 1, true, CancellationToken.None).ConfigureAwait(
-                                false);
 
-                        if (!(response is AuthSuccessFrame))
+                        //get an AuthenticatorFactory
+                        IAuthenticatorFactory factory =
+                            Loader.Extensions.AuthenticationFactories.FirstOrDefault(
+                                f => f.Name.Equals(auth.Authenticator, StringComparison.OrdinalIgnoreCase));
+
+                        if (factory == null)
+                            throw new UnauthorizedException("No credentials provided");
+
+                        logger.LogVerbose("Attempting authentication for scheme {0}", factory.Name);
+                        
+                        //grab an authenticator instance
+                        IAuthenticator authenticator = factory.CreateAuthenticator(_config);
+
+                        //start authentication loop
+                        byte[] saslChallenge = null;
+                        while (true)
                         {
-                            throw new UnauthorizedException("Authentication failed: Auth Success frame not received");
+                            //check for challenge
+                            byte[] saslResponse;
+                            if (!authenticator.Authenticate(saslChallenge, out saslResponse))
+                                throw new UnauthorizedException("Authentication failed, SASL Challenge was rejected");
+
+                            //send response
+                            var cred = new AuthResponseFrame(saslResponse);
+                            response =
+                                await
+                                SendRequestAsyncInternal(cred, logger, 1, true, CancellationToken.None).ConfigureAwait(
+                                    false);
+
+                            //check for success
+                            var success = response as AuthSuccessFrame;
+                            if (success != null)
+                            {
+                                if (!authenticator.Authenticate(success.SaslResult))
+                                    throw new UnauthorizedException("Authentication failed, Authenticator rejected SASL result");
+
+                                //yeah, authenticated, break from the authentication loop
+                                break;
+                            }
+
+                            //no success yet, lets try next round
+                            var challenge = response as AuthChallengeFrame;
+                            if (challenge == null)
+                                throw new UnauthorizedException("Expected a Authentication Challenge!");
+
+                            saslChallenge = challenge.SaslChallenge;
                         }
                     }
                     else
                     {
+                        //protocol version1: use Credentials to authenticate
+
+                        //check if _username is actually set
+                        if (_config.Username == null || _config.Password == null)
+                            throw new UnauthorizedException("No credentials provided");
+
                         var cred = new CredentialsFrame(_config.Username, _config.Password);
                         response =
                             await

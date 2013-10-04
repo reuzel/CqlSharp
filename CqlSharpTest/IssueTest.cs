@@ -25,7 +25,7 @@ namespace CqlSharp.Test
     public class IssueTest
     {
         private const string ConnectionString =
-            "server=localhost;loggerfactory=debug;loglevel=verbose";
+            "server=localhost;loggerfactory=debug;loglevel=verbose;username=cassandra;password=cassandra";
 
         [TestMethod]
         public async Task Issue15()

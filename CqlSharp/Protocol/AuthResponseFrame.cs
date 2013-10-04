@@ -15,7 +15,6 @@
 
 using System;
 using System.IO;
-using System.Text;
 using System.Threading.Tasks;
 
 namespace CqlSharp.Protocol
@@ -36,34 +35,13 @@ namespace CqlSharp.Protocol
             SaslResponse = saslResponse;
         }
 
-        /// <summary>
-        ///   Initializes a new instance of the <see cref="AuthResponseFrame" /> class.
-        /// </summary>
-        /// <param name="username"> The username. </param>
-        /// <param name="password"> The password. </param>
-        public AuthResponseFrame(string username, string password)
-        {
-            using (var stream = new MemoryStream())
-            {
-                byte[] userBytes = Encoding.UTF8.GetBytes(username);
-                byte[] passwordBytes = Encoding.UTF8.GetBytes(password);
-
-                stream.WriteByte(0);
-                stream.Write(userBytes, 0, userBytes.Length);
-                stream.WriteByte(0);
-                stream.Write(passwordBytes, 0, passwordBytes.Length);
-                stream.WriteByte(0);
-
-                SaslResponse = stream.ToArray();
-            }
-        }
-
         public byte[] SaslResponse { get; set; }
 
         protected override void WriteData(Stream buffer)
         {
             buffer.WriteByteArray(SaslResponse);
         }
+
 
         protected override Task InitializeAsync()
         {

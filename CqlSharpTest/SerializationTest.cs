@@ -28,7 +28,7 @@ namespace CqlSharp.Test
     public class SerializationTest
     {
         private const string ConnectionString =
-            "server=localhost;throttle=100;ConnectionStrategy=Exclusive;loggerfactory=debug";
+            "server=localhost;throttle=100;ConnectionStrategy=Exclusive;loggerfactory=debug;username=cassandra;password=cassandra";
 
         private const string CreateKsCql =
             @"CREATE KEYSPACE Test WITH replication = {'class': 'SimpleStrategy', 'replication_factor' : 1} and durable_writes = 'false';";

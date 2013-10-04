@@ -13,14 +13,9 @@
 // See the License for the specific language governing permissions and
 // limitations under the License.
 
+using CqlSharp.Extensions;
 using System;
-using System.Collections.Generic;
-using System.ComponentModel.Composition;
-using System.ComponentModel.Composition.Hosting;
-using System.ComponentModel.Composition.Registration;
-using System.IO;
 using System.Linq;
-using System.Reflection;
 
 namespace CqlSharp.Logging
 {
@@ -38,8 +33,6 @@ namespace CqlSharp.Logging
             _level = level;
         }
 
-        public IEnumerable<ILoggerFactory> LoggerFactories { get; set; }
-
         /// <summary>
         ///   Gets a logger instance with the specified name.
         /// </summary>
@@ -53,10 +46,8 @@ namespace CqlSharp.Logging
                 {
                     if (_factory == null)
                     {
-                        LoadLoggerFactories();
-
                         var factory =
-                            LoggerFactories.FirstOrDefault(
+                            Loader.Extensions.LoggerFactories.FirstOrDefault(
                                 f => f.Name.Trim().Equals(_factoryName, StringComparison.InvariantCultureIgnoreCase));
 
                         _factory = factory ?? new NullLoggerFactory();
@@ -66,54 +57,6 @@ namespace CqlSharp.Logging
 
             var loggerImpl = _factory.CreateLogger(name);
             return new Logger(loggerImpl, _level);
-        }
-
-        /// <summary>
-        ///   Loads the logger factories.
-        /// </summary>
-        public void LoadLoggerFactories()
-        {
-            var conventions = new RegistrationBuilder();
-
-            //search for ILoggerFactory implementations
-            conventions
-                .ForTypesDerivedFrom<ILoggerFactory>()
-                .Export<ILoggerFactory>();
-
-            //inport into LoggerFactories
-            conventions
-                .ForType<LoggerManager>()
-                .ImportProperty(manager => manager.LoggerFactories);
-
-            //create catalog of dlls
-            var catalog = new AggregateCatalog();
-
-            //go and search for ILoggerFactories in executing directory
-            string path = Directory.GetParent(Assembly.GetExecutingAssembly().Location).ToString();
-            catalog.Catalogs.Add(new DirectoryCatalog(path, conventions));
-
-            //or in bin directory (asp.net)
-            if (Directory.Exists(path + "\\bin"))
-                catalog.Catalogs.Add(new DirectoryCatalog(path + "\\bin", conventions));
-
-            //create container
-            var container = new CompositionContainer(catalog, CompositionOptions.Default);
-
-            try
-            {
-                //get me my factories 
-                container.SatisfyImportsOnce(this, conventions);
-            }
-            catch
-            {
-                //in case of any loading errors, load only the loggers that we implement
-                LoggerFactories = new List<ILoggerFactory>
-                                      {
-                                          new NullLoggerFactory(),
-                                          new ConsoleLoggerFactory(),
-                                          new DebugLoggerFactory()
-                                      };
-            }
         }
     }
 }

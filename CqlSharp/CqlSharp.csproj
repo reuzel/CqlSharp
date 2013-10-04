@@ -50,6 +50,9 @@
     <Reference Include="System.Xml" />
   </ItemGroup>
   <ItemGroup>
+    <Compile Include="Authentication\IAuthenticator.cs" />
+    <Compile Include="Authentication\IAuthenticatorFactory.cs" />
+    <Compile Include="Authentication\PasswordAuthenticator.cs" />
     <Compile Include="ConnectionStrategy.cs" />
     <Compile Include="CqlBatchTransaction.cs" />
     <Compile Include="CqlBatchType.cs" />
@@ -62,6 +65,7 @@
     <Compile Include="CqlProviderFactory.cs" />
     <Compile Include="CqlSchemaTableColumnNames.cs" />
     <Compile Include="DiscoveryScope.cs" />
+    <Compile Include="Extensions\Loader.cs" />
     <Compile Include="Logging\ConsoleLogger.cs" />
     <Compile Include="Logging\DebugLogger.cs" />
     <Compile Include="Logging\FastGuid.cs" />
