@@ -1,4 +1,5 @@
-﻿using System.IO;
+﻿using CqlSharp.Protocol;
+using System.IO;
 using System.Text;
 
 namespace CqlSharp.Authentication
@@ -30,6 +31,9 @@ namespace CqlSharp.Authentication
         {
             if (challenge == null)
             {
+                if (Username == null || Password == null)
+                    throw new AuthenticationException("Username and Password must be provided when using PasswordAuthenticator");
+
                 var username = Encoding.UTF8.GetBytes(Username);
                 var password = Encoding.UTF8.GetBytes(Password);
 

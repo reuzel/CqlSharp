@@ -13,13 +13,42 @@
 // See the License for the specific language governing permissions and
 // limitations under the License.
 
+using CqlSharp.Protocol;
 using Microsoft.VisualStudio.TestTools.UnitTesting;
+using System;
+using System.Diagnostics;
 
 namespace CqlSharp.Test
 {
     [TestClass]
     public class CqlConnectionTest
     {
+        [ClassCleanup]
+        public static void Cleanup()
+        {
+            CqlConnection.ShutdownAll();
+        }
+
+        [TestMethod]
+        public void AuthenticateError()
+        {
+            try
+            {
+                using (var connection = new CqlConnection("Servers=localhost;username=doesNotExist;password=too;loggerfactory=debug;loglevel=verbose"))
+                {
+                    connection.Open();
+                }
+            }
+            catch (AuthenticationException uex)
+            {
+                Debug.WriteLine("Expected Unauthenticated exception: {0}", uex);
+            }
+            catch (Exception ex)
+            {
+                Assert.Fail("Wong exception thrown: {0}", ex.GetType().Name);
+            }
+        }
+
         [TestMethod]
         public void DefaultDatabaseSet()
         {
@@ -28,6 +57,32 @@ namespace CqlSharp.Test
             {
                 Assert.AreEqual("test2", connection.Database);
             }
+        }
+
+        [TestMethod]
+        public void ConnectToUnknownDb()
+        {
+            try
+            {
+                //Act
+                using (var connection = new CqlConnection("Servers=localhost;Database=DoesNotExist;username=cassandra;password=cassandra;loggerfactory=debug;loglevel=verbose"))
+                {
+                    connection.Open();
+
+                    //invoke random command, as it will try to change database on the connection
+                    var command = new CqlCommand(connection, "select * from randomTable;");
+                    var reader = command.ExecuteReader();
+                    reader.Dispose();
+
+                }
+            }
+            catch (Exception ex)
+            {
+                Assert.IsInstanceOfType(ex, typeof(InvalidException));
+                return;
+            }
+
+            Assert.Fail("Exception should have been thrown;");
         }
     }
 }

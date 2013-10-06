@@ -231,7 +231,7 @@ namespace CqlSharp.Network
                         _client.Close();
                         _client = null;
 
-                        Logger.Current.LogInfo("Connection to {0} closed", Address);
+                        Logger.Current.LogInfo("{0} closed", this);
                     }
 
                     if (OnConnectionChange != null)
@@ -309,7 +309,7 @@ namespace CqlSharp.Network
 
                     try
                     {
-                        logger.LogVerbose("Attempting Startup for protocol version ", Node.FrameVersion);
+                        logger.LogVerbose("Attempting to connect using {0}", Node.FrameVersion);
 
                         supported =
                             await
@@ -321,9 +321,12 @@ namespace CqlSharp.Network
                     }
                     catch (ProtocolException)
                     {
+
                         //attempt to connect using lower protocol version if possible
                         if ((Node.FrameVersion & FrameVersion.ProtocolVersionMask) == FrameVersion.ProtocolVersion2)
                         {
+                            logger.LogVerbose("Failed connecting using {0}, retrying...", Node.FrameVersion);
+
                             Node.FrameVersion = FrameVersion.ProtocolVersion1;
                             TcpClient client = _client;
                             _client = null;

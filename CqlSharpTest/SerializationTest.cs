@@ -13,14 +13,14 @@
 // See the License for the specific language governing permissions and
 // limitations under the License.
 
+using CqlSharp.Protocol;
+using CqlSharp.Serialization;
+using Microsoft.VisualStudio.TestTools.UnitTesting;
 using System;
 using System.Collections.Generic;
 using System.Linq;
 using System.Net;
 using System.Numerics;
-using CqlSharp.Protocol;
-using CqlSharp.Serialization;
-using Microsoft.VisualStudio.TestTools.UnitTesting;
 
 namespace CqlSharp.Test
 {
@@ -31,10 +31,10 @@ namespace CqlSharp.Test
             "server=localhost;throttle=100;ConnectionStrategy=Exclusive;loggerfactory=debug;username=cassandra;password=cassandra";
 
         private const string CreateKsCql =
-            @"CREATE KEYSPACE Test WITH replication = {'class': 'SimpleStrategy', 'replication_factor' : 1} and durable_writes = 'false';";
+            @"CREATE KEYSPACE SerializationTest WITH replication = {'class': 'SimpleStrategy', 'replication_factor' : 1} and durable_writes = 'false';";
 
         private const string CreateTableCql = @"
-            create table Test.Types (
+            create table SerializationTest.Types (
                 aInt int primary key,
                 aLong bigint,
                 aVarint varint,
@@ -54,7 +54,7 @@ namespace CqlSharp.Test
                 aMap map<bigint, text>);
 ";
 
-        private const string TruncateTableCql = @"truncate Test.Types;";
+        private const string TruncateTableCql = @"truncate SerializationTest.Types;";
 
         [ClassInitialize]
         public static void ClassInit(TestContext context)
@@ -99,7 +99,7 @@ namespace CqlSharp.Test
         [ClassCleanup]
         public static void Cleanup()
         {
-            const string dropCql = @"drop keyspace Test;";
+            const string dropCql = @"drop keyspace SerializationTest;";
 
             using (var connection = new CqlConnection(ConnectionString))
             {
@@ -114,12 +114,14 @@ namespace CqlSharp.Test
                     //ignore
                 }
             }
+
+            CqlConnection.ShutdownAll();
         }
 
         [TestMethod]
         public void SerializeObjectInOutTest()
         {
-            const string insertCql = @"insert into Test.Types(
+            const string insertCql = @"insert into SerializationTest.Types(
                 aInt,
                 aLong ,
                 aVarint ,
@@ -139,7 +141,7 @@ namespace CqlSharp.Test
                 aMap) 
                 values (?,?,?,?,?,?,?,?,?,?,?,?,?,?,?,?,?);";
 
-            const string selectCql = "select * from Test.Types limit 1;";
+            const string selectCql = "select * from SerializationTest.Types limit 1;";
 
             using (var connection = new CqlConnection(ConnectionString))
             {
@@ -148,11 +150,11 @@ namespace CqlSharp.Test
                 var values = new Types
                                  {
                                      aASCIIString = "hello world!",
-                                     aBlob = new byte[] {1, 2, 3, 4},
+                                     aBlob = new byte[] { 1, 2, 3, 4 },
                                      aBool = true,
                                      aDouble = 1.234,
                                      aFloat = 5.789f,
-                                     aInet = new IPAddress(new byte[] {127, 0, 0, 1}),
+                                     aInet = new IPAddress(new byte[] { 127, 0, 0, 1 }),
                                      aInt = 10,
                                      aLong = 56789012456,
                                      aTextString = "some other text with \u005C unicode",
@@ -161,10 +163,10 @@ namespace CqlSharp.Test
                                      aUUID = Guid.NewGuid(),
                                      aTimestamp = DateTime.Now,
                                      aVarint = new BigInteger(12345678901234),
-                                     aList = new List<string> {"string 1", "string 2"},
-                                     aSet = new HashSet<int> {1, 3, 3},
+                                     aList = new List<string> { "string 1", "string 2" },
+                                     aSet = new HashSet<int> { 1, 3, 3 },
                                      aMap =
-                                         new Dictionary<long, string> {{1, "value 1"}, {2, "value 2"}, {3, "value 3"}},
+                                         new Dictionary<long, string> { { 1, "value 1" }, { 2, "value 2" }, { 3, "value 3" } },
                                  };
 
                 var insertCmd = new CqlCommand(connection, insertCql);
@@ -203,7 +205,7 @@ namespace CqlSharp.Test
         [TestMethod]
         public void SerializeInOutTest()
         {
-            const string insertCql = @"insert into Test.Types(
+            const string insertCql = @"insert into SerializationTest.Types(
                 aInt,
                 aLong ,
                 aVarint ,
@@ -223,7 +225,7 @@ namespace CqlSharp.Test
                 aMap) 
                 values (?,?,?,?,?,?,?,?,?,?,?,?,?,?,?,?,?);";
 
-            const string selectCql = "select * from Test.Types limit 1;";
+            const string selectCql = "select * from SerializationTest.Types limit 1;";
 
             using (var connection = new CqlConnection(ConnectionString))
             {
@@ -234,11 +236,11 @@ namespace CqlSharp.Test
                 insertCmd.Prepare();
 
                 insertCmd.Parameters["aasciistring"].Value = "hello world!";
-                insertCmd.Parameters["ablob"].Value = new byte[] {1, 2, 3, 4};
+                insertCmd.Parameters["ablob"].Value = new byte[] { 1, 2, 3, 4 };
                 insertCmd.Parameters["abool"].Value = true;
                 insertCmd.Parameters["adouble"].Value = 1.234;
                 insertCmd.Parameters["afloat"].Value = 5.789f;
-                insertCmd.Parameters["ainet"].Value = new IPAddress(new byte[] {127, 0, 0, 1});
+                insertCmd.Parameters["ainet"].Value = new IPAddress(new byte[] { 127, 0, 0, 1 });
                 insertCmd.Parameters["aint"].Value = 10;
                 insertCmd.Parameters["along"].Value = 56789012456;
                 insertCmd.Parameters["atextstring"].Value = "some other text with \u005C unicode";
@@ -247,10 +249,10 @@ namespace CqlSharp.Test
                 insertCmd.Parameters["auuid"].Value = Guid.NewGuid();
                 insertCmd.Parameters["atimestamp"].Value = DateTime.Now;
                 insertCmd.Parameters["avarint"].Value = new BigInteger(12345678901234);
-                insertCmd.Parameters["alist"].Value = new List<string> {"string 1", "string 2"};
-                insertCmd.Parameters["aset"].Value = new HashSet<int> {1, 3, 3};
+                insertCmd.Parameters["alist"].Value = new List<string> { "string 1", "string 2" };
+                insertCmd.Parameters["aset"].Value = new HashSet<int> { 1, 3, 3 };
                 insertCmd.Parameters["amap"].Value =
-                    new Dictionary<long, string> {{1, "value 1"}, {2, "value 2"}, {3, "value 3"}};
+                    new Dictionary<long, string> { { 1, "value 1" }, { 2, "value 2" }, { 3, "value 3" } };
 
                 insertCmd.ExecuteNonQuery();
 
@@ -307,10 +309,10 @@ namespace CqlSharp.Test
                 Assert.AreEqual(insertCmd.Parameters["along"].Value, aLong);
                 Assert.AreEqual(insertCmd.Parameters["atimeuuid"].Value, aTimeUUID);
                 Assert.AreEqual(insertCmd.Parameters["auuid"].Value, aUUID);
-                Assert.IsTrue(((byte[]) insertCmd.Parameters["ablob"].Value).SequenceEqual(aBlob));
-                Assert.IsTrue(((List<string>) insertCmd.Parameters["alist"].Value).SequenceEqual(aList));
-                Assert.IsTrue(((HashSet<int>) insertCmd.Parameters["aset"].Value).SequenceEqual(aSet));
-                foreach (var entry in ((Dictionary<long, string>) insertCmd.Parameters["amap"].Value))
+                Assert.IsTrue(((byte[])insertCmd.Parameters["ablob"].Value).SequenceEqual(aBlob));
+                Assert.IsTrue(((List<string>)insertCmd.Parameters["alist"].Value).SequenceEqual(aList));
+                Assert.IsTrue(((HashSet<int>)insertCmd.Parameters["aset"].Value).SequenceEqual(aSet));
+                foreach (var entry in ((Dictionary<long, string>)insertCmd.Parameters["amap"].Value))
                 {
                     var val = aMap[entry.Key];
                     Assert.AreEqual(entry.Value, val);
@@ -321,9 +323,9 @@ namespace CqlSharp.Test
         [TestMethod]
         public void SerializeObjectOutDefaultsTest()
         {
-            const string insertCql = @"insert into Test.Types(aInt) values (1);";
+            const string insertCql = @"insert into SerializationTest.Types(aInt) values (1);";
 
-            const string selectCql = "select * from Test.Types limit 1;";
+            const string selectCql = "select * from SerializationTest.Types limit 1;";
 
             using (var connection = new CqlConnection(ConnectionString))
             {
@@ -363,9 +365,9 @@ namespace CqlSharp.Test
         [TestMethod]
         public void SerializeOutNullTest()
         {
-            const string insertCql = @"insert into Test.Types(aInt) values (1);";
+            const string insertCql = @"insert into SerializationTest.Types(aInt) values (1);";
 
-            const string selectCql = "select * from Test.Types limit 1;";
+            const string selectCql = "select * from SerializationTest.Types limit 1;";
 
             using (var connection = new CqlConnection(ConnectionString))
             {
@@ -437,8 +439,8 @@ namespace CqlSharp.Test
         [TestMethod]
         public void SerializeOutDefaultTest()
         {
-            const string insertCql = @"insert into Test.Types(aInt) values (1);";
-            const string selectCql = "select * from Test.Types limit 1;";
+            const string insertCql = @"insert into SerializationTest.Types(aInt) values (1);";
+            const string selectCql = "select * from SerializationTest.Types limit 1;";
 
             using (var connection = new CqlConnection(ConnectionString))
             {
@@ -511,7 +513,7 @@ namespace CqlSharp.Test
         [TestMethod]
         public void SerializeObjectInOutDefaultsTest()
         {
-            const string insertCql = @"insert into Test.Types(
+            const string insertCql = @"insert into SerializationTest.Types(
                 aInt,
                 aLong ,
                 aVarint ,
@@ -531,7 +533,7 @@ namespace CqlSharp.Test
                 aMap) 
                 values (?,?,?,?,?,?,?,?,?,?,?,?,?,?,?,?,?);";
 
-            const string selectCql = "select * from Test.Types limit 1;";
+            const string selectCql = "select * from SerializationTest.Types limit 1;";
 
             using (var connection = new CqlConnection(ConnectionString))
             {
@@ -594,7 +596,7 @@ namespace CqlSharp.Test
         [TestMethod]
         public void SerializeObjectInOutNullTest()
         {
-            const string insertCql = @"insert into Test.Types(
+            const string insertCql = @"insert into SerializationTest.Types(
                 aInt,
                 aLong ,
                 aVarint ,
@@ -614,7 +616,7 @@ namespace CqlSharp.Test
                 aMap) 
                 values (?,?,?,?,?,?,?,?,?,?,?,?,?,?,?,?,?);";
 
-            const string selectCql = "select * from Test.Types limit 1;";
+            const string selectCql = "select * from SerializationTest.Types limit 1;";
 
             using (var connection = new CqlConnection(ConnectionString))
             {
@@ -677,9 +679,9 @@ namespace CqlSharp.Test
         [TestMethod]
         public void SerializeObjectOutNullTest()
         {
-            const string insertCql = @"insert into Test.Types(aInt) values (4);";
+            const string insertCql = @"insert into SerializationTest.Types(aInt) values (4);";
 
-            const string selectCql = "select * from Test.Types limit 1;";
+            const string selectCql = "select * from SerializationTest.Types limit 1;";
 
             using (var connection = new CqlConnection(ConnectionString))
             {

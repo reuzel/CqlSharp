@@ -84,6 +84,8 @@ namespace CqlSharp.Test
                     //ignore
                 }
             }
+
+            CqlConnection.ShutdownAll();
         }
 
         [TestInitialize]

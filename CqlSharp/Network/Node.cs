@@ -30,7 +30,7 @@ namespace CqlSharp.Network
     ///   A single node of a Cassandra cluster. Manages a set of connections to that specific node. A node will be marked as down
     ///   when the last connection to that node fails. The node status will be reset to up using a exponantial back-off procedure.
     /// </summary>
-    internal class Node : IEnumerable<Connection>
+    internal class Node : IEnumerable<Connection>, IDisposable
     {
         /// <summary>
         ///   lock to make connection creation/getting mutual exclusive
@@ -57,6 +57,8 @@ namespace CqlSharp.Network
         /// </summary>
         private int _counter;
 
+        private bool _disposed;
+
         /// <summary>
         ///   The failure count, used to (exponentially) increase the time before node is returned to up status
         /// </summary>
@@ -82,7 +84,7 @@ namespace CqlSharp.Network
         /// </summary>
         /// <param name="address"> The address of the node </param>
         /// <param name="cluster"> The cluster </param>
-        public Node(IPAddress address, Cluster cluster)
+        internal Node(IPAddress address, Cluster cluster)
         {
             PreparedQueryIds = new ConcurrentDictionary<string, byte[]>();
             _statusLock = new object();
@@ -112,19 +114,19 @@ namespace CqlSharp.Network
         ///   Gets or sets the data center.
         /// </summary>
         /// <value> The data center. </value>
-        public string DataCenter { get; set; }
+        public string DataCenter { get; internal set; }
 
         /// <summary>
         ///   Gets or sets the rack.
         /// </summary>
         /// <value> The rack. </value>
-        public string Rack { get; set; }
+        public string Rack { get; internal set; }
 
         /// <summary>
         ///   Gets or sets the tokens.
         /// </summary>
         /// <value> The tokens. </value>
-        public ISet<string> Tokens { get; set; }
+        public ISet<string> Tokens { get; internal set; }
 
         /// <summary>
         ///   Gets a value indicating whether this instance is up.
@@ -154,13 +156,39 @@ namespace CqlSharp.Network
         ///   Gets the frame (protocol) version supported by this node
         /// </summary>
         /// <value> The frame version. </value>
-        public FrameVersion FrameVersion { get; internal set; }
+        internal FrameVersion FrameVersion { get; set; }
 
         /// <summary>
         ///   Gets the prepared query ids.
         /// </summary>
         /// <value> The prepared query ids. </value>
-        public ConcurrentDictionary<string, byte[]> PreparedQueryIds { get; private set; }
+        internal ConcurrentDictionary<string, byte[]> PreparedQueryIds { get; private set; }
+
+        #region IDisposable Members
+
+        /// <summary>
+        ///   Releases unmanaged and - optionally - managed resources.
+        /// </summary>
+        public void Dispose()
+        {
+            if (!_disposed)
+            {
+                _disposed = true;
+
+                foreach (var connection in _connections)
+                    connection.Dispose();
+
+                if (_connectionCleanupTimer != null)
+                    _connectionCleanupTimer.Dispose();
+
+                if (_reactivateTimer != null)
+                    _reactivateTimer.Dispose();
+
+                _connectionLock.Dispose();
+            }
+        }
+
+        #endregion
 
         #region IEnumerable<Connection> Members
 
@@ -171,6 +199,9 @@ namespace CqlSharp.Network
         /// <filterpriority>1</filterpriority>
         public IEnumerator<Connection> GetEnumerator()
         {
+            if (_disposed)
+                throw new ObjectDisposedException(ToString());
+
             _connectionLock.EnterReadLock();
             try
             {
@@ -202,6 +233,9 @@ namespace CqlSharp.Network
         /// <returns> </returns>
         public Connection GetOrCreateConnection(PartitionKey partitionKey)
         {
+            if (_disposed)
+                throw new ObjectDisposedException(ToString());
+
             Connection c = GetConnection();
 
             //if no connection found, or connection is full
@@ -225,6 +259,9 @@ namespace CqlSharp.Network
         /// <returns> true, if a connection is available, null otherwise </returns>
         public Connection GetConnection()
         {
+            if (_disposed)
+                throw new ObjectDisposedException(ToString());
+
             if (IsUp)
             {
                 _connectionLock.EnterReadLock();
@@ -248,6 +285,9 @@ namespace CqlSharp.Network
         /// <returns> a connected connection, or null if not possible. </returns>
         public Connection CreateConnection()
         {
+            if (_disposed)
+                throw new ObjectDisposedException(ToString());
+
             Connection connection = null;
 
             if (IsUp && _openConnections < Cluster.Config.MaxConnectionsPerNode)
@@ -274,8 +314,10 @@ namespace CqlSharp.Network
                         //create cleanup timer if it does not exist yet
                         if (_connectionCleanupTimer == null)
                             _connectionCleanupTimer = new Timer(RemoveIdleConnections, null,
-                                                                TimeSpan.FromSeconds(Cluster.Config.MaxConnectionIdleTime),
-                                                                TimeSpan.FromSeconds(Cluster.Config.MaxConnectionIdleTime));
+                                                                TimeSpan.FromSeconds(
+                                                                    Cluster.Config.MaxConnectionIdleTime),
+                                                                TimeSpan.FromSeconds(
+                                                                    Cluster.Config.MaxConnectionIdleTime));
                     }
                 }
                 finally
@@ -283,6 +325,10 @@ namespace CqlSharp.Network
                     _connectionLock.ExitWriteLock();
                 }
             }
+
+            //dispose just created connection, when dispose is called just when connection is created
+            if (connection != null && _disposed)
+                connection.Dispose();
 
             //return connection (if any)
             return connection;
@@ -294,6 +340,10 @@ namespace CqlSharp.Network
         /// <param name="state"> The state. Unused </param>
         private void RemoveIdleConnections(object state)
         {
+            //ignore when disposed
+            if (_disposed)
+                return;
+
             var logger = Cluster.LoggerManager.GetLogger("CqlSharp.Node.IdleTimer");
             using (logger.ThreadBinding())
             {
@@ -334,6 +384,10 @@ namespace CqlSharp.Network
         /// <param name="evt"> The event. </param>
         private void ConnectionChange(Object sender, ConnectionChangeEvent evt)
         {
+            //ignore all connection events when disposed
+            if (_disposed)
+                return;
+
             lock (_statusLock)
             {
                 if (evt.Connected)
@@ -405,8 +459,11 @@ namespace CqlSharp.Network
         /// <summary>
         ///   Fails this instance. Triggers the failure timer
         /// </summary>
-        public void Fail()
+        private void Fail()
         {
+            if (_disposed)
+                return;
+
             lock (_statusLock)
             {
                 //first failure, retry immediatly to make sure node is really down
@@ -446,8 +503,11 @@ namespace CqlSharp.Network
                 if (!IsUp) logger.LogInfo("{0} is assumed to be available again", this);
 
                 IsUp = true;
-                _reactivateTimer.Dispose();
-                _reactivateTimer = null;
+                if (_reactivateTimer != null)
+                {
+                    _reactivateTimer.Dispose();
+                    _reactivateTimer = null;
+                }
             }
         }
 

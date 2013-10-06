@@ -13,11 +13,11 @@
 // See the License for the specific language governing permissions and
 // limitations under the License.
 
+using Microsoft.QualityTools.Testing.Fakes;
+using Microsoft.VisualStudio.TestTools.UnitTesting;
 using System;
 using System.Fakes;
 using System.Threading.Tasks;
-using Microsoft.QualityTools.Testing.Fakes;
-using Microsoft.VisualStudio.TestTools.UnitTesting;
 
 namespace CqlSharp.Test
 {
@@ -26,6 +26,12 @@ namespace CqlSharp.Test
     {
         private const string ConnectionString =
             "server=localhost;loggerfactory=debug;loglevel=verbose;username=cassandra;password=cassandra";
+
+        [ClassCleanup]
+        public static void Cleanup()
+        {
+            CqlConnection.ShutdownAll();
+        }
 
         [TestMethod]
         public async Task Issue15()

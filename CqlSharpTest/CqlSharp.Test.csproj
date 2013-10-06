@@ -71,7 +71,6 @@
     <Compile Include="ConnectionStrategyTest.cs" />
     <Compile Include="CqlConnectionTest.cs" />
     <Compile Include="CqlParameterTest.cs" />
-    <Compile Include="FailureTests.cs" />
     <Compile Include="IssueTest.cs" />
     <Compile Include="LoggingTest.cs" />
     <Compile Include="MemoryTest.cs" />

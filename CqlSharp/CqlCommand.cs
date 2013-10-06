@@ -1023,8 +1023,7 @@ namespace CqlSharp
                 try
                 {
                     //set correct database if necessary
-                    if (_connection.ProvidesExclusiveConnections &&
-                        !string.IsNullOrWhiteSpace(_connection.Database) &&
+                    if (!string.IsNullOrWhiteSpace(_connection.Database) &&
                         !_connection.Database.Equals(connection.CurrentKeySpace))
                     {
                         var useQuery = "use \"" + _connection.Database.Trim() + "\";";

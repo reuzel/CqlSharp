@@ -7,6 +7,7 @@ is committed it will create and submit a batch statement.
  of the given page size
 * Use of bound parameters with non-prepared queries
 * Support for Serial_Local for CompareAndSet (CAS) statements
+* Added CqlConnection.Shutdown methods to close all connections to Cassandra
 * Performance: when using Cql protocol v2, cached result metadata will be used, reducing network overhead
 * Performance: Prepare() better utilizes caching, less Task creation overhead
 * Fix: ChangeDatabase function uses correct use syntax

@@ -13,16 +13,16 @@
 // See the License for the specific language governing permissions and
 // limitations under the License.
 
-using System.IO;
-using System.Net.Sockets;
 using CqlSharp.Logging;
 using CqlSharp.Network.Partition;
 using CqlSharp.Protocol;
 using System;
 using System.Collections.Concurrent;
 using System.Collections.Generic;
+using System.IO;
 using System.Linq;
 using System.Net;
+using System.Net.Sockets;
 using System.Threading;
 using System.Threading.Tasks;
 
@@ -31,7 +31,7 @@ namespace CqlSharp.Network
     /// <summary>
     ///   Represents a Cassandra cluster
     /// </summary>
-    internal class Cluster
+    internal class Cluster : IDisposable
     {
         private readonly CqlConnectionStringBuilder _config;
         private readonly LoggerManager _loggerManager;
@@ -39,6 +39,7 @@ namespace CqlSharp.Network
         private IConnectionStrategy _connectionStrategy;
         private string _cqlVersion;
         private string _dataCenter;
+        private bool _disposed;
         private Connection _maintenanceConnection;
         private string _name;
         private volatile Ring _nodes;
@@ -52,7 +53,7 @@ namespace CqlSharp.Network
         ///   Initializes a new instance of the <see cref="Cluster" /> class.
         /// </summary>
         /// <param name="config"> The config. </param>
-        public Cluster(CqlConnectionStringBuilder config)
+        internal Cluster(CqlConnectionStringBuilder config)
         {
             //store config
             _config = config;
@@ -73,9 +74,15 @@ namespace CqlSharp.Network
         ///   Gets the throttle to limit concurrent requests.
         /// </summary>
         /// <value> The throttle. </value>
-        public SemaphoreSlim Throttle
+        internal SemaphoreSlim Throttle
         {
-            get { return _throttle; }
+            get
+            {
+                if (_disposed)
+                    throw new ObjectDisposedException("Cluster");
+
+                return _throttle;
+            }
         }
 
         /// <summary>
@@ -94,7 +101,13 @@ namespace CqlSharp.Network
         /// <value> The connection strategy. </value>
         public IConnectionStrategy ConnectionStrategy
         {
-            get { return _connectionStrategy; }
+            get
+            {
+                if (_disposed)
+                    throw new ObjectDisposedException("Cluster");
+
+                return _connectionStrategy;
+            }
         }
 
         /// <summary>
@@ -103,7 +116,13 @@ namespace CqlSharp.Network
         /// <value> The name. </value>
         public string Name
         {
-            get { return _name; }
+            get
+            {
+                if (_disposed)
+                    throw new ObjectDisposedException("Cluster");
+
+                return _name;
+            }
         }
 
         /// <summary>
@@ -112,7 +131,13 @@ namespace CqlSharp.Network
         /// <value> The rack. </value>
         public string Rack
         {
-            get { return _rack; }
+            get
+            {
+                if (_disposed)
+                    throw new ObjectDisposedException("Cluster");
+
+                return _rack;
+            }
         }
 
         /// <summary>
@@ -121,7 +146,13 @@ namespace CqlSharp.Network
         /// <value> The data center. </value>
         public string DataCenter
         {
-            get { return _dataCenter; }
+            get
+            {
+                if (_disposed)
+                    throw new ObjectDisposedException("Cluster");
+
+                return _dataCenter;
+            }
         }
 
         /// <summary>
@@ -130,7 +161,13 @@ namespace CqlSharp.Network
         /// <value> The cassandra version. </value>
         public string CassandraVersion
         {
-            get { return _release; }
+            get
+            {
+                if (_disposed)
+                    throw new ObjectDisposedException("Cluster");
+
+                return _release;
+            }
         }
 
         /// <summary>
@@ -139,7 +176,13 @@ namespace CqlSharp.Network
         /// <value> The CQL version. </value>
         public string CqlVersion
         {
-            get { return _cqlVersion; }
+            get
+            {
+                if (_disposed)
+                    throw new ObjectDisposedException("Cluster");
+
+                return _cqlVersion;
+            }
         }
 
         /// <summary>
@@ -147,11 +190,51 @@ namespace CqlSharp.Network
         /// </summary>
         internal ConcurrentDictionary<string, ResultFrame> PreparedQueryCache { get; private set; }
 
+        #region IDisposable Members
+
+        /// <summary>
+        ///   Releases unmanaged and - optionally - managed resources.
+        /// </summary>
+        public void Dispose()
+        {
+            if (!_disposed)
+            {
+                _disposed = true;
+
+                Logger.Current.LogVerbose("Starting shutdown of {0}", this);
+                try
+                {
+                    if (_throttle != null)
+                        _throttle.Dispose();
+
+                    if (_nodes != null)
+                    {
+                        foreach (var node in _nodes)
+                        {
+                            node.Dispose();
+                        }
+                    }
+
+                    if (_maintenanceConnection != null)
+                        _maintenanceConnection.Dispose();
+                }
+                catch (Exception ex)
+                {
+                    Logger.Current.LogWarning("Error occured while disposing cluster: {0}", ex);
+                }
+            }
+        }
+
+        #endregion
+
         /// <summary>
         ///   Opens the cluster for queries.
         /// </summary>
-        public Task OpenAsync(Logger logger, CancellationToken token)
+        internal Task OpenAsync(Logger logger, CancellationToken token)
         {
+            if (_disposed)
+                throw new ObjectDisposedException("Cluster");
+
             if (_openTask == null || _openTask.IsFaulted || _openTask.IsCanceled)
             {
                 lock (_syncLock)
@@ -189,7 +272,13 @@ namespace CqlSharp.Network
                     logger.LogWarning("Opening connection to cluster was cancelled");
                     throw;
                 }
-                catch(SocketException ex)
+                catch (ProtocolException pex)
+                {
+                    //node is not available, or starting up, try next, otherwise throw error
+                    if (pex.Code != ErrorCode.Overloaded && pex.Code != ErrorCode.IsBootstrapping)
+                        throw;
+                }
+                catch (SocketException ex)
                 {
                     //seed not reachable, try next
                     logger.LogWarning("Could not open TCP connection to seed {0}: {1}", seedAddress, ex);
@@ -201,6 +290,17 @@ namespace CqlSharp.Network
                 }
             }
 
+            //check if not disposed while opening
+            if (_disposed)
+            {
+                foreach (var node in _nodes)
+                {
+                    node.Dispose();
+                }
+                throw new ObjectDisposedException("Cluster", "Cluster was disposed while opening");
+            }
+
+            //check if we found any nodes
             if (_nodes == null)
             {
                 var ex = new CqlException("Unable to connect to the cluster as none of the provided seeds is reachable.");
@@ -252,6 +352,10 @@ namespace CqlSharp.Network
         /// </summary>
         private async void SetupMaintenanceConnection(Logger logger)
         {
+            //skip if disposed
+            if (_disposed)
+                return;
+
             try
             {
                 if (_maintenanceConnection == null || !_maintenanceConnection.IsConnected)
@@ -290,6 +394,10 @@ namespace CqlSharp.Network
                 //temporary disconnect or registration failed, reset maintenance connection
                 _maintenanceConnection = null;
             }
+
+            //don't retry if disposed
+            if (_disposed)
+                return;
 
             //wait a moment, try again
             logger.LogVerbose("Waiting 2secs before retrying setup maintenance connection");
@@ -430,6 +538,9 @@ namespace CqlSharp.Network
 
         private async void OnClusterChange(object source, ClusterChangedEvent args)
         {
+            if (_disposed)
+                return;
+
             var logger = LoggerManager.GetLogger("CqlSharp.Cluster.Changes");
 
             if (args.Change.Equals(ClusterChange.New))
@@ -493,6 +604,17 @@ namespace CqlSharp.Network
                     }
                 }
             }
+        }
+
+        /// <summary>
+        /// Returns a <see cref="System.String" /> that represents this instance.
+        /// </summary>
+        /// <returns>
+        /// A <see cref="System.String" /> that represents this instance.
+        /// </returns>
+        public override string ToString()
+        {
+            return string.Format("Cluster (\"{0}\")", _name);
         }
     }
 }

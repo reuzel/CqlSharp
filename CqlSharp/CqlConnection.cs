@@ -42,6 +42,7 @@ namespace CqlSharp
         private CancellationTokenSource _openCancellationTokenSource;
         private volatile Task _openTask;
 
+
         /// <summary>
         ///   Initializes the <see cref="CqlConnection" /> class.
         /// </summary>
@@ -101,7 +102,8 @@ namespace CqlSharp
             get
             {
                 if (string.IsNullOrWhiteSpace(ConnectionString))
-                    throw new CqlException("ConnectionString must be set, before any operation on CqlConnection will succeed.");
+                    throw new CqlException(
+                        "ConnectionString must be set, before any operation on CqlConnection will succeed.");
 
                 if (_cluster == null)
                 {
@@ -273,6 +275,44 @@ namespace CqlSharp
         }
 
         /// <summary>
+        ///   Shutdowns all interaction with the cluster as specified by the connection string.
+        /// </summary>
+        /// <remarks>
+        ///   This will close all open connection, and thereby fail all ongoing cql operations.
+        /// </remarks>
+        /// <param name="connectionString"> The connection string. </param>
+        public static void Shutdown(string connectionString)
+        {
+            Cluster cluster;
+            if (Clusters.TryGetValue(connectionString, out cluster))
+            {
+                var logger = cluster.LoggerManager.GetLogger("CqlSharp.CqlConnection.Shutdown");
+                using (logger.ThreadBinding())
+                {
+                    cluster.Dispose();
+                }
+            }
+        }
+
+        /// <summary>
+        ///   Shutdowns all interactions with all known clusters
+        /// </summary>
+        /// <remarks>
+        ///   This will close all open connection, and thereby fail all ongoing cql operations.
+        /// </remarks>
+        public static void ShutdownAll()
+        {
+            foreach (var cluster in Clusters.Values)
+            {
+                var logger = cluster.LoggerManager.GetLogger("CqlSharp.CqlConnection.ShutdownAll");
+                using (logger.ThreadBinding())
+                {
+                    cluster.Dispose();
+                }
+            }
+        }
+
+        /// <summary>
         ///   Sets the connection timeout.
         /// </summary>
         /// <param name="timeout"> The timeout in seconds </param>
@@ -293,19 +333,19 @@ namespace CqlSharp
         }
 
         /// <summary>
-        /// Begins the transaction.
+        ///   Begins the transaction.
         /// </summary>
-        /// <returns></returns>
+        /// <returns> </returns>
         public new CqlBatchTransaction BeginTransaction()
         {
             return new CqlBatchTransaction(this);
         }
 
         /// <summary>
-        /// Begins the transaction.
+        ///   Begins the transaction.
         /// </summary>
-        /// <param name="isolationLevel">The isolation level.</param>
-        /// <returns></returns>
+        /// <param name="isolationLevel"> The isolation level. </param>
+        /// <returns> </returns>
         public new CqlBatchTransaction BeginTransaction(IsolationLevel isolationLevel)
         {
             return new CqlBatchTransaction(this);
@@ -441,7 +481,6 @@ namespace CqlSharp
         /// <exception cref="System.ObjectDisposedException">CqlConnection</exception>
         private async Task OpenAsyncInternal(CancellationToken cancellationToken)
         {
-
             //get a logger
             var logger = LoggerManager.GetLogger("CqlSharp.CqlConnection.Open");
 
