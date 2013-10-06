@@ -205,6 +205,8 @@ namespace CqlTest
             {
                 WriteStatistics(call.Key, call.Value);
             }
+
+            _manager.Shutdown();
         }
 
         public string DoubleString(double value)
