@@ -21,6 +21,8 @@ namespace CqlSharp.Protocol
 
         Protocol = 0x000A,
 
+        BadCredentials = 0x0100,
+
         Unavailable = 0x1000,
 
         Overloaded = 0x1001,

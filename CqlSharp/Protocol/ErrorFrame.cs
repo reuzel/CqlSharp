@@ -69,6 +69,10 @@ namespace CqlSharp.Protocol
                     Exception = new SyntaxException(msg);
                     break;
 
+                case ErrorCode.BadCredentials:
+                    Exception = new AuthenticationException(msg);
+                    break;
+
                 case ErrorCode.Unauthorized:
                     Exception = new UnauthorizedException(msg);
                     break;

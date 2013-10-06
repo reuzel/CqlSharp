@@ -13,6 +13,8 @@
 // See the License for the specific language governing permissions and
 // limitations under the License.
 
+using System.IO;
+using System.Net.Sockets;
 using CqlSharp.Logging;
 using CqlSharp.Network.Partition;
 using CqlSharp.Protocol;
@@ -187,7 +189,12 @@ namespace CqlSharp.Network
                     logger.LogWarning("Opening connection to cluster was cancelled");
                     throw;
                 }
-                catch (Exception ex)
+                catch(SocketException ex)
+                {
+                    //seed not reachable, try next
+                    logger.LogWarning("Could not open TCP connection to seed {0}: {1}", seedAddress, ex);
+                }
+                catch (IOException ex)
                 {
                     //seed not reachable, try next
                     logger.LogWarning("Could not discover nodes via seed {0}: {1}", seedAddress, ex);

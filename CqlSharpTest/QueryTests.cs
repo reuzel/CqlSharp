@@ -638,6 +638,8 @@ namespace CqlSharp.Test
 
             }
         }
+
+       
     }
 
     #region Nested type: BasicFlowData

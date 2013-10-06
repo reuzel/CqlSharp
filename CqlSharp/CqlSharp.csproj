@@ -98,6 +98,7 @@
     <Compile Include="Protocol\AlreadyExistsException.cs" />
     <Compile Include="Protocol\AuthChallengeFrame.cs" />
     <Compile Include="Protocol\AuthenticateFrame.cs" />
+    <Compile Include="Protocol\AuthenticationException.cs" />
     <Compile Include="Protocol\AuthResponseFrame.cs" />
     <Compile Include="Protocol\AuthSuccessFrame.cs" />
     <Compile Include="Protocol\BatchFrame.cs" />

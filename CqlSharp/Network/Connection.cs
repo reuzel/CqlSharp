@@ -309,6 +309,8 @@ namespace CqlSharp.Network
 
                     try
                     {
+                        logger.LogVerbose("Attempting Startup for protocol version ", Node.FrameVersion);
+
                         supported =
                             await
                             SendRequestAsyncInternal(options, logger, 1, true, CancellationToken.None).ConfigureAwait(
@@ -384,10 +386,10 @@ namespace CqlSharp.Network
                                 f => f.Name.Equals(auth.Authenticator, StringComparison.OrdinalIgnoreCase));
 
                         if (factory == null)
-                            throw new UnauthorizedException("No credentials provided");
+                            throw new AuthenticationException("Unsupported Authenticator: " + auth.Authenticator);
 
                         logger.LogVerbose("Attempting authentication for scheme {0}", factory.Name);
-                        
+
                         //grab an authenticator instance
                         IAuthenticator authenticator = factory.CreateAuthenticator(_config);
 
@@ -398,7 +400,7 @@ namespace CqlSharp.Network
                             //check for challenge
                             byte[] saslResponse;
                             if (!authenticator.Authenticate(saslChallenge, out saslResponse))
-                                throw new UnauthorizedException("Authentication failed, SASL Challenge was rejected");
+                                throw new AuthenticationException("Authentication failed, SASL Challenge was rejected by client");
 
                             //send response
                             var cred = new AuthResponseFrame(saslResponse);
@@ -412,7 +414,7 @@ namespace CqlSharp.Network
                             if (success != null)
                             {
                                 if (!authenticator.Authenticate(success.SaslResult))
-                                    throw new UnauthorizedException("Authentication failed, Authenticator rejected SASL result");
+                                    throw new AuthenticationException("Authentication failed, Authenticator rejected SASL result");
 
                                 //yeah, authenticated, break from the authentication loop
                                 break;
@@ -421,7 +423,7 @@ namespace CqlSharp.Network
                             //no success yet, lets try next round
                             var challenge = response as AuthChallengeFrame;
                             if (challenge == null)
-                                throw new UnauthorizedException("Expected a Authentication Challenge!");
+                                throw new AuthenticationException("Expected a Authentication Challenge from Server!");
 
                             saslChallenge = challenge.SaslChallenge;
                         }
@@ -432,7 +434,7 @@ namespace CqlSharp.Network
 
                         //check if _username is actually set
                         if (_config.Username == null || _config.Password == null)
-                            throw new UnauthorizedException("No credentials provided");
+                            throw new AuthenticationException("No credentials provided in configuration");
 
                         var cred = new CredentialsFrame(_config.Username, _config.Password);
                         response =
@@ -442,7 +444,7 @@ namespace CqlSharp.Network
 
                         if (!(response is ReadyFrame))
                         {
-                            throw new UnauthorizedException("Authentication failed: Ready frame not received");
+                            throw new AuthenticationException("Authentication failed: Ready frame not received");
                         }
                     }
                 }
