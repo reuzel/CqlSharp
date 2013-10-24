@@ -210,6 +210,92 @@ namespace CqlSharp.Test
         }
 
         [TestMethod]
+        public async Task InsertSelectCustomParameters()
+        {
+            //Assume
+            const string insertCql = @"insert into Test.BasicFlow (id,value) values (?,?);";
+            const string retrieveCql = @"select * from Test.BasicFlow;";
+
+            //Act
+            using (var connection = new CqlConnection(ConnectionString))
+            {
+                await connection.OpenAsync();
+
+                //insert data
+                var cmd = new CqlCommand(connection, insertCql, CqlConsistency.One);
+                cmd.Parameters.Add("myKey", CqlType.Int);
+                cmd.Parameters.Add("myValue", CqlType.Text);
+                await cmd.PrepareAsync();
+
+                cmd.Parameters["myKey"].Value = 1234;
+                cmd.Parameters["myValue"].Value = "Hallo 1234";
+                await cmd.ExecuteNonQueryAsync();
+
+                //select data
+                var selectCmd = new CqlCommand(connection, retrieveCql, CqlConsistency.One);
+
+                CqlDataReader reader = await selectCmd.ExecuteReaderAsync();
+                Assert.AreEqual(1, reader.Count);
+                if (await reader.ReadAsync())
+                {
+                    Assert.AreEqual(1234, reader["id"]);
+                    Assert.AreEqual("Hallo 1234", reader["value"]);
+                    Assert.AreEqual(DBNull.Value, reader["ignored"]);
+                }
+                else
+                {
+                    Assert.Fail("Read should have succeeded");
+                }
+            }
+        }
+
+        [TestMethod]
+        public async Task BatchPreparedWithNamedParameters()
+        {
+            //Assume
+            const string insertCql = @"begin batch insert into Test.BasicFlow (id,value) values (:id1,:value1); insert into Test.BasicFlow (id,value) values (:id2,:value2); apply batch;";
+            const string retrieveCql = @"select * from Test.BasicFlow;";
+
+            //Act
+            using (var connection = new CqlConnection(ConnectionString))
+            {
+                await connection.OpenAsync();
+
+                //insert data
+                var cmd = new CqlCommand(connection, insertCql, CqlConsistency.One);
+                await cmd.PrepareAsync();
+
+                cmd.Parameters["id1"].Value = 0;
+                cmd.Parameters["value1"].Value = "Hello 0";
+                cmd.Parameters["id2"].Value = 1;
+                cmd.Parameters["value2"].Value = "Hello 1";
+                await cmd.ExecuteNonQueryAsync();
+
+                //select data
+                var selectCmd = new CqlCommand(connection, retrieveCql, CqlConsistency.One);
+
+                CqlDataReader reader = await selectCmd.ExecuteReaderAsync();
+                Assert.AreEqual(2, reader.Count);
+
+                var results = new bool[2];
+                for (int i = 0; i < 2; i++)
+                {
+                    if (await reader.ReadAsync())
+                    {
+                        results[(int)reader["id"]] = true;
+                        Assert.AreEqual("Hello " + reader["id"], reader["value"]);
+                    }
+                    else
+                    {
+                        Assert.Fail("Read should have succeeded");
+                    }
+                }
+
+                Assert.IsTrue(results.All(p => p));
+            }
+        }
+
+        [TestMethod]
         public async Task ChangeDatabaseThenInsertSelect()
         {
             //Assume
