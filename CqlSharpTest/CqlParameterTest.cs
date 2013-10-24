@@ -13,9 +13,9 @@
 // See the License for the specific language governing permissions and
 // limitations under the License.
 
-using System.Collections.Generic;
 using CqlSharp.Serialization;
 using Microsoft.VisualStudio.TestTools.UnitTesting;
+using System.Collections.Generic;
 
 namespace CqlSharp.Test
 {
@@ -38,7 +38,7 @@ namespace CqlSharp.Test
         [TestMethod]
         public void DeriveTypeFromMapValue()
         {
-            var param = new CqlParameter("say.hello.world.me", new Dictionary<string, int> {{"hi", 1}, {"there", 2}});
+            var param = new CqlParameter("say.hello.world.me", new Dictionary<string, int> { { "hi", 1 }, { "there", 2 } });
 
             Assert.AreEqual("say", param.Keyspace);
             Assert.AreEqual("hello", param.Table);
@@ -57,7 +57,7 @@ namespace CqlSharp.Test
             collection.Add("dummy.test.value", CqlType.Text);
             collection.Add("dummy.test.ignored", CqlType.Blob);
 
-            var a = new A {Id = 1, Value2 = new byte[] {1, 2}, Value = "Hello!"};
+            var a = new A { Id = 1, Ignored = new byte[] { 1, 2 }, Value = "Hello!" };
 
             collection.Set(a);
 
@@ -74,7 +74,7 @@ namespace CqlSharp.Test
             collection.Add("value", CqlType.Text);
             collection.Add("ignored", CqlType.Blob);
 
-            var a = new A {Id = 1, Value2 = new byte[] {1, 2}, Value = "Hello!"};
+            var a = new A { Id = 1, Ignored = new byte[] { 1, 2 }, Value = "Hello!" };
 
             collection.Set(a);
 
@@ -84,26 +84,43 @@ namespace CqlSharp.Test
         }
 
         [TestMethod]
+        public void SetNameOnlyParametersFromObjectWithUpperCaseColumnNames()
+        {
+            var collection = new CqlParameterCollection();
+            collection.Add("Id", CqlType.Int);
+            collection.Add("Value", CqlType.Text);
+            collection.Add("Ignored", CqlType.Blob);
+
+            var a = new AUpperCase { Id = 1, Ignored = new byte[] { 1, 2 }, Value = "Hello!" };
+
+            collection.Set(a);
+
+            Assert.AreEqual(a.Id, collection["Id"].Value);
+            Assert.AreEqual(a.Value, collection["Value"].Value);
+            Assert.IsNull(collection["Ignored"].Value);
+        }
+
+        [TestMethod]
         public void SetParametersFromTwoObjects()
         {
             var collection = new CqlParameterCollection();
             collection.Add("test.id", CqlType.Int);
             collection.Add("test.value", CqlType.Text);
-            collection.Add("test.value2", CqlType.Blob);
+            collection.Add("test.ignored", CqlType.Blob);
             collection.Add("test2.id", CqlType.Int);
             collection.Add("test2.value", CqlType.Text);
             collection.Add("test2.value2", CqlType.Blob);
             collection.Fixate();
 
-            var a = new A {Id = 1, Value2 = new byte[] {1, 2}, Value = "Hello!"};
-            var b = new B {Id = 2, Value2 = new byte[] {3, 4}, Value = "World!"};
+            var a = new A { Id = 1, Ignored = new byte[] { 1, 2 }, Value = "Hello!" };
+            var b = new B { Id = 2, Value2 = new byte[] { 3, 4 }, Value = "World!" };
 
             collection.Set(a);
             collection.Set(b);
 
             Assert.AreEqual(a.Id, collection["test.id"].Value);
             Assert.AreEqual(a.Value, collection["test.value"].Value);
-            Assert.IsNull(collection["test.value2"].Value);
+            Assert.IsNull(collection["test.ignored"].Value);
             Assert.AreEqual(b.Id, collection["test2.id"].Value);
             Assert.AreEqual(b.Value, collection["test2.value"].Value);
             Assert.AreEqual(b.Value2, collection["test2.value2"].Value);
@@ -117,17 +134,17 @@ namespace CqlSharp.Test
                                      {"test.id", CqlType.Int},
                                      {"test.value", CqlType.Text},
                                      {"test.value2", CqlType.Blob},
-                                     {"test.Map", CqlType.Map, CqlType.Text, CqlType.Boolean}
+                                     {"test.map", CqlType.Map, CqlType.Text, CqlType.Boolean}
                                  };
             collection.Fixate();
 
-            var a = new {Id = 1, Value2 = new byte[] {1, 2}, Value = "Hello!"};
+            var a = new { Id = 1, value2 = new byte[] { 1, 2 }, Value = "Hello!" };
 
             collection.Set(a);
 
             Assert.AreEqual(a.Id, collection["test.id"].Value);
             Assert.AreEqual(a.Value, collection["test.value"].Value);
-            Assert.AreEqual(a.Value2, collection["test.value2"].Value);
+            Assert.AreEqual(a.value2, collection["test.value2"].Value);
             Assert.IsNull(collection[3].Value);
         }
 
@@ -140,10 +157,30 @@ namespace CqlSharp.Test
             public string Value { get; set; }
 
             [CqlIgnore]
-// ReSharper disable UnusedAutoPropertyAccessor.Local
-                public byte[] Value2 { get; set; }
+            // ReSharper disable UnusedAutoPropertyAccessor.Local
+            public byte[] Ignored { get; set; }
 
-// ReSharper restore UnusedAutoPropertyAccessor.Local
+            // ReSharper restore UnusedAutoPropertyAccessor.Local
+        }
+
+        #endregion
+
+        #region Nested type: AUpperCase
+
+        [CqlTable("Test")]
+        private class AUpperCase
+        {
+            [CqlColumn("Id")]
+            public int Id { get; set; }
+
+            [CqlColumn("Value")]
+            public string Value { get; set; }
+
+            [CqlIgnore]
+            // ReSharper disable UnusedAutoPropertyAccessor.Local
+            public byte[] Ignored { get; set; }
+
+            // ReSharper restore UnusedAutoPropertyAccessor.Local
         }
 
         #endregion

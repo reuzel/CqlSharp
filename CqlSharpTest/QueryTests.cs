@@ -145,6 +145,36 @@ namespace CqlSharp.Test
         }
 
         [TestMethod]
+        // ReSharper disable InconsistentNaming
+        public void Issue19_PrepareAndSelectCountStar()
+        // ReSharper restore InconsistentNaming
+        {
+            //Assume
+            const string insertCql = @"select count(*) from system.schema_keyspaces where keyspace_name = 'system';";
+
+            long count;
+
+            //Act
+            using (var connection = new CqlConnection(ConnectionString))
+            {
+                connection.Open();
+
+                //known issue in Cassandra 2.0.0 and 2.0.1. Prepare returns wrong results for count(*) queries
+                Assert.IsNotNull(connection.ServerVersion);
+                if (connection.ServerVersion.Equals("2.0.0") || connection.ServerVersion.Equals("2.0.1"))
+                    return;
+
+                //insert data
+                var cmd = new CqlCommand(connection, insertCql, CqlConsistency.Quorum);
+                cmd.Prepare();
+
+                count = (long)(cmd.ExecuteScalar());
+            }
+
+            Assert.IsTrue(count > 0, "Count should be larger than zero");
+        }
+
+        [TestMethod]
         public async Task BasicInsertSelect()
         {
             //Assume
@@ -641,7 +671,7 @@ namespace CqlSharp.Test
             }
         }
 
-       
+
     }
 
     #region Nested type: BasicFlowData
