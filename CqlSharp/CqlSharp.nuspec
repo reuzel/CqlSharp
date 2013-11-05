@@ -23,25 +23,18 @@
       * CqlSharp is an implementation of the (new) CQL Binary Protocol and therefore requires Cassandra 1.2 and up
       * CqlSharp supports all the binary protocol v2 features: batching, paging, bound query variables, result schema caching, check-and-set (CAS) statements, and sasl-authentication
       * Supports fast mapping of objects to query parameters, or query results to objects. Mapping is tunable by decorating your classes via Table and Column attributes.
-      * CqlSharp allows for partition/token aware routing of queries. This allows queries to be directly sent to the Cassandra nodes that are the 'owner' of that data.
-      * Query timeouts and cancellation is supported
-      * Query tracing is supported.
-      * Provides an extendable logging infrastructure using MEF. Related log statements can be correlated through "Activity GUIDs"
-      * CqlSharp supports Snappy compression of queries and responses
+      * Query tracing, timeouts and cancellation is supported
       * The API is predominately [asynchronous](http://msdn.microsoft.com/en-us/library/vstudio/hh191443.aspx), heavily relying on the System.Threading.Tasks namespace. Synchronous alternatives are available for convenience.
       * Configuration is done through connection strings. The simultaneous use of multiple Cassandra clusters is supported.
-      * Most behavioral aspects of the CqlSharp are configurable: max number of connections, new connection threshold, discovery scope, max connection idle time, etc. etc.
-      * Relative Node Discovery: given the 'seed' nodes in your connection string, CqlSharp may find other nodes for you: all nodes in your cluster, nodes in the same data center, or the nodes in the same rack
-      * Load balanced connection management: you can give your queries a load 'factor' and the client will take that into account when picking connections to send queries over.
-      * Queries will be automatically retried when connections or nodes fail.
-      * Node monitoring: Node failure is automatically detected. Recovery checks occur using an exponential back-off algorithm
-      * CqlSharp listens to Cassandra events for node up, new node and node removed messages such that Cluster changes are automatically incorporated
-
+      * Extensive logging, including support for custom logger implementations
+      
       See https://github.com/reuzel/CqlSharp/wiki/Features for an extensive feature list.
     </description>
     <releaseNotes>
+      Version 0.30.1 - Node address fallback
+      * Fallback to listen-address during discovery when rpc-address is 0.0.0.0. Issue #20
+      
       Version 0.30.0 - Binary Protocol V2 support
-
       * Allowing default database to be set via connectionstring, regardless of connectionstrategy in use
       * Sasl Authentication support. PasswordAuthenticator is supported out-of-the-box. Extendable via MEF by providing IAuthenticator and IAuthenticatorFactory implementations.
       * Batch support via CqlBatchTransaction. Assign the command to the CqlBatchTransaction and executes will be buffered. When CqlBatchTransaction is committed it will create and submit a batch statement.

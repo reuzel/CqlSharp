@@ -454,14 +454,19 @@ namespace CqlSharp.Network
             using (
                 var result =
                     await
-                    ExecQuery(c, "select rpc_address, data_center, rack, tokens from system.peers", logger, token).
+                    ExecQuery(c, "select peer, rpc_address, data_center, rack, tokens from system.peers", logger, token).
                         ConfigureAwait(false))
             {
                 //iterate over the peers
                 while (await result.ReadAsync().ConfigureAwait(false))
                 {
+                    //get address of new node, and fallback to listen_address when address is set to any
+                    var address = (IPAddress)result["rpc_address"];
+                    if (address.Equals(IPAddress.Any))
+                        address = (IPAddress)result["peer"];
+
                     //create a new node
-                    var newNode = new Node((IPAddress)result["rpc_address"], this)
+                    var newNode = new Node(address, this)
                                       {
                                           DataCenter = (string)result["data_center"],
                                           Rack = (string)result["rack"],
