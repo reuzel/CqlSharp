@@ -13,14 +13,13 @@
 // See the License for the specific language governing permissions and
 // limitations under the License.
 
+using CqlSharp.Protocol;
 using System;
 using System.Collections;
-using System.Collections.Generic;
 using System.IO;
 using System.Net;
 using System.Numerics;
 using System.Text;
-using CqlSharp.Protocol;
 
 namespace CqlSharp.Serialization
 {
@@ -49,7 +48,7 @@ namespace CqlSharp.Serialization
                     if (!collectionValueType.HasValue)
                         throw new CqlException("Column collection type must has its value type set");
 
-                    var coll = (IEnumerable) data;
+                    var coll = (IEnumerable)data;
                     using (var ms = new MemoryStream())
                     {
                         //write length placeholder
@@ -75,10 +74,10 @@ namespace CqlSharp.Serialization
                     if (!collectionValueType.HasValue)
                         throw new CqlException("Column map type must has its value type set");
 
-                    var map = (IDictionary) data;
+                    var map = (IDictionary)data;
                     using (var ms = new MemoryStream())
                     {
-                        ms.WriteShort((ushort) map.Count);
+                        ms.WriteShort((ushort)map.Count);
                         foreach (DictionaryEntry de in map)
                         {
                             byte[] rawDataKey = Serialize(collectionKeyType.Value, de.Key);
@@ -117,7 +116,7 @@ namespace CqlSharp.Serialization
                     break;
 
                 case CqlType.Blob:
-                    rawData = (byte[]) data;
+                    rawData = (byte[])data;
                     break;
 
                 case CqlType.Double:
@@ -132,7 +131,7 @@ namespace CqlSharp.Serialization
 
                 case CqlType.Timestamp:
                     if (data is long)
-                        rawData = BitConverter.GetBytes((long) data);
+                        rawData = BitConverter.GetBytes((long)data);
                     else
                         rawData = BitConverter.GetBytes(Convert.ToDateTime(data).ToTimestamp());
 
@@ -157,7 +156,7 @@ namespace CqlSharp.Serialization
                         rawData = BigInteger.Parse(dataString).ToByteArray();
                     else
                     {
-                        var integer = (BigInteger) data;
+                        var integer = (BigInteger)data;
                         rawData = integer.ToByteArray();
                     }
 
@@ -171,7 +170,7 @@ namespace CqlSharp.Serialization
 
                 case CqlType.Uuid:
                 case CqlType.Timeuuid:
-                    var guid = (Guid) data;
+                    var guid = (Guid)data;
 
                     //return null if Guid is a nil Guid
                     if (guid == default(Guid))
@@ -192,7 +191,7 @@ namespace CqlSharp.Serialization
                     break;
 
                 case CqlType.Inet:
-                    rawData = ((IPAddress) data).GetAddressBytes();
+                    rawData = ((IPAddress)data).GetAddressBytes();
                     break;
 
                 default:
@@ -220,41 +219,14 @@ namespace CqlSharp.Serialization
                     if (!collectionValueType.HasValue)
                         throw new CqlException("Can't deserialize a list without a list content type");
 
-                    Type typedColl = type.ToType(collectionKeyType, collectionValueType);
-                    var list = (IList) Activator.CreateInstance(typedColl);
-                    using (var ms = new MemoryStream(rawData))
-                    {
-                        ushort nbElem = ms.ReadShort();
-                        for (int i = 0; i < nbElem; i++)
-                        {
-                            byte[] elemRawData = ms.ReadShortByteArray();
-                            object elem = Deserialize(collectionValueType.Value, elemRawData);
-                            list.Add(elem);
-                        }
-                        data = list;
-                    }
+                    data = DeserializeList(collectionValueType.Value, rawData);
                     break;
 
                 case CqlType.Set:
                     if (!collectionValueType.HasValue)
                         throw new CqlException("Can't deserialize a set without a set content type");
 
-                    Type colType = collectionValueType.Value.ToType();
-                    Type tempListType = typeof (List<>).MakeGenericType(colType);
-                    var tempList = (IList) Activator.CreateInstance(tempListType);
-                    using (var ms = new MemoryStream(rawData))
-                    {
-                        ushort nbElem = ms.ReadShort();
-                        for (int i = 0; i < nbElem; i++)
-                        {
-                            byte[] elemRawData = ms.ReadShortByteArray();
-                            object elem = Deserialize(collectionValueType.Value, elemRawData);
-                            tempList.Add(elem);
-                        }
-
-                        Type typedSet = type.ToType(collectionKeyType, collectionValueType);
-                        data = Activator.CreateInstance(typedSet, tempList);
-                    }
+                    data = DeserializeSet(collectionValueType.Value, rawData);
                     break;
 
                 case CqlType.Map:
@@ -264,25 +236,54 @@ namespace CqlSharp.Serialization
                     if (!collectionValueType.HasValue)
                         throw new CqlException("Column map type must has its value type set");
 
-                    Type typedDic = type.ToType(collectionKeyType, collectionValueType);
-                    var dic = (IDictionary) Activator.CreateInstance(typedDic);
-                    using (var ms = new MemoryStream(rawData))
-                    {
-                        ushort nbElem = ms.ReadShort();
-                        for (int i = 0; i < nbElem; i++)
-                        {
-                            byte[] elemRawKey = ms.ReadShortByteArray();
-                            byte[] elemRawValue = ms.ReadShortByteArray();
-                            object key = Deserialize(collectionKeyType.Value, elemRawKey);
-                            object value = Deserialize(collectionValueType.Value, elemRawValue);
-                            dic.Add(key, value);
-                        }
-                        data = dic;
-                    }
+                    data = DeserializeMap(collectionKeyType.Value, collectionValueType.Value, rawData);
                     break;
             }
 
             return data;
+        }
+
+        public static IDictionary DeserializeMap(CqlType collectionKeyType, CqlType collectionValueType, byte[] rawData)
+        {
+            Type typedDic = CqlType.Map.ToType(collectionKeyType, collectionValueType);
+            var map = (IDictionary)Activator.CreateInstance(typedDic);
+            using (var ms = new MemoryStream(rawData))
+            {
+                ushort nbElem = ms.ReadShort();
+                for (int i = 0; i < nbElem; i++)
+                {
+                    byte[] elemRawKey = ms.ReadShortByteArray();
+                    byte[] elemRawValue = ms.ReadShortByteArray();
+                    object key = Deserialize(collectionKeyType, elemRawKey);
+                    object value = Deserialize(collectionValueType, elemRawValue);
+                    map.Add(key, value);
+                }
+            }
+            return map;
+        }
+
+        public static object DeserializeSet(CqlType collectionValueType, byte[] rawData)
+        {
+            IList items = DeserializeList(collectionValueType, rawData);
+            Type typedSet = CqlType.Set.ToType(null, collectionValueType);
+            return Activator.CreateInstance(typedSet, items);
+        }
+
+        public static IList DeserializeList(CqlType collectionValueType, byte[] rawData)
+        {
+            Type typedColl = CqlType.List.ToType(null, collectionValueType);
+            var list = (IList)Activator.CreateInstance(typedColl);
+            using (var ms = new MemoryStream(rawData))
+            {
+                ushort nbElem = ms.ReadShort();
+                for (int i = 0; i < nbElem; i++)
+                {
+                    byte[] elemRawData = ms.ReadShortByteArray();
+                    object elem = Deserialize(collectionValueType, elemRawData);
+                    list.Add(elem);
+                }
+            }
+            return list;
         }
 
         internal static object Deserialize(CqlType type, byte[] rawData)
@@ -294,57 +295,53 @@ namespace CqlSharp.Serialization
             switch (type)
             {
                 case CqlType.Ascii:
-                    data = Encoding.ASCII.GetString(rawData);
+                    data = DeserializeAsciiString(rawData);
                     break;
 
                 case CqlType.Text:
                 case CqlType.Varchar:
-                    data = Encoding.UTF8.GetString(rawData);
+                    data = DeserializeUtfString(rawData);
                     break;
 
                 case CqlType.Blob:
-                    data = rawData;
+                    data = DeserializeBlob(rawData);
                     break;
 
                 case CqlType.Double:
-                    if (IsLittleEndian) Array.Reverse(rawData);
-                    data = BitConverter.ToDouble(rawData, 0);
+                    data = DeserializeDouble(rawData);
                     break;
 
                 case CqlType.Float:
-                    if (IsLittleEndian) Array.Reverse(rawData);
-                    data = BitConverter.ToSingle(rawData, 0);
+                    data = DeserializeFloat(rawData);
                     break;
 
                 case CqlType.Timestamp:
-                    data = rawData.ToLong().ToDateTime();
+                    data = DeserializeDateTime(rawData);
                     break;
 
                 case CqlType.Bigint:
                 case CqlType.Counter:
-                    data = rawData.ToLong();
+                    data = DeserializeLong(rawData);
                     break;
 
                 case CqlType.Int:
-                    data = rawData.ToInt();
+                    data = DeserializeInt(rawData);
                     break;
 
                 case CqlType.Varint:
-                    //to little endian
-                    Array.Reverse(rawData);
-                    data = new BigInteger(rawData);
+                    data = DeserializeBigInteger(rawData);
                     break;
 
                 case CqlType.Boolean:
-                    data = BitConverter.ToBoolean(rawData, 0);
+                    data = DeserializeBoolean(rawData);
                     break;
 
                 case CqlType.Uuid:
                 case CqlType.Timeuuid:
-                    return rawData.ToGuid();
+                    return DeserializeGuid(rawData);
 
                 case CqlType.Inet:
-                    data = new IPAddress(rawData);
+                    data = DeserializeIPAddress(rawData);
                     break;
 
                 default:
@@ -352,6 +349,70 @@ namespace CqlSharp.Serialization
             }
 
             return data;
+        }
+
+        public static IPAddress DeserializeIPAddress(byte[] rawData)
+        {
+            return new IPAddress(rawData);
+        }
+
+        public static Guid DeserializeGuid(byte[] rawData)
+        {
+            return rawData.ToGuid();
+        }
+
+        public static bool DeserializeBoolean(byte[] rawData)
+        {
+            return BitConverter.ToBoolean(rawData, 0);
+        }
+
+        public static BigInteger DeserializeBigInteger(byte[] rawData)
+        {
+            //to little endian
+            Array.Reverse(rawData);
+            return new BigInteger(rawData);
+        }
+
+        public static int DeserializeInt(byte[] rawData)
+        {
+            return rawData.ToInt();
+        }
+
+        public static long DeserializeLong(byte[] rawData)
+        {
+            return rawData.ToLong();
+        }
+
+        public static DateTime DeserializeDateTime(byte[] rawData)
+        {
+            return rawData.ToLong().ToDateTime();
+        }
+
+        public static float DeserializeFloat(byte[] rawData)
+        {
+            if (IsLittleEndian) Array.Reverse(rawData);
+            return BitConverter.ToSingle(rawData, 0);
+        }
+
+        public static double DeserializeDouble(byte[] rawData)
+        {
+            if (IsLittleEndian) Array.Reverse(rawData);
+            return BitConverter.ToDouble(rawData, 0);
+        }
+
+        public static string DeserializeUtfString(byte[] rawData)
+        {
+            return Encoding.UTF8.GetString(rawData);
+        }
+
+        public static string DeserializeAsciiString(byte[] rawData)
+        {
+            return Encoding.ASCII.GetString(rawData);
+        }
+
+        public static byte[] DeserializeBlob(byte[] currentValue)
+        {
+            return currentValue;
         }
     }
 }

@@ -1,5 +1,6 @@
 ## Version 0.30.1 - Node address fallback
 * Fallback to listen-address during discovery when rpc-address is 0.0.0.0. Issue #20
+* Performance: Removing some boxing of structs during deserialization
 
 ## Version 0.30.0 - Binary Protocol V2 support
 * Allowing default database to be set via connectionstring, regardless of connectionstrategy in use

@@ -311,8 +311,7 @@ namespace CqlSharp
         /// <returns> The value of the column. </returns>
         public override bool GetBoolean(int i)
         {
-            if (CurrentValues[i] == null) return default(bool);
-            return (bool)ValueSerialization.Deserialize(CqlType.Boolean, CurrentValues[i]);
+            return CurrentValues[i] != null && ValueSerialization.DeserializeBoolean(CurrentValues[i]);
         }
 
         /// <summary>
@@ -346,7 +345,7 @@ namespace CqlSharp
             if (CurrentValues[i] == null)
                 return 0;
 
-            var value = (byte[])ValueSerialization.Deserialize(CqlType.Blob, CurrentValues[i]);
+            var value = ValueSerialization.DeserializeBlob(CurrentValues[i]);
 
             if (fieldOffset < 0 || fieldOffset >= value.Length)
                 throw new ArgumentOutOfRangeException("fieldOffset", fieldOffset,
@@ -365,7 +364,7 @@ namespace CqlSharp
         /// <returns> The bytes value of the specified field. </returns>
         public byte[] GetBytes(int i)
         {
-            return (byte[])ValueSerialization.Deserialize(CqlType.Blob, CurrentValues[i]);
+            return ValueSerialization.DeserializeBlob(CurrentValues[i]);
         }
 
         /// <summary>
@@ -399,7 +398,7 @@ namespace CqlSharp
             if (CurrentValues[i] == null)
                 return 0;
 
-            var value = (string)ValueSerialization.Deserialize(CqlType.Varchar, CurrentValues[i]);
+            var value = ValueSerialization.DeserializeUtfString(CurrentValues[i]);
 
             if (fieldoffset < 0 || fieldoffset >= value.Length)
                 throw new ArgumentOutOfRangeException("fieldoffset", fieldoffset,
@@ -428,9 +427,7 @@ namespace CqlSharp
         /// <returns> The date and time data value of the specified field. </returns>
         public override DateTime GetDateTime(int i)
         {
-            if (CurrentValues[i] == null) return default(DateTime);
-
-            return (DateTime)ValueSerialization.Deserialize(CqlType.Timestamp, CurrentValues[i]);
+            return CurrentValues[i] == null ? default(DateTime) : ValueSerialization.DeserializeDateTime(CurrentValues[i]);
         }
 
         /// <summary>
@@ -451,9 +448,7 @@ namespace CqlSharp
         /// <returns> The double-precision floating point number of the specified field. </returns>
         public override double GetDouble(int i)
         {
-            if (CurrentValues[i] == null) return default(double);
-
-            return (double)ValueSerialization.Deserialize(CqlType.Double, CurrentValues[i]);
+            return CurrentValues[i] == null ? default(double) : ValueSerialization.DeserializeDouble(CurrentValues[i]);
         }
 
         /// <summary>
@@ -475,9 +470,7 @@ namespace CqlSharp
         /// <returns> The single-precision floating point number of the specified field. </returns>
         public override float GetFloat(int i)
         {
-            if (CurrentValues[i] == null) return default(float);
-
-            return (float)ValueSerialization.Deserialize(CqlType.Float, CurrentValues[i]);
+            return CurrentValues[i] == null ? default(float) : ValueSerialization.DeserializeFloat(CurrentValues[i]);
         }
 
         /// <summary>
@@ -487,9 +480,7 @@ namespace CqlSharp
         /// <returns> The GUID value of the specified field. </returns>
         public override Guid GetGuid(int i)
         {
-            if (CurrentValues[i] == null) return default(Guid);
-
-            return (Guid)ValueSerialization.Deserialize(CqlType.Uuid, CurrentValues[i]);
+            return CurrentValues[i] == null ? default(Guid) : ValueSerialization.DeserializeGuid(CurrentValues[i]);
         }
 
         /// <summary>
@@ -510,8 +501,7 @@ namespace CqlSharp
         /// <returns> The 32-bit signed integer value of the specified field. </returns>
         public override int GetInt32(int i)
         {
-            if (CurrentValues[i] == null) return default(int);
-            return (int)ValueSerialization.Deserialize(CqlType.Int, CurrentValues[i]);
+            return CurrentValues[i] == null ? default(int) : ValueSerialization.DeserializeInt(CurrentValues[i]);
         }
 
         /// <summary>
@@ -521,9 +511,7 @@ namespace CqlSharp
         /// <returns> The 64-bit signed integer value of the specified field. </returns>
         public override long GetInt64(int i)
         {
-            if (CurrentValues[i] == null) return default(long);
-
-            return (long)ValueSerialization.Deserialize(CqlType.Bigint, CurrentValues[i]);
+            return CurrentValues[i] == null ? default(long) : ValueSerialization.DeserializeLong(CurrentValues[i]);
         }
 
         /// <summary>
@@ -553,7 +541,7 @@ namespace CqlSharp
         /// <returns> The string value of the specified field. </returns>
         public override string GetString(int i)
         {
-            return (string)ValueSerialization.Deserialize(CqlType.Varchar, CurrentValues[i]);
+            return CurrentValues[i] == null ? default(string) : ValueSerialization.DeserializeUtfString(CurrentValues[i]);
         }
 
         /// <summary>
@@ -563,7 +551,7 @@ namespace CqlSharp
         /// <returns> The IPAddress value of the specified field. </returns>
         public IPAddress GetIPAddress(int i)
         {
-            return (IPAddress)ValueSerialization.Deserialize(CqlType.Inet, CurrentValues[i]);
+            return CurrentValues[i] == null ? default(IPAddress) : ValueSerialization.DeserializeIPAddress(CurrentValues[i]);
         }
 
         /// <summary>
@@ -573,9 +561,7 @@ namespace CqlSharp
         /// <returns> The BigInteger value of the specified field. </returns>
         public BigInteger GetBigInteger(int i)
         {
-            if (CurrentValues[i] == null) return default(BigInteger);
-
-            return (BigInteger)ValueSerialization.Deserialize(CqlType.Varint, CurrentValues[i]);
+            return CurrentValues[i] == null ? default(BigInteger) : ValueSerialization.DeserializeBigInteger(CurrentValues[i]);
         }
 
         /// <summary>
@@ -586,8 +572,10 @@ namespace CqlSharp
         /// <returns> The Set value of the specified field. </returns>
         public HashSet<T> GetSet<T>(int i)
         {
+            if (CurrentValues[i] == null) return null;
+           
             CqlType setType = typeof(T).ToCqlType();
-            return (HashSet<T>)ValueSerialization.Deserialize(CqlType.Set, null, setType, CurrentValues[i]);
+            return (HashSet<T>)ValueSerialization.DeserializeSet(setType, CurrentValues[i]);
         }
 
         /// <summary>
@@ -598,8 +586,10 @@ namespace CqlSharp
         /// <returns> The list value of the specified field. </returns>
         public List<T> GetList<T>(int i)
         {
+            if (CurrentValues[i] == null) return null;
+
             CqlType listType = typeof(T).ToCqlType();
-            return (List<T>)ValueSerialization.Deserialize(CqlType.List, null, listType, CurrentValues[i]);
+            return (List<T>)ValueSerialization.DeserializeList(listType, CurrentValues[i]);
         }
 
         /// <summary>
@@ -611,11 +601,13 @@ namespace CqlSharp
         /// <returns> The list value of the specified field. </returns>
         public Dictionary<TKey, TValue> GetDictionary<TKey, TValue>(int i)
         {
+            if (CurrentValues[i] == null) return null;
+
             CqlType keyType = typeof(TKey).ToCqlType();
             CqlType valueType = typeof(TValue).ToCqlType();
             return
                 (Dictionary<TKey, TValue>)
-                ValueSerialization.Deserialize(CqlType.Map, keyType, valueType, CurrentValues[i]);
+                ValueSerialization.DeserializeMap(keyType, valueType, CurrentValues[i]);
         }
 
         /// <summary>
