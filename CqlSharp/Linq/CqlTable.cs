@@ -13,11 +13,13 @@
 // See the License for the specific language governing permissions and
 // limitations under the License.
 
+using CqlSharp.Serialization;
 using System;
 using System.Collections;
 using System.Collections.Generic;
 using System.Linq;
 using System.Linq.Expressions;
+using System.Reflection;
 
 namespace CqlSharp.Linq
 {
@@ -25,7 +27,7 @@ namespace CqlSharp.Linq
     /// A table in a Cassandra Keyspace (database)
     /// </summary>
     /// <typeparam name="T"></typeparam>
-    public class CqlTable<T> : IQueryable<T>
+    public class CqlTable<T> : IQueryable<T>, ICqlTable
     {
         private readonly CqlContext _context;
         private readonly Expression _expression;
@@ -49,6 +51,39 @@ namespace CqlSharp.Linq
 
             _context = context;
             _expression = expression;
+        }
+
+        /// <summary>
+        /// Gets the column names.
+        /// </summary>
+        /// <value>
+        /// The column names.
+        /// </value>
+        public Dictionary<MemberInfo, string> ColumnNames
+        {
+            get { return ObjectAccessor<T>.Instance.ColumnNames; }
+        }
+
+        /// <summary>
+        /// Gets the name of the Table.
+        /// </summary>
+        /// <value>
+        /// The name.
+        /// </value>
+        public string Name
+        {
+            get { return ObjectAccessor<T>.Instance.Table; }
+        }
+
+        /// <summary>
+        /// Gets the type of entity contained by this table.
+        /// </summary>
+        /// <value>
+        /// The type.
+        /// </value>
+        public Type Type
+        {
+            get { return ObjectAccessor<T>.Instance.Type; }
         }
 
         #region IQueryable<T> Members

@@ -68,6 +68,7 @@
     <Compile Include="Extensions\Loader.cs" />
     <Compile Include="Linq\CqlContext.cs" />
     <Compile Include="Linq\CqlLinqException.cs" />
+    <Compile Include="Linq\CqlProjectionVisitor.cs" />
     <Compile Include="Linq\CqlTextBuilder.cs" />
     <Compile Include="Linq\Expressions\CqlExpressionType.cs" />
     <Compile Include="Linq\Expressions\CqlExpressionVisitor.cs" />
@@ -82,7 +83,10 @@
     <Compile Include="Linq\Expressions\TermExpression.cs" />
     <Compile Include="Linq\CqlTable.cs" />
     <Compile Include="Linq\ExpressionExtensions.cs" />
+    <Compile Include="Linq\ICqlTable.cs" />
+    <Compile Include="Linq\ProjectorBuilder.cs" />
     <Compile Include="Linq\PartialEvaluator.cs" />
+    <Compile Include="Linq\ProjectionReader.cs" />
     <Compile Include="Linq\TypeSystem.cs" />
     <Compile Include="Logging\ConsoleLogger.cs" />
     <Compile Include="Logging\DebugLogger.cs" />

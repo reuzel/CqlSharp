@@ -41,7 +41,7 @@ namespace CqlSharp.Linq.Expressions
 
         public override ExpressionType NodeType
         {
-            get { return (ExpressionType) CqlExpressionType.Identifier; }
+            get { return (ExpressionType)CqlExpressionType.Identifier; }
         }
 
         public string Name
@@ -64,6 +64,11 @@ namespace CqlSharp.Linq.Expressions
         protected override Expression VisitChildren(ExpressionVisitor visitor)
         {
             return this;
+        }
+
+        public override string ToString()
+        {
+            return string.Format("Identifier({0})", Name);
         }
     }
 }

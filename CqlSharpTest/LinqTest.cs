@@ -1,5 +1,7 @@
 ﻿using CqlSharp.Linq;
 using Microsoft.VisualStudio.TestTools.UnitTesting;
+using System.Diagnostics;
+using System.Linq;
 
 namespace CqlSharp.Test
 {
@@ -47,24 +49,24 @@ namespace CqlSharp.Test
             _context.Dispose();
         }
 
-        //    /// <summary>
-        //    /// Checks the result.
-        //    /// </summary>
-        //    /// <param name="query">The query.</param>
-        //    /// <param name="cql">The CQL.</param>
-        //    private void CheckResult(IQueryable query, string cql)
-        //    {
-        //        Debug.WriteLine("Original:");
-        //        Debug.WriteLine("\t{0}", query.Expression);
+        /// <summary>
+        /// Checks the result.
+        /// </summary>
+        /// <param name="query">The query.</param>
+        /// <param name="cql">The CQL.</param>
+        private void CheckResult(IQueryable query, string cql)
+        {
+            Debug.WriteLine("Original:");
+            Debug.WriteLine("\t{0}", query.Expression);
 
-        //        Debug.WriteLine("Result:");
-        //        var result = _context.ParseExpression(query.Expression);
+            Debug.WriteLine("Result:");
+            var result = _context.ParseExpression(query.Expression);
 
-        //        Debug.WriteLine("\t" + result.Item1);
-        //        Debug.WriteLine("\t{0}", result.Item2);
+            Debug.WriteLine("\t" + result.Item1);
+            Debug.WriteLine("\t{0}", result.Item2);
 
-        //        Assert.AreEqual(cql, result.Item1);
-        //    }
+            Assert.AreEqual(cql, result.Item1);
+        }
 
 
         //    [TestMethod]
@@ -86,12 +88,12 @@ namespace CqlSharp.Test
         //        CheckResult(query, "select Id from MyValue where Id=4");
         //    }
 
-        //    [TestMethod]
-        //    public void NoWhereOrSelect()
-        //    {
-        //        var query = _context.Values;
-        //        CheckResult(query, "select * from MyValue");
-        //    }
+        [TestMethod]
+        public void NoWhereOrSelect()
+        {
+            var query = _context.Values;
+            CheckResult(query, "SELECT id,value FROM myvalue;");
+        }
 
         //    [TestMethod]
         //    public void SelectAll()

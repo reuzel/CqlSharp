@@ -40,8 +40,8 @@ namespace CqlSharp.Linq
         /// <returns></returns>
         public string Build(Expression expression)
         {
-            Visit(expression);
-            return _translations[_selects.First()];
+            Expression expr = Visit(expression);
+            return _translations[expr];
         }
 
         /// <summary>

@@ -1,11 +1,21 @@
-﻿#Design of the Cql Linq 
+﻿#Design of Linq2Cql
+Most of the ideas on how this provider is created stems from a blog series from Matt Warren: 
+[LINQ: Building an IQueryable provider series](http://blogs.msdn.com/b/mattwar/archive/2008/11/18/linq-links.aspx)
+
+The general concept behind this Linq provider implementation is that a regular Linq expression
+tree is transformed into an expression tree that contains Cql expressions such as select, relation
+term, etc. Using cql specific expression types the original query can be adapted to contain references
+(expressions) to column values, allowing reasoning about the meaning of the different operations.
+
+The final expression tree is translated into a Cql query as well as delegate that transforms the query
+results into the required object structure.
 
 ## Context and Table
+CqlContext and CqlTable are the classes that form the core of the provider. CqlContext is the 
+IQueryProvider, while CqlTable is the IQueryable.
 
-## Cql Expression Trees
-The general concept behind this Linq provider implementation is that a regular Linq expression
-tree is transformed into an expression tree that contain Cql expressions such as select, relation
-term, etc. The Cql Expression are derived directly from the select grammer as defined in Cql 3.1.1:
+## Cql Expression types
+The Cql Expression types are derived directly from the select grammar as defined in Cql 3.1.1.
 
 ```
 <select-stmt> ::= SELECT <select-clause>

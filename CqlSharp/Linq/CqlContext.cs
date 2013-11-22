@@ -104,18 +104,31 @@ namespace CqlSharp.Linq
         {
             var result = ParseExpression(expression);
 
-            LambdaExpression lambda = Expression.Lambda(result.Item2);
-            Delegate fn = lambda.Compile();
-            return fn.DynamicInvoke(null);
+            Delegate projector = result.Item2.Compile();
+            return Activator.CreateInstance(
+                typeof(ProjectionReader<>).MakeGenericType(result.Item2.Type),
+                BindingFlags.Instance | BindingFlags.NonPublic, null,
+                new object[] { this, result.Item1, projector },
+                null
+                );
         }
 
-        internal Tuple<string, Expression> ParseExpression(Expression expression)
+        internal Tuple<string, LambdaExpression> ParseExpression(Expression expression)
         {
+            //evaluate all partial expressions (get rid of reference noise)
             var cleanedExpression = PartialVisitor.Evaluate(expression);
 
-            //TODO: implement translation logic!
+            //project the expression to a cql expression and corresponding projection
+            var projection = new CqlProjectionVisitor().Translate(cleanedExpression);
 
-            return new Tuple<string, Expression>(null, null);
+            //generate cql text
+            var cql = new CqlTextBuilder().Build(projection.Select);
+
+            //get a projection delegate
+            var projector = new ProjectorBuilder().BuildProjector(projection.Projection);
+
+            //return translation results
+            return new Tuple<string, LambdaExpression>(cql, projector);
         }
 
         #region IQueryProvider implementation
