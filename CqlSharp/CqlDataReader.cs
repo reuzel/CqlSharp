@@ -217,6 +217,7 @@ namespace CqlSharp
             }
 
             //nothing else there...
+            Close();
             return false;
         }
 
@@ -573,7 +574,7 @@ namespace CqlSharp
         public HashSet<T> GetSet<T>(int i)
         {
             if (CurrentValues[i] == null) return null;
-           
+
             CqlType setType = typeof(T).ToCqlType();
             return (HashSet<T>)ValueSerialization.DeserializeSet(setType, CurrentValues[i]);
         }

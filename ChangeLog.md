@@ -1,3 +1,6 @@
+## Version 0.40.0 - Linq-2-Cql
+* Adding Linq query support through CqlContext and CqlTable
+
 ## Version 0.30.1 - Node address fallback
 * Fallback to listen-address during discovery when rpc-address is 0.0.0.0. Issue #20
 * Performance: Removing some boxing of structs during deserialization
