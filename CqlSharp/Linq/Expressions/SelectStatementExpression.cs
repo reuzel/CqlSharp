@@ -26,14 +26,14 @@ namespace CqlSharp.Linq.Expressions
     internal class SelectStatementExpression : Expression
     {
         private readonly int? _limit;
-        private readonly ReadOnlyCollection<Expression> _orderBy;
-        private readonly Expression _selectClause;
+        private readonly ReadOnlyCollection<OrderingExpression> _orderBy;
+        private readonly SelectClauseExpression _selectClause;
         private readonly string _tableName;
         private readonly Type _type;
-        private readonly ReadOnlyCollection<Expression> _whereClause;
+        private readonly ReadOnlyCollection<RelationExpression> _whereClause;
 
-        public SelectStatementExpression(Type type, Expression selectClause, string tableName,
-                                IList<Expression> whereClause, IList<Expression> orderBy,
+        public SelectStatementExpression(Type type, SelectClauseExpression selectClause, string tableName,
+                                IList<RelationExpression> whereClause, IList<OrderingExpression> orderBy,
                                 int? limit)
         {
             if (type == null)
@@ -49,11 +49,11 @@ namespace CqlSharp.Linq.Expressions
             _selectClause = selectClause;
             _tableName = tableName;
 
-            if (_whereClause != null)
-                _whereClause = new ReadOnlyCollection<Expression>(whereClause);
+            if (whereClause != null)
+                _whereClause = new ReadOnlyCollection<RelationExpression>(whereClause);
 
-            if (_orderBy != null)
-                _orderBy = new ReadOnlyCollection<Expression>(orderBy);
+            if (orderBy != null)
+                _orderBy = new ReadOnlyCollection<OrderingExpression>(orderBy);
 
             _limit = limit;
         }
@@ -68,7 +68,7 @@ namespace CqlSharp.Linq.Expressions
             get { return _type; }
         }
 
-        public Expression SelectClause
+        public SelectClauseExpression SelectClause
         {
             get { return _selectClause; }
         }
@@ -78,12 +78,12 @@ namespace CqlSharp.Linq.Expressions
             get { return _tableName; }
         }
 
-        public ReadOnlyCollection<Expression> WhereClause
+        public ReadOnlyCollection<RelationExpression> WhereClause
         {
             get { return _whereClause; }
         }
 
-        public ReadOnlyCollection<Expression> OrderBy
+        public ReadOnlyCollection<OrderingExpression> OrderBy
         {
             get { return _orderBy; }
         }
@@ -109,29 +109,29 @@ namespace CqlSharp.Linq.Expressions
         {
             bool changed = false;
 
-            Expression selectClause = visitor.Visit(_selectClause);
+            var selectClause = (SelectClauseExpression)visitor.Visit(_selectClause);
             changed |= selectClause != _selectClause;
 
-            Expression[] wheres = null;
+            RelationExpression[] wheres = null;
             if (_whereClause != null)
             {
                 int count = _whereClause.Count;
-                wheres = new Expression[count];
+                wheres = new RelationExpression[count];
                 for (int i = 0; i < count; i++)
                 {
-                    wheres[i] = visitor.Visit(_whereClause[i]);
+                    wheres[i] = (RelationExpression)visitor.Visit(_whereClause[i]);
                     changed |= wheres[i] != _whereClause[i];
                 }
             }
 
-            Expression[] order = null;
+            OrderingExpression[] order = null;
             if (_orderBy != null)
             {
                 int count = _orderBy.Count;
-                order = new Expression[count];
+                order = new OrderingExpression[count];
                 for (int i = 0; i < count; i++)
                 {
-                    order[i] = visitor.Visit(_orderBy[i]);
+                    order[i] = (OrderingExpression)visitor.Visit(_orderBy[i]);
                     changed |= order[i] != _orderBy[i];
                 }
             }

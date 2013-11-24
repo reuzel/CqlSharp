@@ -41,13 +41,12 @@ namespace CqlSharp.Linq
             return false;
         }
 
-        public static bool IsTrueLambda(this Expression e)
+        public static bool IsTrue(this Expression e)
         {
-            var lambda = e as LambdaExpression;
-            if (lambda != null)
+            var constant = e as ConstantExpression;
+            if (constant != null && constant.Type == typeof(bool))
             {
-                var value = lambda.Body as ConstantExpression;
-                return value != null && value.Value != null && value.Value.Equals(true);
+                return (bool)constant.Value;
             }
             return false;
         }

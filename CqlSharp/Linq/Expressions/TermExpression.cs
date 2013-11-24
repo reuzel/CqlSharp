@@ -26,7 +26,7 @@ namespace CqlSharp.Linq.Expressions
     /// </summary>
     internal class TermExpression : Expression
     {
-        private readonly ReadOnlyCollection<Expression> _arguments;
+        private readonly ReadOnlyCollection<TermExpression> _arguments;
         private readonly Functions _function;
         private readonly CqlExpressionType _termType;
         private readonly Type _type;
@@ -64,12 +64,12 @@ namespace CqlSharp.Linq.Expressions
             _value = value;
         }
 
-        public TermExpression(Functions function, IList<Expression> arguments)
+        public TermExpression(Functions function, IList<TermExpression> arguments)
         {
             if (arguments == null)
                 throw new ArgumentNullException("arguments");
 
-            _arguments = new ReadOnlyCollection<Expression>(arguments);
+            _arguments = new ReadOnlyCollection<TermExpression>(arguments);
             _function = function;
             _termType = CqlExpressionType.Function;
             switch (function)
@@ -108,14 +108,14 @@ namespace CqlSharp.Linq.Expressions
             }
         }
 
-        private TermExpression(Type type, Functions function, IList<Expression> arguments)
+        private TermExpression(Type type, Functions function, IList<TermExpression> arguments)
         {
             if (type == null) throw new ArgumentNullException("type");
             if (arguments == null) throw new ArgumentNullException("arguments");
 
             _type = type;
             _function = function;
-            _arguments = new ReadOnlyCollection<Expression>(arguments);
+            _arguments = new ReadOnlyCollection<TermExpression>(arguments);
         }
 
         public override ExpressionType NodeType
@@ -138,7 +138,7 @@ namespace CqlSharp.Linq.Expressions
             get { return _function; }
         }
 
-        public ReadOnlyCollection<Expression> Arguments
+        public ReadOnlyCollection<TermExpression> Arguments
         {
             get { return _arguments; }
         }
@@ -162,10 +162,10 @@ namespace CqlSharp.Linq.Expressions
                 bool changed = false;
 
                 int count = _arguments.Count;
-                var args = new Expression[count];
+                var args = new TermExpression[count];
                 for (int i = 0; i < count; i++)
                 {
-                    args[i] = visitor.Visit(_arguments[i]);
+                    args[i] = (TermExpression)visitor.Visit(_arguments[i]);
                     changed |= args[i] != _arguments[i];
                 }
 

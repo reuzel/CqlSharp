@@ -23,11 +23,11 @@ namespace CqlSharp.Linq.Expressions
     /// </summary>
     internal class OrderingExpression : Expression
     {
-        private readonly Expression _identifier;
+        private readonly IdentifierExpression _identifier;
         private readonly CqlExpressionType _order;
         private readonly Type _type;
 
-        public OrderingExpression(Type type, Expression identifier, CqlExpressionType orderType)
+        public OrderingExpression(Type type, IdentifierExpression identifier, CqlExpressionType orderType)
         {
             if (type == null)
                 throw new ArgumentNullException("type");
@@ -53,7 +53,7 @@ namespace CqlSharp.Linq.Expressions
             get { return _type; }
         }
 
-        public Expression Identifier
+        public IdentifierExpression Identifier
         {
             get { return _identifier; }
         }

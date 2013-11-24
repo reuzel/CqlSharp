@@ -16,7 +16,6 @@
 using System;
 using System.Collections.Generic;
 using System.Collections.ObjectModel;
-using System.Diagnostics;
 using System.Linq.Expressions;
 
 namespace CqlSharp.Linq.Expressions
@@ -28,18 +27,18 @@ namespace CqlSharp.Linq.Expressions
     {
         private readonly bool? _distinct;
         private readonly CqlExpressionType _nodeType;
-        private readonly ReadOnlyCollection<Expression> _selectors;
+        private readonly ReadOnlyCollection<SelectorExpression> _selectors;
 
         public SelectClauseExpression(bool count)
         {
             _nodeType = count ? CqlExpressionType.SelectCount : CqlExpressionType.SelectAll;
         }
 
-        public SelectClauseExpression(IList<Expression> selectors, bool distinct = false)
+        public SelectClauseExpression(IList<SelectorExpression> selectors, bool? distinct = null)
         {
             _nodeType = CqlExpressionType.SelectColumns;
             _distinct = distinct;
-            _selectors = new ReadOnlyCollection<Expression>(selectors);
+            _selectors = new ReadOnlyCollection<SelectorExpression>(selectors);
         }
 
         public bool? Distinct
@@ -47,7 +46,7 @@ namespace CqlSharp.Linq.Expressions
             get { return _distinct; }
         }
 
-        public ReadOnlyCollection<Expression> Selectors
+        public ReadOnlyCollection<SelectorExpression> Selectors
         {
             get { return _selectors; }
         }
@@ -91,17 +90,16 @@ namespace CqlSharp.Linq.Expressions
             {
                 bool changed = false;
                 int count = _selectors.Count;
-                var selectors = new Expression[count];
+                var selectors = new SelectorExpression[count];
                 for (int i = 0; i < count; i++)
                 {
-                    selectors[i] = visitor.Visit(_selectors[i]);
+                    selectors[i] = (SelectorExpression)visitor.Visit(_selectors[i]);
                     changed |= selectors[i] != _selectors[i];
                 }
 
                 if (changed)
                 {
-                    Debug.Assert(_distinct.HasValue);
-                    return new SelectClauseExpression(selectors, _distinct.Value);
+                    return new SelectClauseExpression(selectors, _distinct);
                 }
             }
 

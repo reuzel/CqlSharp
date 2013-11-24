@@ -69,52 +69,64 @@ namespace CqlSharp.Test
         }
 
 
-        //    [TestMethod]
-        //    public void WhereThenSelect()
-        //    {
-        //        var filter = "hallo";
-        //        var query = _context.Values.Where(p => p.Value == filter + " daar").Select(r => r.Id);
+        [TestMethod]
+        public void WhereThenSelect()
+        {
+            var filter = "hallo";
+            var query = _context.Values.Where(p => p.Value == filter + " daar").Select(r => r.Id);
 
-        //        CheckResult(query, "select Id from MyValue where Value='hallo daar'");
+            CheckResult(query, "SELECT 'id' FROM 'myvalue' WHERE 'value'='hallo daar';");
+        }
 
-        //        Assert.IsNull(query.ToList());
-        //    }
+        [TestMethod]
+        public void SelectThenWhere()
+        {
+            var query = _context.Values.Select(r => r.Id).Where(id => id == 4);
 
-        //    [TestMethod]
-        //    public void SelectThenWhere()
-        //    {
-        //        var query = _context.Values.Select(r => r.Id).Where(id => id == 4);
-
-        //        CheckResult(query, "select Id from MyValue where Id=4");
-        //    }
+            CheckResult(query, "SELECT 'id' FROM 'myvalue' WHERE 'id'=4;");
+        }
 
         [TestMethod]
         public void NoWhereOrSelect()
         {
             var query = _context.Values;
-            CheckResult(query, "SELECT id,value FROM myvalue;");
+            CheckResult(query, "SELECT 'id','value' FROM 'myvalue';");
         }
 
-        //    [TestMethod]
-        //    public void SelectAll()
-        //    {
-        //        var query = _context.Values.Select(row => row);
-        //        CheckResult(query, "select * from MyValue");
-        //    }
+        [TestMethod]
+        public void SelectAll()
+        {
+            var query = _context.Values.Select(row => row);
+            CheckResult(query, "SELECT 'id','value' FROM 'myvalue';");
+        }
 
-        //    [TestMethod]
-        //    public void ConcatSelectQueries()
-        //    {
-        //        var query = _context.Values.Select(r => new { Id2 = r.Id + 2, Value2 = r.Value }).Select(r2 => new { Id3 = r2.Id2 });
-        //        CheckResult(query, "select Id,Value from MyValue");
-        //    }
+        [TestMethod]
+        public void SimpleSelectQueries()
+        {
+            var query = _context.Values.Select(r => new { Id2 = r.Id, Value2 = r.Value });
+            CheckResult(query, "SELECT 'id','value' FROM 'myvalue';");
+        }
 
-        //    [TestMethod]
-        //    public void OnlyWhereQuery()
-        //    {
-        //        var query = _context.Values.Where(r => r.Id == 2);
-        //        CheckResult(query, "select * from MyValue where Id=2");
-        //    }
+        [TestMethod]
+        public void SelectThenWhereWithObjectMappingQueries()
+        {
+            var query = _context.Values.Select(r => new { Id2 = r.Id, Value2 = r.Value }).Where(at => at.Id2==4);
+            CheckResult(query, "SELECT 'id','value' FROM 'myvalue' WHERE 'id'=4;");
+        }
+
+        [TestMethod]
+        public void ConcatSelectQueries()
+        {
+            var query = _context.Values.Select(r => new { Id2 = r.Id + 2, Value2 = r.Value }).Select(r2 => new { Id3 = r2.Id2 });
+            CheckResult(query, "SELECT 'id' FROM 'myvalue';");
+        }
+
+        [TestMethod]
+        public void OnlyWhereQuery()
+        {
+            var query = _context.Values.Where(r => r.Id == 2);
+            CheckResult(query, "SELECT 'id','value' FROM 'myvalue' WHERE 'id'=2;");
+        }
 
         //    [TestMethod]
         //    public void UnParsableWhereQuery()

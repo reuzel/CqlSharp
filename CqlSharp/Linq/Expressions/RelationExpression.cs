@@ -25,9 +25,9 @@ namespace CqlSharp.Linq.Expressions
     /// </summary>
     internal class RelationExpression : Expression
     {
-        private readonly ReadOnlyCollection<Expression> _identifiers;
+        private readonly ReadOnlyCollection<IdentifierExpression> _identifiers;
         private readonly CqlExpressionType _relation;
-        private readonly ReadOnlyCollection<Expression> _terms;
+        private readonly ReadOnlyCollection<TermExpression> _terms;
 
         /// <summary>
         /// Initializes a new instance of the <see cref="RelationExpression"/> class.
@@ -35,27 +35,25 @@ namespace CqlSharp.Linq.Expressions
         /// </summary>
         /// <param name="identifier">The identifier.</param>
         /// <param name="relation">The relation.</param>
-        /// <param name="terms">The terms.</param>
+        /// <param name="term">The term.</param>
         /// <exception cref="System.ArgumentNullException">
         /// identifier
         /// or
-        /// terms
+        /// term
         /// </exception>
         /// <exception cref="System.ArgumentException">The provided ExpressionType is not a valid relation</exception>
-        public RelationExpression(Expression identifier, CqlExpressionType relation, Expression terms)
+        public RelationExpression(IdentifierExpression identifier, CqlExpressionType relation, TermExpression term)
         {
+
             if (identifier == null)
                 throw new ArgumentNullException("identifier");
 
-            if (!relation.ToString().Contains("Relation"))
-                throw new ArgumentException("The provided ExpressionType is not a valid relation");
+            if (term == null)
+                throw new ArgumentNullException("term");
 
-            if (terms == null)
-                throw new ArgumentNullException("terms");
-
-            _identifiers = new ReadOnlyCollection<Expression>(new[] { identifier });
+            _identifiers = new ReadOnlyCollection<IdentifierExpression>(new[] { identifier });
             _relation = relation;
-            _terms = new ReadOnlyCollection<Expression>(new[] { terms });
+            _terms = new ReadOnlyCollection<TermExpression>(new[] { term });
         }
 
         /// <summary>
@@ -64,18 +62,18 @@ namespace CqlSharp.Linq.Expressions
         /// </summary>
         /// <param name="identifiers">The identifiers.</param>
         /// <param name="relation">The relation.</param>
-        /// <param name="terms">The terms.</param>
+        /// <param name="term">The term.</param>
         /// <exception cref="System.ArgumentNullException">
         /// identifiers
         /// or
-        /// terms
+        /// term
         /// </exception>
         /// <exception cref="System.ArgumentException">
         /// The provided ExpressionType is not a valid relation
         /// or
         /// The provided ExpressionType is not a valid (token) relation
         /// </exception>
-        public RelationExpression(IList<Expression> identifiers, CqlExpressionType relation, Expression terms)
+        public RelationExpression(IList<IdentifierExpression> identifiers, CqlExpressionType relation, TermExpression term)
         {
             if (identifiers == null)
                 throw new ArgumentNullException("identifiers");
@@ -86,12 +84,12 @@ namespace CqlSharp.Linq.Expressions
             if (!relation.ToString().Contains("Token"))
                 throw new ArgumentException("The provided ExpressionType is not a valid (token) relation");
 
-            if (terms == null)
-                throw new ArgumentNullException("terms");
+            if (term == null)
+                throw new ArgumentNullException("term");
 
-            _identifiers = new ReadOnlyCollection<Expression>(identifiers);
+            _identifiers = new ReadOnlyCollection<IdentifierExpression>(identifiers);
             _relation = relation;
-            _terms = new ReadOnlyCollection<Expression>(new[] { terms });
+            _terms = new ReadOnlyCollection<TermExpression>(new[] { term });
         }
 
         /// <summary>
@@ -99,13 +97,13 @@ namespace CqlSharp.Linq.Expressions
         /// Used for an IN relation
         /// </summary>
         /// <param name="identifier">The identifier.</param>
-        /// <param name="terms">The terms.</param>
+        /// <param name="terms">The term.</param>
         /// <exception cref="System.ArgumentNullException">
         /// identifier
         /// or
-        /// terms
+        /// term
         /// </exception>
-        public RelationExpression(Expression identifier, IList<Expression> terms)
+        public RelationExpression(IdentifierExpression identifier, IList<TermExpression> terms)
         {
             if (identifier == null)
                 throw new ArgumentNullException("identifier");
@@ -113,16 +111,16 @@ namespace CqlSharp.Linq.Expressions
             if (terms == null)
                 throw new ArgumentNullException("terms");
 
-            _identifiers = new ReadOnlyCollection<Expression>(new[] { identifier });
+            _identifiers = new ReadOnlyCollection<IdentifierExpression>(new[] { identifier });
             _relation = CqlExpressionType.In;
-            _terms = new ReadOnlyCollection<Expression>(terms);
+            _terms = new ReadOnlyCollection<TermExpression>(terms);
         }
 
-        private RelationExpression(IList<Expression> identifiers, CqlExpressionType relation, IList<Expression> terms)
+        private RelationExpression(IList<IdentifierExpression> identifiers, CqlExpressionType relation, IList<TermExpression> terms)
         {
-            _identifiers = new ReadOnlyCollection<Expression>(identifiers);
+            _identifiers = new ReadOnlyCollection<IdentifierExpression>(identifiers);
             _relation = relation;
-            _terms = new ReadOnlyCollection<Expression>(terms);
+            _terms = new ReadOnlyCollection<TermExpression>(terms);
         }
 
         public override ExpressionType NodeType
@@ -135,12 +133,12 @@ namespace CqlSharp.Linq.Expressions
             get { return typeof(bool); }
         }
 
-        public ReadOnlyCollection<Expression> Identifiers
+        public ReadOnlyCollection<IdentifierExpression> Identifiers
         {
             get { return _identifiers; }
         }
 
-        public ReadOnlyCollection<Expression> Terms
+        public ReadOnlyCollection<TermExpression> Terms
         {
             get { return _terms; }
         }
@@ -161,18 +159,18 @@ namespace CqlSharp.Linq.Expressions
         {
             bool changed = false;
 
-            var terms = new List<Expression>();
+            var terms = new List<TermExpression>();
             foreach (var term in _terms)
             {
-                var visitedTerm = visitor.Visit(term);
+                var visitedTerm = (TermExpression)visitor.Visit(term);
                 terms.Add(visitedTerm);
                 changed |= term != visitedTerm;
             }
 
-            var identifiers = new List<Expression>();
+            var identifiers = new List<IdentifierExpression>();
             foreach (var id in _identifiers)
             {
-                var visitedId = visitor.Visit(id);
+                var visitedId = (IdentifierExpression)visitor.Visit(id);
                 identifiers.Add(visitedId);
                 changed |= visitedId != id;
             }

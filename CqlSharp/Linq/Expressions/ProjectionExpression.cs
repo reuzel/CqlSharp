@@ -23,15 +23,15 @@ namespace CqlSharp.Linq.Expressions
     internal class ProjectionExpression : Expression
     {
         private readonly Expression _projection;
-        private readonly Expression _select;
+        private readonly SelectStatementExpression _select;
 
-        public ProjectionExpression(Expression select, Expression projection)
+        public ProjectionExpression(SelectStatementExpression select, Expression projection)
         {
             _select = @select;
             _projection = projection;
         }
 
-        public Expression Select
+        public SelectStatementExpression Select
         {
             get { return _select; }
         }
@@ -60,7 +60,7 @@ namespace CqlSharp.Linq.Expressions
 
         protected override Expression VisitChildren(ExpressionVisitor visitor)
         {
-            var selector = visitor.Visit(_select);
+            var selector = (SelectStatementExpression)visitor.Visit(_select);
             var projector = visitor.Visit(_projection);
 
             if (selector != _select || projector != _projection)

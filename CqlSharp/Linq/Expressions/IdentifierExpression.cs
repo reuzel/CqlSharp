@@ -70,5 +70,20 @@ namespace CqlSharp.Linq.Expressions
         {
             return string.Format("Identifier({0})", Name);
         }
+
+        public override bool Equals(object obj)
+        {
+            var type = obj as IdentifierExpression;
+            if (type != null)
+            {
+                return type._name.Equals(_name);
+            }
+            return false;
+        }
+
+        public override int GetHashCode()
+        {
+            return _name.GetHashCode();
+        }
     }
 }

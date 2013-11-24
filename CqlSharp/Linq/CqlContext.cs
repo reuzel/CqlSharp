@@ -118,14 +118,17 @@ namespace CqlSharp.Linq
             //evaluate all partial expressions (get rid of reference noise)
             var cleanedExpression = PartialVisitor.Evaluate(expression);
 
-            //project the expression to a cql expression and corresponding projection
-            var projection = new CqlProjectionVisitor().Translate(cleanedExpression);
+            //translate the expression to a cql expression and corresponding projection
+            var translation = new ExpressionTranslator().Translate(cleanedExpression);
+
+            //get rid of unnecessary column identifers
+            translation = new ColumnReducer().ReduceColumns(translation);
 
             //generate cql text
-            var cql = new CqlTextBuilder().Build(projection.Select);
+            var cql = new CqlTextBuilder().Build(translation.Select);
 
             //get a projection delegate
-            var projector = new ProjectorBuilder().BuildProjector(projection.Projection);
+            var projector = new ProjectorBuilder().BuildProjector(translation.Projection);
 
             //return translation results
             return new Tuple<string, LambdaExpression>(cql, projector);

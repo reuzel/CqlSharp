@@ -62,8 +62,9 @@ namespace CqlSharp.Linq
             var builder = new StringBuilder();
             builder.Append("SELECT ");
             builder.Append(_translations[selectStatement.SelectClause]);
-            builder.Append(" FROM ");
+            builder.Append(" FROM '");
             builder.Append(selectStatement.TableName);
+            builder.Append("'");
 
             if (selectStatement.WhereClause != null && selectStatement.WhereClause.Any())
             {
@@ -380,7 +381,7 @@ namespace CqlSharp.Linq
         public override Expression VisitIdentifier(IdentifierExpression identifier)
         {
             base.VisitIdentifier(identifier);
-            _translations[identifier] = identifier.Name;
+            _translations[identifier] = string.Format("'{0}'", identifier.Name);
             return identifier;
         }
     }
