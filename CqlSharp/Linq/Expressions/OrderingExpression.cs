@@ -74,7 +74,7 @@ namespace CqlSharp.Linq.Expressions
         {
             var identifier = visitor.Visit(_identifier);
 
-            return identifier != _identifier ? identifier : _identifier;
+            return identifier.Equals(_identifier) ? _identifier : identifier;
         }
     }
 }

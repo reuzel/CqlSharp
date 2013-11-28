@@ -59,5 +59,39 @@ namespace CqlSharp.Linq
             }
             return null;
         }
+
+        public static bool Implements(this Type type, Type iface)
+        {
+            if (type == iface)
+                return true;
+
+            bool findGeneric = iface.IsGenericTypeDefinition;
+
+            if (findGeneric && type.IsGenericType && type.GetGenericTypeDefinition() == iface)
+                return true;
+
+            Type[] interfaces = type.GetInterfaces();
+
+            foreach (var i in interfaces)
+            {
+                if (findGeneric && i.IsGenericType)
+                {
+                    if (i.IsGenericTypeDefinition && iface == i)
+                        return true;
+
+                    if (iface == i.GetGenericTypeDefinition())
+                        return true;
+                }
+
+                if (!findGeneric && !i.IsGenericType)
+                {
+                    if (iface == i)
+                        return true;
+                }
+            }
+
+            return false;
+        }
+
     }
 }

@@ -1,4 +1,6 @@
-﻿using CqlSharp.Linq;
+﻿using System;
+using System.Collections.Generic;
+using CqlSharp.Linq;
 using Microsoft.VisualStudio.TestTools.UnitTesting;
 using System.Diagnostics;
 using System.Linq;
@@ -101,45 +103,88 @@ namespace CqlSharp.Test
         }
 
         [TestMethod]
-        public void SimpleSelectQueries()
+        public void SelectIntoNewObject()
         {
             var query = _context.Values.Select(r => new { Id2 = r.Id, Value2 = r.Value });
             CheckResult(query, "SELECT 'id','value' FROM 'myvalue';");
         }
 
         [TestMethod]
-        public void SelectThenWhereWithObjectMappingQueries()
+        public void WhereIdInArray()
+        {
+            var query = _context.Values.Where(r => new[] { 1, 2, 3, 4 }.Contains(r.Id));
+            CheckResult(query, "SELECT 'id','value' FROM 'myvalue' WHERE 'id' IN (1,2,3,4);");
+        }
+
+        [TestMethod]
+        public void WhereIdInList()
+        {
+            var query = _context.Values.Where(r => new List<int> {1,2,3,4}.Contains(r.Id));
+            CheckResult(query, "SELECT 'id','value' FROM 'myvalue' WHERE 'id' IN (1,2,3,4);");
+        }
+
+        [TestMethod]
+        public void WhereIdInSet()
+        {
+            var query = _context.Values.Where(r => new HashSet<int> { 1, 2, 3, 4 }.Contains(r.Id));
+            CheckResult(query, "SELECT 'id','value' FROM 'myvalue' WHERE 'id' IN (1,2,3,4);");
+        }
+
+        [TestMethod]
+        [ExpectedException(typeof(CqlLinqException),"Type System.Collections.Generic.KeyValuePair`2[System.Int32,System.String] can not be converted to a valid CQL value")]
+        public void WhereKvpInDictionary()
+        {
+            var query = _context.Values.Where(r => new Dictionary<int, string> { { 1, "a" }, { 2, "b" }, { 3, "c" } }.Contains(new KeyValuePair<int, string>(r.Id, "a")));
+            CheckResult(query, "No valid query");
+        }
+
+        [TestMethod]
+        [ExpectedException(typeof(CqlLinqException), "Type System.Char can't be converted to a CQL value")]
+        public void WhereIdInNotSupportedListType()
+        {
+            var query = _context.Values.Where(r => new List<char>{ 'a', 'b', 'c' }.Contains((char)r.Id));
+            CheckResult(query, "No valid query");
+        }
+
+        [TestMethod]
+        public void SelectIntoNewObjectThenWhere()
         {
             var query = _context.Values.Select(r => new { Id2 = r.Id, Value2 = r.Value }).Where(at => at.Id2==4);
             CheckResult(query, "SELECT 'id','value' FROM 'myvalue' WHERE 'id'=4;");
         }
 
         [TestMethod]
-        public void ConcatSelectQueries()
+        public void SelectThenSelect()
         {
             var query = _context.Values.Select(r => new { Id2 = r.Id + 2, Value2 = r.Value }).Select(r2 => new { Id3 = r2.Id2 });
             CheckResult(query, "SELECT 'id' FROM 'myvalue';");
         }
 
         [TestMethod]
-        public void OnlyWhereQuery()
+        public void OnlyWhere()
         {
             var query = _context.Values.Where(r => r.Id == 2);
             CheckResult(query, "SELECT 'id','value' FROM 'myvalue' WHERE 'id'=2;");
         }
 
-        //    [TestMethod]
-        //    public void UnParsableWhereQuery()
-        //    {
-        //        var query = _context.Values.Where(r => r.Id + 2 == 4);
-        //        CheckResult(query, "select * from MyValue");
-        //    }
+        [TestMethod]
+        [ExpectedException(typeof(CqlLinqException), "CQL does not support the Add operator")]
+        public void UnParsableWhereQuery()
+        {
+            var query = _context.Values.Where(r => r.Id + 2 == 4);
+            CheckResult(query, "no valid query");
+        }
 
-        //    [TestMethod]
-        //    public void PartiallyUnParsableWhereQuery()
-        //    {
-        //        var query = _context.Values.Where(r => r.Id + 2 == 4 && r.Value == "hallo");
-        //        CheckResult(query, "select * from MyValue where Value=hallo");
-        //    }
+        [TestMethod]
+        //[ExpectedException(typeof(CqlLinqException), "CQL does not support the Add operator")]
+        public void WhereFromLinqToObjects()
+        {
+            var range = Enumerable.Range(1, 5);
+            var selection = from r in range where r > 3 select r;
+            
+            var query = _context.Values.Where(r => selection.AsQueryable().Contains(r.Id));
+            CheckResult(query, "SELECT 'id','value' FROM 'myvalue' WHERE 'id' IN (4,5);");
+        }
     }
 }
+

@@ -87,7 +87,7 @@ namespace CqlSharp.Linq.Expressions
             if (term == null)
                 throw new ArgumentNullException("term");
 
-            _identifiers = new ReadOnlyCollection<IdentifierExpression>(identifiers);
+            _identifiers = identifiers.AsReadOnly();
             _relation = relation;
             _terms = new ReadOnlyCollection<TermExpression>(new[] { term });
         }
@@ -113,14 +113,14 @@ namespace CqlSharp.Linq.Expressions
 
             _identifiers = new ReadOnlyCollection<IdentifierExpression>(new[] { identifier });
             _relation = CqlExpressionType.In;
-            _terms = new ReadOnlyCollection<TermExpression>(terms);
+            _terms = terms.AsReadOnly();
         }
 
         private RelationExpression(IList<IdentifierExpression> identifiers, CqlExpressionType relation, IList<TermExpression> terms)
         {
-            _identifiers = new ReadOnlyCollection<IdentifierExpression>(identifiers);
+            _identifiers = identifiers.AsReadOnly();
             _relation = relation;
-            _terms = new ReadOnlyCollection<TermExpression>(terms);
+            _terms = terms.AsReadOnly();
         }
 
         public override ExpressionType NodeType
@@ -172,7 +172,7 @@ namespace CqlSharp.Linq.Expressions
             {
                 var visitedId = (IdentifierExpression)visitor.Visit(id);
                 identifiers.Add(visitedId);
-                changed |= visitedId != id;
+                changed |= !visitedId.Equals(id);
             }
 
             if (changed)

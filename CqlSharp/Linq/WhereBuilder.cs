@@ -1,4 +1,6 @@
 ﻿using CqlSharp.Linq.Expressions;
+using System;
+using System.Collections;
 using System.Collections.Generic;
 using System.Linq;
 using System.Linq.Expressions;
@@ -17,7 +19,7 @@ namespace CqlSharp.Linq
             //map the arguments of the lambda expression to the existing projection
             MapLambdaParameters(lambda, projection.Projection);
 
-            if(projection.Select.WhereClause!=null)
+            if (projection.Select.WhereClause != null)
                 _relations = new HashSet<RelationExpression>(projection.Select.WhereClause);
             else
                 _relations = new HashSet<RelationExpression>();
@@ -34,6 +36,38 @@ namespace CqlSharp.Linq
                                                               _relations.ToArray(), select.OrderBy, select.Limit);
 
             return new ProjectionExpression(newSelectStmt, projection.Projection);
+        }
+
+        protected override Expression VisitMethodCall(MethodCallExpression node)
+        {
+            Type classType = node.Method.DeclaringType;
+            if (classType == typeof(Enumerable) || classType == typeof(Queryable))
+            {
+                Expression left = Visit(node.Arguments[0]);
+                Expression right = Visit(node.Arguments[1]);
+
+                switch (node.Method.Name)
+                {
+                    case "Equals":
+                        return CreateRelation(left, right, CqlExpressionType.Equal,
+                                              CqlExpressionType.Equal);
+                    case "Contains":
+                        return CreateRelation(left, right, CqlExpressionType.In, CqlExpressionType.In);
+                }
+            }
+
+            if (node.Method.DeclaringType.Implements(typeof(IEnumerable<>)))
+            {
+                Expression left = Visit(node.Object);
+                Expression right = Visit(node.Arguments[0]);
+                switch (node.Method.Name)
+                {
+                    case "Contains":
+                        return CreateRelation(left, right, CqlExpressionType.In, CqlExpressionType.In);
+                }
+            }
+
+            throw new CqlLinqException(string.Format("Method {0} is not supported in CQL expressions", node.Method.Name));
         }
 
         protected override Expression VisitBinary(BinaryExpression node)
@@ -64,28 +98,56 @@ namespace CqlSharp.Linq
         /// </summary>
         /// <param name="left">The left.</param>
         /// <param name="right">The right.</param>
-        /// <returns>true expression if the relation is succesfully created</returns>
+        /// <param name="compareOp">The compare operation.</param>
+        /// <param name="compareOpSwitched">The compare operation switched.</param>
+        /// <returns>
+        /// true expression if the relation is succesfully created
+        /// </returns>
+        /// <exception cref="CqlLinqException">
+        /// Can't determine the (column) identfier for the CQL where relation
+        /// or
+        /// Error creating relation. Not able to detect the correct term to create the relation with.
+        /// </exception>
         private Expression CreateRelation(Expression left, Expression right, CqlExpressionType compareOp, CqlExpressionType compareOpSwitched)
         {
             var leftType = (CqlExpressionType)left.NodeType;
             var rightType = (CqlExpressionType)right.NodeType;
             bool shuffled = false;
-            if (rightType == CqlExpressionType.Identifier && leftType == CqlExpressionType.Constant)
+
+            //make sure identifier is left
+            if (rightType == CqlExpressionType.Identifier)
             {
+                //swap expressions
                 Expression temp = left;
                 left = right;
                 right = temp;
+
+                //swap type
+                rightType = leftType;
+                leftType = CqlExpressionType.Identifier;
+
+                //indicate shuffling
                 shuffled = true;
             }
 
-            if (leftType == CqlExpressionType.Identifier && rightType == CqlExpressionType.Constant)
+            if (leftType != CqlExpressionType.Identifier)
+                throw new CqlLinqException("Can't determine the (column) identfier for the CQL where relation");
+
+            if (rightType == CqlExpressionType.Constant)
             {
                 var relation = new RelationExpression((IdentifierExpression)left, shuffled ? compareOpSwitched : compareOp, (TermExpression)right);
                 _relations.Add(relation);
                 return Expression.Constant(true);
             }
 
-            throw new CqlLinqException("Error creating relation. Not able to detect identifier and term");
+            if (compareOp == CqlExpressionType.In && (rightType == CqlExpressionType.Set || rightType == CqlExpressionType.List))
+            {
+                var relation = new RelationExpression((IdentifierExpression)left, ((TermExpression)right).Terms);
+                _relations.Add(relation);
+                return Expression.Constant(true);
+            }
+
+            throw new CqlLinqException("Error creating relation. Not able to detect the correct term to create the relation with.");
         }
 
         /// <summary>
@@ -97,24 +159,61 @@ namespace CqlSharp.Linq
         /// </returns>
         protected override Expression VisitConstant(ConstantExpression node)
         {
-            if (node.Type.IsGenericType)
+            //check if it is a valid CQL type
+            if (node.Type.IsCqlType())
+                return new TermExpression(node.Value);
+
+            //check if it is a map
+            if (node.Type.Implements(typeof(IDictionary<,>)))
             {
-                if (node.Type.GetGenericTypeDefinition() == typeof(Dictionary<,>))
-                    return new TermExpression(CqlExpressionType.Map, node.Value);
+                var terms = new Dictionary<TermExpression, TermExpression>();
+                foreach (DictionaryEntry elem in (IDictionary)node.Value)
+                    terms.Add(new TermExpression(elem.Key), new TermExpression(elem.Value));
 
-                if (node.Type.GetGenericTypeDefinition() == typeof(HashSet<>))
-                    return new TermExpression(CqlExpressionType.Set, node.Value);
-
-                if (node.Type.GetGenericTypeDefinition() == typeof(List<>))
-                    return new TermExpression(CqlExpressionType.List, node.Value);
+                return new TermExpression(node.Type, terms);
             }
 
-            if (node.Type.IsArray)
+            //check if it is a set
+            if (node.Type.Implements(typeof(ISet<>)))
             {
-                return new TermExpression(CqlExpressionType.List, node.Value);
+                var terms = new List<TermExpression>();
+                foreach (var elem in (IEnumerable)node.Value)
+                    terms.Add(new TermExpression(elem));
+
+                return new TermExpression(node.Type, CqlExpressionType.Set, terms);
             }
 
-            return new TermExpression(CqlExpressionType.Constant, node.Value);
+            //check if it is a collection (and therefore will be represented as List)
+            if (node.Type.Implements(typeof(IEnumerable<>)))
+            {
+                var terms = new List<TermExpression>();
+                foreach (var elem in (IEnumerable)node.Value)
+                    terms.Add(new TermExpression(elem));
+
+                return new TermExpression(node.Type, CqlExpressionType.List, terms);
+            }
+
+            //hmmm, no valid mapping to a term can be made!
+            throw new CqlLinqException(string.Format("Type {0} can't be coverted to a CQL constant, list, set or map", node.Type));
+        }
+
+        /// <summary>
+        /// Performs simple type checking to see if new expression will result in valid CQL type
+        /// </summary>
+        /// <param name="node">The expression to visit.</param>
+        /// <returns>
+        /// The modified expression, if it or any subexpression was modified; otherwise, returns the original expression.
+        /// </returns>
+        /// <exception cref="CqlLinqException"></exception>
+        protected override Expression VisitNew(NewExpression node)
+        {
+            if (node.Type.IsCqlType() ||
+                node.Type.Implements(typeof(ISet<>)) ||
+                node.Type.Implements(typeof(IDictionary<,>)) ||
+                node.Type.Implements(typeof(IEnumerable<>)))
+                return base.VisitNew(node);
+
+            throw new CqlLinqException(string.Format("Type {0} can not be converted to a valid CQL value", node.Type));
         }
 
     }

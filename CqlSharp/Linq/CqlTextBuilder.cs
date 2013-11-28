@@ -15,7 +15,6 @@
 
 using CqlSharp.Linq.Expressions;
 using System;
-using System.Collections;
 using System.Collections.Generic;
 using System.Globalization;
 using System.Linq;
@@ -240,6 +239,8 @@ namespace CqlSharp.Linq
 
         public override Expression VisitTerm(TermExpression term)
         {
+            base.VisitTerm(term);
+
             var builder = new StringBuilder();
 
             switch ((CqlExpressionType)term.NodeType)
@@ -255,11 +256,9 @@ namespace CqlSharp.Linq
                 case CqlExpressionType.List:
                     {
                         builder.Append("[");
-                        Type listType = term.Value.GetType();
-                        Type elementType = listType.GetGenericArguments()[0];
                         var elements = new List<string>();
-                        foreach (var value in (IEnumerable)term.Value)
-                            elements.Add(ToStringValue(value, elementType));
+                        foreach (var value in term.Terms)
+                            elements.Add(_translations[value]);
                         builder.Append(string.Join(",", elements));
                         builder.Append("]");
                     }
@@ -268,11 +267,9 @@ namespace CqlSharp.Linq
                 case CqlExpressionType.Set:
                     {
                         builder.Append("{");
-                        Type listType = term.Value.GetType();
-                        Type elementType = listType.GetGenericArguments()[0];
                         var elements = new List<string>();
-                        foreach (var value in (IEnumerable)term.Value)
-                            elements.Add(ToStringValue(value, elementType));
+                        foreach (var value in term.Terms)
+                            elements.Add(_translations[value]);
                         builder.Append(string.Join(",", elements));
                         builder.Append("}");
                     }
@@ -281,19 +278,13 @@ namespace CqlSharp.Linq
                 case CqlExpressionType.Map:
                     {
                         builder.Append("{");
-                        Type listType = term.Value.GetType();
-                        Type keyType = listType.GetGenericArguments()[0];
-                        Type elementType = listType.GetGenericArguments()[1];
-                        var dict = (IDictionary)term.Value;
-
                         var elements = new List<string>();
-                        foreach (DictionaryEntry value in dict)
+                        foreach (var pair in term.DictionaryTerms)
                         {
                             elements.Add(string.Format("{0}:{1}",
-                                                       ToStringValue(value.Key, keyType),
-                                                       ToStringValue(value.Value, elementType)));
+                                                       _translations[pair.Key],
+                                                       _translations[pair.Value]));
                         }
-
                         builder.Append(string.Join(",", elements));
                         builder.Append("}");
                     }
@@ -302,7 +293,7 @@ namespace CqlSharp.Linq
                 case CqlExpressionType.Function:
                     builder.Append(term.Function.ToString());
                     builder.Append("(");
-                    builder.Append(string.Join(",", term.Arguments.Select(arg => _translations[arg])));
+                    builder.Append(string.Join(",", term.Terms.Select(arg => _translations[arg])));
                     builder.Append(")");
                     break;
 

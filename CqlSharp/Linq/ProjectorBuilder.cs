@@ -22,7 +22,17 @@ namespace CqlSharp.Linq
 
         public override Expression VisitIdentifier(IdentifierExpression identifier)
         {
-            return Expression.Convert(Expression.MakeIndex(_reader, Indexer, new[] { Expression.Constant(identifier.Name) }), identifier.Type);
+            var value = Expression.MakeIndex(_reader, Indexer, new[] { Expression.Constant(identifier.Name) });
+
+            if (identifier.Type.IsValueType)
+            {
+                return Expression.Condition(
+                    Expression.Equal(value, Expression.Constant(null)),
+                    Expression.Default(identifier.Type),
+                    Expression.Convert(value, identifier.Type));
+            }
+
+            return Expression.Convert(value, identifier.Type);
         }
     }
 }

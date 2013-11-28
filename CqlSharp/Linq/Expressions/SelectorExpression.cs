@@ -80,7 +80,7 @@ namespace CqlSharp.Linq.Expressions
                     break;
             }
             _function = function;
-            _arguments = new ReadOnlyCollection<SelectorExpression>(arguments);
+            _arguments = arguments.AsReadOnly();
         }
 
         private SelectorExpression(Type type, CqlExpressionType selectorType, IdentifierExpression identifier, Functions function, IList<SelectorExpression> arguments)
@@ -89,7 +89,7 @@ namespace CqlSharp.Linq.Expressions
             _selectorType = selectorType;
             _identifier = identifier;
             _function = function;
-            _arguments = new ReadOnlyCollection<SelectorExpression>(arguments);
+            _arguments = arguments.AsReadOnly();
         }
 
 
@@ -138,7 +138,7 @@ namespace CqlSharp.Linq.Expressions
             if (_identifier != null)
             {
                 identifier = (IdentifierExpression)visitor.Visit(_identifier);
-                changed |= identifier != _identifier;
+                changed |= !identifier.Equals(_identifier);
             }
 
             SelectorExpression[] args = null;

@@ -38,7 +38,7 @@ namespace CqlSharp.Linq.Expressions
         {
             _nodeType = CqlExpressionType.SelectColumns;
             _distinct = distinct;
-            _selectors = new ReadOnlyCollection<SelectorExpression>(selectors);
+            _selectors = selectors.AsReadOnly();
         }
 
         public bool? Distinct

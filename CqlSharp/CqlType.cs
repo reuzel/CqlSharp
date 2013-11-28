@@ -152,7 +152,7 @@ namespace CqlSharp
             switch (cqlType)
             {
                 case CqlType.Map:
-                    Type genericMapType = typeof (Dictionary<,>);
+                    Type genericMapType = typeof(Dictionary<,>);
 
                     Debug.Assert(keyType.HasValue, "a map should have a Key type");
                     Debug.Assert(valueType.HasValue, "a map should have a Value type");
@@ -162,14 +162,14 @@ namespace CqlSharp
                     break;
 
                 case CqlType.Set:
-                    Type genericSetType = typeof (HashSet<>);
+                    Type genericSetType = typeof(HashSet<>);
                     Debug.Assert(valueType.HasValue, "a set should have a Value type");
 
                     type = genericSetType.MakeGenericType(valueType.Value.ToType());
                     break;
 
                 case CqlType.List:
-                    Type genericListType = typeof (List<>);
+                    Type genericListType = typeof(List<>);
                     Debug.Assert(valueType.HasValue, "a list should have a Value type");
 
                     type = genericListType.MakeGenericType(valueType.Value.ToType());
@@ -185,19 +185,30 @@ namespace CqlSharp
         }
 
         /// <summary>
-        ///   gets the corresponding the CqlType.
+        /// gets the corresponding the CqlType.
         /// </summary>
-        /// <param name="type"> The type. </param>
-        /// <returns> </returns>
-        /// <exception cref="System.NotSupportedException">Type +type.Name+ is not supported for deserialization</exception>
+        /// <param name="type">The type.</param>
+        /// <returns></returns>
+        /// <exception cref="System.NotSupportedException">Type can not be mapped to a valid CQL type</exception>
         internal static CqlType ToCqlType(this Type type)
         {
             CqlType cqlType;
 
             if (!Type2CqlType.TryGetValue(type, out cqlType))
-                throw new NotSupportedException("Type " + type.Name + " is not supported for deserialization");
+                throw new NotSupportedException("Type " + type.Name + " can not be mapped to a valid CQL type");
 
             return cqlType;
+        }
+
+        /// <summary>
+        /// gets the corresponding the CqlType.
+        /// </summary>
+        /// <param name="type">The type.</param>
+        /// <returns></returns>
+        /// <exception cref="System.NotSupportedException">Type can not be mapped to a valid CQL type</exception>
+        internal static bool IsCqlType(this Type type)
+        {
+            return Type2CqlType.ContainsKey(type);
         }
 
         /// <summary>
