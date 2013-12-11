@@ -31,23 +31,15 @@
       See https://github.com/reuzel/CqlSharp/wiki/Features for an extensive feature list.
     </description>
     <releaseNotes>
+      Version 0.30.2 - Deadlock removal
+      * Fix: Adding two missing ConfigureAwait statements avoiding deadlock in MVC projects
+      
       Version 0.30.1 - Node address fallback
       * Fallback to listen-address during discovery when rpc-address is 0.0.0.0. Issue #20
       * Performance: Removing some boxing of structs during deserialization
 
       Version 0.30.0 - Binary Protocol V2 support
-      * Allowing default database to be set via connectionstring, regardless of connectionstrategy in use
-      * Sasl Authentication support. PasswordAuthenticator is supported out-of-the-box. Extendable via MEF by providing IAuthenticator and IAuthenticatorFactory implementations.
-      * Batch support via CqlBatchTransaction. Assign the command to the CqlBatchTransaction and executes will be buffered. When CqlBatchTransaction is committed it will create and submit a batch statement.
-      * Paging support. CqlCommand can be given a page size: when iterating over a query result, the data will be fetched in "chunks" of the given page size
-      * Use of bound parameters with non-prepared queries
-      * Support for Serial_Local for CompareAndSet (CAS) statements
-      * Added CqlConnection.Shutdown methods to close all connections to Cassandra
-      * Performance: when using Cql protocol v2, cached result metadata will be used, reducing network overhead
-      * Performance: Prepare() better utilizes caching, less Task creation overhead
-      * Fix: ChangeDatabase function uses correct use syntax
-      * Fix: ConnectionStratagies are better aware of existing connections on startup.
-
+      
       See https://github.com/reuzel/CqlSharp/blob/master/ChangeLog.md for the full changelog.
     </releaseNotes>
     <copyright>Copyright 2013 Joost Reuzel</copyright>
