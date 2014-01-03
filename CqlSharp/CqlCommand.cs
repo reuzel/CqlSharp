@@ -531,7 +531,7 @@ namespace CqlSharp
         public new async Task<CqlDataReader> ExecuteReaderAsync(CommandBehavior behavior,
                                                                 CancellationToken cancellationToken)
         {
-            var result = await ExecuteReaderAsyncInternal(behavior, cancellationToken);
+            var result = await ExecuteReaderAsyncInternal(behavior, cancellationToken).ConfigureAwait(false);
 
             var reader = new CqlDataReader(this, result,
                                            behavior.HasFlag(CommandBehavior.CloseConnection) ? _connection : null);
@@ -583,7 +583,7 @@ namespace CqlSharp
                                                                   CancellationToken cancellationToken)
             where T : class, new()
         {
-            var result = await ExecuteReaderAsyncInternal(behavior, cancellationToken);
+            var result = await ExecuteReaderAsyncInternal(behavior, cancellationToken).ConfigureAwait(false);
 
             var reader = new CqlDataReader<T>(this, result,
                                               behavior.HasFlag(CommandBehavior.CloseConnection) ? _connection : null);
