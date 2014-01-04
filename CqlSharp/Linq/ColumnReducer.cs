@@ -15,12 +15,12 @@ namespace CqlSharp.Linq
         {
             Visit(expression.Projection);
 
-            var select = (SelectStatementExpression)expression.Select;
+            var select = expression.Select;
             var newSelect = new SelectStatementExpression(select.Type, new SelectClauseExpression(_identifiers.ToArray(), select.SelectClause.Distinct),
                                                           select.TableName, select.WhereClause, select.OrderBy,
                                                           select.Limit);
 
-            return new ProjectionExpression(newSelect, expression.Projection);
+            return new ProjectionExpression(newSelect, expression.Projection, expression.ResultFunction);
         }
 
         public override System.Linq.Expressions.Expression VisitIdentifier(IdentifierExpression identifier)

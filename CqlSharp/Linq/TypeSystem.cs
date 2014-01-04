@@ -20,6 +20,11 @@ namespace CqlSharp.Linq
 {
     internal static class TypeSystem
     {
+        internal static object DefaultValue(this Type type)
+        {
+             return type.IsValueType ? Activator.CreateInstance(type) : null;
+        }
+        
         internal static Type GetElementType(Type seqType)
         {
             Type ienum = FindIEnumerable(seqType);

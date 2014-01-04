@@ -6,6 +6,9 @@ using System.Reflection;
 
 namespace CqlSharp.Linq
 {
+    /// <summary>
+    /// Translates a Linq Expression tree into a Cql expression tree
+    /// </summary>
     class ExpressionTranslator : CqlExpressionVisitor
     {
         private readonly Dictionary<Expression, Expression> _map = new Dictionary<Expression, Expression>();
@@ -26,6 +29,11 @@ namespace CqlSharp.Linq
             return base.VisitConstant(constant);
         }
 
+        /// <summary>
+        /// Creates the table projection.
+        /// </summary>
+        /// <param name="table">The table.</param>
+        /// <returns></returns>
         private static Expression CreateTableProjection(ICqlTable table)
         {
             var enumType = typeof(IEnumerable<>).MakeGenericType(table.Type);
@@ -37,10 +45,13 @@ namespace CqlSharp.Linq
                 var identifierType = column.Key.MemberType == MemberTypes.Property
                                          ? ((PropertyInfo)column.Key).PropertyType
                                          : ((FieldInfo)column.Key).FieldType;
+
                 var identifierName = column.Value;
 
                 var identifier = new IdentifierExpression(identifierType, identifierName);
+
                 selectors.Add(new SelectorExpression(identifier));
+
                 bindings.Add(Expression.Bind(column.Key, identifier));
             }
 
@@ -49,7 +60,7 @@ namespace CqlSharp.Linq
 
             var projection = Expression.MemberInit(Expression.New(table.Type), bindings);
 
-            return new ProjectionExpression(selectStmt, projection);
+            return new ProjectionExpression(selectStmt, projection, null);
         }
 
         protected override Expression VisitMethodCall(MethodCallExpression call)
@@ -60,17 +71,113 @@ namespace CqlSharp.Linq
                 {
                     case "Select":
                         {
-                            //visit the source of the select first. This should return a ProjectionExpression
-                            //as it would be either a table, another select or where clause that return
-                            //ProjectionExpressions themselves
                             var source = (ProjectionExpression)Visit(call.Arguments[0]);
-                            return new SelectBuilder().UpdateSelect(source, call.Arguments[1]);
+                            var newProjection = new SelectBuilder().UpdateSelect(source, call.Arguments[1]);
+                            return new ColumnReducer().ReduceColumns(newProjection);
                         }
                     case "Where":
                         {
                             var source = (ProjectionExpression)Visit(call.Arguments[0]);
                             return new WhereBuilder().BuildWhere(source, call.Arguments[1]);
                         }
+                    case "First":
+                        {
+                            var source = (ProjectionExpression)Visit(call.Arguments[0]);
+
+                            //if first contains a predicate, include it in the where clause...
+                            if (call.Arguments.Count > 1)
+                                source = new WhereBuilder().BuildWhere(source, call.Arguments[1]);
+
+                            //add limit to return single result
+                            var select = new SelectStatementExpression(source.Select.Type, source.Select.SelectClause,
+                                                                       source.Select.TableName,
+                                                                       source.Select.WhereClause, source.Select.OrderBy,
+                                                                       1);
+
+                            return new ProjectionExpression(select, source.Projection, Enumerable.First);
+                        }
+                    case "FirstOrDefault":
+                        {
+                            var source = (ProjectionExpression)Visit(call.Arguments[0]);
+
+                            //if first contains a predicate, include it in the where clause...
+                            if (call.Arguments.Count > 1)
+                                source = new WhereBuilder().BuildWhere(source, call.Arguments[1]);
+
+                            //add limit to return single result
+                            var select = new SelectStatementExpression(source.Select.Type, source.Select.SelectClause,
+                                                                       source.Select.TableName,
+                                                                       source.Select.WhereClause, source.Select.OrderBy,
+                                                                       1);
+
+                            return new ProjectionExpression(select, source.Projection, Enumerable.FirstOrDefault);
+                        }
+                    case "Single":
+                        {
+                            var source = (ProjectionExpression)Visit(call.Arguments[0]);
+
+                            //if first contains a predicate, include it in the where clause...
+                            if (call.Arguments.Count > 1)
+                                source = new WhereBuilder().BuildWhere(source, call.Arguments[1]);
+
+                            //add limit to return single result
+                            var select = new SelectStatementExpression(source.Select.Type, source.Select.SelectClause,
+                                                                       source.Select.TableName,
+                                                                       source.Select.WhereClause, source.Select.OrderBy,
+                                                                       2);
+
+                            return new ProjectionExpression(select, source.Projection, Enumerable.Single);
+                        }
+                    case "SingleOrDefault":
+                        {
+                            var source = (ProjectionExpression)Visit(call.Arguments[0]);
+
+                            //if first contains a predicate, include it in the where clause...
+                            if (call.Arguments.Count > 1)
+                                source = new WhereBuilder().BuildWhere(source, call.Arguments[1]);
+
+                            //add limit to return single result
+                            var select = new SelectStatementExpression(source.Select.Type, source.Select.SelectClause,
+                                                                       source.Select.TableName,
+                                                                       source.Select.WhereClause, source.Select.OrderBy,
+                                                                       2);
+
+                            return new ProjectionExpression(select, source.Projection, Enumerable.SingleOrDefault);
+                        }
+
+                    case "Any":
+                        {
+                            var source = (ProjectionExpression)Visit(call.Arguments[0]);
+
+                            //if first contains a predicate, include it in the where clause...
+                            if (call.Arguments.Count > 1)
+                                source = new WhereBuilder().BuildWhere(source, call.Arguments[1]);
+
+                            //add limit to return single result
+                            var select = new SelectStatementExpression(source.Select.Type, source.Select.SelectClause,
+                                                                       source.Select.TableName,
+                                                                       source.Select.WhereClause, source.Select.OrderBy,
+                                                                       1);
+
+                            return new ProjectionExpression(select, source.Projection, (enm) => enm.Any());
+                        }
+
+                    case "Count":
+                        {
+                            var source = (ProjectionExpression)Visit(call.Arguments[0]);
+
+                            //if first contains a predicate, include it in the where clause...
+                            if (call.Arguments.Count > 1)
+                                source = new WhereBuilder().BuildWhere(source, call.Arguments[1]);
+
+                            //remove the select clause and replace with count(*)
+                            var select = new SelectStatementExpression(typeof(long), new SelectClauseExpression(true),
+                                                                       source.Select.TableName,
+                                                                       source.Select.WhereClause, null, null);
+
+                            return new ProjectionExpression(select, new IdentifierExpression(typeof(long), "count"), Enumerable.Single);
+                        }
+
                     default:
                         throw new CqlLinqException(string.Format("Method {0} is not supported", call.Method));
                 }

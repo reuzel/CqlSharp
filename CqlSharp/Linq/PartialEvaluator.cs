@@ -22,7 +22,7 @@ namespace CqlSharp.Linq
     /// <summary>
     ///   Performs evaluation & replacement of independent sub-trees
     /// </summary>
-    public static class PartialVisitor
+    public static class PartialEvaluator
     {
         /// <summary>
         ///   Performs evaluation & replacement of independent sub-trees
@@ -35,20 +35,7 @@ namespace CqlSharp.Linq
             return new SubtreeEvaluator(new Nominator(fnCanBeEvaluated).Nominate(expression)).Visit(expression);
         }
 
-        /// <summary>
-        ///   Performs evaluation & replacement of independent sub-trees
-        /// </summary>
-        /// <param name="expression"> The root of the expression tree. </param>
-        /// <returns> A new tree with sub-trees evaluated and replaced. </returns>
-        public static Expression Evaluate(Expression expression)
-        {
-            return Evaluate(expression, CanBeEvaluatedLocally);
-        }
-
-        private static bool CanBeEvaluatedLocally(Expression expression)
-        {
-            return expression.NodeType != ExpressionType.Parameter;
-        }
+       
 
         #region Nested type: Nominator
 

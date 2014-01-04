@@ -21,7 +21,7 @@ namespace CqlSharp.Linq
                 return projection;
 
             //create new projection
-            return new ProjectionExpression(projection.Select, newProjection);
+            return new ProjectionExpression(projection.Select, newProjection, projection.ResultFunction);
         }
     }
 }

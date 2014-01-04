@@ -71,6 +71,7 @@
     <Compile Include="Linq\CqlContext.cs" />
     <Compile Include="Linq\CqlLinqException.cs" />
     <Compile Include="Linq\Expressions\ReadOnlyExtensions.cs" />
+    <Compile Include="Linq\Expressions\ResultFunction.cs" />
     <Compile Include="Linq\ExpressionTranslator.cs" />
     <Compile Include="Linq\CqlTextBuilder.cs" />
     <Compile Include="Linq\Expressions\CqlExpressionType.cs" />

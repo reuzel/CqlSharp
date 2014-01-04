@@ -35,7 +35,7 @@ namespace CqlSharp.Linq
             var newSelectStmt = new SelectStatementExpression(select.Type, select.SelectClause, select.TableName,
                                                               _relations.ToArray(), select.OrderBy, select.Limit);
 
-            return new ProjectionExpression(newSelectStmt, projection.Projection);
+            return new ProjectionExpression(newSelectStmt, projection.Projection, projection.ResultFunction);
         }
 
         protected override Expression VisitMethodCall(MethodCallExpression node)
