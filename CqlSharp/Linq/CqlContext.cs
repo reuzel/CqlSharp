@@ -37,8 +37,9 @@ namespace CqlSharp.Linq
         /// <param name="initializeTables"> indicates wether the table properties are to be automatically initialized </param>
         protected CqlContext(bool initializeTables = true)
         {
+#if DEBUG
             SkipExecute = false;
-
+#endif
             if (initializeTables)
                 InitializeTables();
         }
@@ -48,13 +49,9 @@ namespace CqlSharp.Linq
         /// </summary>
         /// <param name="connectionString"> The connection string. </param>
         /// <param name="initializeTables"> indicates wether the table properties are to be automatically initialized </param>
-        protected CqlContext(string connectionString, bool initializeTables = true)
+        protected CqlContext(string connectionString, bool initializeTables = true) : this(initializeTables)
         {
-            SkipExecute = false;
-
             _connectionString = connectionString;
-            if (initializeTables)
-                InitializeTables();
         }
 
         /// <summary>
@@ -82,6 +79,7 @@ namespace CqlSharp.Linq
         /// </value>
         public TextWriter Log { get; set; }
 
+#if DEBUG
         /// <summary>
         /// Gets or sets a value indicating whether execution of the query is skipped. This is for debugging purposes.
         /// </summary>
@@ -89,6 +87,7 @@ namespace CqlSharp.Linq
         ///   <c>true</c> if execution is skipped; otherwise, <c>false</c>.
         /// </value>
         public bool SkipExecute { get; set; }
+#endif
 
         #region IDisposable Members
 
@@ -127,6 +126,7 @@ namespace CqlSharp.Linq
             if (Log != null)
                 Log.WriteLine(result.Cql);
 
+#if DEBUG
             //return default values of execution is to be skipped
             if (SkipExecute)
             {
@@ -137,6 +137,7 @@ namespace CqlSharp.Linq
                 //return default value or null
                 return result.Projector.ReturnType.DefaultValue();
             }
+#endif
 
             Delegate projector = result.Projector.Compile();
 

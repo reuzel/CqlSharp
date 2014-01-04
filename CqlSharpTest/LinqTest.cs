@@ -1,10 +1,7 @@
-﻿using System;
-using System.IO;
-using System.Linq.Expressions;
-using CqlSharp.Linq;
+﻿using CqlSharp.Linq;
 using Microsoft.VisualStudio.TestTools.UnitTesting;
 using System.Collections.Generic;
-using System.Diagnostics;
+using System.IO;
 using System.Linq;
 
 namespace CqlSharp.Test
@@ -40,7 +37,7 @@ namespace CqlSharp.Test
                 Assert.AreEqual(cql, queryWriter.ToString().TrimEnd());
             }
         }
-        
+
         [TestMethod]
         public void WhereThenSelect()
         {
@@ -206,6 +203,50 @@ namespace CqlSharp.Test
             ExecuteQuery(query, "SELECT 'id','value' FROM 'myvalue' WHERE 'id'=2 LIMIT 1;");
         }
 
+        [TestMethod]
+        public void CountWithPredicate()
+        {
+            QueryFunc query = context => context.Values.Count(v => v.Id == 2);
+            ExecuteQuery(query, "SELECT COUNT(*) FROM 'myvalue' WHERE 'id'=2;");
+        }
+
+        [TestMethod]
+        [ExpectedException(typeof(CqlLinqException))]
+        public void TakeBeforeWhere()
+        {
+            //Wrong: logically first three items of values  table are taken, then where is performed on those three values, but Cql does not support sub-queries so this will not provide expected results
+            QueryFunc query = context => context.Values.Take(3).Where(v => v.Id == 2).ToList();
+            ExecuteQuery(query, "invalid query");
+        }
+
+        [TestMethod]
+        public void WhereThenTake()
+        {
+            QueryFunc query = context => context.Values.Where(v => v.Id == 2).Take(3).ToList();
+            ExecuteQuery(query, "SELECT 'id','value' FROM 'myvalue' WHERE 'id'=2 LIMIT 3;");
+        }
+
+        [TestMethod]
+        public void LargeTakeThenSmallTake()
+        {
+            QueryFunc query = context => context.Values.Take(3).Take(1).ToList();
+            ExecuteQuery(query, "SELECT 'id','value' FROM 'myvalue' LIMIT 1;");
+        }
+
+        [TestMethod]
+        public void SmallTakeThenLargeTake()
+        {
+            QueryFunc query = context => context.Values.Take(1).Take(3).ToList();
+            ExecuteQuery(query, "SELECT 'id','value' FROM 'myvalue' LIMIT 1;");
+        }
+
+        [TestMethod]
+        public void SelectIntoNewObjectThenWhereThenTake()
+        {
+            QueryFunc query = context => context.Values.Select(r => new { Id2 = r.Id, Value2 = r.Value }).Where(at => at.Id2 == 4).Take(3).ToList();
+            ExecuteQuery(query, "SELECT 'id','value' FROM 'myvalue' WHERE 'id'=4 LIMIT 3;");
+        }
+        
     }
 }
 
