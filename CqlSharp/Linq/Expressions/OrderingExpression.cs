@@ -1,5 +1,5 @@
 // CqlSharp - CqlSharp
-// Copyright (c) 2013 Joost Reuzel
+// Copyright (c) 2014 Joost Reuzel
 //   
 // Licensed under the Apache License, Version 2.0 (the "License");
 // you may not use this file except in compliance with the License.
@@ -25,32 +25,27 @@ namespace CqlSharp.Linq.Expressions
     {
         private readonly IdentifierExpression _identifier;
         private readonly CqlExpressionType _order;
-        private readonly Type _type;
 
-        public OrderingExpression(Type type, IdentifierExpression identifier, CqlExpressionType orderType)
+        public OrderingExpression(IdentifierExpression identifier, CqlExpressionType orderType)
         {
-            if (type == null)
-                throw new ArgumentNullException("type");
-
             if (identifier == null)
                 throw new ArgumentNullException("identifier");
 
-            if (orderType != CqlExpressionType.OrderAscending || orderType != CqlExpressionType.OrderDescending)
+            if (orderType != CqlExpressionType.OrderAscending && orderType != CqlExpressionType.OrderDescending)
                 throw new ArgumentException("ExpressionType must be OrderAscending or OrderDescending", "orderType");
 
-            _type = type;
             _identifier = identifier;
             _order = orderType;
         }
 
         public override ExpressionType NodeType
         {
-            get { return (ExpressionType)_order; }
+            get { return (ExpressionType) _order; }
         }
 
         public override Type Type
         {
-            get { return _type; }
+            get { return _identifier.Type; }
         }
 
         public IdentifierExpression Identifier

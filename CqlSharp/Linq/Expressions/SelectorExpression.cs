@@ -1,5 +1,5 @@
 // CqlSharp - CqlSharp
-// Copyright (c) 2013 Joost Reuzel
+// Copyright (c) 2014 Joost Reuzel
 //   
 // Licensed under the Apache License, Version 2.0 (the "License");
 // you may not use this file except in compliance with the License.
@@ -45,10 +45,10 @@ namespace CqlSharp.Linq.Expressions
             switch (writeTimeOrTtl)
             {
                 case CqlExpressionType.TtlSelector:
-                    _type = typeof(int);
+                    _type = typeof (int);
                     break;
                 case CqlExpressionType.WriteTimeSelector:
-                    _type = typeof(DateTime);
+                    _type = typeof (DateTime);
                     break;
                 default:
                     throw new ArgumentException("ExpressionType must be TTL IdentifierSelector or WriteTime selector");
@@ -65,25 +65,26 @@ namespace CqlSharp.Linq.Expressions
             switch (function)
             {
                 case Functions.UnixTimestampOf:
-                    _type = typeof(long);
+                    _type = typeof (long);
                     break;
                 case Functions.DateOf:
                 case Functions.Now:
-                    _type = typeof(DateTime);
+                    _type = typeof (DateTime);
                     break;
                 case Functions.MinTimeUuid:
                 case Functions.MaxTimeUuid:
-                    _type = typeof(Guid);
+                    _type = typeof (Guid);
                     break;
                 case Functions.Token:
-                    _type = typeof(object); //depends on used partitioner
+                    _type = typeof (object); //depends on used partitioner
                     break;
             }
             _function = function;
             _arguments = arguments.AsReadOnly();
         }
 
-        private SelectorExpression(Type type, CqlExpressionType selectorType, IdentifierExpression identifier, Functions function, IList<SelectorExpression> arguments)
+        private SelectorExpression(Type type, CqlExpressionType selectorType, IdentifierExpression identifier,
+                                   Functions function, IList<SelectorExpression> arguments)
         {
             _type = type;
             _selectorType = selectorType;
@@ -100,7 +101,7 @@ namespace CqlSharp.Linq.Expressions
 
         public override ExpressionType NodeType
         {
-            get { return (ExpressionType)_selectorType; }
+            get { return (ExpressionType) _selectorType; }
         }
 
         public IdentifierExpression Identifier
@@ -137,7 +138,7 @@ namespace CqlSharp.Linq.Expressions
             IdentifierExpression identifier = null;
             if (_identifier != null)
             {
-                identifier = (IdentifierExpression)visitor.Visit(_identifier);
+                identifier = (IdentifierExpression) visitor.Visit(_identifier);
                 changed |= !identifier.Equals(_identifier);
             }
 
@@ -148,7 +149,7 @@ namespace CqlSharp.Linq.Expressions
                 args = new SelectorExpression[count];
                 for (int i = 0; i < count; i++)
                 {
-                    args[i] = (SelectorExpression)visitor.Visit(_arguments[i]);
+                    args[i] = (SelectorExpression) visitor.Visit(_arguments[i]);
                     changed |= args[i] != _arguments[i];
                 }
             }

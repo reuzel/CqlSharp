@@ -241,12 +241,70 @@ namespace CqlSharp.Test
         }
 
         [TestMethod]
+        public void TakeThenCount()
+        {
+            QueryFunc query = context => context.Values.Take(100).Count();
+            ExecuteQuery(query, "SELECT COUNT(*) FROM 'myvalue' LIMIT 100;");
+        }
+
+        [TestMethod]
+        [ExpectedException(typeof(CqlLinqException))]
+        public void TakeThenCountWithCondition()
+        {
+            QueryFunc query = context => context.Values.Take(100).Count(v => v.Id > 100);
+            ExecuteQuery(query, "invalid query");
+        }
+
+        [TestMethod]
         public void SelectIntoNewObjectThenWhereThenTake()
         {
             QueryFunc query = context => context.Values.Select(r => new { Id2 = r.Id, Value2 = r.Value }).Where(at => at.Id2 == 4).Take(3).ToList();
             ExecuteQuery(query, "SELECT 'id','value' FROM 'myvalue' WHERE 'id'=4 LIMIT 3;");
         }
-        
+
+        [TestMethod]
+        public void OrderBy()
+        {
+            QueryFunc query = context => context.Values.OrderBy(v => v.Id).ToList();
+            ExecuteQuery(query, "SELECT 'id','value' FROM 'myvalue' ORDER BY 'id' ASC;");
+        }
+
+        [TestMethod]
+        public void SelectIntoNewObjectThenOrderBy()
+        {
+            QueryFunc query = context => context.Values.Select(r => new { Id2 = r.Id, Value2 = r.Value }).OrderBy(at => at.Id2).ToList();
+            ExecuteQuery(query, "SELECT 'id','value' FROM 'myvalue' ORDER BY 'id' ASC;");
+        }
+
+        [TestMethod]
+        public void OrderByThenByDescending()
+        {
+            QueryFunc query = context => context.Values.OrderBy(v => v.Id).ThenByDescending(v2 => v2.Value).ToList();
+            ExecuteQuery(query, "SELECT 'id','value' FROM 'myvalue' ORDER BY 'id' ASC,'value' DESC;");
+        }
+
+        [TestMethod]
+        public void OrderByThenOrderBy()
+        {
+            QueryFunc query = context => context.Values.OrderBy(v => v.Id).OrderByDescending(v2 => v2.Value).ToList();
+            ExecuteQuery(query, "SELECT 'id','value' FROM 'myvalue' ORDER BY 'id' ASC,'value' DESC;");
+        }
+
+        [TestMethod]
+        [ExpectedException(typeof(CqlLinqException))]
+        public void TakeBeforeOrderBy()
+        {
+            QueryFunc query = context => context.Values.Take(4).OrderBy(v => v.Id).ToList();
+            ExecuteQuery(query, "invalid");
+        }
+
+        [TestMethod]
+        public void OrderByThenTake()
+        {
+            QueryFunc query = context => context.Values.OrderBy(v => v.Id).Take(4).ToList();
+            ExecuteQuery(query, "SELECT 'id','value' FROM 'myvalue' ORDER BY 'id' ASC LIMIT 4;");
+        }
+
     }
 }
 

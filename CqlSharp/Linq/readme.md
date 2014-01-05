@@ -14,6 +14,27 @@ results into the required object structure.
 CqlContext and CqlTable are the classes that form the core of the provider. CqlContext is the 
 IQueryProvider, while CqlTable is the IQueryable.
 
+## Supported Operations
+The following operations are supported:
+
+* Select
+* Where
+* Any
+* Count
+* LongCount
+* First
+* FirstOrDefault
+* Single
+* SingleOrDefault
+* ToList
+* OrderBy
+* OrderByDescending
+* ThenBy
+* ThenByDescending
+* Take
+
+Take must come after clause that would introduce a where clause in the resulting Cql
+
 ## Cql Expression types
 The Cql Expression types are derived directly from the select grammar as defined in Cql 3.1.1.
 

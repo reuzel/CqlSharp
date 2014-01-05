@@ -1,5 +1,5 @@
 ﻿// CqlSharp - CqlSharp
-// Copyright (c) 2013 Joost Reuzel
+// Copyright (c) 2014 Joost Reuzel
 //   
 // Licensed under the Apache License, Version 2.0 (the "License");
 // you may not use this file except in compliance with the License.
@@ -13,7 +13,6 @@
 // See the License for the specific language governing permissions and
 // limitations under the License.
 
-using CqlSharp.Linq.Expressions;
 using System;
 using System.Collections.Generic;
 using System.Diagnostics;
@@ -21,6 +20,7 @@ using System.IO;
 using System.Linq;
 using System.Linq.Expressions;
 using System.Reflection;
+using CqlSharp.Linq.Expressions;
 
 namespace CqlSharp.Linq
 {
@@ -72,20 +72,16 @@ namespace CqlSharp.Linq
         }
 
         /// <summary>
-        /// Gets or sets the log where executed CQL queries are written to
+        ///   Gets or sets the log where executed CQL queries are written to
         /// </summary>
-        /// <value>
-        /// The log.
-        /// </value>
+        /// <value> The log. </value>
         public TextWriter Log { get; set; }
 
 #if DEBUG
         /// <summary>
-        /// Gets or sets a value indicating whether execution of the query is skipped. This is for debugging purposes.
+        ///   Gets or sets a value indicating whether execution of the query is skipped. This is for debugging purposes.
         /// </summary>
-        /// <value>
-        ///   <c>true</c> if execution is skipped; otherwise, <c>false</c>.
-        /// </value>
+        /// <value> <c>true</c> if execution is skipped; otherwise, <c>false</c> . </value>
         public bool SkipExecute { get; set; }
 #endif
 
@@ -110,7 +106,7 @@ namespace CqlSharp.Linq
             foreach (var property in properties)
             {
                 var propertyType = property.PropertyType;
-                if (propertyType.IsGenericType && propertyType.GetGenericTypeDefinition() == typeof(CqlTable<>))
+                if (propertyType.IsGenericType && propertyType.GetGenericTypeDefinition() == typeof (CqlTable<>))
                 {
                     var table = Activator.CreateInstance(propertyType, this);
                     property.SetValue(this, table);
@@ -141,12 +137,12 @@ namespace CqlSharp.Linq
 
             Delegate projector = result.Projector.Compile();
 
-            var enm = (IEnumerable<object>)Activator.CreateInstance(
-                        typeof(ProjectionReader<>).MakeGenericType(result.Projector.ReturnType),
-                        BindingFlags.Instance | BindingFlags.NonPublic, null,
-                        new object[] { this, result.Cql, projector },
-                        null
-                        );
+            var enm = (IEnumerable<object>) Activator.CreateInstance(
+                typeof (ProjectionReader<>).MakeGenericType(result.Projector.ReturnType),
+                BindingFlags.Instance | BindingFlags.NonPublic, null,
+                new object[] {this, result.Cql, projector},
+                null
+                                                );
 
             if (result.ResultFunction != null)
                 return result.ResultFunction.Invoke(enm);
@@ -171,7 +167,7 @@ namespace CqlSharp.Linq
 
             //translate the expression to a cql expression and corresponding projection
             var translation = new ExpressionTranslator().Translate(cleanedExpression);
-            
+
             //generate cql text
             var cql = new CqlTextBuilder().Build(translation.Select);
             Debug.WriteLine("Generated CQL: " + cql);
@@ -179,10 +175,13 @@ namespace CqlSharp.Linq
             //get a projection delegate
             var projector = new ProjectorBuilder().BuildProjector(translation.Projection);
             Debug.WriteLine("Generated Projector: " + projector);
-            Debug.WriteLine("Result processor: " + (translation.ResultFunction!=null ? translation.ResultFunction.GetMethodInfo().ToString() : "<none>"));
+            Debug.WriteLine("Result processor: " +
+                            (translation.ResultFunction != null
+                                 ? translation.ResultFunction.GetMethodInfo().ToString()
+                                 : "<none>"));
 
             //return translation results
-            return new ParseResult { Cql = cql, Projector = projector, ResultFunction = translation.ResultFunction };
+            return new ParseResult {Cql = cql, Projector = projector, ResultFunction = translation.ResultFunction};
         }
 
         private bool CanBeEvaluatedLocally(Expression expression)
@@ -193,7 +192,6 @@ namespace CqlSharp.Linq
                 var query = cex.Value as IQueryable;
                 if (query != null && query.Provider == this)
                     return false;
-
             }
 
             return expression.NodeType != ExpressionType.Parameter &&
@@ -225,8 +223,8 @@ namespace CqlSharp.Linq
             {
                 return
                     (IQueryable)
-                    Activator.CreateInstance(typeof(CqlTable<>).MakeGenericType(elementType),
-                                             new object[] { this, expression });
+                    Activator.CreateInstance(typeof (CqlTable<>).MakeGenericType(elementType),
+                                             new object[] {this, expression});
             }
             catch (TargetInvocationException tie)
             {
@@ -242,7 +240,7 @@ namespace CqlSharp.Linq
         /// <returns> </returns>
         TResult IQueryProvider.Execute<TResult>(Expression expression)
         {
-            return (TResult)Execute(expression);
+            return (TResult) Execute(expression);
         }
 
         /// <summary>

@@ -1,5 +1,5 @@
 ﻿// CqlSharp - CqlSharp
-// Copyright (c) 2013 Joost Reuzel
+// Copyright (c) 2014 Joost Reuzel
 //   
 // Licensed under the Apache License, Version 2.0 (the "License");
 // you may not use this file except in compliance with the License.
@@ -22,9 +22,9 @@ namespace CqlSharp.Linq
     {
         internal static object DefaultValue(this Type type)
         {
-             return type.IsValueType ? Activator.CreateInstance(type) : null;
+            return type.IsValueType ? Activator.CreateInstance(type) : null;
         }
-        
+
         internal static Type GetElementType(Type seqType)
         {
             Type ienum = FindIEnumerable(seqType);
@@ -34,15 +34,15 @@ namespace CqlSharp.Linq
 
         public static Type FindIEnumerable(Type seqType)
         {
-            if (seqType == null || seqType == typeof(string))
+            if (seqType == null || seqType == typeof (string))
                 return null;
             if (seqType.IsArray)
-                return typeof(IEnumerable<>).MakeGenericType(seqType.GetElementType());
+                return typeof (IEnumerable<>).MakeGenericType(seqType.GetElementType());
             if (seqType.IsGenericType)
             {
                 foreach (Type arg in seqType.GetGenericArguments())
                 {
-                    Type ienum = typeof(IEnumerable<>).MakeGenericType(arg);
+                    Type ienum = typeof (IEnumerable<>).MakeGenericType(arg);
                     if (ienum.IsAssignableFrom(seqType))
                     {
                         return ienum;
@@ -58,7 +58,7 @@ namespace CqlSharp.Linq
                     if (ienum != null) return ienum;
                 }
             }
-            if (seqType.BaseType != null && seqType.BaseType != typeof(object))
+            if (seqType.BaseType != null && seqType.BaseType != typeof (object))
             {
                 return FindIEnumerable(seqType.BaseType);
             }
@@ -97,6 +97,5 @@ namespace CqlSharp.Linq
 
             return false;
         }
-
     }
 }

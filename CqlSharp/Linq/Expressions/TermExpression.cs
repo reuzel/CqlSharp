@@ -1,5 +1,5 @@
 // CqlSharp - CqlSharp
-// Copyright (c) 2013 Joost Reuzel
+// Copyright (c) 2014 Joost Reuzel
 //   
 // Licensed under the Apache License, Version 2.0 (the "License");
 // you may not use this file except in compliance with the License.
@@ -26,10 +26,10 @@ namespace CqlSharp.Linq.Expressions
     /// </summary>
     internal class TermExpression : Expression
     {
-        private readonly ReadOnlyCollection<TermExpression> _terms;
         private readonly ReadOnlyDictionary<TermExpression, TermExpression> _dictionaryTerms;
         private readonly Functions _function;
         private readonly CqlExpressionType _termType;
+        private readonly ReadOnlyCollection<TermExpression> _terms;
         private readonly Type _type;
         private readonly object _value;
 
@@ -78,29 +78,29 @@ namespace CqlSharp.Linq.Expressions
             switch (function)
             {
                 case Functions.Token:
-                    _type = typeof(object); //depends on partitioner
+                    _type = typeof (object); //depends on partitioner
                     break;
                 case Functions.DateOf:
-                    _type = typeof(DateTime);
-                    if (_terms.Single().Type != typeof(Guid))
+                    _type = typeof (DateTime);
+                    if (_terms.Single().Type != typeof (Guid))
                         throw new ArgumentException("terms should consist of a single GUID", "arguments");
                     break;
 
                 case Functions.MinTimeUuid:
                 case Functions.MaxTimeUuid:
-                    _type = typeof(Guid);
-                    if (_terms.Single().Type != typeof(DateTime))
+                    _type = typeof (Guid);
+                    if (_terms.Single().Type != typeof (DateTime))
                         throw new ArgumentException("terms should consist of a single DateTime", "arguments");
                     break;
 
                 case Functions.UnixTimestampOf:
-                    _type = typeof(long);
-                    if (_terms.Single().Type != typeof(Guid))
+                    _type = typeof (long);
+                    if (_terms.Single().Type != typeof (Guid))
                         throw new ArgumentException("terms should consist of a single GUID", "arguments");
                     break;
 
                 case Functions.Now:
-                    _type = typeof(Guid);
+                    _type = typeof (Guid);
                     if (_terms.Count() != 0)
                         throw new ArgumentException("terms should not contain any value", "arguments");
 
@@ -111,7 +111,8 @@ namespace CqlSharp.Linq.Expressions
             }
         }
 
-        private TermExpression(Type type, Functions function, IList<TermExpression> terms, IDictionary<TermExpression, TermExpression> dictionary)
+        private TermExpression(Type type, Functions function, IList<TermExpression> terms,
+                               IDictionary<TermExpression, TermExpression> dictionary)
         {
             if (type == null) throw new ArgumentNullException("type");
             if (terms == null && dictionary == null)
@@ -128,7 +129,7 @@ namespace CqlSharp.Linq.Expressions
 
         public override ExpressionType NodeType
         {
-            get { return (ExpressionType)_termType; }
+            get { return (ExpressionType) _termType; }
         }
 
         public object Value
@@ -181,7 +182,7 @@ namespace CqlSharp.Linq.Expressions
                     terms = new TermExpression[count];
                     for (int i = 0; i < count; i++)
                     {
-                        terms[i] = (TermExpression)visitor.Visit(_terms[i]);
+                        terms[i] = (TermExpression) visitor.Visit(_terms[i]);
                         changed |= terms[i] != _terms[i];
                     }
                 }
@@ -192,8 +193,8 @@ namespace CqlSharp.Linq.Expressions
                     dictionaryTerms = new Dictionary<TermExpression, TermExpression>();
                     foreach (var pair in _dictionaryTerms)
                     {
-                        var key = (TermExpression)visitor.Visit(pair.Key);
-                        var value = (TermExpression)visitor.Visit(pair.Value);
+                        var key = (TermExpression) visitor.Visit(pair.Key);
+                        var value = (TermExpression) visitor.Visit(pair.Value);
                         changed |= (pair.Key != key) || (pair.Value != value);
                         dictionaryTerms.Add(key, value);
                     }

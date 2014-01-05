@@ -1,5 +1,5 @@
 // CqlSharp - CqlSharp
-// Copyright (c) 2013 Joost Reuzel
+// Copyright (c) 2014 Joost Reuzel
 //   
 // Licensed under the Apache License, Version 2.0 (the "License");
 // you may not use this file except in compliance with the License.
@@ -33,8 +33,8 @@ namespace CqlSharp.Linq.Expressions
         private readonly ReadOnlyCollection<RelationExpression> _whereClause;
 
         public SelectStatementExpression(Type type, SelectClauseExpression selectClause, string tableName,
-                                IList<RelationExpression> whereClause, IList<OrderingExpression> orderBy,
-                                int? limit)
+                                         IList<RelationExpression> whereClause, IList<OrderingExpression> orderBy,
+                                         int? limit)
         {
             if (type == null)
                 throw new ArgumentNullException("type");
@@ -55,7 +55,7 @@ namespace CqlSharp.Linq.Expressions
 
         public override ExpressionType NodeType
         {
-            get { return (ExpressionType)CqlExpressionType.SelectStatement; }
+            get { return (ExpressionType) CqlExpressionType.SelectStatement; }
         }
 
         public override Type Type
@@ -104,14 +104,14 @@ namespace CqlSharp.Linq.Expressions
         {
             bool changed = false;
 
-            var selectClause = (SelectClauseExpression)visitor.Visit(_selectClause);
+            var selectClause = (SelectClauseExpression) visitor.Visit(_selectClause);
             changed |= selectClause != _selectClause;
 
             int count = _whereClause.Count;
             var wheres = new RelationExpression[count];
             for (int i = 0; i < count; i++)
             {
-                wheres[i] = (RelationExpression)visitor.Visit(_whereClause[i]);
+                wheres[i] = (RelationExpression) visitor.Visit(_whereClause[i]);
                 changed |= wheres[i] != _whereClause[i];
             }
 
@@ -119,11 +119,13 @@ namespace CqlSharp.Linq.Expressions
             var order = new OrderingExpression[count];
             for (int i = 0; i < count; i++)
             {
-                order[i] = (OrderingExpression)visitor.Visit(_orderBy[i]);
+                order[i] = (OrderingExpression) visitor.Visit(_orderBy[i]);
                 changed |= order[i] != _orderBy[i];
             }
-        
-            return changed ? new SelectStatementExpression(_type, selectClause, _tableName, wheres, order, _limit) : this;
+
+            return changed
+                       ? new SelectStatementExpression(_type, selectClause, _tableName, wheres, order, _limit)
+                       : this;
         }
     }
 }

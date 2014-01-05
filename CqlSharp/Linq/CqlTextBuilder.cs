@@ -1,5 +1,5 @@
 ﻿// CqlSharp - CqlSharp
-// Copyright (c) 2013 Joost Reuzel
+// Copyright (c) 2014 Joost Reuzel
 //   
 // Licensed under the Apache License, Version 2.0 (the "License");
 // you may not use this file except in compliance with the License.
@@ -13,7 +13,6 @@
 // See the License for the specific language governing permissions and
 // limitations under the License.
 
-using CqlSharp.Linq.Expressions;
 using System;
 using System.Collections.Generic;
 using System.Globalization;
@@ -21,37 +20,36 @@ using System.Linq;
 using System.Linq.Expressions;
 using System.Numerics;
 using System.Text;
+using CqlSharp.Linq.Expressions;
 
 namespace CqlSharp.Linq
 {
     /// <summary>
-    /// Distills CQL Select Statement query strings from an expression tree
+    ///   Distills CQL Select Statement query strings from an expression tree
     /// </summary>
     internal class CqlTextBuilder : CqlExpressionVisitor
     {
-        private readonly Dictionary<Expression, string> _translations = new Dictionary<Expression, string>();
         private readonly List<SelectStatementExpression> _selects = new List<SelectStatementExpression>();
+        private readonly Dictionary<Expression, string> _translations = new Dictionary<Expression, string>();
 
         /// <summary>
-        /// Builds selectStatement queries from the specified expression, and returns the first instance
+        ///   Gets the selectStatement queries.
         /// </summary>
-        /// <param name="expression">The expression.</param>
-        /// <returns></returns>
+        /// <value> The selectStatement queries. </value>
+        public IEnumerable<string> SelectQueries
+        {
+            get { return _translations.Where(t => _selects.Contains(t.Key)).Select(t => t.Value); }
+        }
+
+        /// <summary>
+        ///   Builds selectStatement queries from the specified expression, and returns the first instance
+        /// </summary>
+        /// <param name="expression"> The expression. </param>
+        /// <returns> </returns>
         public string Build(Expression expression)
         {
             Expression expr = Visit(expression);
             return _translations[expr];
-        }
-
-        /// <summary>
-        /// Gets the selectStatement queries.
-        /// </summary>
-        /// <value>
-        /// The selectStatement queries.
-        /// </value>
-        public IEnumerable<string> SelectQueries
-        {
-            get { return _translations.Where(t => _selects.Contains(t.Key)).Select(t => t.Value); }
         }
 
         public override Expression VisitSelectStatement(SelectStatementExpression selectStatement)
@@ -98,7 +96,7 @@ namespace CqlSharp.Linq
             base.VisitSelectClause(selectClauseExpression);
 
             string translation;
-            switch ((CqlExpressionType)selectClauseExpression.NodeType)
+            switch ((CqlExpressionType) selectClauseExpression.NodeType)
             {
                 case CqlExpressionType.SelectAll:
                     translation = "*";
@@ -111,7 +109,8 @@ namespace CqlSharp.Linq
                     translation = string.Join(",", selectors);
                     break;
                 default:
-                    throw new Exception("Unexpected type of select clause encountered : " + selectClauseExpression.NodeType);
+                    throw new Exception("Unexpected type of select clause encountered : " +
+                                        selectClauseExpression.NodeType);
             }
 
             _translations[selectClauseExpression] = translation;
@@ -124,7 +123,7 @@ namespace CqlSharp.Linq
 
             string value;
 
-            switch ((CqlExpressionType)selector.NodeType)
+            switch ((CqlExpressionType) selector.NodeType)
             {
                 case CqlExpressionType.IdentifierSelector:
                     value = _translations[selector.Identifier];
@@ -159,7 +158,7 @@ namespace CqlSharp.Linq
 
             var builder = new StringBuilder();
 
-            switch ((CqlExpressionType)relation.NodeType)
+            switch ((CqlExpressionType) relation.NodeType)
             {
                 case CqlExpressionType.Equal:
                     builder.Append(_translations[relation.Identifiers.Single()]);
@@ -243,7 +242,7 @@ namespace CqlSharp.Linq
 
             var builder = new StringBuilder();
 
-            switch ((CqlExpressionType)term.NodeType)
+            switch ((CqlExpressionType) term.NodeType)
             {
                 case CqlExpressionType.Variable:
                     builder.Append("?");
@@ -312,11 +311,11 @@ namespace CqlSharp.Linq
                 case CqlType.Text:
                 case CqlType.Varchar:
                 case CqlType.Ascii:
-                    var str = (string)value;
+                    var str = (string) value;
                     return "'" + str.Replace("'", "''") + "'";
 
                 case CqlType.Boolean:
-                    return ((bool)value) ? "true" : "false";
+                    return ((bool) value) ? "true" : "false";
 
                 case CqlType.Decimal:
                 case CqlType.Double:
@@ -331,17 +330,17 @@ namespace CqlSharp.Linq
 
                 case CqlType.Timeuuid:
                 case CqlType.Uuid:
-                    return ((Guid)value).ToString("D");
+                    return ((Guid) value).ToString("D");
 
                 case CqlType.Varint:
-                    return ((BigInteger)value).ToString("D");
+                    return ((BigInteger) value).ToString("D");
 
                 case CqlType.Timestamp:
-                    long timestamp = ((DateTime)value).ToTimestamp();
+                    long timestamp = ((DateTime) value).ToTimestamp();
                     return string.Format("{0:D}", timestamp);
 
                 case CqlType.Blob:
-                    return ((byte[])value).ToHex("0x");
+                    return ((byte[]) value).ToHex("0x");
 
                 default:
                     throw new CqlLinqException("Unable to translate term to a string representation");
@@ -352,7 +351,7 @@ namespace CqlSharp.Linq
         {
             string value;
 
-            switch ((CqlExpressionType)ordering.NodeType)
+            switch ((CqlExpressionType) ordering.NodeType)
             {
                 case CqlExpressionType.OrderDescending:
                     value = _translations[ordering.Identifier] + " DESC";

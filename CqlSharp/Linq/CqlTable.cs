@@ -1,5 +1,5 @@
 // CqlSharp - CqlSharp
-// Copyright (c) 2013 Joost Reuzel
+// Copyright (c) 2014 Joost Reuzel
 //   
 // Licensed under the Apache License, Version 2.0 (the "License");
 // you may not use this file except in compliance with the License.
@@ -13,21 +13,21 @@
 // See the License for the specific language governing permissions and
 // limitations under the License.
 
-using CqlSharp.Serialization;
 using System;
 using System.Collections;
 using System.Collections.Generic;
 using System.Linq;
 using System.Linq.Expressions;
 using System.Reflection;
+using CqlSharp.Serialization;
 
 namespace CqlSharp.Linq
 {
     /// <summary>
-    /// A table in a Cassandra Keyspace (database)
+    ///   A table in a Cassandra Keyspace (database)
     /// </summary>
-    /// <typeparam name="T"></typeparam>
-    public class CqlTable<T> : IQueryable<T>, ICqlTable
+    /// <typeparam name="T"> </typeparam>
+    public class CqlTable<T> : IOrderedQueryable<T>, ICqlTable
     {
         private readonly CqlContext _context;
         private readonly Expression _expression;
@@ -53,44 +53,42 @@ namespace CqlSharp.Linq
             _expression = expression;
         }
 
+        #region ICqlTable Members
+
         /// <summary>
-        /// Gets the column names.
+        ///   Gets the column names.
         /// </summary>
-        /// <value>
-        /// The column names.
-        /// </value>
+        /// <value> The column names. </value>
         public Dictionary<MemberInfo, string> ColumnNames
         {
             get { return ObjectAccessor<T>.Instance.ColumnNames; }
         }
 
         /// <summary>
-        /// Gets the name of the Table.
+        ///   Gets the name of the Table.
         /// </summary>
-        /// <value>
-        /// The name.
-        /// </value>
+        /// <value> The name. </value>
         public string Name
         {
             get { return ObjectAccessor<T>.Instance.Table; }
         }
 
         /// <summary>
-        /// Gets the type of entity contained by this table.
+        ///   Gets the type of entity contained by this table.
         /// </summary>
-        /// <value>
-        /// The type.
-        /// </value>
+        /// <value> The type. </value>
         public Type Type
         {
             get { return ObjectAccessor<T>.Instance.Type; }
         }
 
-        #region IQueryable<T> Members
+        #endregion
+
+        #region IOrderedQueryable<T> Members
 
         public IEnumerator<T> GetEnumerator()
         {
-            return ((IEnumerable<T>)Provider.Execute(_expression)).GetEnumerator();
+            return ((IEnumerable<T>) Provider.Execute(_expression)).GetEnumerator();
         }
 
         IEnumerator IEnumerable.GetEnumerator()
@@ -100,7 +98,7 @@ namespace CqlSharp.Linq
 
         public Type ElementType
         {
-            get { return typeof(T); }
+            get { return typeof (T); }
         }
 
         public Expression Expression

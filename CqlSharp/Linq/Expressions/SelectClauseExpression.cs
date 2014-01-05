@@ -1,5 +1,5 @@
 // CqlSharp - CqlSharp
-// Copyright (c) 2013 Joost Reuzel
+// Copyright (c) 2014 Joost Reuzel
 //   
 // Licensed under the Apache License, Version 2.0 (the "License");
 // you may not use this file except in compliance with the License.
@@ -21,7 +21,7 @@ using System.Linq.Expressions;
 namespace CqlSharp.Linq.Expressions
 {
     /// <summary>
-    /// A select clause as part of a select query
+    ///   A select clause as part of a select query
     /// </summary>
     internal class SelectClauseExpression : Expression
     {
@@ -53,7 +53,7 @@ namespace CqlSharp.Linq.Expressions
 
         public override ExpressionType NodeType
         {
-            get { return (ExpressionType)_nodeType; }
+            get { return (ExpressionType) _nodeType; }
         }
 
         public override Type Type
@@ -63,9 +63,9 @@ namespace CqlSharp.Linq.Expressions
                 switch (_nodeType)
                 {
                     case CqlExpressionType.SelectColumns:
-                        return typeof(IEnumerable<object>);
+                        return typeof (IEnumerable<object>);
                     case CqlExpressionType.SelectCount:
-                        return typeof(int);
+                        return typeof (int);
                     default:
                         throw new CqlLinqException("Unexpected SekectClayse ExpressionType: " + _nodeType);
                 }
@@ -93,7 +93,7 @@ namespace CqlSharp.Linq.Expressions
                 var selectors = new SelectorExpression[count];
                 for (int i = 0; i < count; i++)
                 {
-                    selectors[i] = (SelectorExpression)visitor.Visit(_selectors[i]);
+                    selectors[i] = (SelectorExpression) visitor.Visit(_selectors[i]);
                     changed |= selectors[i] != _selectors[i];
                 }
 
