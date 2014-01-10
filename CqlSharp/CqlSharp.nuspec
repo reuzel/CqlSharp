@@ -31,6 +31,9 @@
       See https://github.com/reuzel/CqlSharp/wiki/Features for an extensive feature list.
     </description>
     <releaseNotes>
+      Version 0.31.0 - Linq2Cql support
+      * Changes to support CqlSharp.Linq package
+      
       Version 0.30.2 - Deadlock removal
       * Fix: Adding two missing ConfigureAwait statements avoiding deadlock in MVC projects
       
@@ -42,7 +45,7 @@
       
       See https://github.com/reuzel/CqlSharp/blob/master/ChangeLog.md for the full changelog.
     </releaseNotes>
-    <copyright>Copyright 2013 Joost Reuzel</copyright>
-    <tags>Cassandra CQL ADO.NET client database provider driver nosql net45 TPL async high-performance</tags>
+    <copyright>Copyright 2014 Joost Reuzel</copyright>
+    <tags>Cassandra CQL ADO.NET client database provider driver nosql net45 TPL async high-performance CqlSharp</tags>
   </metadata>
 </package>

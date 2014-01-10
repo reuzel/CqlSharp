@@ -1,4 +1,11 @@
 @echo off
-nuget pack CqlSharp.csproj -Symbols -Build -Prop Configuration=Release -OutputDirectory c:\temp
+C:
+cd\
+
+IF EXIST "C:\NuGetRepository\%1\" GOTO build
+mkdir NuGetRepository\%1\
+
+:build
+nuget pack %~dp0\CqlSharp.csproj -Symbols -Prop Configuration=%1 -OutputDirectory c:\NuGetRepository\%1\
 
 

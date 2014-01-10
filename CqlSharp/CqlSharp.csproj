@@ -66,34 +66,6 @@
     <Compile Include="CqlSchemaTableColumnNames.cs" />
     <Compile Include="DiscoveryScope.cs" />
     <Compile Include="Extensions\Loader.cs" />
-    <Compile Include="Linq\BuilderBase.cs" />
-    <Compile Include="Linq\OrderBuilder.cs" />
-    <Compile Include="Linq\CqlContext.cs" />
-    <Compile Include="Linq\CqlLinqException.cs" />
-    <Compile Include="Linq\Expressions\ReadOnlyExtensions.cs" />
-    <Compile Include="Linq\Expressions\ResultFunction.cs" />
-    <Compile Include="Linq\ExpressionTranslator.cs" />
-    <Compile Include="Linq\CqlTextBuilder.cs" />
-    <Compile Include="Linq\Expressions\CqlExpressionType.cs" />
-    <Compile Include="Linq\Expressions\CqlExpressionVisitor.cs" />
-    <Compile Include="Linq\Expressions\Functions.cs" />
-    <Compile Include="Linq\Expressions\IdentifierExpression.cs" />
-    <Compile Include="Linq\Expressions\OrderingExpression.cs" />
-    <Compile Include="Linq\Expressions\ProjectionExpression.cs" />
-    <Compile Include="Linq\Expressions\RelationExpression.cs" />
-    <Compile Include="Linq\Expressions\SelectClauseExpression.cs" />
-    <Compile Include="Linq\Expressions\SelectorExpression.cs" />
-    <Compile Include="Linq\Expressions\SelectStatementExpression.cs" />
-    <Compile Include="Linq\Expressions\TermExpression.cs" />
-    <Compile Include="Linq\CqlTable.cs" />
-    <Compile Include="Linq\ExpressionExtensions.cs" />
-    <Compile Include="Linq\ICqlTable.cs" />
-    <Compile Include="Linq\ProjectorBuilder.cs" />
-    <Compile Include="Linq\PartialEvaluator.cs" />
-    <Compile Include="Linq\ProjectionReader.cs" />
-    <Compile Include="Linq\SelectBuilder.cs" />
-    <Compile Include="Linq\TypeSystem.cs" />
-    <Compile Include="Linq\WhereBuilder.cs" />
     <Compile Include="Logging\ConsoleLogger.cs" />
     <Compile Include="Logging\DebugLogger.cs" />
     <Compile Include="Logging\FastGuid.cs" />
@@ -198,7 +170,6 @@
     <Compile Include="Serialization\CqlIgnoreAttribute.cs" />
     <Compile Include="Serialization\CqlTableAttribute.cs" />
     <Compile Include="Serialization\ObjectAccessor.cs" />
-    <Compile Include="Serialization\TypeExtensions.cs" />
     <Compile Include="TimeGuid.cs" />
     <Compile Include="Tracing\QueryTraceCommand.cs" />
     <Compile Include="Tracing\TracingEvent.cs" />
@@ -206,14 +177,16 @@
     <Compile Include="TypeExtensions.cs" />
   </ItemGroup>
   <ItemGroup>
-    <None Include="Linq\readme.md" />
     <None Include="Network\nSnappy\readme.txt" />
-    <Content Include="Properties\logo.ico" />
+    <None Include="Properties\logo.ico" />
   </ItemGroup>
   <ItemGroup>
     <None Include="CqlSharp.nuspec" />
   </ItemGroup>
   <Import Project="$(MSBuildToolsPath)\Microsoft.CSharp.targets" />
+  <PropertyGroup>
+    <PostBuildEvent>$(ProjectDir)BuildPackage.cmd $(ConfigurationName)</PostBuildEvent>
+  </PropertyGroup>
   <!-- To modify your build process, add your task inside one of the targets below and uncomment it. 
        Other similar extension points exist, see Microsoft.Common.targets.
   <Target Name="BeforeBuild">

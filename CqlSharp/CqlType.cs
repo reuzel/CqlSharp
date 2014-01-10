@@ -65,7 +65,7 @@ namespace CqlSharp
         Set = 0x0022
     }
 
-    internal static class CqlTypeExtensions
+    public static class CqlTypeExtensions
     {
         private static readonly Dictionary<CqlType, Type> CqlType2Type = new Dictionary<CqlType, Type>
                                                                              {
@@ -185,12 +185,12 @@ namespace CqlSharp
         }
 
         /// <summary>
-        /// gets the corresponding the CqlType.
+        /// Gets the corresponding the CqlType.
         /// </summary>
         /// <param name="type">The type.</param>
         /// <returns></returns>
         /// <exception cref="System.NotSupportedException">Type can not be mapped to a valid CQL type</exception>
-        internal static CqlType ToCqlType(this Type type)
+        public static CqlType ToCqlType(this Type type)
         {
             CqlType cqlType;
 
@@ -201,12 +201,12 @@ namespace CqlSharp
         }
 
         /// <summary>
-        /// gets the corresponding the CqlType.
+        /// Determines whether the specified type is a supported CQL type
         /// </summary>
         /// <param name="type">The type.</param>
         /// <returns></returns>
         /// <exception cref="System.NotSupportedException">Type can not be mapped to a valid CQL type</exception>
-        internal static bool IsCqlType(this Type type)
+        public static bool IsSupportedCqlType(this Type type)
         {
             return Type2CqlType.ContainsKey(type);
         }

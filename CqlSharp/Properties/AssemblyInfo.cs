@@ -26,7 +26,7 @@ using System.Runtime.InteropServices;
 [assembly: AssemblyConfiguration("")]
 [assembly: AssemblyCompany("Joost Reuzel")]
 [assembly: AssemblyProduct("CqlSharp")]
-[assembly: AssemblyCopyright("Copyright Joost Reuzel ©  2013")]
+[assembly: AssemblyCopyright("Copyright Joost Reuzel ©  2014")]
 [assembly: AssemblyTrademark("")]
 [assembly: AssemblyCulture("")]
 
@@ -51,8 +51,8 @@ using System.Runtime.InteropServices;
 // by using the '*' as shown below:
 // [assembly: AssemblyVersion("1.0.*")]
 
-[assembly: AssemblyVersion("0.40.0.0")]
-[assembly: AssemblyFileVersion("0.40.0.0")]
+[assembly: AssemblyVersion("0.31.0.0")]
+[assembly: AssemblyFileVersion("0.31.0.0")]
 
 #if DEBUG
 [assembly: InternalsVisibleTo("CqlSharp.Fakes")]

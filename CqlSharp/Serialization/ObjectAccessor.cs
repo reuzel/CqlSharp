@@ -26,7 +26,7 @@ namespace CqlSharp.Serialization
     ///   Provides access to object fields and properties based on columnn descriptions.
     /// </summary>
     /// <typeparam name="T"> </typeparam>
-    internal class ObjectAccessor<T>
+    public class ObjectAccessor<T>
     {
         /// <summary>
         ///   Singleton instance

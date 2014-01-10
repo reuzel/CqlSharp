@@ -14,6 +14,8 @@
 // limitations under the License.
 
 using System;
+using System.Reflection;
+using System.Runtime.CompilerServices;
 using System.Text;
 
 namespace CqlSharp
@@ -21,7 +23,7 @@ namespace CqlSharp
     /// <summary>
     ///   DateTime extensions to convert date-time values to and from unix-time
     /// </summary>
-    internal static class TypeExtensions
+    public static class TypeExtensions
     {
         public static readonly DateTime Epoch = new DateTime(1970, 1, 1, 0, 0, 0, DateTimeKind.Utc);
 
@@ -158,6 +160,21 @@ namespace CqlSharp
             }
 
             return stringBuilder.ToString();
+        }
+
+        /// <summary>
+        ///   Determines whether the specified type is anonymous.
+        /// </summary>
+        /// <param name="type"> The type. </param>
+        /// <returns> <c>true</c> if the specified type is anonymous; otherwise, <c>false</c> . </returns>
+        public static bool IsAnonymous(this Type type)
+        {
+            return Attribute.IsDefined(type, typeof(CompilerGeneratedAttribute), false)
+                   && type.IsGenericType && type.Name.Contains("AnonymousType")
+                   &&
+                   (type.Name.StartsWith("<>", StringComparison.OrdinalIgnoreCase) ||
+                    type.Name.StartsWith("VB$", StringComparison.OrdinalIgnoreCase))
+                   && (type.Attributes & TypeAttributes.NotPublic) == TypeAttributes.NotPublic;
         }
     }
 }

@@ -1,5 +1,5 @@
-## Version 0.40.0 - Linq-2-Cql
-* Adding Linq query support through CqlContext and CqlTable
+## Version 0.31.0 - Linq-2-Cql
+* Adjustments to support Linq2Cql support in CqlSharp.Linq package
 
 ## Version 0.30.2 - Deadlock removal
 * Fix: Adding two missing ConfigureAwait statements avoiding deadlock in MVC projects
