@@ -165,6 +165,10 @@
     <Compile Include="Protocol\FrameVersion.cs" />
     <Compile Include="Protocol\MetadataFlags.cs" />
     <Compile Include="Protocol\StreamExtensions.cs" />
+    <Compile Include="Serialization\CqlColumnInfo.cs" />
+    <Compile Include="Serialization\CqlIndexAttribute.cs" />
+    <Compile Include="Serialization\CqlKeyAttribute.cs" />
+    <Compile Include="Serialization\ICqlColumnInfo.cs" />
     <Compile Include="Serialization\ValueSerialization.cs" />
     <Compile Include="Serialization\CqlColumnAttribute.cs" />
     <Compile Include="Serialization\CqlIgnoreAttribute.cs" />

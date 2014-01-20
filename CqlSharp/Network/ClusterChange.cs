@@ -16,7 +16,7 @@
 namespace CqlSharp.Network
 {
     /// <summary>
-    ///   Type of possible evented changes to a cluster
+    ///   CqlType of possible evented changes to a cluster
     /// </summary>
     internal enum ClusterChange
     {

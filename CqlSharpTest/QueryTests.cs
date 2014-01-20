@@ -765,7 +765,8 @@ namespace CqlSharp.Test
     [CqlTable("basicflow", Keyspace = "test")]
     public class BasicFlowData
     {
-        [CqlColumn("id", PartitionKeyIndex = 0, CqlType = CqlType.Int)]
+        [CqlKey]
+        [CqlColumn("id", CqlType.Int)]
         public int Id;
 
         [CqlColumn("value")]

@@ -1,5 +1,5 @@
 ﻿// CqlSharp - CqlSharp
-// Copyright (c) 2013 Joost Reuzel
+// Copyright (c) 2014 Joost Reuzel
 //   
 // Licensed under the Apache License, Version 2.0 (the "License");
 // you may not use this file except in compliance with the License.
@@ -16,6 +16,7 @@
 using CqlSharp.Network.Partition;
 using System;
 using System.Collections.Generic;
+using System.Collections.ObjectModel;
 using System.Linq;
 using System.Linq.Expressions;
 using System.Reflection;
@@ -33,68 +34,208 @@ namespace CqlSharp.Serialization
         /// </summary>
         public static readonly ObjectAccessor<T> Instance = new ObjectAccessor<T>();
 
-        private readonly Func<T, object>[] _partitionKeyReadFuncs;
+        private readonly ReadOnlyCollection<CqlColumnInfo<T>> _clusteringKeys;
+
+        private readonly ReadOnlyCollection<CqlColumnInfo<T>> _columns;
+        private readonly ReadOnlyDictionary<MemberInfo, CqlColumnInfo<T>> _columnsByMember;
+        private readonly ReadOnlyDictionary<string, CqlColumnInfo<T>> _columnsByName;
+        private readonly ReadOnlyCollection<CqlColumnInfo<T>> _normalColumns;
         private readonly CqlType[] _partitionKeyTypes;
-
-        /// <summary>
-        ///   Read functions to used to read member or property values
-        /// </summary>
-        private readonly Dictionary<string, Func<T, object>> _readFuncs;
-
-        /// <summary>
-        ///   Write functions to use to set fields or property values.
-        /// </summary>
-        private readonly Dictionary<string, Action<T, object>> _writeFuncs;
-
-        /// <summary>
-        /// mapping of members to their respective column names
-        /// </summary>
-        private readonly Dictionary<MemberInfo, string> _columnNames;
-
-        /// <summary>
-        /// Gets the keyspace.
-        /// </summary>
-        /// <value>
-        /// The keyspace.
-        /// </value>
-        public string Keyspace { get; private set; }
-
-        /// <summary>
-        /// Gets the table name.
-        /// </summary>
-        /// <value>
-        /// The table.
-        /// </value>
-        public string Table { get; private set; }
-
-        /// <summary>
-        /// Gets a value indicating whether [is key space set].
-        /// </summary>
-        /// <value>
-        ///   <c>true</c> if [is key space set]; otherwise, <c>false</c>.
-        /// </value>
-        public bool IsKeySpaceSet { get; private set; }
-
-        /// <summary>
-        /// Gets a value indicating whether [is table set].
-        /// </summary>
-        /// <value>
-        ///   <c>true</c> if [is table set]; otherwise, <c>false</c>.
-        /// </value>
-        public bool IsTableSet { get; private set; }
+        private readonly ReadOnlyCollection<CqlColumnInfo<T>> _partitionKeys;
+        private readonly Type _type;
 
         /// <summary>
         ///   Prevents a default instance of the <see cref="ObjectAccessor{T}" /> class from being created.
         /// </summary>
         private ObjectAccessor()
         {
-            //init fields
-            _writeFuncs = new Dictionary<string, Action<T, object>>();
-            _readFuncs = new Dictionary<string, Func<T, object>>();
-            _columnNames = new Dictionary<MemberInfo, string>();
+            //get table and keyspace name
+            SetTableProperties();
 
-            var keyMembers = new List<Tuple<int, Func<T, object>, CqlType>>();
+            //get type
+            _type = typeof(T);
 
+            //create a column List
+            var columns = new List<CqlColumnInfo<T>>();
+
+            //go over all properties
+            foreach (PropertyInfo prop in _type.GetProperties())
+            {
+                if (ShouldIgnoreMember(prop))
+                    continue;
+
+                //create the column info object
+                CqlColumnInfo<T> info = CreateColumnInfo(prop);
+
+                //set the type
+                info.Type = prop.PropertyType;
+
+                //add the read func if we can read the property
+                if (prop.CanRead && !prop.GetMethod.IsPrivate)
+                {
+                    info.ReadFunction = MakeGetterDelegate(prop);
+                }
+
+                //add write func if we can write the property
+                if (prop.CanWrite && !prop.SetMethod.IsPrivate)
+                {
+                    info.WriteFunction = MakeSetterDelegate(prop);
+                }
+
+                columns.Add(info);
+            }
+
+            //go over all fields
+            foreach (FieldInfo field in _type.GetFields())
+            {
+                if (ShouldIgnoreMember(field))
+                    continue;
+
+                //create the column info object
+                CqlColumnInfo<T> info = CreateColumnInfo(field);
+
+                //set the type
+                info.Type = field.FieldType;
+
+                //set getter functions
+                info.ReadFunction = MakeFieldGetterDelegate(field);
+
+                //set setter functions if not readonly
+                if (!field.IsInitOnly)
+                {
+                    info.WriteFunction = MakeFieldSetterDelegate(field);
+                }
+
+                columns.Add(info);
+            }
+            _columns = new ReadOnlyCollection<CqlColumnInfo<T>>(columns);
+
+            //fill index by name
+            var columnsByName = new Dictionary<string, CqlColumnInfo<T>>();
+            foreach (var column in _columns)
+            {
+                var name = column.Name;
+                columnsByName[name] = column;
+                if (IsTableSet)
+                {
+                    columnsByName[Table + "." + name] = column;
+                    if (IsKeySpaceSet)
+                        columnsByName[Keyspace + "." + Table + "." + name] = column;
+                }
+            }
+            _columnsByName = new ReadOnlyDictionary<string, CqlColumnInfo<T>>(columnsByName);
+
+            //fill index by member
+            _columnsByMember =
+                new ReadOnlyDictionary<MemberInfo, CqlColumnInfo<T>>(_columns.ToDictionary(column => column.MemberInfo));
+
+            //column (sub)sets
+            _partitionKeys =
+                new ReadOnlyCollection<CqlColumnInfo<T>>(
+                    _columns.Where(column => column.IsPartitionKey).OrderBy(column => column.Order).ToList());
+            _partitionKeyTypes = _partitionKeys.Select(info => info.CqlType).ToArray();
+            _clusteringKeys =
+                new ReadOnlyCollection<CqlColumnInfo<T>>(
+                    _columns.Where(column => column.IsClusteringKey).OrderBy(column => column.Order).ToList());
+            _normalColumns =
+                new ReadOnlyCollection<CqlColumnInfo<T>>(
+                    _columns.Where(column => !column.IsClusteringKey && !column.IsPartitionKey).ToList());
+        }
+
+        /// <summary>
+        ///   Gets a value indicating whether [is key space set].
+        /// </summary>
+        /// <value> <c>true</c> if [is key space set]; otherwise, <c>false</c> . </value>
+        public bool IsKeySpaceSet { get; private set; }
+
+        /// <summary>
+        ///   Gets the keyspace.
+        /// </summary>
+        /// <value> The keyspace. </value>
+        public string Keyspace { get; private set; }
+
+        /// <summary>
+        ///   Gets a value indicating whether [is table set].
+        /// </summary>
+        /// <value> <c>true</c> if [is table set]; otherwise, <c>false</c> . </value>
+        public bool IsTableSet { get; private set; }
+
+        /// <summary>
+        ///   Gets the table name.
+        /// </summary>
+        /// <value> The table. </value>
+        public string Table { get; private set; }
+
+
+        /// <summary>
+        ///   Gets the type this accessor can handle
+        /// </summary>
+        /// <value> The type. </value>
+        public Type Type
+        {
+            get { return _type; }
+        }
+
+        /// <summary>
+        ///   Gets the partition keys.
+        /// </summary>
+        /// <value> The partition keys. </value>
+        public ReadOnlyCollection<CqlColumnInfo<T>> PartitionKeys
+        {
+            get { return _partitionKeys; }
+        }
+
+        /// <summary>
+        ///   Gets the clustering keys.
+        /// </summary>
+        /// <value> The clustering keys. </value>
+        public ReadOnlyCollection<CqlColumnInfo<T>> ClusteringKeys
+        {
+            get { return _clusteringKeys; }
+        }
+
+        /// <summary>
+        ///   Gets the normal (non-key) columns.
+        /// </summary>
+        /// <value> The normal columns. </value>
+        public ReadOnlyCollection<CqlColumnInfo<T>> NormalColumns
+        {
+            get { return _normalColumns; }
+        }
+
+        /// <summary>
+        ///   Gets all the columns.
+        /// </summary>
+        /// <value> The columns. </value>
+        public ReadOnlyCollection<CqlColumnInfo<T>> Columns
+        {
+            get { return _columns; }
+        }
+
+        /// <summary>
+        ///   Gets the columns by field or property member.
+        /// </summary>
+        /// <value> The columns by member. </value>
+        public ReadOnlyDictionary<MemberInfo, CqlColumnInfo<T>> ColumnsByMember
+        {
+            get { return _columnsByMember; }
+        }
+
+        /// <summary>
+        ///   Gets the columns by column name. When the Table or Keyspace is known the dictionary
+        ///   will contain entries where the column name is combined with the Table or Keyspace names.
+        /// </summary>
+        /// <value> The columns by member. </value>
+        public ReadOnlyDictionary<string, CqlColumnInfo<T>> ColumnsByName
+        {
+            get { return _columnsByName; }
+        }
+
+        /// <summary>
+        ///   Sets the table properties.
+        /// </summary>
+        private void SetTableProperties()
+        {
             //set default keyspace and table name to empty strings (nothing)
             Keyspace = null;
             Table = null;
@@ -117,127 +258,88 @@ namespace CqlSharp.Serialization
                 //set default table name
                 Table = tableAttribute.Table ?? Table;
             }
-
-            //go over all properties
-            foreach (PropertyInfo prop in type.GetProperties())
-            {
-                //get the column name of the property
-                string name = GetColumnName(prop);
-
-                //check if we get a proper name
-                if (string.IsNullOrEmpty(name))
-                    continue;
-
-                //add the read func if we can read the property
-                if (prop.CanRead && !prop.GetMethod.IsPrivate)
-                {
-                    var getter = MakeGetterDelegate(prop);
-                    AddReadFunc(getter, name, Table, Keyspace);
-                    SetPartitionKeyMember(keyMembers, prop, getter);
-                    ColumnNames[prop] = name;
-                }
-
-                //add write func if we can write the property
-                if (prop.CanWrite && !prop.SetMethod.IsPrivate)
-                {
-                    var setter = MakeSetterDelegate(prop);
-                    AddWriteFunc(setter, name, Table, Keyspace);
-                }
-            }
-
-            //go over all fields
-            foreach (FieldInfo field in type.GetFields())
-            {
-                //get the column name of the field
-                string name = GetColumnName(field);
-
-                //check if we get a proper name
-                if (string.IsNullOrEmpty(name))
-                    continue;
-
-                //set getter functions
-                var getter = MakeFieldGetterDelegate(field);
-                AddReadFunc(getter, name, Table, Keyspace);
-                SetPartitionKeyMember(keyMembers, field, getter);
-                ColumnNames[field] = name;
-
-                //set setter functions if not readonly
-                if (!field.IsInitOnly)
-                {
-                    var setter = MakeFieldSetterDelegate(field);
-                    AddWriteFunc(setter, name, Table, Keyspace);
-                }
-            }
-
-            //sort keyMembers on partitionIndex
-            keyMembers.Sort((a, b) => a.Item1.CompareTo(b.Item1));
-            _partitionKeyReadFuncs = keyMembers.Select(km => km.Item2).ToArray();
-            _partitionKeyTypes = keyMembers.Select(km => km.Item3).ToArray();
         }
 
         /// <summary>
-        /// mapping of members to their respective column names
+        ///   Checks wether the member must be ignored
         /// </summary>
-        public Dictionary<MemberInfo, string> ColumnNames
-        {
-            get { return _columnNames; }
-        }
-
-        /// <summary>
-        /// Gets the type this accessor can handle
-        /// </summary>
-        /// <value>
-        /// The type.
-        /// </value>
-        public Type Type { get { return typeof(T); } }
-
-        private void AddWriteFunc(Action<T, object> setter, string column, string table, string keyspace)
-        {
-            _writeFuncs[column] = setter;
-            if (table != null)
-            {
-                _writeFuncs[table + "." + column] = setter;
-                if (keyspace != null)
-                    _writeFuncs[keyspace + "." + table + "." + column] = setter;
-            }
-        }
-
-        private void AddReadFunc(Func<T, object> getter, string column, string table, string keyspace)
-        {
-            _readFuncs[column] = getter;
-            if (table != null)
-            {
-                _readFuncs[table + "." + column] = getter;
-                if (keyspace != null)
-                    _readFuncs[keyspace + "." + table + "." + column] = getter;
-            }
-        }
-
-        /// <summary>
-        ///   Sets the partition key member.
-        /// </summary>
-        /// <param name="keyMembers"> The key members. </param>
         /// <param name="member"> The member. </param>
-        /// <param name="reader"> The reader. </param>
-        /// <exception cref="System.ArgumentException">CqlType must be set on ColumnAttribute if PartitionKeyIndex is set.</exception>
-        private void SetPartitionKeyMember(List<Tuple<int, Func<T, object>, CqlType>> keyMembers, MemberInfo member,
-                                           Func<T, object> reader)
+        /// <returns> </returns>
+        private static bool ShouldIgnoreMember(MemberInfo member)
+        {
+            //check for ignore attribute
+            var ignoreAttribute =
+                Attribute.GetCustomAttribute(member, typeof(CqlIgnoreAttribute)) as CqlIgnoreAttribute;
+
+            //return true if ignore attribute is set
+            return ignoreAttribute != null;
+        }
+
+        /// <summary>
+        ///   Creates the column information.
+        /// </summary>
+        /// <param name="prop"> The property. </param>
+        /// <returns> </returns>
+        private static CqlColumnInfo<T> CreateColumnInfo(MemberInfo prop)
+        {
+            //create new info for property
+            var info = new CqlColumnInfo<T> { MemberInfo = prop };
+
+            //get the column name and type of the property
+            SetColumnInfo(prop, info);
+
+            //set key info if any
+            SetKeyInfo(prop, info);
+
+            //set index info if any
+            SetIndexInfo(prop, info);
+
+            return info;
+        }
+
+        /// <summary>
+        ///   Sets any index information
+        /// </summary>
+        /// <param name="member"> The member. </param>
+        /// <param name="column"> The column. </param>
+        private static void SetIndexInfo(MemberInfo member, CqlColumnInfo<T> column)
         {
             //check for column attribute
-            var columnAttribute =
-                Attribute.GetCustomAttribute(member, typeof(CqlColumnAttribute)) as CqlColumnAttribute;
+            var indexAttribute =
+                Attribute.GetCustomAttribute(member, typeof(CqlIndexAttribute)) as CqlIndexAttribute;
 
-            if (columnAttribute != null)
+            if (indexAttribute != null)
             {
-                if (columnAttribute.PartitionKeyIndex >= 0)
-                {
-                    //if (!columnAttribute.CqlType.HasValue)
-                    //    throw new ArgumentException("CqlType must be set on ColumnAttribute if PartitionKeyIndex is set.");
+                column.IsIndexed = true;
+                column.IndexName = indexAttribute.Name;
+            }
+            else
+            {
+                column.IsIndexed = false;
+            }
+        }
 
-                    //add the member
-                    keyMembers.Add(new Tuple<int, Func<T, object>, CqlType>(columnAttribute.PartitionKeyIndex, reader,
-                                                                            columnAttribute.CqlType));
-                }
+        /// <summary>
+        ///   Sets the key information.
+        /// </summary>
+        /// <param name="member"> The member. </param>
+        /// <param name="column"> The column. </param>
+        private static void SetKeyInfo(MemberInfo member, CqlColumnInfo<T> column)
+        {
+            //check for column attribute
+            var keyAttribute =
+                Attribute.GetCustomAttribute(member, typeof(CqlKeyAttribute)) as CqlKeyAttribute;
+
+            if (keyAttribute != null)
+            {
+                column.Order = keyAttribute.Order;
+                column.IsPartitionKey = keyAttribute.IsPartitionKey;
+                column.IsClusteringKey = !keyAttribute.IsPartitionKey;
+            }
+            else
+            {
+                column.IsPartitionKey = false;
+                column.IsClusteringKey = false;
             }
         }
 
@@ -245,101 +347,54 @@ namespace CqlSharp.Serialization
         ///   Gets the name of the column of the specified member.
         /// </summary>
         /// <param name="member"> The member. </param>
-        /// <returns> </returns>
-        private static string GetColumnName(MemberInfo member)
+        /// <param name="column"> the column. </param>
+        private static void SetColumnInfo(MemberInfo member, CqlColumnInfo<T> column)
         {
-            //check for ignore attribute
-            var ignoreAttribute =
-                Attribute.GetCustomAttribute(member, typeof(CqlIgnoreAttribute)) as CqlIgnoreAttribute;
-
-            //return null if ignore attribute is set
-            if (ignoreAttribute != null)
-                return null;
-
             //check for column attribute
             var columnAttribute =
                 Attribute.GetCustomAttribute(member, typeof(CqlColumnAttribute)) as CqlColumnAttribute;
 
-            return columnAttribute != null ? columnAttribute.Column : member.Name.ToLower();
+            //get column name from attribute or base on name otherwise
+            if (columnAttribute != null && columnAttribute.Column != null)
+            {
+                column.Name = columnAttribute.Column;
+            }
+            else
+            {
+                column.Name = member.Name.ToLower();
+            }
+
+            //get CqlType from attribute (if any)
+            if (columnAttribute != null && columnAttribute.CqlType.HasValue)
+            {
+                column.CqlType = columnAttribute.CqlType.Value;
+                return;
+            }
+
+            //distill CqlType from property
+            var prop = member as PropertyInfo;
+            if (prop != null)
+            {
+                column.CqlType = prop.PropertyType.ToCqlType();
+                return;
+            }
+
+            //distill CqlType from field
+            var field = member as FieldInfo;
+            if (field != null)
+            {
+                column.CqlType = field.FieldType.ToCqlType();
+                return;
+            }
+
+            throw new CqlException("Only fields or properties are allowed as columns");
         }
 
         /// <summary>
-        ///   Tries to get a value from the source, based on the column description
+        ///   Makes the getter delegate.
         /// </summary>
-        /// <param name="column"> The column. </param>
-        /// <param name="source"> The source. </param>
-        /// <param name="value"> The value. </param>
-        /// <returns> true, if the value could be distilled from the source </returns>
-        /// <exception cref="System.ArgumentNullException">column</exception>
-        /// <exception cref="System.ArgumentException">Source is not of the correct type!;source</exception>
-        public bool TryGetValue(string column, T source, out object value)
-        {
-            if (column == null)
-                throw new ArgumentNullException("column");
-
-            // ReSharper disable CompareNonConstrainedGenericWithNull
-            if (source == null)
-                // ReSharper restore CompareNonConstrainedGenericWithNull
-                throw new ArgumentNullException("source");
-
-            Func<T, object> func;
-
-            if (_readFuncs.TryGetValue(column, out func))
-            {
-                value = func(source);
-                return true;
-            }
-
-            value = null;
-            return false;
-        }
-
-        /// <summary>
-        ///   Tries to set a property or field of the specified object, based on the column description
-        /// </summary>
-        /// <param name="column"> The column name. </param>
-        /// <param name="target"> The target. </param>
-        /// <param name="value"> The value. </param>
-        /// <returns> true if the property or field value is set </returns>
-        /// <exception cref="System.ArgumentNullException">column or target are null</exception>
-        public bool TrySetValue(string column, T target, object value)
-        {
-            if (column == null)
-                throw new ArgumentNullException("column");
-
-            // ReSharper disable CompareNonConstrainedGenericWithNull
-            if (target == null)
-                // ReSharper restore CompareNonConstrainedGenericWithNull
-                throw new ArgumentNullException("target");
-
-
-            Action<T, object> func;
-
-            if (_writeFuncs.TryGetValue(column, out func))
-            {
-                func(target, value);
-                return true;
-            }
-
-            return false;
-        }
-
-        public void SetPartitionKey(PartitionKey key, T value)
-        {
-            int length = _partitionKeyReadFuncs.Length;
-            if (length > 0)
-            {
-                var values = new object[length];
-                for (int i = 0; i < length; i++)
-                {
-                    values[i] = _partitionKeyReadFuncs[i](value);
-                }
-
-                key.Set(_partitionKeyTypes, values);
-            }
-        }
-
-
+        /// <param name="property"> The property. </param>
+        /// <returns> </returns>
         private static Func<T, object> MakeGetterDelegate(PropertyInfo property)
         {
             MethodInfo getMethod = property.GetGetMethod();
@@ -349,6 +404,11 @@ namespace CqlSharp.Serialization
                 .Compile();
         }
 
+        /// <summary>
+        ///   Makes the setter delegate.
+        /// </summary>
+        /// <param name="property"> The property. </param>
+        /// <returns> </returns>
         private static Action<T, object> MakeSetterDelegate(PropertyInfo property)
         {
             MethodInfo setMethod = property.GetSetMethod();
@@ -363,6 +423,11 @@ namespace CqlSharp.Serialization
                 .Compile();
         }
 
+        /// <summary>
+        ///   Makes the field getter delegate.
+        /// </summary>
+        /// <param name="property"> The property. </param>
+        /// <returns> </returns>
         private static Func<T, object> MakeFieldGetterDelegate(FieldInfo property)
         {
             var target = Expression.Parameter(typeof(T));
@@ -370,6 +435,11 @@ namespace CqlSharp.Serialization
             return Expression.Lambda<Func<T, object>>(body, target).Compile();
         }
 
+        /// <summary>
+        ///   Makes the field setter delegate.
+        /// </summary>
+        /// <param name="property"> The property. </param>
+        /// <returns> </returns>
         private static Action<T, object> MakeFieldSetterDelegate(FieldInfo property)
         {
             var target = Expression.Parameter(typeof(T));
@@ -381,6 +451,96 @@ namespace CqlSharp.Serialization
                 Expression.Convert(value, property.FieldType));
             var body = Expression.Assign(field, valueOrDefault);
             return Expression.Lambda<Action<T, object>>(body, target, value).Compile();
+        }
+
+        /// <summary>
+        ///   Tries to get a value from the source, based on the column description
+        /// </summary>
+        /// <param name="columnName"> Name of the column. </param>
+        /// <param name="source"> The source. </param>
+        /// <param name="value"> The value. </param>
+        /// <returns> true, if the value could be distilled from the source </returns>
+        /// <exception cref="System.ArgumentNullException">columnName or source are null</exception>
+        public bool TryGetValue(string columnName, T source, out object value)
+        {
+            if (columnName == null)
+                throw new ArgumentNullException("columnName");
+
+            // ReSharper disable CompareNonConstrainedGenericWithNull
+            if (source == null)
+                // ReSharper restore CompareNonConstrainedGenericWithNull
+                throw new ArgumentNullException("source");
+
+            CqlColumnInfo<T> column;
+            if (_columnsByName.TryGetValue(columnName, out column))
+            {
+                Func<T, object> func = column.ReadFunction;
+                if (func != null)
+                {
+                    value = func(source);
+                    return true;
+                }
+            }
+
+            value = null;
+            return false;
+        }
+
+        /// <summary>
+        ///   Tries to set a property or field of the specified object, based on the column description
+        /// </summary>
+        /// <param name="columnName"> Name of the column. </param>
+        /// <param name="target"> The target. </param>
+        /// <param name="value"> The value. </param>
+        /// <returns> true if the property or field value is set </returns>
+        /// <exception cref="System.ArgumentNullException">columnName or target are null</exception>
+        public bool TrySetValue(string columnName, T target, object value)
+        {
+            if (columnName == null)
+                throw new ArgumentNullException("columnName");
+
+            // ReSharper disable CompareNonConstrainedGenericWithNull
+            if (target == null)
+                // ReSharper restore CompareNonConstrainedGenericWithNull
+                throw new ArgumentNullException("target");
+
+
+            CqlColumnInfo<T> column;
+            if (_columnsByName.TryGetValue(columnName, out column))
+            {
+                Action<T, object> func = column.WriteFunction;
+                if (func != null)
+                {
+                    func(target, value);
+                    return true;
+                }
+            }
+
+            return false;
+        }
+
+        /// <summary>
+        ///   Sets the partition key based on the data found in a table entry.
+        /// </summary>
+        /// <param name="key"> The key. </param>
+        /// <param name="value"> The value. </param>
+        /// <exception cref="CqlException">Unable to read value for partition key column  + _partitionKeys[i].Name</exception>
+        public void SetPartitionKey(PartitionKey key, T value)
+        {
+            int length = _partitionKeys.Count;
+            if (length > 0)
+            {
+                var values = new object[length];
+                for (int i = 0; i < length; i++)
+                {
+                    if (_partitionKeys[i].ReadFunction == null)
+                        throw new CqlException("Unable to read value for partition key column " + _partitionKeys[i].Name);
+
+                    values[i] = _partitionKeys[i].ReadFunction(value);
+                }
+
+                key.Set(_partitionKeyTypes, values);
+            }
         }
     }
 }

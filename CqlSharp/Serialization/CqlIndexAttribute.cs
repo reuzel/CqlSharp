@@ -1,4 +1,4 @@
-// CqlSharp - CqlSharp
+﻿// CqlSharp - CqlSharp
 // Copyright (c) 2014 Joost Reuzel
 //   
 // Licensed under the Apache License, Version 2.0 (the "License");
@@ -18,23 +18,15 @@ using System;
 namespace CqlSharp.Serialization
 {
     /// <summary>
-    ///   Annotates a class to have it map to a specific table and optionally keyspace
+    ///   Indicates wether the given column is indexed.
     /// </summary>
-    [AttributeUsage(AttributeTargets.Class)]
-    public class CqlTableAttribute : Attribute
+    [AttributeUsage(AttributeTargets.Property | AttributeTargets.Field)]
+    public class CqlIndexAttribute : Attribute
     {
-        private readonly string _table;
-
-        public CqlTableAttribute(string table)
-        {
-            _table = table;
-        }
-
-        public string Table
-        {
-            get { return _table; }
-        }
-
-        public string Keyspace { get; set; }
+        /// <summary>
+        ///   Gets or sets the name of the index.
+        /// </summary>
+        /// <value> The name. </value>
+        public string Name { get; set; }
     }
 }

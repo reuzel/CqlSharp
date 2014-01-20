@@ -41,10 +41,10 @@ namespace CqlSharp.Protocol
         /// <param name="keyspace"> The keyspace. </param>
         /// <param name="table"> The table. </param>
         /// <param name="name"> The name. </param>
-        /// <param name="cqlType"> Type of the column. </param>
+        /// <param name="cqlType"> CqlType of the column. </param>
         /// <param name="customData"> The custom data. </param>
-        /// <param name="collectionKeyType"> Type of the collection key. </param>
-        /// <param name="collectionValueType"> Type of the collection value. </param>
+        /// <param name="collectionKeyType"> CqlType of the collection key. </param>
+        /// <param name="collectionValueType"> CqlType of the collection value. </param>
         internal Column(int index, string keyspace, string table, string name, CqlType cqlType,
                         string customData, CqlType? collectionKeyType, CqlType? collectionValueType)
         {

@@ -141,9 +141,9 @@ namespace CqlSharp
         /// <summary>
         ///   Gets the .Net type that represents the given CqlType
         /// </summary>
-        /// <param name="cqlType"> Type of the CQL. </param>
-        /// <param name="valueType"> Type of the values if the CqlType is a collection. </param>
-        /// <param name="keyType"> Type of the key if the type is a map. </param>
+        /// <param name="cqlType"> CqlType of the CQL. </param>
+        /// <param name="valueType"> CqlType of the values if the CqlType is a collection. </param>
+        /// <param name="keyType"> CqlType of the key if the type is a map. </param>
         /// <returns> .NET type representing the CqlType </returns>
         /// <exception cref="System.ArgumentException">Unsupported type</exception>
         public static Type ToType(this CqlType cqlType, CqlType? keyType = null, CqlType? valueType = null)
@@ -189,13 +189,33 @@ namespace CqlSharp
         /// </summary>
         /// <param name="type">The type.</param>
         /// <returns></returns>
-        /// <exception cref="System.NotSupportedException">Type can not be mapped to a valid CQL type</exception>
+        /// <exception cref="System.NotSupportedException">CqlType can not be mapped to a valid CQL type</exception>
         public static CqlType ToCqlType(this Type type)
         {
             CqlType cqlType;
 
             if (!Type2CqlType.TryGetValue(type, out cqlType))
-                throw new NotSupportedException("Type " + type.Name + " can not be mapped to a valid CQL type");
+            {
+                if (type.IsGenericType)
+                {
+                    var genericType = type.GetGenericTypeDefinition();
+
+                    if (genericType == typeof(Nullable<>))
+                        return ToCqlType(type.GetGenericArguments()[0]);
+
+                    if (genericType == typeof(Dictionary<,>))
+                        return CqlType.Map;
+
+                    if (genericType == typeof(HashSet<>))
+                        return CqlType.Set;
+
+                    if (genericType == typeof(List<>))
+                        return CqlType.List;
+
+                }
+
+                throw new NotSupportedException("CqlType " + type.Name + " can not be mapped to a valid CQL type");
+            }
 
             return cqlType;
         }
@@ -205,16 +225,45 @@ namespace CqlSharp
         /// </summary>
         /// <param name="type">The type.</param>
         /// <returns></returns>
-        /// <exception cref="System.NotSupportedException">Type can not be mapped to a valid CQL type</exception>
+        /// <exception cref="System.NotSupportedException">CqlType can not be mapped to a valid CQL type</exception>
         public static bool IsSupportedCqlType(this Type type)
         {
-            return Type2CqlType.ContainsKey(type);
+            if (Type2CqlType.ContainsKey(type))
+                return true;
+
+            if (type.IsGenericType)
+            {
+                Type genericType = type.GetGenericTypeDefinition();
+                Type[] typeArguments = type.GetGenericArguments();
+
+                if (genericType == typeof(Nullable<>))
+                {
+                    return Type2CqlType.ContainsKey(typeArguments[0]);
+                }
+
+                if (genericType == typeof(Dictionary<,>))
+                {
+                    var keyType = typeArguments[0];
+                    var valueType = typeArguments[1];
+                    return Type2CqlType.ContainsKey(keyType) && Type2CqlType.ContainsKey(valueType);
+                }
+
+                if (genericType == typeof(HashSet<>) || genericType == typeof(List<>))
+                {
+                    var collectionType = typeArguments[0];
+                    return Type2CqlType.ContainsKey(collectionType);
+                }
+
+
+            }
+
+            return true;
         }
 
         /// <summary>
         ///   gets the corresponding the DbType
         /// </summary>
-        /// <param name="colType"> Type of the col. </param>
+        /// <param name="colType"> CqlType of the col. </param>
         /// <returns> </returns>
         public static DbType ToDbType(this CqlType colType)
         {
@@ -232,7 +281,7 @@ namespace CqlSharp
         /// <summary>
         ///   gets the corresponding the CqlType
         /// </summary>
-        /// <param name="colType"> Type of the col. </param>
+        /// <param name="colType"> CqlType of the col. </param>
         /// <returns> </returns>
         /// <exception cref="System.ArgumentOutOfRangeException">cqlType;DbType is not supported</exception>
         public static CqlType ToCqlType(this DbType colType)

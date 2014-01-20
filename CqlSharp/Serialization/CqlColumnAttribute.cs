@@ -1,5 +1,5 @@
 // CqlSharp - CqlSharp
-// Copyright (c) 2013 Joost Reuzel
+// Copyright (c) 2014 Joost Reuzel
 //   
 // Licensed under the Apache License, Version 2.0 (the "License");
 // you may not use this file except in compliance with the License.
@@ -24,11 +24,17 @@ namespace CqlSharp.Serialization
     public class CqlColumnAttribute : Attribute
     {
         private readonly string _column;
+        private readonly CqlType? _type;
 
         public CqlColumnAttribute(string column)
         {
             _column = column;
-            PartitionKeyIndex = -1;
+        }
+
+        public CqlColumnAttribute(string column, CqlType type)
+        {
+            _column = column;
+            _type = type;
         }
 
         /// <summary>
@@ -41,15 +47,19 @@ namespace CqlSharp.Serialization
         }
 
         /// <summary>
-        ///   Gets or sets the Cql type of the column (only necessary if it is used as PartitionKey)
+        ///   Gets or sets the Cql type of the column
         /// </summary>
         /// <value> The type of the CQL. </value>
-        public CqlType CqlType { get; set; }
+        public CqlType? CqlType
+        {
+            get { return _type; }
+        }
 
         /// <summary>
         ///   Gets or sets the index of column in the partition key.
         /// </summary>
         /// <value> The index of the partition key. </value>
+        [Obsolete("Please use CqlKeyAttribute instead", true)]
         public int PartitionKeyIndex { get; set; }
     }
 }
