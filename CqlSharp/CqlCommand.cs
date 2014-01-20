@@ -1031,7 +1031,7 @@ namespace CqlSharp
                         logger.LogVerbose("Changing Database: {0} using {1}", useQuery, connection);
 
                         var useFrame = new QueryFrame(useQuery, CqlConsistency.One, null);
-                        var result = await connection.SendRequestAsync(useFrame, logger, 1, false, token) as ResultFrame;
+                        var result = await connection.SendRequestAsync(useFrame, logger, 1, false, token).ConfigureAwait(false) as ResultFrame;
                         if (result == null || result.CqlResultType != CqlResultType.SetKeyspace)
                         {
                             if (result != null) result.Dispose();

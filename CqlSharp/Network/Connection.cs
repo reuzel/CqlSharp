@@ -534,7 +534,7 @@ namespace CqlSharp.Network
                     throw new OperationCanceledException(token);
                 }
             }
-            return await task;
+            return await task.ConfigureAwait(false);
         }
 
 
