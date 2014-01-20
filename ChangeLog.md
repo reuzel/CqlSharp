@@ -1,5 +1,7 @@
 ## Version 0.31.0 - Linq-2-Cql
-* Adjustments to support Linq2Cql support in CqlSharp.Linq package
+* Adjustments to support Linq2Cql in CqlSharp.Linq package
+* Making ObjectAccessor public accessible
+* Introducing CqlKey and CqlIndex attributes
 
 ## Version 0.30.2 - Deadlock removal
 * Fix: Adding two missing ConfigureAwait statements avoiding deadlock in MVC projects
