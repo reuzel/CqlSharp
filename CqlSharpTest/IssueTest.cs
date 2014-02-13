@@ -16,7 +16,9 @@
 using Microsoft.QualityTools.Testing.Fakes;
 using Microsoft.VisualStudio.TestTools.UnitTesting;
 using System;
+using System.Collections.Generic;
 using System.Fakes;
+using System.Numerics;
 using System.Threading.Tasks;
 
 namespace CqlSharp.Test
@@ -55,6 +57,23 @@ namespace CqlSharp.Test
                 {
                     await connection.OpenAsync();
                 }
+            }
+        }
+
+        [TestMethod]
+        public void TimeUuidIssue()
+        {
+            // this test uses BigInteger to check, otherwise the Dictionary
+            // will complain because Guid's GetHashCode will collide
+            var timestamps = new Dictionary<BigInteger, Guid>();
+
+            // run a full clock sequence cycle (or so)
+            for (var n = 0; n < 65536; n++)
+            {   
+                var guid = DateTime.Now.GenerateTimeBasedGuid();
+                var bigint = new BigInteger(guid.ToByteArray());
+
+               timestamps.Add(bigint, guid);
             }
         }
     }

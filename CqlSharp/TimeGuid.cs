@@ -57,10 +57,17 @@ namespace CqlSharp
 
         private static readonly Random Random = new Random();
 
+        // sequence numbers, etc
+        private static long lastTick = 0L;
+        private static ushort clockSequenceNumber = 1;
+
         static TimeGuid()
         {
             RandomNode = new byte[6];
             Random.NextBytes(RandomNode);
+
+            // turn on I/G and U/L bits (per the node spec)
+            // RandomNode[0] |= 0xC0;
         }
 
         public static DateTime GetDateTime(this Guid guid)
@@ -69,7 +76,7 @@ namespace CqlSharp
 
             // reverse the version
             bytes[VersionByte] &= VersionByteMask;
-            bytes[VersionByte] |= (byte) GuidVersion.TimeBased >> VersionByteShift;
+            bytes[VersionByte] |= (byte)GuidVersion.TimeBased >> VersionByteShift;
 
             var timestampBytes = new byte[8];
             Array.Copy(bytes, TimestampByte, timestampBytes, 0, 8);
@@ -90,15 +97,33 @@ namespace CqlSharp
             dateTime = dateTime.ToUniversalTime();
             long ticks = (dateTime - GregorianCalendarStart).Ticks;
 
+            // see if we're in the 100ns time window, if so, bump the clock sequence
+            if (lastTick == ticks)
+            {
+                clockSequenceNumber = (ushort)((clockSequenceNumber + 1) & 0xffff);
+            }
+
+            // cache away the last value we saw
+            lastTick = ticks;
+
             var guid = new byte[ByteArraySize];
-            byte[] clockSequenceBytes = BitConverter.GetBytes(Convert.ToInt16(Environment.TickCount%Int16.MaxValue));
+            byte[] clockSequenceBytes = BitConverter.GetBytes(clockSequenceNumber);
             byte[] timestamp = BitConverter.GetBytes(ticks);
 
             // copy node
             Array.Copy(node, 0, guid, NodeByte, Math.Min(6, node.Length));
 
-            // copy clock sequence
-            Array.Copy(clockSequenceBytes, 0, guid, GuidClockSequenceByte, Math.Min(2, clockSequenceBytes.Length));
+            // copy clock sequence, the byte ordering needs to be reversed here
+            if (BitConverter.IsLittleEndian)
+            {
+                guid[GuidClockSequenceByte] = clockSequenceBytes[1];
+                guid[GuidClockSequenceByte + 1] = clockSequenceBytes[0];
+            }
+            else
+            {
+                guid[GuidClockSequenceByte] = clockSequenceBytes[0];
+                guid[GuidClockSequenceByte + 1] = clockSequenceBytes[1];
+            }
 
             // copy timestamp
             Array.Copy(timestamp, 0, guid, TimestampByte, Math.Min(8, timestamp.Length));
@@ -109,7 +134,7 @@ namespace CqlSharp
 
             // set the version
             guid[VersionByte] &= VersionByteMask;
-            guid[VersionByte] |= (byte) GuidVersion.TimeBased << VersionByteShift;
+            guid[VersionByte] |= (byte)GuidVersion.TimeBased << VersionByteShift;
 
             return new Guid(guid);
         }
