@@ -14,6 +14,7 @@
 // limitations under the License.
 
 using System;
+using System.Threading;
 
 namespace CqlSharp
 {
@@ -25,37 +26,20 @@ namespace CqlSharp
     /// </summary>
     public static class TimeGuid
     {
-        // number of bytes in guid
-        private const int ByteArraySize = 16;
-
-        // multiplex variant info
-        private const int VariantByte = 8;
-
-        private const int VariantByteMask = 0x3f;
-
-        private const int VariantByteShift = 0x80;
-
+        private static readonly object Lock = new object();
+        
         // multiplex version info
         private const int VersionByte = 7;
-
         private const int VersionByteMask = 0x0f;
-
         private const int VersionByteShift = 4;
-
-        // indexes within the uuid array for certain boundaries
-        private const byte TimestampByte = 0;
-
-        private const byte GuidClockSequenceByte = 8;
-
-        private const byte NodeByte = 10;
 
         // offset to move from 1/1/0001, which is 0-time for .NET, to gregorian 0-time of 10/15/1582
         private static readonly DateTime GregorianCalendarStart = new DateTime(1582, 10, 15, 0, 0, 0, DateTimeKind.Utc);
 
+        private static readonly Random Random = new Random((int)DateTime.UtcNow.Ticks);
+
         // random node that is 16 bytes
         private static byte[] _nodeId;
-
-        private static readonly Random Random = new Random();
 
         // sequence numbers, etc
         private static long _lastTime = 0L;
@@ -87,7 +71,7 @@ namespace CqlSharp
             bytes[VersionByte] |= (byte)GuidVersion.TimeBased >> VersionByteShift;
 
             var timestampBytes = new byte[8];
-            Array.Copy(bytes, TimestampByte, timestampBytes, 0, 8);
+            Array.Copy(bytes, 0, timestampBytes, 0, 8);
 
             long timestamp = BitConverter.ToInt64(timestampBytes, 0);
             long ticks = timestamp + GregorianCalendarStart.Ticks;
@@ -95,23 +79,21 @@ namespace CqlSharp
             return new DateTime(ticks, DateTimeKind.Utc);
         }
 
-        private static readonly object Lock = new object();
-       
         public static Guid GenerateTimeBasedGuid(this DateTime dateTime)
         {
             dateTime = dateTime.ToUniversalTime();
-            long time = (long)(dateTime - GregorianCalendarStart).TotalMilliseconds;
+            var time = (long)(dateTime - GregorianCalendarStart).TotalMilliseconds;
             byte[] nodeId;
-            ushort sequence;
+            int sequence;
 
             lock(Lock)
             {
                 //generate a new nodeId when clock is set backward (to avoid collisions with earlier created uuids)
-                if(time < _lastTime)
+                if (time < _lastTime)
                     _nodeId = CreateNodeId();
 
                 //if time changed, reset sequence numbers
-                if(time != _lastTime)
+                if (time != _lastTime)
                 {
                     _clockSequenceNumber = 0;
                     _timeSequenceNumber = 0;
@@ -119,54 +101,34 @@ namespace CqlSharp
                 else
                 {
                     //increment clockSequence, or timeSequence if we are out of clockSequences
-                    _clockSequenceNumber++;
-                    if(_clockSequenceNumber==ushort.MaxValue)
+                    if (_clockSequenceNumber == ushort.MaxValue)
                     {
                         _clockSequenceNumber = 0;
-                        _timeSequenceNumber++;
+                        _timeSequenceNumber = (_timeSequenceNumber + 1) % 10000;
                     }
+                    else
+                        _clockSequenceNumber++;
                 }
 
                 //cache this time
                 _lastTime = time;
 
                 //capture values
-                time = time*10000 + _timeSequenceNumber;
+                time = time * 10000 + _timeSequenceNumber;
                 sequence = _clockSequenceNumber;
                 nodeId = _nodeId;
             }
-            
-            var guid = new byte[ByteArraySize];
-            byte[] clockSequenceBytes = BitConverter.GetBytes(sequence);
-            byte[] timestamp = BitConverter.GetBytes(time);
 
-            // copy node
-            Array.Copy(nodeId, 0, guid, NodeByte, 6);
-            
-            // copy clock sequence, the byte ordering needs to be reversed here
-            if (BitConverter.IsLittleEndian)
-            {
-                guid[GuidClockSequenceByte] = clockSequenceBytes[1];
-                guid[GuidClockSequenceByte + 1] = clockSequenceBytes[0];
-            }
-            else
-            {
-                guid[GuidClockSequenceByte] = clockSequenceBytes[0];
-                guid[GuidClockSequenceByte + 1] = clockSequenceBytes[1];
-            }
 
-            // copy timestamp (low and mid)
-            Array.Copy(timestamp, 0, guid, TimestampByte, 8);
+            var timeLow = (int)(time);
+            var timeMid = (short)(time >> 32);
+            var timeHiAndVersion = (short)(((time >> 48) & 0x0FFF) | (1 << 12));
+            var seqLow = (byte)(sequence);
+            var seqHiAndReserved = (byte)(((sequence & 0x3F00) >> 8) | 0x80);
 
-            // set the variant
-            guid[VariantByte] &= VariantByteMask;
-            guid[VariantByte] |= VariantByteShift;
+            var guid = new Guid(timeLow, timeMid, timeHiAndVersion, seqLow, seqHiAndReserved, nodeId[0], nodeId[1], nodeId[2], nodeId[3], nodeId[4], nodeId[5]);
 
-            // set the version
-            guid[VersionByte] &= VersionByteMask;
-            guid[VersionByte] |= (byte)GuidVersion.TimeBased << VersionByteShift;
-
-            return new Guid(guid);
+            return guid;
         }
     }
 }

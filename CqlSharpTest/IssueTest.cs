@@ -70,7 +70,7 @@ namespace CqlSharp.Test
             Action runner = delegate
                                 {
                                     // run a full clock sequence cycle (or so)
-                                    for (var n = 0; n < 10000; n++)
+                                    for (var n = 0; n < 10001; n++)
                                     {
                                         var time = DateTime.UtcNow;
                                         var guid = time.GenerateTimeBasedGuid();
@@ -81,7 +81,7 @@ namespace CqlSharp.Test
                                     }
                                 };
 
-            Parallel.Invoke(runner, runner, runner, runner, runner, runner, runner, runner);
+            Parallel.Invoke(runner, runner, runner, runner);
         }
     }
 }
