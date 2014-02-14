@@ -16,7 +16,7 @@
 using Microsoft.QualityTools.Testing.Fakes;
 using Microsoft.VisualStudio.TestTools.UnitTesting;
 using System;
-using System.Collections.Generic;
+using System.Collections.Concurrent;
 using System.Fakes;
 using System.Numerics;
 using System.Threading.Tasks;
@@ -65,16 +65,23 @@ namespace CqlSharp.Test
         {
             // this test uses BigInteger to check, otherwise the Dictionary
             // will complain because Guid's GetHashCode will collide
-            var timestamps = new Dictionary<BigInteger, Guid>();
+            var timestamps = new ConcurrentDictionary<BigInteger, Guid>();
 
-            // run a full clock sequence cycle (or so)
-            for (var n = 0; n < 65536; n++)
-            {   
-                var guid = DateTime.Now.GenerateTimeBasedGuid();
-                var bigint = new BigInteger(guid.ToByteArray());
+            Action runner = delegate
+                                {
+                                    // run a full clock sequence cycle (or so)
+                                    for (var n = 0; n < 10000; n++)
+                                    {
+                                        var time = DateTime.UtcNow;
+                                        var guid = time.GenerateTimeBasedGuid();
+                                        var bigint = new BigInteger(guid.ToByteArray());
 
-               timestamps.Add(bigint, guid);
-            }
+                                        Assert.IsTrue(timestamps.TryAdd(bigint, guid), "Key already exists!");
+                                        //Assert.AreEqual(time.ToTimestamp(), guid.GetDateTime().ToTimestamp());
+                                    }
+                                };
+
+            Parallel.Invoke(runner, runner, runner, runner, runner, runner, runner, runner);
         }
     }
 }
