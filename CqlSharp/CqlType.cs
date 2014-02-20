@@ -75,6 +75,7 @@ namespace CqlSharp
                                                                                  {CqlType.Blob, typeof (byte[])},
                                                                                  {CqlType.Double, typeof (double)},
                                                                                  {CqlType.Float, typeof (float)},
+                                                                                 {CqlType.Decimal, typeof (decimal)},
                                                                                  {CqlType.Bigint, typeof (long)},
                                                                                  {CqlType.Counter, typeof (long)},
                                                                                  {CqlType.Int, typeof (int)},
@@ -92,6 +93,7 @@ namespace CqlSharp
                                                                                  {typeof (byte[]), CqlType.Blob},
                                                                                  {typeof (double), CqlType.Double},
                                                                                  {typeof (float), CqlType.Float},
+                                                                                 {typeof (decimal), CqlType.Decimal},
                                                                                  {typeof (long), CqlType.Bigint},
                                                                                  {typeof (int), CqlType.Int},
                                                                                  {typeof (bool), CqlType.Boolean},
@@ -109,6 +111,7 @@ namespace CqlSharp
                                                                                      {CqlType.Blob, DbType.Binary},
                                                                                      {CqlType.Double, DbType.Double},
                                                                                      {CqlType.Float, DbType.Single},
+                                                                                     {CqlType.Decimal, DbType.Decimal},
                                                                                      {CqlType.Bigint, DbType.Int64},
                                                                                      {CqlType.Counter, DbType.Int64},
                                                                                      {CqlType.Int, DbType.Int32},
@@ -116,9 +119,7 @@ namespace CqlSharp
                                                                                      {CqlType.Uuid, DbType.Guid},
                                                                                      {CqlType.Timeuuid, DbType.Guid},
                                                                                      {CqlType.Varint, DbType.VarNumeric},
-                                                                                     {
-                                                                                         CqlType.Timestamp, DbType.DateTime
-                                                                                     }
+                                                                                     {CqlType.Timestamp, DbType.DateTime}
                                                                                  };
 
         private static readonly Dictionary<DbType, CqlType> DbType2CqlType = new Dictionary<DbType, CqlType>
@@ -127,11 +128,10 @@ namespace CqlSharp
                                                                                      {DbType.Int64, CqlType.Bigint},
                                                                                      {DbType.Guid, CqlType.Uuid},
                                                                                      {DbType.Binary, CqlType.Blob},
-                                                                                     {
-                                                                                         DbType.DateTime, CqlType.Timestamp
-                                                                                     },
+                                                                                     {DbType.DateTime, CqlType.Timestamp},
                                                                                      {DbType.Single, CqlType.Float},
                                                                                      {DbType.Double, CqlType.Double},
+                                                                                     {DbType.Decimal, CqlType.Decimal},
                                                                                      {DbType.Int32, CqlType.Int},
                                                                                      {DbType.Boolean, CqlType.Boolean},
                                                                                      {DbType.VarNumeric, CqlType.Varint},

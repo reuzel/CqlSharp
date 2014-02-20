@@ -13,13 +13,13 @@
 // See the License for the specific language governing permissions and
 // limitations under the License.
 
+using CqlSharp.Protocol;
 using System;
 using System.Collections;
 using System.IO;
 using System.Net;
 using System.Numerics;
 using System.Text;
-using CqlSharp.Protocol;
 
 namespace CqlSharp.Serialization
 {
@@ -48,7 +48,7 @@ namespace CqlSharp.Serialization
                     if (!collectionValueType.HasValue)
                         throw new CqlException("Column collection type must has its value type set");
 
-                    var coll = (IEnumerable) data;
+                    var coll = (IEnumerable)data;
                     using (var ms = new MemoryStream())
                     {
                         //write length placeholder
@@ -74,10 +74,10 @@ namespace CqlSharp.Serialization
                     if (!collectionValueType.HasValue)
                         throw new CqlException("Column map type must has its value type set");
 
-                    var map = (IDictionary) data;
+                    var map = (IDictionary)data;
                     using (var ms = new MemoryStream())
                     {
-                        ms.WriteShort((ushort) map.Count);
+                        ms.WriteShort((ushort)map.Count);
                         foreach (DictionaryEntry de in map)
                         {
                             byte[] rawDataKey = Serialize(collectionKeyType.Value, de.Key);
@@ -116,7 +116,7 @@ namespace CqlSharp.Serialization
                     break;
 
                 case CqlType.Blob:
-                    rawData = (byte[]) data;
+                    rawData = (byte[])data;
                     break;
 
                 case CqlType.Double:
@@ -131,7 +131,7 @@ namespace CqlSharp.Serialization
 
                 case CqlType.Timestamp:
                     if (data is long)
-                        rawData = BitConverter.GetBytes((long) data);
+                        rawData = BitConverter.GetBytes((long)data);
                     else
                         rawData = BitConverter.GetBytes(Convert.ToDateTime(data).ToTimestamp());
 
@@ -156,7 +156,7 @@ namespace CqlSharp.Serialization
                         rawData = BigInteger.Parse(dataString).ToByteArray();
                     else
                     {
-                        var integer = (BigInteger) data;
+                        var integer = (BigInteger)data;
                         rawData = integer.ToByteArray();
                     }
 
@@ -170,7 +170,7 @@ namespace CqlSharp.Serialization
 
                 case CqlType.Uuid:
                 case CqlType.Timeuuid:
-                    var guid = (Guid) data;
+                    var guid = (Guid)data;
 
                     //return null if Guid is a nil Guid
                     if (guid == default(Guid))
@@ -191,7 +191,39 @@ namespace CqlSharp.Serialization
                     break;
 
                 case CqlType.Inet:
-                    rawData = ((IPAddress) data).GetAddressBytes();
+                    rawData = ((IPAddress)data).GetAddressBytes();
+                    break;
+
+                case CqlType.Decimal:
+                    //get binary representation of the decimal
+                    int[] bits = decimal.GetBits((decimal)data);
+
+                    //extract the sign
+                    bool sign = (bits[3] & 0x80000000) != 0;
+
+                    //construct the (signed) unscaled value
+                    BigInteger unscaled = (uint)bits[2];
+                    unscaled = (unscaled << 32) + (uint)bits[1];
+                    unscaled = (unscaled << 32) + (uint)bits[0];
+                    if (sign) unscaled *= -1;
+
+                    //get the unscaled value binary representation (Little Endian)
+                    var unscaledData = unscaled.ToByteArray();
+
+                    //construct the result array
+                    rawData = new byte[4 + unscaledData.Length];
+
+                    //copy the scale into the rawData
+                    int scale = (bits[3] >> 16) & 0x7F;
+                    rawData[0] = (byte)(scale >> 24);
+                    rawData[1] = (byte)(scale >> 16);
+                    rawData[2] = (byte)(scale >> 8);
+                    rawData[3] = (byte)(scale);
+
+                    //copy the unscaled value (Big Endian)
+                    for (int i = 0; i < unscaledData.Length; i++)
+                        rawData[i + 4] = unscaledData[unscaledData.Length - 1 - i];
+
                     break;
 
                 default:
@@ -246,7 +278,7 @@ namespace CqlSharp.Serialization
         public static IDictionary DeserializeMap(CqlType collectionKeyType, CqlType collectionValueType, byte[] rawData)
         {
             Type typedDic = CqlType.Map.ToType(collectionKeyType, collectionValueType);
-            var map = (IDictionary) Activator.CreateInstance(typedDic);
+            var map = (IDictionary)Activator.CreateInstance(typedDic);
             using (var ms = new MemoryStream(rawData))
             {
                 ushort nbElem = ms.ReadShort();
@@ -272,7 +304,7 @@ namespace CqlSharp.Serialization
         public static IList DeserializeList(CqlType collectionValueType, byte[] rawData)
         {
             Type typedColl = CqlType.List.ToType(null, collectionValueType);
-            var list = (IList) Activator.CreateInstance(typedColl);
+            var list = (IList)Activator.CreateInstance(typedColl);
             using (var ms = new MemoryStream(rawData))
             {
                 ushort nbElem = ms.ReadShort();
@@ -344,11 +376,49 @@ namespace CqlSharp.Serialization
                     data = DeserializeIPAddress(rawData);
                     break;
 
+                case CqlType.Decimal:
+                    data = DeserializeDecimal(rawData);
+                    break;
+
                 default:
                     throw new ArgumentException("Unsupported type");
             }
 
             return data;
+        }
+
+        public static decimal DeserializeDecimal(byte[] rawData)
+        {
+            //extract scale
+            int scale = rawData.ToInt();
+
+            //check the scale if it ain't too large (or small)
+            if (scale < 0 || scale > 28)
+                throw new CqlException("Received decimal is too large to fit in a System.Decimal");
+
+            //copy the unscaled big integer data (and reverse to Little Endian)
+            var unscaledData = new byte[rawData.Length - 4];
+            for (int i = 0; i < unscaledData.Length; i++)
+                unscaledData[i] = rawData[rawData.Length - 1 - i];
+
+            //get the unscaled value
+            var unscaled = new BigInteger(unscaledData);
+            
+            //get the sign, and make sure unscaled data is positive
+            bool sign = unscaled < 0;
+            if (sign) unscaled *= -1;
+
+            //check unscaled size (Java BigDecimal can be larger the System.Decimal)
+            if ((unscaled >> 96) != 0)
+                throw new CqlException("Received decimal is too large to fit in a System.Decimal");
+
+            //get the decimal int values
+            var low = (uint)(unscaled & 0xFFFFFFFF);
+            var mid = (uint)((unscaled >> 32) & 0xFFFFFFFF);
+            var high = (uint)((unscaled >> 64) & 0xFFFFFFFF);
+
+            //construct the decimal
+            return new decimal((int)low, (int)mid, (int)high, sign, (byte)scale);
         }
 
         public static IPAddress DeserializeIPAddress(byte[] rawData)

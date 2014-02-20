@@ -43,6 +43,7 @@ namespace CqlSharp.Test
                 aASCIIString ascii,
                 aBlob blob,
                 aBool boolean,
+                aDecimal decimal,
                 aDouble double,  
                 aFloat float,  
                 aTimestamp timestamp,
@@ -130,7 +131,8 @@ namespace CqlSharp.Test
                 aASCIIString ,
                 aBlob ,
                 aBool ,
-                aDouble  , 
+                aDecimal ,
+                aDouble  ,
                 aFloat  , 
                 aTimestamp ,
                 aTimeUUID ,
@@ -139,7 +141,7 @@ namespace CqlSharp.Test
                 aList,
                 aSet,
                 aMap) 
-                values (?,?,?,?,?,?,?,?,?,?,?,?,?,?,?,?,?);";
+                values (?,?,?,?,?,?,?,?,?,?,?,?,?,?,?,?,?,?);";
 
             const string selectCql = "select * from SerializationTest.Types limit 1;";
 
@@ -152,6 +154,7 @@ namespace CqlSharp.Test
                                      aASCIIString = "hello world!",
                                      aBlob = new byte[] { 1, 2, 3, 4 },
                                      aBool = true,
+                                     aDecimal = decimal.MaxValue / 2,
                                      aDouble = 1.234,
                                      aFloat = 5.789f,
                                      aInet = new IPAddress(new byte[] { 127, 0, 0, 1 }),
@@ -189,6 +192,7 @@ namespace CqlSharp.Test
                 Assert.AreEqual(values.aVarint, result.aVarint);
                 Assert.AreEqual(values.aTextString, result.aTextString);
                 Assert.AreEqual(values.aBool, result.aBool);
+                Assert.AreEqual(values.aDecimal, result.aDecimal);
                 Assert.AreEqual(values.aDouble, result.aDouble);
                 Assert.AreEqual(values.aFloat, result.aFloat);
                 Assert.AreEqual(values.aInet, result.aInet);
@@ -214,6 +218,7 @@ namespace CqlSharp.Test
                 aASCIIString ,
                 aBlob ,
                 aBool ,
+                aDecimal ,
                 aDouble  , 
                 aFloat  , 
                 aTimestamp ,
@@ -223,7 +228,7 @@ namespace CqlSharp.Test
                 aList,
                 aSet,
                 aMap) 
-                values (?,?,?,?,?,?,?,?,?,?,?,?,?,?,?,?,?);";
+                values (?,?,?,?,?,?,?,?,?,?,?,?,?,?,?,?,?,?);";
 
             const string selectCql = "select * from SerializationTest.Types limit 1;";
 
@@ -238,6 +243,7 @@ namespace CqlSharp.Test
                 insertCmd.Parameters["aasciistring"].Value = "hello world!";
                 insertCmd.Parameters["ablob"].Value = new byte[] { 1, 2, 3, 4 };
                 insertCmd.Parameters["abool"].Value = true;
+                insertCmd.Parameters["adecimal"].Value = -1234567890.0987654321m;
                 insertCmd.Parameters["adouble"].Value = 1.234;
                 insertCmd.Parameters["afloat"].Value = 5.789f;
                 insertCmd.Parameters["ainet"].Value = new IPAddress(new byte[] { 127, 0, 0, 1 });
@@ -261,6 +267,7 @@ namespace CqlSharp.Test
                 BigInteger aVarint;
                 string aTextString;
                 bool aBool;
+                decimal aDecimal;
                 double aDouble;
                 float aFloat;
                 IPAddress aInet;
@@ -282,7 +289,7 @@ namespace CqlSharp.Test
                         aVarint = reader.GetBigInteger(reader.GetOrdinal("avarint"));
                         aTextString = reader.GetString(reader.GetOrdinal("atextstring"));
                         aBool = reader.GetBoolean(reader.GetOrdinal("abool"));
-
+                        aDecimal = reader.GetDecimal(reader.GetOrdinal("adecimal"));
                         aDouble = reader.GetDouble(reader.GetOrdinal("adouble"));
                         aFloat = reader.GetFloat(reader.GetOrdinal("afloat"));
                         aInet = reader.GetIPAddress(reader.GetOrdinal("ainet"));
@@ -303,6 +310,7 @@ namespace CqlSharp.Test
                 Assert.AreEqual(insertCmd.Parameters["avarint"].Value, aVarint);
                 Assert.AreEqual(insertCmd.Parameters["atextstring"].Value, aTextString);
                 Assert.AreEqual(insertCmd.Parameters["abool"].Value, aBool);
+                Assert.AreEqual(insertCmd.Parameters["adecimal"].Value, aDecimal);
                 Assert.AreEqual(insertCmd.Parameters["adouble"].Value, aDouble);
                 Assert.AreEqual(insertCmd.Parameters["afloat"].Value, aFloat);
                 Assert.AreEqual(insertCmd.Parameters["ainet"].Value, aInet);
@@ -349,6 +357,7 @@ namespace CqlSharp.Test
                 Assert.AreEqual(result.aVarint, default(BigInteger));
                 Assert.AreEqual(result.aTextString, default(string));
                 Assert.AreEqual(result.aBool, default(bool));
+                Assert.AreEqual(result.aDecimal, default(decimal));
                 Assert.AreEqual(result.aDouble, default(double));
                 Assert.AreEqual(result.aFloat, default(float));
                 Assert.AreEqual(result.aInet, default(IPAddress));
@@ -376,6 +385,7 @@ namespace CqlSharp.Test
                 BigInteger? aVarint;
                 string aTextString;
                 bool? aBool;
+                decimal? aDecimal;
                 double? aDouble;
                 float? aFloat;
                 IPAddress aInet;
@@ -403,6 +413,7 @@ namespace CqlSharp.Test
                         aVarint = reader["avarint"] as BigInteger?;
                         aTextString = reader["atextstring"] as string;
                         aBool = reader["abool"] as bool?;
+                        aDecimal = reader["adecimal"] as decimal?;
                         aDouble = reader["adouble"] as double?;
                         aFloat = reader["afloat"] as float?;
                         aInet = reader["ainet"] as IPAddress;
@@ -423,6 +434,7 @@ namespace CqlSharp.Test
                 Assert.AreEqual(aVarint, default(BigInteger?));
                 Assert.AreEqual(aTextString, default(string));
                 Assert.AreEqual(aBool, default(bool?));
+                Assert.AreEqual(aDecimal, default(decimal?));
                 Assert.AreEqual(aDouble, default(double?));
                 Assert.AreEqual(aFloat, default(float?));
                 Assert.AreEqual(aInet, default(IPAddress));
@@ -454,6 +466,7 @@ namespace CqlSharp.Test
                 BigInteger aVarint;
                 string aTextString;
                 bool aBool;
+                decimal aDecimal;
                 double aDouble;
                 float aFloat;
                 IPAddress aInet;
@@ -476,7 +489,7 @@ namespace CqlSharp.Test
                         aVarint = reader.GetBigInteger(reader.GetOrdinal("avarint"));
                         aTextString = reader.GetString(reader.GetOrdinal("atextstring"));
                         aBool = reader.GetBoolean(reader.GetOrdinal("abool"));
-
+                        aDecimal = reader.GetDecimal(reader.GetOrdinal("adecimal"));
                         aDouble = reader.GetDouble(reader.GetOrdinal("adouble"));
                         aFloat = reader.GetFloat(reader.GetOrdinal("afloat"));
                         aInet = reader.GetIPAddress(reader.GetOrdinal("ainet"));
@@ -497,6 +510,7 @@ namespace CqlSharp.Test
                 Assert.AreEqual(aVarint, default(BigInteger));
                 Assert.AreEqual(aTextString, default(string));
                 Assert.AreEqual(aBool, default(bool));
+                Assert.AreEqual(aDecimal, default(decimal));
                 Assert.AreEqual(aDouble, default(double));
                 Assert.AreEqual(aFloat, default(float));
                 Assert.AreEqual(aInet, default(IPAddress));
@@ -522,8 +536,9 @@ namespace CqlSharp.Test
                 aASCIIString ,
                 aBlob ,
                 aBool ,
-                aDouble  , 
-                aFloat  , 
+                aDecimal ,
+                aDouble , 
+                aFloat , 
                 aTimestamp ,
                 aTimeUUID ,
                 aUUID ,
@@ -531,7 +546,7 @@ namespace CqlSharp.Test
                 aList,
                 aSet,
                 aMap) 
-                values (?,?,?,?,?,?,?,?,?,?,?,?,?,?,?,?,?);";
+                values (?,?,?,?,?,?,?,?,?,?,?,?,?,?,?,?,?,?);";
 
             const string selectCql = "select * from SerializationTest.Types limit 1;";
 
@@ -545,6 +560,7 @@ namespace CqlSharp.Test
                                      aASCIIString = default(string),
                                      aBlob = default(byte[]),
                                      aBool = default(bool),
+                                     aDecimal = default(decimal),
                                      aDouble = default(double),
                                      aFloat = default(float),
                                      aInet = default(IPAddress),
@@ -580,6 +596,7 @@ namespace CqlSharp.Test
                 Assert.AreEqual(result.aVarint, default(BigInteger));
                 Assert.AreEqual(result.aTextString, default(string));
                 Assert.AreEqual(result.aBool, default(bool));
+                Assert.AreEqual(result.aDecimal, default(decimal));
                 Assert.AreEqual(result.aDouble, default(double));
                 Assert.AreEqual(result.aFloat, default(float));
                 Assert.AreEqual(result.aInet, default(IPAddress));
@@ -605,6 +622,7 @@ namespace CqlSharp.Test
                 aASCIIString ,
                 aBlob ,
                 aBool ,
+                aDecimal ,
                 aDouble  , 
                 aFloat  , 
                 aTimestamp ,
@@ -614,7 +632,7 @@ namespace CqlSharp.Test
                 aList,
                 aSet,
                 aMap) 
-                values (?,?,?,?,?,?,?,?,?,?,?,?,?,?,?,?,?);";
+                values (?,?,?,?,?,?,?,?,?,?,?,?,?,?,?,?,?,?);";
 
             const string selectCql = "select * from SerializationTest.Types limit 1;";
 
@@ -628,6 +646,7 @@ namespace CqlSharp.Test
                                      aASCIIString = null,
                                      aBlob = null,
                                      aBool = null,
+                                     aDecimal = null,
                                      aDouble = null,
                                      aFloat = null,
                                      aInet = null,
@@ -663,6 +682,7 @@ namespace CqlSharp.Test
                 Assert.IsNull(result.aVarint);
                 Assert.IsNull(result.aTextString);
                 Assert.IsNull(result.aBool);
+                Assert.IsNull(result.aDecimal);
                 Assert.IsNull(result.aDouble);
                 Assert.IsNull(result.aFloat);
                 Assert.IsNull(result.aInet);
@@ -705,6 +725,7 @@ namespace CqlSharp.Test
                 Assert.IsNull(result.aVarint);
                 Assert.IsNull(result.aTextString);
                 Assert.IsNull(result.aBool);
+                Assert.IsNull(result.aDecimal);
                 Assert.IsNull(result.aDouble);
                 Assert.IsNull(result.aFloat);
                 Assert.IsNull(result.aInet);
@@ -733,6 +754,7 @@ namespace CqlSharp.Test
             public string aASCIIString { get; set; }
             public byte[] aBlob { get; set; }
             public bool? aBool { get; set; }
+            public decimal? aDecimal { get; set; }
             public double? aDouble { get; set; }
             public float? aFloat { get; set; }
             public DateTime? aTimestamp { get; set; }
@@ -758,6 +780,7 @@ namespace CqlSharp.Test
             public string aASCIIString { get; set; }
             public byte[] aBlob { get; set; }
             public bool aBool { get; set; }
+            public decimal aDecimal { get; set; }
             public double aDouble { get; set; }
             public float aFloat { get; set; }
             public DateTime aTimestamp { get; set; }
@@ -767,6 +790,7 @@ namespace CqlSharp.Test
             public List<string> aList { get; set; }
             public HashSet<int> aSet { get; set; }
             public Dictionary<long, string> aMap { get; set; }
+
         }
 
         #endregion

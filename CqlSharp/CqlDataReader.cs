@@ -439,7 +439,7 @@ namespace CqlSharp
         /// <exception cref="System.NotSupportedException"></exception>
         public override decimal GetDecimal(int i)
         {
-            throw new NotSupportedException();
+            return CurrentValues[i] == null ? default(decimal) : ValueSerialization.DeserializeDecimal(CurrentValues[i]);
         }
 
         /// <summary>
