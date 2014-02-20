@@ -60,28 +60,7 @@ namespace CqlSharp.Test
             }
         }
 
-        [TestMethod]
-        public void TimeUuidIssue()
-        {
-            // this test uses BigInteger to check, otherwise the Dictionary
-            // will complain because Guid's GetHashCode will collide
-            var timestamps = new ConcurrentDictionary<BigInteger, Guid>();
+ 
 
-            Action runner = delegate
-                                {
-                                    // run a full clock sequence cycle (or so)
-                                    for (var n = 0; n < 10001; n++)
-                                    {
-                                        var time = DateTime.UtcNow;
-                                        var guid = time.GenerateTimeBasedGuid();
-                                        var bigint = new BigInteger(guid.ToByteArray());
-
-                                        Assert.IsTrue(timestamps.TryAdd(bigint, guid), "Key already exists!");
-                                        //Assert.AreEqual(time.ToTimestamp(), guid.GetDateTime().ToTimestamp());
-                                    }
-                                };
-
-            Parallel.Invoke(runner, runner, runner, runner);
-        }
     }
 }

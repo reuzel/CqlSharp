@@ -1,3 +1,7 @@
+## Version 0.32.0 - Decimal support and Fixes
+* Support for decimal types
+* TimeGuid generation rewritten in order to guarantee uniqueness when many TimeGuids are generated within a short timeframe.
+
 ## Version 0.31.0 - Linq-2-Cql
 * Adjustments to support Linq2Cql in CqlSharp.Linq package
 * Making ObjectAccessor public accessible

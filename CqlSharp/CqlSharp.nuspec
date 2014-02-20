@@ -31,20 +31,15 @@
       See https://github.com/reuzel/CqlSharp/wiki/Features for an extensive feature list.
     </description>
     <releaseNotes>
+      Version 0.32.0 - Decimal support and Fixes
+      * Support for decimal types
+      * TimeGuid generation rewritten in order to guarantee uniqueness when many TimeGuids are generated within a short timeframe.
+
       Version 0.31.0 - Linq2Cql support
       * Changes to support CqlSharp.Linq package
       * Making ObjectAccessor public accessible
       * Introducing CqlKey and CqlIndex attributes
-      
-      Version 0.30.2 - Deadlock removal
-      * Fix: Adding two missing ConfigureAwait statements avoiding deadlock in MVC projects
-      
-      Version 0.30.1 - Node address fallback
-      * Fallback to listen-address during discovery when rpc-address is 0.0.0.0. Issue #20
-      * Performance: Removing some boxing of structs during deserialization
 
-      Version 0.30.0 - Binary Protocol V2 support
-      
       See https://github.com/reuzel/CqlSharp/blob/master/ChangeLog.md for the full changelog.
     </releaseNotes>
     <copyright>Copyright 2014 Joost Reuzel</copyright>
