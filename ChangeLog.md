@@ -1,3 +1,6 @@
+## Version 0.32.1 - Transaction Race fix
+* Fixing race condition issues when using prepared queries in a transaction
+
 ## Version 0.32.0 - Decimal support and Fixes
 * Support for decimal types
 * TimeGuid generation rewritten in order to guarantee uniqueness when many TimeGuids are generated within a short timeframe.
