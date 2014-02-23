@@ -15,6 +15,7 @@
 
 using System.Collections;
 using System.Collections.Generic;
+using System.Threading;
 
 namespace CqlSharp.Protocol
 {
@@ -211,16 +212,18 @@ namespace CqlSharp.Protocol
             if (_columnsByName != null)
                 return;
 
-            _columnsByName = new Dictionary<string, Column>();
+            var columnsByName = new Dictionary<string, Column>();
 
             foreach (Column column in _columns)
             {
-                _columnsByName[column.Name] = column;
+                columnsByName[column.Name] = column;
                 if (column.Table != null)
-                    _columnsByName[column.TableAndName] = column;
+                    columnsByName[column.TableAndName] = column;
                 if (column.Keyspace != null)
-                    _columnsByName[column.KeySpaceTableAndName] = column;
+                    columnsByName[column.KeySpaceTableAndName] = column;
             }
+
+            Interlocked.CompareExchange(ref _columnsByName, columnsByName, null);
         }
 
         /// <summary>

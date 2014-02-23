@@ -1094,6 +1094,7 @@ namespace CqlSharp
             throw new CqlException("Failed to return query result after max amount of attempts");
         }
 
+
         /// <summary>
         ///   Prepares the query async on the given connection.
         /// </summary>
@@ -1102,21 +1103,36 @@ namespace CqlSharp
         /// <param name="token"> The token. </param>
         /// <returns> </returns>
         /// <exception cref="CqlException">Unexpected frame received  + response.OpCode</exception>
-        private async Task<ResultFrame> SendPrepareAsync(Connection connection, Logger logger,
+        private Task<ResultFrame> SendPrepareAsync(Connection connection, Logger logger, CancellationToken token)
+        {
+            return SendPrepareAsync(Query, connection, logger, token);
+        }
+
+
+        /// <summary>
+        ///   Prepares the query async on the given connection.
+        /// </summary>
+        /// <param name="query">the query to prepare </param>
+        /// <param name="connection"> The connection. </param>
+        /// <param name="logger"> The logger. </param>
+        /// <param name="token"> The token. </param>
+        /// <returns> </returns>
+        /// <exception cref="CqlException">Unexpected frame received  + response.OpCode</exception>
+        private async Task<ResultFrame> SendPrepareAsync(string query, Connection connection, Logger logger,
                                                          CancellationToken token)
         {
             //create prepare frame
-            var query = new PrepareFrame(Query);
+            var request = new PrepareFrame(query);
 
             //update frame with tracing option if requested
             if (EnableTracing)
-                query.Flags |= FrameFlags.Tracing;
+                request.Flags |= FrameFlags.Tracing;
 
-            logger.LogVerbose("Sending prepare {0} using {1}", Query, connection);
+            logger.LogVerbose("Sending prepare {0} using {1}", query, connection);
 
             //send prepare request
             using (
-                Frame response = await connection.SendRequestAsync(query, logger, 1, false, token).ConfigureAwait(false)
+                Frame response = await connection.SendRequestAsync(request, logger, 1, false, token).ConfigureAwait(false)
                 )
             {
                 var result = response as ResultFrame;
@@ -1125,8 +1141,8 @@ namespace CqlSharp
                     throw new CqlException("Unexpected frame received " + response.OpCode);
                 }
 
-                _connection.PreparedQueryCache[Query] = result;
-                connection.Node.PreparedQueryIds[Query] = result.PreparedQueryId;
+                _connection.PreparedQueryCache[query] = result;
+                connection.Node.PreparedQueryIds[query] = result.PreparedQueryId;
 
                 return result;
             }
@@ -1252,7 +1268,7 @@ namespace CqlSharp
                     if (!connection.Node.PreparedQueryIds.TryGetValue(command.CqlQuery, out queryId))
                     {
                         ResultFrame prepareResult =
-                            await SendPrepareAsync(connection, logger, token).ConfigureAwait(false);
+                            await SendPrepareAsync(command.CqlQuery, connection, logger, token).ConfigureAwait(false);
 
                         queryId = prepareResult.PreparedQueryId;
                     }
