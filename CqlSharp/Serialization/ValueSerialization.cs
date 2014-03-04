@@ -171,21 +171,12 @@ namespace CqlSharp.Serialization
                 case CqlType.Uuid:
                 case CqlType.Timeuuid:
                     var guid = (Guid)data;
-
-                    //return null if Guid is a nil Guid
-                    if (guid == default(Guid))
+                    rawData = guid.ToByteArray();
+                    if (IsLittleEndian)
                     {
-                        rawData = null;
-                    }
-                    else
-                    {
-                        rawData = guid.ToByteArray();
-                        if (IsLittleEndian)
-                        {
-                            Array.Reverse(rawData, 0, 4);
-                            Array.Reverse(rawData, 4, 2);
-                            Array.Reverse(rawData, 6, 2);
-                        }
+                        Array.Reverse(rawData, 0, 4);
+                        Array.Reverse(rawData, 4, 2);
+                        Array.Reverse(rawData, 6, 2);
                     }
 
                     break;
@@ -403,7 +394,7 @@ namespace CqlSharp.Serialization
 
             //get the unscaled value
             var unscaled = new BigInteger(unscaledData);
-            
+
             //get the sign, and make sure unscaled data is positive
             bool sign = unscaled < 0;
             if (sign) unscaled *= -1;

@@ -567,7 +567,7 @@ namespace CqlSharp.Test
                                      aLong = default(long),
                                      aTextString = default(string),
                                      aVarcharString = default(string),
-                                     aTimeUUID = default(Guid),
+                                     aTimeUUID = TimeGuid.Default,
                                      aUUID = default(Guid),
                                      aTimestamp = default(DateTime),
                                      aVarint = default(BigInteger),
@@ -601,7 +601,7 @@ namespace CqlSharp.Test
                 Assert.AreEqual(result.aFloat, default(float));
                 Assert.AreEqual(result.aInet, default(IPAddress));
                 Assert.AreEqual(result.aLong, default(long));
-                Assert.AreEqual(result.aTimeUUID, default(Guid));
+                Assert.AreEqual(result.aTimeUUID, TimeGuid.Default);
                 Assert.AreEqual(result.aUUID, default(Guid));
                 Assert.AreEqual(result.aBlob, default(byte[]));
                 Assert.AreEqual(result.aList, default(List<string>));

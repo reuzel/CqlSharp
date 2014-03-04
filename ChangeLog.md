@@ -1,3 +1,7 @@
+## Version 0.32.2 - Default Guid insertion fix
+* Fixing issue where nill guids were inserted as null values
+* Adding TimeGuid.Default to get a nill guid with time version flags set.
+
 ## Version 0.32.1 - Transaction Race fix
 * Fixing race condition issues when using prepared queries in a transaction
 

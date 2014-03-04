@@ -35,6 +35,11 @@ namespace CqlSharp
     {
         private static readonly object SyncLock = new object();
 
+        /// <summary>
+        /// The default Time Guid (nodeId, time and sequence all set to 0, but having the version number set to timeguid)
+        /// </summary>
+        public static readonly Guid Default = GenerateTimeBasedGuid(0, 0, new byte[] { 0, 0, 0, 0, 0, 0 });
+
         // multiplex version info
         private const int VersionByte = 7;
         private const int VersionByteMask = 0x0f;
@@ -52,7 +57,7 @@ namespace CqlSharp
         private static readonly int ClockSequenceSeed;
         private const int MaxClockId = 1 << 14; //14 bits clockId
         private static int _clockSequenceNumber;
-        
+
         //time stuff
         private static long _lastTime;
         private static int _timeSequenceNumber;
@@ -64,7 +69,7 @@ namespace CqlSharp
         {
             _nodeId = CreateNodeId();
             ClockSequenceSeed = Random.Next() % MaxClockId;
-            _clockSequenceNumber = (ClockSequenceSeed+1) % MaxClockId;
+            _clockSequenceNumber = (ClockSequenceSeed + 1) % MaxClockId;
         }
 
         /// <summary>
