@@ -31,22 +31,20 @@
       See https://github.com/reuzel/CqlSharp/wiki/Features for an extensive feature list.
     </description>
     <releaseNotes>
-      ## Version 0.32.2 - Default Guid insertion fix
-      * Fixing issue where nill guids were inserted as null values. 
-      * Adding TimeGuid.Default to get a nill guid with time version flags set.
+      ## Version 0.33.0 - Flexibility
+      * Removing class, new() constraint on the generic DataReader, allowing structs to be deserialized
       
+      ## Version 0.32.2 - Default Guid insertion fix
+      * Fixing issue where nill guids were inserted as null values.
+      * Adding TimeGuid.Default to get a nill guid with time version flags set.
+
       ## Version 0.32.1 - Transaction Race fix
       * Fixing race condition issues when using prepared queries in a transaction
 
       Version 0.32.0 - Decimal support and Fixes
       * Support for decimal types
       * TimeGuid generation rewritten in order to guarantee uniqueness when many TimeGuids are generated within a short timeframe.
-
-      Version 0.31.0 - Linq2Cql support
-      * Changes to support CqlSharp.Linq package
-      * Making ObjectAccessor public accessible
-      * Introducing CqlKey and CqlIndex attributes
-
+      
       See https://github.com/reuzel/CqlSharp/blob/master/ChangeLog.md for the full changelog.
     </releaseNotes>
     <copyright>Copyright 2014 Joost Reuzel</copyright>

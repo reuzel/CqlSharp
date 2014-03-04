@@ -1,3 +1,6 @@
+## Version 0.33.0 - Flexibility
+* Removing class, new() constraint on the generic DataReader, allowing structs to be deserialized
+
 ## Version 0.32.2 - Default Guid insertion fix
 * Fixing issue where nill guids were inserted as null values
 * Adding TimeGuid.Default to get a nill guid with time version flags set.

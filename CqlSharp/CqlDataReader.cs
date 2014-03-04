@@ -655,12 +655,17 @@ namespace CqlSharp
     ///   Provides access to a set of Cql data rows as returned from a query
     /// </summary>
     /// <typeparam name="T"> </typeparam>
-    public class CqlDataReader<T> : CqlDataReader, IEnumerable<T> where T : class, new()
+    public class CqlDataReader<T> : CqlDataReader, IEnumerable<T>
     {
         /// <summary>
         ///   The last read (and requested) value
         /// </summary>
         private T _current;
+
+        /// <summary>
+        /// Indicates wether the current value was deserialized
+        /// </summary>
+        private bool _currentCreated;
 
         /// <summary>
         /// Initializes a new instance of the <see cref="CqlDataReader{T}" /> class.
@@ -671,6 +676,8 @@ namespace CqlSharp
         internal CqlDataReader(CqlCommand command, ResultFrame frame, CqlConnection connectionToClose)
             : base(command, frame, connectionToClose)
         {
+            _current = default(T);
+            _currentCreated = false;
         }
 
         /// <summary>
@@ -681,9 +688,9 @@ namespace CqlSharp
         {
             get
             {
-                if (CurrentValues != null && _current == null)
+                if (CurrentValues != null && !_currentCreated)
                 {
-                    var value = new T();
+                    var value = Activator.CreateInstance<T>();
                     ObjectAccessor<T> accessor = ObjectAccessor<T>.Instance;
 
                     foreach (Column column in MetaData)
@@ -707,6 +714,7 @@ namespace CqlSharp
                     }
 
                     _current = value;
+                    _currentCreated = true;
                 }
 
                 return _current;
@@ -746,7 +754,8 @@ namespace CqlSharp
         /// <returns> </returns>
         public override Task<bool> ReadAsync(CancellationToken cancellationToken)
         {
-            _current = null;
+            _current = default(T);
+            _currentCreated = false;
             return base.ReadAsync(cancellationToken);
         }
     }
