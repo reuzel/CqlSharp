@@ -23,6 +23,8 @@ using System.Linq;
 using System.Threading;
 using System.Threading.Tasks;
 
+// ReSharper disable UseObjectOrCollectionInitializer
+
 namespace CqlSharp.Test
 {
     [TestClass]
@@ -421,10 +423,10 @@ namespace CqlSharp.Test
                 CqlDataReader reader = await selectCmd.ExecuteReaderAsync();
 
                 //no paging when version < 2.0.0 is used...
-                if (String.Compare(connection.ServerVersion, "2.0.0", StringComparison.Ordinal) < 0)
-                    Assert.AreEqual(100, reader.Count);
-                else
-                    Assert.AreEqual(10, reader.Count);
+                var expectedCount = String.Compare(connection.ServerVersion, "2.0.0", StringComparison.Ordinal) < 0
+                                        ? 100
+                                        : 10;
+                Assert.AreEqual(expectedCount, reader.Count);
 
                 var results = new bool[100];
                 for (int i = 0; i < 100; i++)
@@ -754,6 +756,282 @@ namespace CqlSharp.Test
 
                 Assert.IsNotNull(transaction.LastBatchResult);
 
+            }
+        }
+
+        [TestMethod]
+        public async Task TransactionEmptyDoesNothing()
+        {
+            //Act
+            using (var connection = new CqlConnection(ConnectionString))
+            {
+                await connection.OpenAsync();
+
+                //create transaction
+                using (var transaction = connection.BeginTransaction())
+                {
+                    //no-op, no methods added
+
+                    await transaction.CommitAsync();
+                }
+            }
+        }
+
+        [TestMethod]
+        public async Task TransactionUncommittedIsRolledBack()
+        {
+            const string insertCql = @"insert into Test.BasicFlow (id,value) values (4321, 'Transaction 4321');";
+            const string retrieveCql = @"select id from Test.BasicFlow where id=4321;";
+
+            //Act
+            using (var connection = new CqlConnection(ConnectionString))
+            {
+                await connection.OpenAsync();
+
+                //create transaction
+                using (var transaction = connection.BeginTransaction())
+                {
+                    //insert data
+                    var cmd = new CqlCommand(connection, insertCql, CqlConsistency.One);
+                    cmd.Transaction = transaction;
+                    await cmd.ExecuteNonQueryAsync();
+                }
+
+                //check if data exists
+                var selectCmd = new CqlCommand(connection, retrieveCql, CqlConsistency.One);
+                using (CqlDataReader reader = await selectCmd.ExecuteReaderAsync())
+                {
+                    //check if any rows are returned
+                    Assert.IsFalse(reader.HasRows);
+                }
+            }
+        }
+
+        [TestMethod]
+        public async Task TransactionRolledBackDoesNotInsertData()
+        {
+            const string insertCql = @"insert into Test.BasicFlow (id,value) values (9876, 'Transaction 9876');";
+            const string retrieveCql = @"select id from Test.BasicFlow where id=9876;";
+
+            //Act
+            using (var connection = new CqlConnection(ConnectionString))
+            {
+                await connection.OpenAsync();
+
+                //create transaction
+                using (var transaction = connection.BeginTransaction())
+                {
+                    //insert data
+                    var cmd = new CqlCommand(connection, insertCql, CqlConsistency.One);
+                    cmd.Transaction = transaction;
+                    await cmd.ExecuteNonQueryAsync();
+
+                    transaction.Rollback();
+                }
+
+                //check if data exists
+                var selectCmd = new CqlCommand(connection, retrieveCql, CqlConsistency.One);
+                using (CqlDataReader reader = await selectCmd.ExecuteReaderAsync())
+                {
+                    //check if any rows are returned
+                    Assert.IsFalse(reader.HasRows);
+                }
+            }
+        }
+
+        [TestMethod]
+        [ExpectedException(typeof(ObjectDisposedException))]
+        public void TransactionCommitAfterDisposeThrowsException()
+        {
+            const string insertCql = @"insert into Test.BasicFlow (id,value) values (5000, 'Transaction 5000');";
+
+            //Act
+            using (var connection = new CqlConnection(ConnectionString))
+            {
+                connection.Open();
+
+                //create transaction
+                var transaction = connection.BeginTransaction();
+
+                //insert data
+                var cmd = new CqlCommand(connection, insertCql, CqlConsistency.One);
+                cmd.Transaction = transaction;
+                cmd.ExecuteNonQuery();
+
+                //commit
+                transaction.Commit();
+
+                //dispose
+                transaction.Dispose();
+
+                //commit again
+                transaction.Commit();
+            }
+        }
+
+        [TestMethod]
+        [ExpectedException(typeof(ObjectDisposedException))]
+        public void TransactionAddAfterDisposeThrowsException()
+        {
+            const string insertCql = @"insert into Test.BasicFlow (id,value) values (6000, 'Transaction 6000');";
+            const string insertCql2 = @"insert into Test.BasicFlow (id,value) values (6001, 'Transaction 6001');";
+
+            //Act
+            using (var connection = new CqlConnection(ConnectionString))
+            {
+                connection.Open();
+
+                //create transaction
+                var transaction = connection.BeginTransaction();
+
+                //insert data
+                var cmd = new CqlCommand(connection, insertCql, CqlConsistency.One);
+                cmd.Transaction = transaction;
+                cmd.ExecuteNonQuery();
+
+                //commit
+                transaction.Commit();
+
+                //dispose
+                transaction.Dispose();
+
+                //add again
+                var cmd2 = new CqlCommand(connection, insertCql2, CqlConsistency.One);
+                cmd2.Transaction = transaction;
+                cmd2.ExecuteNonQuery();
+            }
+        }
+
+        [TestMethod]
+        [ExpectedException(typeof(InvalidOperationException))]
+        public void TransactionRollbackAfterCommitThrowsException()
+        {
+            const string insertCql = @"insert into Test.BasicFlow (id,value) values (8000, 'Transaction 8000');";
+
+            //Act
+            using (var connection = new CqlConnection(ConnectionString))
+            {
+                connection.Open();
+
+                //create transaction
+                using (var transaction = connection.BeginTransaction())
+                {
+
+                    //insert data
+                    var cmd = new CqlCommand(connection, insertCql, CqlConsistency.One);
+                    cmd.Transaction = transaction;
+                    cmd.ExecuteNonQuery();
+
+                    //commit
+                    transaction.Commit();
+
+                    //rollback -> throws error
+                    transaction.Rollback();
+                }
+            }
+        }
+
+        [TestMethod]
+        [ExpectedException(typeof(InvalidOperationException))]
+        public void TransactionCommitAfterRollbackThrowsException()
+        {
+            const string insertCql = @"insert into Test.BasicFlow (id,value) values (8000, 'Transaction 8000');";
+
+            //Act
+            using (var connection = new CqlConnection(ConnectionString))
+            {
+                connection.Open();
+
+                //create transaction
+                using (var transaction = connection.BeginTransaction())
+                {
+
+                    //insert data
+                    var cmd = new CqlCommand(connection, insertCql, CqlConsistency.One);
+                    cmd.Transaction = transaction;
+                    cmd.ExecuteNonQuery();
+
+                    //rollback
+                    transaction.Rollback();
+
+                    //commit -> throws error
+                    transaction.Commit();
+                }
+            }
+        }
+
+        [TestMethod]
+        public void TransactionResetAfterCommit()
+        {
+            const string insertCql = @"insert into Test.BasicFlow (id,value) values (2000, 'Transaction 2000');";
+            const string insertCql2 = @"insert into Test.BasicFlow (id,value) values (2001, 'Transaction 2001');";
+
+            //Act
+            using (var connection = new CqlConnection(ConnectionString))
+            {
+                connection.Open();
+
+                //create transaction
+                var transaction = connection.BeginTransaction();
+
+                //insert data
+                var cmd = new CqlCommand(connection, insertCql, CqlConsistency.One);
+                cmd.Transaction = transaction;
+                cmd.ExecuteNonQuery();
+
+                //commit
+                transaction.Commit();
+
+                //reset transaction to empty state, such that it can be reused
+                transaction.Reset();
+
+                //add again
+                var cmd2 = new CqlCommand(connection, insertCql2, CqlConsistency.One);
+                cmd2.Transaction = transaction;
+                cmd2.ExecuteNonQuery();
+
+                transaction.Commit();
+
+                transaction.Dispose();
+            }
+        }
+
+        [TestMethod]
+        public void TransactionResetAfterDispose()
+        {
+            const string insertCql = @"insert into Test.BasicFlow (id,value) values (7000, 'Transaction 7000');";
+            const string insertCql2 = @"insert into Test.BasicFlow (id,value) values (7001, 'Transaction 7001');";
+
+            //Act
+            using (var connection = new CqlConnection(ConnectionString))
+            {
+                connection.Open();
+
+                //create transaction
+                var transaction = connection.BeginTransaction();
+
+                //insert data
+                var cmd = new CqlCommand(connection, insertCql, CqlConsistency.One);
+                cmd.Transaction = transaction;
+                cmd.ExecuteNonQuery();
+
+                //commit
+                transaction.Commit();
+
+                //dispose
+                transaction.Dispose();
+
+                //reset transaction to empty state, such that it can be reused
+                transaction.Reset();
+
+                //add again
+                var cmd2 = new CqlCommand(connection, insertCql2, CqlConsistency.One);
+                cmd2.Transaction = transaction;
+                cmd2.ExecuteNonQuery();
+
+                transaction.Commit();
+
+                transaction.Dispose();
             }
         }
 

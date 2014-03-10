@@ -13,7 +13,6 @@
 // See the License for the specific language governing permissions and
 // limitations under the License.
 
-using CqlSharp.Memory;
 using CqlSharp.Protocol;
 using System;
 using System.Collections.Generic;
@@ -30,8 +29,31 @@ namespace CqlSharp
     /// </summary>
     public class CqlBatchTransaction : DbTransaction
     {
-        private CqlCommand _batchCommand;
-        private List<BatchFrame.BatchedCommand> _commands;
+        /// <summary>
+        /// the possible states this transaction is in.
+        /// </summary>
+        private enum TransactionState
+        {
+            Pending,
+            Committed,
+            RolledBack,
+            Disposed
+        }
+
+        /// <summary>
+        /// The command representing the batch operation
+        /// </summary>
+        private readonly CqlCommand _batchCommand;
+
+        /// <summary>
+        /// the series of commands enlisted with this transaction
+        /// </summary>
+        private readonly List<BatchFrame.BatchedCommand> _commands;
+
+        /// <summary>
+        /// the state of the transaction
+        /// </summary>
+        private TransactionState _state;
 
         /// <summary>
         ///   Initializes a new instance of the <see cref="CqlBatchTransaction" /> class.
@@ -41,6 +63,7 @@ namespace CqlSharp
             _batchCommand = new CqlCommand { Transaction = this };
             _commands = new List<BatchFrame.BatchedCommand>();
             BatchType = CqlBatchType.Logged;
+            _state = TransactionState.Pending;
         }
 
         /// <summary>
@@ -72,25 +95,22 @@ namespace CqlSharp
         {
             _batchCommand = new CqlCommand(connection) { Consistency = consistency, Transaction = this };
             _commands = new List<BatchFrame.BatchedCommand>();
-
             BatchType = batchType;
+            _state = TransactionState.Pending;
         }
 
         /// <summary>
         ///   Gets or sets the wait time before terminating the attempt to execute a (batch) command and generating an error.
         /// </summary>
         /// <returns> The time (in seconds) to wait for the command to execute. The default value is 30 seconds. </returns>
-        /// <exception cref="System.NotSupportedException"></exception>
         public int CommandTimeout
         {
             get
             {
-                CheckIfDisposed();
                 return _batchCommand.CommandTimeout;
             }
             set
             {
-                CheckIfDisposed();
                 _batchCommand.CommandTimeout = value;
             }
         }
@@ -112,12 +132,10 @@ namespace CqlSharp
         {
             get
             {
-                CheckIfDisposed();
                 return _batchCommand.Connection;
             }
             set
             {
-                CheckIfDisposed();
                 _batchCommand.Connection = value;
             }
         }
@@ -146,11 +164,7 @@ namespace CqlSharp
         {
             get
             {
-                CheckIfDisposed();
-
-                if (_commands == null)
-                    throw new InvalidOperationException("Transaction is rolled back");
-
+                CheckIfPending();
                 return _commands;
             }
         }
@@ -163,12 +177,10 @@ namespace CqlSharp
         {
             get
             {
-                CheckIfDisposed();
                 return _batchCommand.Consistency;
             }
             set
             {
-                CheckIfDisposed();
                 _batchCommand.Consistency = value;
             }
         }
@@ -182,12 +194,10 @@ namespace CqlSharp
         {
             get
             {
-                CheckIfDisposed();
                 return _batchCommand.Load;
             }
             set
             {
-                CheckIfDisposed();
                 _batchCommand.Load = value;
             }
         }
@@ -200,12 +210,10 @@ namespace CqlSharp
         {
             get
             {
-                CheckIfDisposed();
                 return _batchCommand.EnableTracing;
             }
             set
             {
-                CheckIfDisposed();
                 _batchCommand.EnableTracing = value;
             }
         }
@@ -218,7 +226,6 @@ namespace CqlSharp
         {
             get
             {
-                CheckIfDisposed();
                 return (CqlVoid)_batchCommand.LastQueryResult;
             }
         }
@@ -231,27 +238,32 @@ namespace CqlSharp
         {
             if (disposing)
             {
-                if (_commands != null)
-                {
-                    _commands.Clear();
-                    _commands = null;
-                }
-
-                if (_batchCommand != null)
-                {
-                    _batchCommand.Dispose();
-                    _batchCommand = null;
-                }
+                _state = TransactionState.Disposed;
+                _commands.Clear();
             }
 
             base.Dispose(disposing);
         }
 
-        private void CheckIfDisposed()
+        /// <summary>
+        /// Checks wether this transaction is in the pending state
+        /// </summary>
+        /// <exception cref="System.ObjectDisposedException">CqlBatchTransaction</exception>
+        /// <exception cref="System.InvalidOperationException">
+        /// Transaction has already been committed
+        /// or
+        /// Transaction has been rolled back
+        /// </exception>
+        private void CheckIfPending()
         {
-            if (_batchCommand == null)
+            if (_state == TransactionState.Disposed)
                 throw new ObjectDisposedException("CqlBatchTransaction");
 
+            if (_state == TransactionState.Committed)
+                throw new InvalidOperationException("Transaction has already been committed");
+
+            if (_state == TransactionState.RolledBack)
+                throw new InvalidOperationException("Transaction has been rolled back");
         }
 
         /// <summary>
@@ -259,7 +271,6 @@ namespace CqlSharp
         /// </summary>
         public void Cancel()
         {
-            CheckIfDisposed();
             _batchCommand.Cancel();
         }
 
@@ -269,19 +280,17 @@ namespace CqlSharp
         /// <filterpriority>1</filterpriority>
         public override void Commit()
         {
-            CheckIfDisposed();
+            CheckIfPending();
 
             if (Connection.State == ConnectionState.Open)
             {
-                if (_commands == null)
-                    throw new InvalidOperationException("Transaction has been rolled back");
-
                 if (_commands.Count > 0)
                     _batchCommand.ExecuteBatch();
+
+                _state = TransactionState.Committed;
             }
             else
             {
-                Rollback();
                 throw new InvalidOperationException("Commit error: Connection is closed or disposed");
             }
         }
@@ -296,6 +305,7 @@ namespace CqlSharp
             return CommitAsync(CancellationToken.None);
         }
 
+
         /// <summary>
         ///   Commits the database transaction asynchronously.
         /// </summary>
@@ -303,22 +313,29 @@ namespace CqlSharp
         /// <returns> </returns>
         public Task CommitAsync(CancellationToken cancellationToken)
         {
-            CheckIfDisposed();
+            CheckIfPending();
 
             if (Connection.State == ConnectionState.Open)
             {
-
-                if (_commands == null)
-                    throw new InvalidOperationException("Transaction has been rolled back");
-
-                if (_commands.Count > 0)
-                    return _batchCommand.ExecuteBatchAsync(cancellationToken);
-
-                return TaskCache.CompletedTask;
+                return CommitAsyncInternal(cancellationToken);
             }
 
-            Rollback();
             throw new InvalidOperationException("Commit error: Connection is closed or disposed");
+        }
+
+        /// <summary>
+        ///   Performs the actual asynchronous commit operation
+        /// </summary>
+        /// <param name="cancellationToken"> The cancellation token. </param>
+        /// <returns> </returns>
+        private async Task CommitAsyncInternal(CancellationToken cancellationToken)
+        {
+            if (_commands.Count > 0)
+            {
+                await _batchCommand.ExecuteBatchAsync(cancellationToken);
+            }
+
+            _state = TransactionState.Committed;
         }
 
         /// <summary>
@@ -327,11 +344,20 @@ namespace CqlSharp
         /// <filterpriority>1</filterpriority>
         public override void Rollback()
         {
-            if (_commands != null)
-            {
-                _commands.Clear();
-                _commands = null;
-            }
+            CheckIfPending();
+
+            _state = TransactionState.RolledBack;
+            _commands.Clear();
+        }
+
+        /// <summary>
+        /// Resets this transaction. This clears the list of commands that are part of the transaction, and brings
+        /// the transaction in the same state as if it was newly created
+        /// </summary>
+        public void Reset()
+        {
+            _state = TransactionState.Pending;
+            _commands.Clear();
         }
     }
 }
