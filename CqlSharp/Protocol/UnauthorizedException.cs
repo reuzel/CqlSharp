@@ -17,11 +17,14 @@ using System;
 
 namespace CqlSharp.Protocol
 {
+    /// <summary>
+    /// The logged user doesn't have the right to perform the query.
+    /// </summary>
     [Serializable]
     public class UnauthorizedException : ProtocolException
     {
-        public UnauthorizedException(string message)
-            : base(Protocol.ErrorCode.Unauthorized, message)
+        internal UnauthorizedException(string message, Guid? tracingId)
+            : base(Protocol.ErrorCode.Unauthorized, message, tracingId)
         {
         }
     }

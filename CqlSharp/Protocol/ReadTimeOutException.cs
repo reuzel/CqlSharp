@@ -17,12 +17,15 @@ using System;
 
 namespace CqlSharp.Protocol
 {
+    /// <summary>
+    /// Timeout exception during a read request
+    /// </summary>
     [Serializable]
     public class ReadTimeOutException : TimeOutException
     {
-        public ReadTimeOutException(string message, CqlConsistency cqlConsistency, int received, int blockFor,
-                                    bool dataPresent)
-            : base(Protocol.ErrorCode.ReadTimeout, message, cqlConsistency, received, blockFor)
+        internal ReadTimeOutException(string message, CqlConsistency cqlConsistency, int received, int blockFor,
+                                    bool dataPresent, Guid? tracingId)
+            : base(Protocol.ErrorCode.ReadTimeout, message, cqlConsistency, received, blockFor, tracingId)
         {
             DataPresent = dataPresent;
         }

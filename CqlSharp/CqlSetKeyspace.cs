@@ -20,13 +20,24 @@ namespace CqlSharp
     /// <summary>
     ///   Represents a result of a Cql use query
     /// </summary>
-    public struct CqlSetKeyspace : ICqlQueryResult
+    public class CqlSetKeyspace : ICqlQueryResult
     {
+        /// <summary>
+        /// Initializes a new instance of the <see cref="CqlSetKeyspace"/> class.
+        /// </summary>
+        /// <param name="keyspace">The keyspace.</param>
+        /// <param name="tracingId">The tracing unique identifier.</param>
+        internal CqlSetKeyspace(string keyspace, Guid? tracingId)
+        {
+            Keyspace = keyspace;
+            TracingId = tracingId;
+        }
+
         /// <summary>
         ///   Gets the keyspace now in use.
         /// </summary>
         /// <value> The keyspace. </value>
-        public string Keyspace { get; internal set; }
+        public string Keyspace { get; private set; }
 
         #region ICqlQueryResult Members
 
@@ -43,7 +54,7 @@ namespace CqlSharp
         ///   Gets the tracing id.
         /// </summary>
         /// <value> The tracing id. </value>
-        public Guid? TracingId { get; internal set; }
+        public Guid? TracingId { get; private set; }
 
         #endregion
     }

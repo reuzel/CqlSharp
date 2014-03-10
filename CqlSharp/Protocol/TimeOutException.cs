@@ -17,22 +17,34 @@ using System;
 
 namespace CqlSharp.Protocol
 {
+    /// <summary>
+    /// Thrown when a query could not be executed within the scheduled timeframe.
+    /// </summary>
     [Serializable]
-    public class TimeOutException : ProtocolException
+    public abstract class TimeOutException : ProtocolException
     {
         protected TimeOutException(ErrorCode code, string message, CqlConsistency cqlConsistency, int received,
-                                   int blockFor)
-            : base(code, message)
+                                   int blockFor, Guid? tracingId)
+            : base(code, message, tracingId)
         {
             CqlConsistency = cqlConsistency;
             Received = received;
             BlockFor = blockFor;
         }
 
+        /// <summary>
+        /// Gets the consistency level of the query having triggered the exception.
+        /// </summary>
         public CqlConsistency CqlConsistency { get; private set; }
 
+        /// <summary>
+        /// Gets the the number of nodes having acknowledged the request.
+        /// </summary>
         public int Received { get; private set; }
 
+        /// <summary>
+        /// the number of replica whose acknowledgement is required to achieve the requested consistency level
+        /// </summary>
         public int BlockFor { get; private set; }
     }
 }

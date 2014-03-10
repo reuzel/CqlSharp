@@ -389,7 +389,7 @@ namespace CqlSharp.Network
                                 f => f.Name.Equals(auth.Authenticator, StringComparison.OrdinalIgnoreCase));
 
                         if (factory == null)
-                            throw new AuthenticationException("Unsupported Authenticator: " + auth.Authenticator);
+                            throw new AuthenticationException("Unsupported Authenticator: " + auth.Authenticator, null);
 
                         logger.LogVerbose("Attempting authentication for scheme {0}", factory.Name);
 
@@ -417,7 +417,7 @@ namespace CqlSharp.Network
                             if (success != null)
                             {
                                 if (!authenticator.Authenticate(success.SaslResult))
-                                    throw new AuthenticationException("Authentication failed, Authenticator rejected SASL result");
+                                    throw new AuthenticationException("Authentication failed, Authenticator rejected SASL result", response.TracingId);
 
                                 //yeah, authenticated, break from the authentication loop
                                 break;
@@ -426,7 +426,7 @@ namespace CqlSharp.Network
                             //no success yet, lets try next round
                             var challenge = response as AuthChallengeFrame;
                             if (challenge == null)
-                                throw new AuthenticationException("Expected a Authentication Challenge from Server!");
+                                throw new AuthenticationException("Expected a Authentication Challenge from Server!", response.TracingId);
 
                             saslChallenge = challenge.SaslChallenge;
                         }
@@ -447,14 +447,14 @@ namespace CqlSharp.Network
 
                         if (!(response is ReadyFrame))
                         {
-                            throw new AuthenticationException("Authentication failed: Ready frame not received");
+                            throw new AuthenticationException("Authentication failed: Ready frame not received", response.TracingId);
                         }
                     }
                 }
                 //no authenticate frame, so ready frame must be received
                 else if (!(response is ReadyFrame))
                 {
-                    throw new ProtocolException(0, "Expected Ready frame not received");
+                    throw new ProtocolException(0, "Expected Ready frame not received", response.TracingId);
                 }
 
                 //dispose ready frame
@@ -729,7 +729,7 @@ namespace CqlSharp.Network
                         var eventFrame = frame as EventFrame;
                         if (eventFrame == null)
                             throw new ProtocolException(ErrorCode.Protocol,
-                                                        "A frame is received with StreamId -1, while it is not an EventFrame");
+                                                        "A frame is received with StreamId -1, while it is not an EventFrame", frame.TracingId);
 
                         logger.LogVerbose("Event frame received on {0}", this);
 

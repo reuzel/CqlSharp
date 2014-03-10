@@ -563,6 +563,36 @@ namespace CqlSharp.Test
         }
 
         [TestMethod]
+        public async Task ErrorResult()
+        {
+            //Assume
+            const string insertCql = @"insert into Test.UnknownTable (id,value) values (1,'Hallo 1');";
+
+            //Act
+            using (var connection = new CqlConnection(ConnectionString))
+            {
+                await connection.OpenAsync();
+
+                //insert data
+                var cmd = new CqlCommand(connection, insertCql, CqlConsistency.One);
+                cmd.EnableTracing = true;
+
+                try
+                {
+                    await cmd.ExecuteNonQueryAsync();
+                    Assert.Fail("Should have thrown exception!");
+                }
+                catch (ProtocolException pex)
+                {
+                    Assert.IsInstanceOfType(pex, typeof(InvalidException));
+                    Assert.IsInstanceOfType(cmd.LastQueryResult, typeof(CqlError));
+                    Assert.AreEqual(((CqlError)cmd.LastQueryResult).Exception, pex, "CqlError does not contain thrown exception");
+                    Assert.AreEqual(pex.TracingId, cmd.LastQueryResult.TracingId);
+                }
+            }
+        }
+
+        [TestMethod]
         public async Task BasicInsertSelectOnSynchronizationContext()
         {
             SynchronizationContext.SetSynchronizationContext(new STASynchronizationContext());

@@ -65,8 +65,7 @@ namespace CqlSharp.Protocol
         protected override void WriteData(Stream buffer)
         {
             if ((Version & FrameVersion.ProtocolVersionMask) == FrameVersion.ProtocolVersion1)
-                throw new ProtocolException(ErrorCode.Protocol,
-                                            "Batch frames are supported from Cassandra Version 2.0.0 and up.");
+                throw new ProtocolException(ErrorCode.Protocol, "Batch frames are supported from Cassandra Version 2.0.0 and up.", null);
 
             buffer.WriteByte((byte)Type);
             buffer.WriteShort((ushort)Commands.Count);

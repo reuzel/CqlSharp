@@ -43,6 +43,11 @@ namespace CqlSharp
         /// <summary>
         ///   Represents result of ResultMetaData changing queries (create/alter)
         /// </summary>
-        SchemaChange = 0x0005
+        SchemaChange = 0x0005,
+
+        /// <summary>
+        ///   Represents an error result of a query
+        /// </summary>
+        Error = 0x0800
     }
 }

@@ -60,6 +60,7 @@
     <Compile Include="CqlDataAdapter.cs">
       <SubType>Component</SubType>
     </Compile>
+    <Compile Include="CqlError.cs" />
     <Compile Include="CqlParameter.cs" />
     <Compile Include="CqlPrepared.cs" />
     <Compile Include="CqlProviderFactory.cs" />

@@ -20,25 +20,40 @@ namespace CqlSharp
     /// <summary>
     ///   Represents a result of a Cql ResultMetaData changing query (create/alter/drop/etc.)
     /// </summary>
-    public struct CqlSchemaChange : ICqlQueryResult
+    public class CqlSchemaChange : ICqlQueryResult
     {
+        /// <summary>
+        /// Initializes a new instance of the <see cref="CqlSchemaChange"/> class.
+        /// </summary>
+        /// <param name="keyspace">The keyspace.</param>
+        /// <param name="table">The table.</param>
+        /// <param name="change">The change.</param>
+        /// <param name="tracingId">The tracing unique identifier.</param>
+        internal CqlSchemaChange(string keyspace, string table, string change, Guid? tracingId)
+        {
+            Keyspace = keyspace;
+            Table = table;
+            Change = change;
+            TracingId = tracingId;
+        }
+
         /// <summary>
         ///   Gets the keyspace.
         /// </summary>
         /// <value> The keyspace. </value>
-        public string Keyspace { get; internal set; }
+        public string Keyspace { get; private set; }
 
         /// <summary>
         ///   Gets the table impacted.
         /// </summary>
         /// <value> The table. </value>
-        public string Table { get; internal set; }
+        public string Table { get; private set; }
 
         /// <summary>
         ///   Gets the type of change.
         /// </summary>
         /// <value> The change. </value>
-        public string Change { get; internal set; }
+        public string Change { get; private set; }
 
         #region ICqlQueryResult Members
 
@@ -55,7 +70,7 @@ namespace CqlSharp
         ///   Gets the tracing id.
         /// </summary>
         /// <value> The tracing id. </value>
-        public Guid? TracingId { get; internal set; }
+        public Guid? TracingId { get; private set; }
 
         #endregion
     }

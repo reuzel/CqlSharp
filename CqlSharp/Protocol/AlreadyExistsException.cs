@@ -1,5 +1,5 @@
 // CqlSharp - CqlSharp
-// Copyright (c) 2013 Joost Reuzel
+// Copyright (c) 2014 Joost Reuzel
 //   
 // Licensed under the Apache License, Version 2.0 (the "License");
 // you may not use this file except in compliance with the License.
@@ -17,18 +17,36 @@ using System;
 
 namespace CqlSharp.Protocol
 {
+    /// <summary>
+    ///   thrown when the creation of an existing table or keyspace is attempted
+    /// </summary>
     [Serializable]
     public class AlreadyExistsException : ProtocolException
     {
-        public AlreadyExistsException(string message, string keyspace, string table)
-            : base(Protocol.ErrorCode.AlreadyExists, message)
+        /// <summary>
+        ///   Initializes a new instance of the <see cref="AlreadyExistsException" /> class.
+        /// </summary>
+        /// <param name="message"> The message. </param>
+        /// <param name="keyspace"> The keyspace. </param>
+        /// <param name="table"> The table. </param>
+        /// <param name="tracingId"> The tracing unique identifier. </param>
+        internal AlreadyExistsException(string message, string keyspace, string table, Guid? tracingId)
+            : base(Protocol.ErrorCode.AlreadyExists, message, tracingId)
         {
             Keyspace = keyspace;
             Table = table;
         }
 
+        /// <summary>
+        ///   Gets the keyspace.
+        /// </summary>
+        /// <value> The keyspace. </value>
         public string Keyspace { get; private set; }
 
+        /// <summary>
+        ///   Gets the table.
+        /// </summary>
+        /// <value> The table. </value>
         public string Table { get; private set; }
     }
 }

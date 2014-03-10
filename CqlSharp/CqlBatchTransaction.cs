@@ -222,11 +222,11 @@ namespace CqlSharp
         ///   Gets the last batch query result. Contains a reference to any tracing identifier
         /// </summary>
         /// <value> The last query result. </value>
-        public CqlVoid LastBatchResult
+        public ICqlQueryResult LastBatchResult
         {
             get
             {
-                return (CqlVoid)_batchCommand.LastQueryResult;
+                return _batchCommand.LastQueryResult;
             }
         }
 

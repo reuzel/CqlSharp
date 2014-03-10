@@ -1,5 +1,5 @@
 ﻿// CqlSharp - CqlSharp
-// Copyright (c) 2013 Joost Reuzel
+// Copyright (c) 2014 Joost Reuzel
 //   
 // Licensed under the Apache License, Version 2.0 (the "License");
 // you may not use this file except in compliance with the License.
@@ -18,38 +18,50 @@ using System;
 namespace CqlSharp
 {
     /// <summary>
-    ///   Represents the result of a query that does not have actual result values
+    ///   Represents the error result of a query.
     /// </summary>
-    public class CqlVoid : ICqlQueryResult
+    public class CqlError : ICqlQueryResult
     {
         /// <summary>
-        /// Initializes a new instance of the <see cref="CqlVoid"/> class.
+        /// Initializes a new instance of the <see cref="CqlError"/> class.
         /// </summary>
-        /// <param name="tracingId">The tracing unique identifier.</param>
-        internal CqlVoid(Guid? tracingId)
+        /// <param name="exception">The exception.</param>
+        internal CqlError(Exception exception)
         {
+            Exception = exception;
+        }
+
+        /// <summary>
+        /// Initializes a new instance of the <see cref="CqlError"/> class.
+        /// </summary>
+        /// <param name="exception">The exception.</param>
+        /// <param name="tracingId">The tracing unique identifier.</param>
+        internal CqlError(Exception exception, Guid? tracingId)
+        {
+            Exception = exception;
             TracingId = tracingId;
         }
+
+        /// <summary>
+        ///   Gets the exception that has resulted in this CqlError state
+        /// </summary>
+        public Exception Exception { get; private set; }
 
         #region ICqlQueryResult Members
 
         /// <summary>
-        /// Gets the type of the result.
+        ///   Gets the type of the result.
         /// </summary>
-        /// <value>
-        /// The type of the result.
-        /// </value>
+        /// <value> The type of the result. </value>
         public CqlResultType ResultType
         {
-            get { return CqlResultType.Void; }
+            get { return CqlResultType.Error; }
         }
 
         /// <summary>
-        /// Gets the tracing id, if present
+        ///   Gets the tracing id, if present
         /// </summary>
-        /// <value>
-        /// The tracing id, if present
-        /// </value>
+        /// <value> The tracing id, if present </value>
         public Guid? TracingId { get; private set; }
 
         #endregion

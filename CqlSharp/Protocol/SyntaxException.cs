@@ -17,11 +17,14 @@ using System;
 
 namespace CqlSharp.Protocol
 {
+    /// <summary>
+    /// Thrown when the submitted query has a syntax error
+    /// </summary>
     [Serializable]
     public class SyntaxException : ProtocolException
     {
-        public SyntaxException(string message)
-            : base(Protocol.ErrorCode.Syntax, message)
+        internal SyntaxException(string message, Guid? tracingId)
+            : base(Protocol.ErrorCode.Syntax, message, tracingId)
         {
         }
     }

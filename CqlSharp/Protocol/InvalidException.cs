@@ -17,11 +17,14 @@ using System;
 
 namespace CqlSharp.Protocol
 {
+    /// <summary>
+    /// Thrown when a query is syntactically correct but invalid, eg. a query is done on a non-existing table.
+    /// </summary>
     [Serializable]
     public class InvalidException : ProtocolException
     {
-        public InvalidException(string message)
-            : base(Protocol.ErrorCode.Invalid, message)
+        internal InvalidException(string message, Guid? tracingId)
+            : base(Protocol.ErrorCode.Invalid, message, tracingId)
         {
         }
     }

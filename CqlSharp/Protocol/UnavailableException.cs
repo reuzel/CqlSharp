@@ -17,21 +17,42 @@ using System;
 
 namespace CqlSharp.Protocol
 {
+    /// <summary>
+    /// Thrown when not enough Cassandra nodes were available to execute the query.
+    /// </summary>
     [Serializable]
     public class UnavailableException : ProtocolException
     {
-        public UnavailableException(string message, CqlConsistency cqlConsistency, int required, int alive)
-            : base(Protocol.ErrorCode.Unavailable, message)
+        internal UnavailableException(string message, CqlConsistency cqlConsistency, int required, int alive, Guid? tracingId)
+            : base(Protocol.ErrorCode.Unavailable, message, tracingId)
         {
             CqlConsistency = cqlConsistency;
             Required = required;
             Alive = alive;
         }
 
+        /// <summary>
+        /// Gets the CQL consistency level of the query having triggered the exception
+        /// </summary>
+        /// <value>
+        /// The CQL consistency.
+        /// </value>
         public CqlConsistency CqlConsistency { get; private set; }
 
+        /// <summary>
+        /// Gets the number of nodes that should be alive to respect the requested consistency level.
+        /// </summary>
+        /// <value>
+        /// The required number of nodes.
+        /// </value>
         public int Required { get; private set; }
 
+        /// <summary>
+        /// Gets the number of replicas that were known to be alive when the request has been processed
+        /// </summary>
+        /// <value>
+        /// the number of replicas alive. Alive &lt; Required.
+        /// </value>
         public int Alive { get; private set; }
     }
 }

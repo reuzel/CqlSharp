@@ -15,6 +15,9 @@
 
 namespace CqlSharp.Protocol
 {
+    /// <summary>
+    /// The error codes as returned from the Cassandra cluster
+    /// </summary>
     public enum ErrorCode
     {
         Server = 0x0000,

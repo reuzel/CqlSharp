@@ -17,15 +17,21 @@ using System;
 
 namespace CqlSharp.Protocol
 {
+    /// <summary>
+    /// Can be thrown while a prepared statement tries to be executed with a prepared statement ID not known by the used host.
+    /// </summary>
     [Serializable]
     public class UnpreparedException : ProtocolException
     {
-        public UnpreparedException(string message, byte[] unknownId)
-            : base(Protocol.ErrorCode.Unprepared, message)
+        internal UnpreparedException(string message, byte[] unknownId, Guid? tracingId)
+            : base(Protocol.ErrorCode.Unprepared, message, tracingId)
         {
             UnknownId = unknownId;
         }
 
+        /// <summary>
+        /// Gets the unknown unique identifier of the prepared statement.
+        /// </summary>
         public byte[] UnknownId { get; private set; }
     }
 }
