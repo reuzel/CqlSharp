@@ -544,7 +544,7 @@ namespace CqlSharp
         /// </summary>
         /// <typeparam name="T"> class representing the rows returned </typeparam>
         /// <returns> </returns>
-        public Task<CqlDataReader<T>> ExecuteReaderAsync<T>()
+        public Task<CqlDataReader<T>> ExecuteReaderAsync<T>() where T: class, new()
         {
             return ExecuteReaderAsync<T>(CommandBehavior.Default, CancellationToken.None);
         }
@@ -556,7 +556,7 @@ namespace CqlSharp
         /// <typeparam name="T"> class representing the rows returned </typeparam>
         /// <param name="behavior"> The behavior. </param>
         /// <returns> </returns>
-        public Task<CqlDataReader<T>> ExecuteReaderAsync<T>(CommandBehavior behavior)
+        public Task<CqlDataReader<T>> ExecuteReaderAsync<T>(CommandBehavior behavior) where T : class, new()
         {
             return ExecuteReaderAsync<T>(behavior, CancellationToken.None);
         }
@@ -567,7 +567,7 @@ namespace CqlSharp
         /// <typeparam name="T"> class representing the rows returned </typeparam>
         /// <param name="cancellationToken"> The cancellation token. </param>
         /// <returns> </returns>
-        public Task<CqlDataReader<T>> ExecuteReaderAsync<T>(CancellationToken cancellationToken)
+        public Task<CqlDataReader<T>> ExecuteReaderAsync<T>(CancellationToken cancellationToken) where T : class, new()
         {
             return ExecuteReaderAsync<T>(CommandBehavior.Default, cancellationToken);
         }
@@ -580,7 +580,7 @@ namespace CqlSharp
         /// <param name="cancellationToken"> The cancellation token. </param>
         /// <returns> </returns>
         public async Task<CqlDataReader<T>> ExecuteReaderAsync<T>(CommandBehavior behavior,
-                                                                  CancellationToken cancellationToken)
+                                                                  CancellationToken cancellationToken) where T : class, new()
         {
             var result = await ExecuteReaderAsyncInternal(behavior, cancellationToken).ConfigureAwait(false);
 
@@ -598,7 +598,7 @@ namespace CqlSharp
         /// <remarks>
         ///   Utility wrapper around ExecuteReaderAsync
         /// </remarks>
-        public CqlDataReader<T> ExecuteReader<T>()
+        public CqlDataReader<T> ExecuteReader<T>() where T : class, new()
         {
             return ExecuteReader<T>(CommandBehavior.Default);
         }
@@ -612,7 +612,7 @@ namespace CqlSharp
         /// <remarks>
         ///   Utility wrapper around ExecuteReaderAsync
         /// </remarks>
-        public CqlDataReader<T> ExecuteReader<T>(CommandBehavior behavior)
+        public CqlDataReader<T> ExecuteReader<T>(CommandBehavior behavior) where T : class, new()
         {
             try
             {

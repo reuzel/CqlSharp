@@ -655,7 +655,7 @@ namespace CqlSharp
     ///   Provides access to a set of Cql data rows as returned from a query
     /// </summary>
     /// <typeparam name="T"> </typeparam>
-    public class CqlDataReader<T> : CqlDataReader, IEnumerable<T>
+    public class CqlDataReader<T> : CqlDataReader, IEnumerable<T> where T : class, new()
     {
         /// <summary>
         ///   The last read (and requested) value

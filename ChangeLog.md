@@ -1,5 +1,7 @@
-## Version 0.33.0 - Flexibility
-* Removing class, new() constraint on the generic DataReader, allowing structs to be deserialized
+## Version 0.33.0 - Improved transaction handling
+* Improved state management of transaction
+* Adding Reset to CqlTransaction, allowing reuse of transaction objects
+* Adding CqlError class, to expose Cql error details (including trace ids) as LastQueryResult on CqlCommand
 
 ## Version 0.32.2 - Default Guid insertion fix
 * Fixing issue where nill guids were inserted as null values
