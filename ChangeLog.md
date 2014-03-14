@@ -1,3 +1,7 @@
+## Version 0.34.0 - Socket options
+* Adding options to deal with sockets timeouts/buffers/etc
+* Fix: Proper CqlException returned when no cluster nodes can be reached
+
 ## Version 0.33.0 - Improved transaction handling
 * Improved state management of transaction
 * Adding Reset to CqlTransaction, allowing reuse of transaction objects

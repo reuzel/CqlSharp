@@ -17,6 +17,7 @@ using CqlSharp.Protocol;
 using Microsoft.VisualStudio.TestTools.UnitTesting;
 using System;
 using System.Diagnostics;
+using System.Threading.Tasks;
 
 namespace CqlSharp.Test
 {
@@ -84,5 +85,17 @@ namespace CqlSharp.Test
 
             Assert.Fail("Exception should have been thrown;");
         }
+
+        [TestMethod]
+        [ExpectedException(typeof(CqlException))]
+        public async Task ConnectTimeoutThrowsProperException()
+        {
+            using (var connection = new CqlConnection("servers=192.168.100.100,192.168.100.101;SocketConnectTimeout=3000"))
+            {
+                await connection.OpenAsync();
+            }
+        }
+
+
     }
 }

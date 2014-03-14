@@ -31,22 +31,17 @@
       See https://github.com/reuzel/CqlSharp/wiki/Features for an extensive feature list.
     </description>
     <releaseNotes>
+      ## Version 0.34.0 - Socket Options
+      * Adding options to deal with sockets timeouts/buffers/etc
+      * Fix: Proper CqlException returned when no cluster nodes can be reached
+      
       ## Version 0.33.0 - Improved transaction handling
       * Improved state management of transaction
       * Adding Reset to CqlTransaction, allowing reuse of transaction objects
       * Adding CqlError class, to expose Cql error details (including trace ids) as LastQueryResult on CqlCommand
 
-      ## Version 0.32.2 - Default Guid insertion fix
-      * Fixing issue where nill guids were inserted as null values.
-      * Adding TimeGuid.Default to get a nill guid with time version flags set.
-
-      ## Version 0.32.1 - Transaction Race fix
-      * Fixing race condition issues when using prepared queries in a transaction
-
-      Version 0.32.0 - Decimal support and Fixes
-      * Support for decimal types
-      * TimeGuid generation rewritten in order to guarantee uniqueness when many TimeGuids are generated within a short timeframe.
-
+      ...
+      
       See https://github.com/reuzel/CqlSharp/blob/master/ChangeLog.md for the full changelog.
     </releaseNotes>
     <copyright>Copyright 2014 Joost Reuzel</copyright>

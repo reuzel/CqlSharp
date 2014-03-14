@@ -1,5 +1,5 @@
 // CqlSharp - CqlSharp
-// Copyright (c) 2013 Joost Reuzel
+// Copyright (c) 2014 Joost Reuzel
 //   
 // Licensed under the Apache License, Version 2.0 (the "License");
 // you may not use this file except in compliance with the License.
@@ -129,7 +129,8 @@ namespace CqlSharp.Network
             get
             {
                 return _connectionState == 2 ||
-                       (AllowCleanup && _connectionState == 1 && _activeRequests == 0 && (DateTime.UtcNow.Ticks - Interlocked.Read(ref _lastActivity)) > _maxIdleTicks);
+                       (AllowCleanup && _connectionState == 1 && _activeRequests == 0 &&
+                        (DateTime.UtcNow.Ticks - Interlocked.Read(ref _lastActivity)) > _maxIdleTicks);
             }
         }
 
@@ -161,6 +162,12 @@ namespace CqlSharp.Network
         }
 
         /// <summary>
+        ///   Indicates whether automatic cleanup of this connection is allowed. Typically set to prevent
+        ///   a connection to be cleaned up, when it is exclusively reserved for use by an application
+        /// </summary>
+        public bool AllowCleanup { get; set; }
+
+        /// <summary>
         ///   Occurs when [on connection change].
         /// </summary>
         public event EventHandler<ConnectionChangeEvent> OnConnectionChange;
@@ -176,13 +183,7 @@ namespace CqlSharp.Network
         public event EventHandler<ClusterChangedEvent> OnClusterChange;
 
         /// <summary>
-        /// Indicates whether automatic cleanup of this connection is allowed. Typically set to prevent
-        /// a connection to be cleaned up, when it is exclusively reserved for use by an application
-        /// </summary>
-        public bool AllowCleanup { get; set; }
-
-        /// <summary>
-        /// Updates the load of this connection, and will trigger a corresponding event
+        ///   Updates the load of this connection, and will trigger a corresponding event
         /// </summary>
         /// <param name="load"> The load. </param>
         /// <param name="logger"> The logger. </param>
@@ -220,7 +221,8 @@ namespace CqlSharp.Network
                     _frameSubmitLock.Dispose();
                     _writeLock.Dispose();
 
-                    if (_client != null)
+                    //close client if it exists, and its inner socket exists
+                    if (_client != null && _client.Client != null)
                     {
                         if (error != null)
                         {
@@ -230,9 +232,9 @@ namespace CqlSharp.Network
 
                         _client.Close();
                         _client = null;
-
-                        Logger.Current.LogInfo("{0} closed", this);
                     }
+
+                    Logger.Current.LogInfo("{0} closed", this);
 
                     if (OnConnectionChange != null)
                         OnConnectionChange(this, new ConnectionChangeEvent { Exception = error, Connected = false });
@@ -277,15 +279,8 @@ namespace CqlSharp.Network
         /// </summary>
         private async Task OpenAsyncInternal(Logger logger)
         {
-            //switch state to connecting if not done so
-            int state = Interlocked.CompareExchange(ref _connectionState, 1, 0);
-
-            if (state == 1)
-                return;
-
-            if (state == 2)
+            if (_connectionState == 2)
                 throw new ObjectDisposedException("Connection disposed before opening!");
-
 
             try
             {
@@ -293,9 +288,43 @@ namespace CqlSharp.Network
 
                 while (true)
                 {
-                    //create TCP connection
-                    _client = new TcpClient();
-                    await _client.ConnectAsync(_node.Address, _config.Port).ConfigureAwait(false);
+                    //create connection timeout token
+                    var token = _config.SocketConnectTimeout > 0
+                                    ? new CancellationTokenSource(_config.SocketConnectTimeout).Token
+                                    : CancellationToken.None;
+                    try
+                    {
+                        //close connection when timeout is invoked
+                        using (token.Register(() =>
+                                                  {
+                                                      var cl = _client;
+                                                      if (cl != null)
+                                                          cl.Close();
+                                                  }))
+                        {
+                            //open TCP connection
+                            _client = new TcpClient();
+                            await _client.ConnectAsync(_node.Address, _config.Port).ConfigureAwait(false);
+                        }
+                    }
+                    catch (Exception ex)
+                    {
+                        //check if timout occurred
+                        string error = token.IsCancellationRequested
+                                           ? string.Format(
+                                               "Connection to {0} could not be established within set timeout", Node)
+                                           : "Could not open connection to " + Address;
+
+                        //log
+                        logger.LogError(error);
+
+                        //throw IO exception (suppresses weird nullreference exception sometimes received)
+                        throw new IOException(error);
+                    }
+
+                    //switch state to connected if not done so, from now on Idle timer comes into play...
+                    Interlocked.CompareExchange(ref _connectionState, 1, 0);
+
                     _writeStream = _client.GetStream();
                     _readStream = _client.GetStream();
 
@@ -321,16 +350,18 @@ namespace CqlSharp.Network
                     }
                     catch (ProtocolException)
                     {
-
                         //attempt to connect using lower protocol version if possible
                         if ((Node.FrameVersion & FrameVersion.ProtocolVersionMask) == FrameVersion.ProtocolVersion2)
                         {
                             logger.LogVerbose("Failed connecting using {0}, retrying...", Node.FrameVersion);
 
+                            //lower protocol version
                             Node.FrameVersion = FrameVersion.ProtocolVersion1;
-                            TcpClient client = _client;
-                            _client = null;
-                            client.Close();
+
+                            //close the client
+                            _client.Close();
+
+                            //wait until readloop finishes
                             _readLoopCompleted.Wait();
                             continue;
                         }
@@ -403,7 +434,8 @@ namespace CqlSharp.Network
                             //check for challenge
                             byte[] saslResponse;
                             if (!authenticator.Authenticate(saslChallenge, out saslResponse))
-                                throw new AuthenticationException("Authentication failed, SASL Challenge was rejected by client");
+                                throw new AuthenticationException(
+                                    "Authentication failed, SASL Challenge was rejected by client");
 
                             //send response
                             var cred = new AuthResponseFrame(saslResponse);
@@ -417,7 +449,8 @@ namespace CqlSharp.Network
                             if (success != null)
                             {
                                 if (!authenticator.Authenticate(success.SaslResult))
-                                    throw new AuthenticationException("Authentication failed, Authenticator rejected SASL result", response.TracingId);
+                                    throw new AuthenticationException(
+                                        "Authentication failed, Authenticator rejected SASL result", response.TracingId);
 
                                 //yeah, authenticated, break from the authentication loop
                                 break;
@@ -426,7 +459,8 @@ namespace CqlSharp.Network
                             //no success yet, lets try next round
                             var challenge = response as AuthChallengeFrame;
                             if (challenge == null)
-                                throw new AuthenticationException("Expected a Authentication Challenge from Server!", response.TracingId);
+                                throw new AuthenticationException("Expected a Authentication Challenge from Server!",
+                                                                  response.TracingId);
 
                             saslChallenge = challenge.SaslChallenge;
                         }
@@ -447,7 +481,8 @@ namespace CqlSharp.Network
 
                         if (!(response is ReadyFrame))
                         {
-                            throw new AuthenticationException("Authentication failed: Ready frame not received", response.TracingId);
+                            throw new AuthenticationException("Authentication failed: Ready frame not received",
+                                                              response.TracingId);
                         }
                     }
                 }
@@ -518,15 +553,15 @@ namespace CqlSharp.Network
                 {
                     //ignore/log any exception of the handled task
                     var logError = task.ContinueWith((sendTask, log) =>
-                                          {
-                                              if (sendTask.Exception != null)
-                                              {
-                                                  var logger1 = (Logger)log;
-                                                  logger1.LogWarning(
-                                                      "Cancelled query threw exception: {0}",
-                                                      sendTask.Exception.InnerException);
-                                              }
-                                          }, logger,
+                                                         {
+                                                             if (sendTask.Exception != null)
+                                                             {
+                                                                 var logger1 = (Logger)log;
+                                                                 logger1.LogWarning(
+                                                                     "Cancelled query threw exception: {0}",
+                                                                     sendTask.Exception.InnerException);
+                                                             }
+                                                         }, logger,
                                                      TaskContinuationOptions.OnlyOnFaulted |
                                                      TaskContinuationOptions.ExecuteSynchronously);
 
@@ -729,7 +764,8 @@ namespace CqlSharp.Network
                         var eventFrame = frame as EventFrame;
                         if (eventFrame == null)
                             throw new ProtocolException(ErrorCode.Protocol,
-                                                        "A frame is received with StreamId -1, while it is not an EventFrame", frame.TracingId);
+                                                        "A frame is received with StreamId -1, while it is not an EventFrame",
+                                                        frame.TracingId);
 
                         logger.LogVerbose("Event frame received on {0}", this);
 
@@ -767,9 +803,6 @@ namespace CqlSharp.Network
                 }
                 catch (Exception ex)
                 {
-                    if (_client == null)
-                        break;
-
                     using (logger.ThreadBinding())
                     {
                         //error occured during read operaton, assume connection is dead, switch state

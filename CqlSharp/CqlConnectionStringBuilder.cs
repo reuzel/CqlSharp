@@ -56,7 +56,8 @@ namespace CqlSharp
                       {Keyword.LogLevel, LogLevel.Info},
                       {Keyword.UseBuffering, true},
                       {Keyword.AllowCompression, true},
-                      {Keyword.CompressionTreshold, 2048}
+                      {Keyword.CompressionTreshold, 2048},
+                      {Keyword.SocketConnectTimeout, 0}
                   };
 
         /// <summary>
@@ -146,7 +147,11 @@ namespace CqlSharp
                     {"compressionsize", Keyword.CompressionTreshold},
                     {"compression size", Keyword.CompressionTreshold},
                     {"min compression size", Keyword.CompressionTreshold},
-                    {"mincompressionsize", Keyword.CompressionTreshold}
+                    {"mincompressionsize", Keyword.CompressionTreshold},
+                    {"socketconnecttimeout", Keyword.SocketConnectTimeout},
+                    {"socket connect timeout", Keyword.SocketConnectTimeout},
+                    {"connecttimeout", Keyword.SocketConnectTimeout},
+                    {"connect timeout", Keyword.SocketConnectTimeout}
                 };
 
         /// <summary>
@@ -474,6 +479,19 @@ namespace CqlSharp
         }
 
         /// <summary>
+        /// Gets or sets the socket connect timeout.
+        /// </summary>
+        /// <value>
+        /// The socket connect timeout.
+        /// </value>
+        public int SocketConnectTimeout
+        {
+            get { return (int)_values[Keyword.SocketConnectTimeout]; }
+            set { SetValue(Keyword.SocketConnectTimeout, value); }
+        }
+
+
+        /// <summary>
         ///   Gets an <see cref="T:System.Collections.ICollection" /> that contains the keys in the <see
         ///    cref="T:System.Data.Common.DbConnectionStringBuilder" />.
         /// </summary>
@@ -591,6 +609,9 @@ namespace CqlSharp
                         sanatizedValue = ConvertToBoolean(value);
                         break;
                     case Keyword.CompressionTreshold:
+                        sanatizedValue = Convert.ToInt32(value);
+                        break;
+                    case Keyword.SocketConnectTimeout:
                         sanatizedValue = Convert.ToInt32(value);
                         break;
                 }
@@ -743,9 +764,12 @@ namespace CqlSharp
             LogLevel,
             UseBuffering,
             AllowCompression,
-            CompressionTreshold
+            CompressionTreshold,
+            SocketConnectTimeout
         }
 
         #endregion
+
+
     }
 }
