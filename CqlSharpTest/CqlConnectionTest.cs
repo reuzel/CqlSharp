@@ -90,12 +90,33 @@ namespace CqlSharp.Test
         [ExpectedException(typeof(CqlException))]
         public async Task ConnectTimeoutThrowsProperException()
         {
-            using (var connection = new CqlConnection("servers=192.168.100.100,192.168.100.101;SocketConnectTimeout=3000"))
+            using (var connection = new CqlConnection("servers=192.168.100.100,192.168.100.101;SocketConnectTimeout=3000;Logger=Debug;LogLevel=Verbose"))
             {
                 await connection.OpenAsync();
             }
         }
 
+        [TestMethod]
+        public void TestConnectionStringValueSerialization()
+        {
+            var builder = new CqlConnectionStringBuilder("servers=ip1,ip2;SocketKeepAlive=off;SocketSoLinger=10;SocketConnectTimeout=-10");
 
+            Assert.AreEqual(-1, builder.SocketKeepAlive);
+            Assert.AreEqual(10, builder.SocketSoLinger);
+            Assert.AreEqual(-1, builder.SocketConnectTimeout);
+        }
+
+        [TestMethod]
+        public void TrySetKeepAlive()
+        {
+            var builder = new CqlConnectionStringBuilder("node=localhost;Logger=Debug;LogLevel=Verbose;Username=cassandra;password=cassandra");
+            builder.SocketKeepAlive = 10 * 60 * 1000; //10 mins
+
+            using (var connection = new CqlConnection(builder))
+            {
+                connection.Open();
+            }
+
+        }
     }
 }

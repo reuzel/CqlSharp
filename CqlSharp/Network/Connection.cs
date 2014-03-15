@@ -284,68 +284,26 @@ namespace CqlSharp.Network
 
             try
             {
-                SupportedFrame supported;
-
                 while (true)
                 {
-                    //create connection timeout token
-                    var token = _config.SocketConnectTimeout > 0
-                                    ? new CancellationTokenSource(_config.SocketConnectTimeout).Token
-                                    : CancellationToken.None;
-                    try
-                    {
-                        //close connection when timeout is invoked
-                        using (token.Register(() =>
-                                                  {
-                                                      var cl = _client;
-                                                      if (cl != null)
-                                                          cl.Close();
-                                                  }))
-                        {
-                            //open TCP connection
-                            _client = new TcpClient();
-                            await _client.ConnectAsync(_node.Address, _config.Port).ConfigureAwait(false);
-                        }
-                    }
-                    catch (Exception ex)
-                    {
-                        //check if timout occurred
-                        string error = token.IsCancellationRequested
-                                           ? string.Format(
-                                               "Connection to {0} could not be established within set timeout", Node)
-                                           : "Could not open connection to " + Address;
-
-                        //log
-                        logger.LogError(error);
-
-                        //throw IO exception (suppresses weird nullreference exception sometimes received)
-                        throw new IOException(error);
-                    }
+                    //connect
+                    await ConnectAsync().ConfigureAwait(false);
+                    _writeStream = _client.GetStream();
+                    _readStream = _client.GetStream();
 
                     //switch state to connected if not done so, from now on Idle timer comes into play...
                     Interlocked.CompareExchange(ref _connectionState, 1, 0);
-
-                    _writeStream = _client.GetStream();
-                    _readStream = _client.GetStream();
 
                     logger.LogVerbose("TCP connection to {0} is opened", Address);
 
                     //start readloop
                     StartReadingAsync();
 
-                    //get options from server
-                    var options = new OptionsFrame();
-
                     try
                     {
                         logger.LogVerbose("Attempting to connect using {0}", Node.FrameVersion);
 
-                        supported =
-                            await
-                            SendRequestAsyncInternal(options, logger, 1, true, CancellationToken.None).ConfigureAwait(
-                                false)
-                            as SupportedFrame;
-
+                        await NegotiateConnectionOptionsAsync(logger).ConfigureAwait(false);
                         break;
                     }
                     catch (ProtocolException)
@@ -371,129 +329,8 @@ namespace CqlSharp.Network
                     }
                 }
 
-                if (supported == null)
-                    throw new ProtocolException(0, "Expected Supported frame not received");
-
-                _allowCompression = false;
-                if (_config.AllowCompression)
-                {
-                    IList<string> compressionOptions;
-                    //check if options contain compression
-                    if (supported.SupportedOptions.TryGetValue("COMPRESSION", out compressionOptions))
-                    {
-                        //check wether snappy is supported
-                        _allowCompression = compressionOptions.Contains("snappy");
-                    }
-                }
-
-                //dispose supported frame
-                supported.Dispose();
-
-                //submit startup frame
-                var startup = new StartupFrame(_config.CqlVersion);
-                if (_allowCompression)
-                {
-                    logger.LogVerbose("Enabling Snappy Compression.");
-                    startup.Options["COMPRESSION"] = "snappy";
-                }
-
-                Frame response =
-                    await
-                    SendRequestAsyncInternal(startup, logger, 1, true, CancellationToken.None).ConfigureAwait(false);
-
-                //authenticate if required
-                var auth = response as AuthenticateFrame;
-                if (auth != null)
-                {
-                    logger.LogVerbose("Authentication requested, attempting to provide credentials");
-
-                    //dispose AuthenticateFrame
-                    response.Dispose();
-
-                    if ((response.Version & FrameVersion.ProtocolVersionMask) == FrameVersion.ProtocolVersion2)
-                    {
-                        //protocol version2: use SASL AuthResponse to authenticate
-
-                        //get an AuthenticatorFactory
-                        IAuthenticatorFactory factory =
-                            Loader.Extensions.AuthenticationFactories.FirstOrDefault(
-                                f => f.Name.Equals(auth.Authenticator, StringComparison.OrdinalIgnoreCase));
-
-                        if (factory == null)
-                            throw new AuthenticationException("Unsupported Authenticator: " + auth.Authenticator, null);
-
-                        logger.LogVerbose("Attempting authentication for scheme {0}", factory.Name);
-
-                        //grab an authenticator instance
-                        IAuthenticator authenticator = factory.CreateAuthenticator(_config);
-
-                        //start authentication loop
-                        byte[] saslChallenge = null;
-                        while (true)
-                        {
-                            //check for challenge
-                            byte[] saslResponse;
-                            if (!authenticator.Authenticate(saslChallenge, out saslResponse))
-                                throw new AuthenticationException(
-                                    "Authentication failed, SASL Challenge was rejected by client");
-
-                            //send response
-                            var cred = new AuthResponseFrame(saslResponse);
-                            response =
-                                await
-                                SendRequestAsyncInternal(cred, logger, 1, true, CancellationToken.None).ConfigureAwait(
-                                    false);
-
-                            //check for success
-                            var success = response as AuthSuccessFrame;
-                            if (success != null)
-                            {
-                                if (!authenticator.Authenticate(success.SaslResult))
-                                    throw new AuthenticationException(
-                                        "Authentication failed, Authenticator rejected SASL result", response.TracingId);
-
-                                //yeah, authenticated, break from the authentication loop
-                                break;
-                            }
-
-                            //no success yet, lets try next round
-                            var challenge = response as AuthChallengeFrame;
-                            if (challenge == null)
-                                throw new AuthenticationException("Expected a Authentication Challenge from Server!",
-                                                                  response.TracingId);
-
-                            saslChallenge = challenge.SaslChallenge;
-                        }
-                    }
-                    else
-                    {
-                        //protocol version1: use Credentials to authenticate
-
-                        //check if _username is actually set
-                        if (_config.Username == null || _config.Password == null)
-                            throw new AuthenticationException("No credentials provided in configuration");
-
-                        var cred = new CredentialsFrame(_config.Username, _config.Password);
-                        response =
-                            await
-                            SendRequestAsyncInternal(cred, logger, 1, true, CancellationToken.None).ConfigureAwait(
-                                false);
-
-                        if (!(response is ReadyFrame))
-                        {
-                            throw new AuthenticationException("Authentication failed: Ready frame not received",
-                                                              response.TracingId);
-                        }
-                    }
-                }
-                //no authenticate frame, so ready frame must be received
-                else if (!(response is ReadyFrame))
-                {
-                    throw new ProtocolException(0, "Expected Ready frame not received", response.TracingId);
-                }
-
-                //dispose ready frame
-                response.Dispose();
+                //run the startup message exchange
+                await StartupAsync(logger).ConfigureAwait(false);
 
                 using (logger.ThreadBinding())
                 {
@@ -509,6 +346,212 @@ namespace CqlSharp.Network
                 {
                     Dispose(true, ex);
                     throw;
+                }
+            }
+        }
+
+        /// <summary>
+        /// Creates an underlying TCP connection
+        /// </summary>
+        /// <returns></returns>
+        private Task ConnectAsync()
+        {
+            //create TCP connection
+            _client = new TcpClient();
+
+            //set buffer sizes
+            _client.SendBufferSize = _config.SocketSendBufferSize;
+            _client.ReceiveBufferSize = _config.SocketReceiveBufferSize;
+
+            //set keepAlive if requested
+            if (_config.SocketKeepAlive > 0) _client.SetKeepAlive((ulong)_config.SocketKeepAlive);
+
+            //set Linger State
+            var lingerState = _config.SocketSoLinger >= 0
+                                  ? new LingerOption(true, _config.SocketSoLinger)
+                                  : new LingerOption(false, 0);
+            _client.LingerState = lingerState;
+
+            //connect within requested timeout
+            return _client.ConnectAsync(_node.Address, _config.Port, _config.SocketConnectTimeout);
+        }
+
+        /// <summary>
+        /// Negotiates the connection options.
+        /// </summary>
+        /// <param name="logger">The logger.</param>
+        /// <returns></returns>
+        /// <exception cref="ProtocolException">0;Expected Supported frame not received</exception>
+        private async Task NegotiateConnectionOptionsAsync(Logger logger)
+        {
+            //get options from server
+            var options = new OptionsFrame();
+
+            var supported = await
+                            SendRequestAsyncInternal(options, logger, 1, true, CancellationToken.None).ConfigureAwait(
+                                false)
+                            as SupportedFrame;
+
+            if (supported == null)
+                throw new ProtocolException(0, "Expected Supported frame not received");
+
+            _allowCompression = false;
+            if (_config.AllowCompression)
+            {
+                IList<string> compressionOptions;
+                //check if options contain compression
+                if (supported.SupportedOptions.TryGetValue("COMPRESSION", out compressionOptions))
+                {
+                    //check wether snappy is supported
+                    _allowCompression = compressionOptions.Contains("snappy");
+                }
+            }
+
+            //dispose supported frame
+            supported.Dispose();
+        }
+
+        /// <summary>
+        /// Startups the connection using the required message exchange
+        /// </summary>
+        /// <param name="logger">The logger.</param>
+        /// <returns></returns>
+        /// <exception cref="ProtocolException">0;Expected Ready frame not received</exception>
+        private async Task StartupAsync(Logger logger)
+        {
+            //submit startup frame
+            var startup = new StartupFrame(_config.CqlVersion);
+            if (_allowCompression)
+            {
+                logger.LogVerbose("Enabling Snappy Compression.");
+                startup.Options["COMPRESSION"] = "snappy";
+            }
+
+            Frame response =
+                await
+                SendRequestAsyncInternal(startup, logger, 1, true, CancellationToken.None).ConfigureAwait(false);
+
+            //authenticate if required
+            var auth = response as AuthenticateFrame;
+            if (auth != null)
+            {
+                await AuthenticateAsync(auth, logger).ConfigureAwait(false);
+            }
+            //no authenticate frame, so ready frame must be received
+            else if (!(response is ReadyFrame))
+            {
+                throw new ProtocolException(0, "Expected Ready frame not received", response.TracingId);
+            }
+
+            //dispose ready frame
+            response.Dispose();
+        }
+
+        /// <summary>
+        /// Authenticates the connection.
+        /// </summary>
+        /// <param name="auth">The authentication request from the server.</param>
+        /// <param name="logger">The logger.</param>
+        /// <returns></returns>
+        /// <exception cref="AuthenticationException">
+        /// Unsupported Authenticator:  + auth.Authenticator;null
+        /// or
+        /// Authentication failed, SASL Challenge was rejected by client
+        /// or
+        /// Authentication failed, Authenticator rejected SASL result
+        /// or
+        /// Expected a Authentication Challenge from Server!
+        /// or
+        /// No credentials provided in configuration
+        /// or
+        /// Authentication failed: Ready frame not received
+        /// </exception>
+        private async Task AuthenticateAsync(AuthenticateFrame auth, Logger logger)
+        {
+            logger.LogVerbose("Authentication requested, attempting to provide credentials");
+
+            //dispose AuthenticateFrame
+            auth.Dispose();
+
+            if ((auth.Version & FrameVersion.ProtocolVersionMask) == FrameVersion.ProtocolVersion2)
+            {
+                //protocol version2: use SASL AuthResponse to authenticate
+
+                //get an AuthenticatorFactory
+                IAuthenticatorFactory factory =
+                    Loader.Extensions.AuthenticationFactories.FirstOrDefault(
+                        f => f.Name.Equals(auth.Authenticator, StringComparison.OrdinalIgnoreCase));
+
+                if (factory == null)
+                    throw new AuthenticationException("Unsupported Authenticator: " + auth.Authenticator, null);
+
+                logger.LogVerbose("Attempting authentication for scheme {0}", factory.Name);
+
+                //grab an authenticator instance
+                IAuthenticator authenticator = factory.CreateAuthenticator(_config);
+
+                //start authentication loop
+                byte[] saslChallenge = null;
+                while (true)
+                {
+                    //check for challenge
+                    byte[] saslResponse;
+                    if (!authenticator.Authenticate(saslChallenge, out saslResponse))
+                        throw new AuthenticationException(
+                            "Authentication failed, SASL Challenge was rejected by client");
+
+                    //send response
+                    var cred = new AuthResponseFrame(saslResponse);
+                    var authResponse =
+                        await
+                        SendRequestAsyncInternal(cred, logger, 1, true, CancellationToken.None).ConfigureAwait(
+                            false);
+
+                    //dispose authResponse (makes sure all is read)
+                    authResponse.Dispose();
+
+                    //check for success
+                    var success = authResponse as AuthSuccessFrame;
+                    if (success != null)
+                    {
+                        if (!authenticator.Authenticate(success.SaslResult))
+                            throw new AuthenticationException(
+                                "Authentication failed, Authenticator rejected SASL result", authResponse.TracingId);
+
+                        //yeah, authenticated, break from the authentication loop
+                        break;
+                    }
+
+                    //no success yet, lets try next round
+                    var challenge = authResponse as AuthChallengeFrame;
+                    if (challenge == null)
+                        throw new AuthenticationException("Expected a Authentication Challenge from Server!",
+                                                          authResponse.TracingId);
+
+                    saslChallenge = challenge.SaslChallenge;
+                }
+            }
+            else
+            {
+                //protocol version1: use Credentials to authenticate
+
+                //check if _username is actually set
+                if (_config.Username == null || _config.Password == null)
+                    throw new AuthenticationException("No credentials provided in configuration");
+
+                var cred = new CredentialsFrame(_config.Username, _config.Password);
+                var authResponse =
+                    await
+                    SendRequestAsyncInternal(cred, logger, 1, true, CancellationToken.None).ConfigureAwait(
+                        false);
+
+                //dispose authResponse (makes sure all is read)
+                authResponse.Dispose();
+
+                if (!(authResponse is ReadyFrame))
+                {
+                    throw new AuthenticationException("Authentication failed: Ready frame not received",
+                                                      authResponse.TracingId);
                 }
             }
         }

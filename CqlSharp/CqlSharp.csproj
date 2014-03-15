@@ -96,6 +96,7 @@
     <Compile Include="Network\nSnappy\VarInt32.cs" />
     <Compile Include="Network\nSnappy\Writer.cs" />
     <Compile Include="Memory\PoolMemoryStream.cs" />
+    <Compile Include="Network\SocketExtensions.cs" />
     <Compile Include="Protocol\AlreadyExistsException.cs" />
     <Compile Include="Protocol\AuthChallengeFrame.cs" />
     <Compile Include="Protocol\AuthenticateFrame.cs" />

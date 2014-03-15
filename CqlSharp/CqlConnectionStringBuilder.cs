@@ -22,6 +22,7 @@ using System.Data.Common;
 using System.Linq;
 using System.Net;
 using System.Net.Sockets;
+using System.Threading;
 
 namespace CqlSharp
 {
@@ -57,7 +58,11 @@ namespace CqlSharp
                       {Keyword.UseBuffering, true},
                       {Keyword.AllowCompression, true},
                       {Keyword.CompressionTreshold, 2048},
-                      {Keyword.SocketConnectTimeout, 0}
+                      {Keyword.SocketConnectTimeout, 0},
+                      {Keyword.SocketSoLinger, -1},
+                      {Keyword.SocketKeepAlive, -1L},
+                      {Keyword.SocketSendBufferSize, 8192},
+                      {Keyword.SocketReceiveBufferSize, 8192}
                   };
 
         /// <summary>
@@ -151,7 +156,31 @@ namespace CqlSharp
                     {"socketconnecttimeout", Keyword.SocketConnectTimeout},
                     {"socket connect timeout", Keyword.SocketConnectTimeout},
                     {"connecttimeout", Keyword.SocketConnectTimeout},
-                    {"connect timeout", Keyword.SocketConnectTimeout}
+                    {"connect timeout", Keyword.SocketConnectTimeout},
+                    {"socket so linger", Keyword.SocketSoLinger},
+                    {"socketsolinger", Keyword.SocketSoLinger},
+                    {"socket solinger", Keyword.SocketSoLinger},
+                    {"socket linger", Keyword.SocketSoLinger},
+                    {"socketlinger", Keyword.SocketSoLinger},
+                    {"so linger", Keyword.SocketSoLinger},
+                    {"solinger", Keyword.SocketSoLinger},
+                    {"linger", Keyword.SocketSoLinger},
+                    {"socket keep alive", Keyword.SocketKeepAlive},
+                    {"socketkeepalive", Keyword.SocketKeepAlive},
+                    {"keep alive", Keyword.SocketKeepAlive},
+                    {"keepalive", Keyword.SocketKeepAlive},
+                    {"socket send buffer size", Keyword.SocketSendBufferSize},
+                    {"socketsendbuffersize", Keyword.SocketSendBufferSize},
+                    {"send buffer size", Keyword.SocketSendBufferSize},
+                    {"sendbuffersize", Keyword.SocketSendBufferSize},
+                    {"send buffer", Keyword.SocketSendBufferSize},
+                    {"sendbuffer", Keyword.SocketSendBufferSize},
+                    {"socket receive buffer size", Keyword.SocketReceiveBufferSize},
+                    {"socketreceivebuffersize", Keyword.SocketReceiveBufferSize},
+                    {"receive buffer size", Keyword.SocketReceiveBufferSize},
+                    {"receivebuffersize", Keyword.SocketReceiveBufferSize},
+                    {"receive buffer", Keyword.SocketReceiveBufferSize},
+                    {"receivebuffer", Keyword.SocketReceiveBufferSize},
                 };
 
         /// <summary>
@@ -479,7 +508,7 @@ namespace CqlSharp
         }
 
         /// <summary>
-        /// Gets or sets the socket connect timeout.
+        /// Gets or sets the socket connect timeout. Set to 0, negative or Infinite to disable timeouts.
         /// </summary>
         /// <value>
         /// The socket connect timeout.
@@ -490,6 +519,58 @@ namespace CqlSharp
             set { SetValue(Keyword.SocketConnectTimeout, value); }
         }
 
+        /// <summary>
+        /// Gets or sets the socket so linger, or the time a socket waits for
+        /// the acknowledgement of last packet send to the server.
+        /// </summary>
+        /// <value>linger time in seconds, or negative time to disable</value>
+        /// <remarks>
+        /// The linger time in seconds. If the linger time is negative, the default
+        /// IP timeouts are applied. When the linger time is zero, an immediate
+        /// connection reset is send upon socket closure. Otherwise, the socket waits for the 
+        /// givan amount of time for the last buffers to be send.
+        /// </remarks>
+        public int SocketSoLinger
+        {
+            get { return (int)_values[Keyword.SocketSoLinger]; }
+            set { SetValue(Keyword.SocketSoLinger, value); }
+        }
+
+        /// <summary>
+        /// Gets or sets the socket keep alive.
+        /// </summary>
+        /// <value>
+        /// Frequency in ms to check wether a connection is alive. Or negative, 0 or Infinite to disable
+        /// </value>
+        public long SocketKeepAlive
+        {
+            get { return (long)_values[Keyword.SocketKeepAlive]; }
+            set { SetValue(Keyword.SocketKeepAlive, value); }
+        }
+
+        /// <summary>
+        /// Gets or sets the size of the socket send buffer.
+        /// </summary>
+        /// <value>
+        /// The size of the socket send buffer.
+        /// </value>
+        public int SocketSendBufferSize
+        {
+            get { return (int)_values[Keyword.SocketSendBufferSize]; }
+            set { SetValue(Keyword.SocketSendBufferSize, value); }
+        }
+
+        /// <summary>
+        /// Gets or sets the size of the socket receive buffer.
+        /// </summary>
+        /// <value>
+        /// The size of the socket receive buffer.
+        /// </value>
+        public int SocketReceiveBufferSize
+        {
+            get { return (int)_values[Keyword.SocketReceiveBufferSize]; }
+            set { SetValue(Keyword.SocketReceiveBufferSize, value); }
+        }
 
         /// <summary>
         ///   Gets an <see cref="T:System.Collections.ICollection" /> that contains the keys in the <see
@@ -612,8 +693,21 @@ namespace CqlSharp
                         sanatizedValue = Convert.ToInt32(value);
                         break;
                     case Keyword.SocketConnectTimeout:
+                        sanatizedValue = ConvertToPositiveIntOrMinusOne(value);
+                        break;
+                    case Keyword.SocketKeepAlive:
+                        sanatizedValue = ConvertToPositiveLongOrMinusOne(value);
+                        break;
+                    case Keyword.SocketSoLinger:
+                        sanatizedValue = ConvertToPositiveIntOrMinusOne(value);
+                        break;
+                    case Keyword.SocketSendBufferSize:
                         sanatizedValue = Convert.ToInt32(value);
                         break;
+                    case Keyword.SocketReceiveBufferSize:
+                        sanatizedValue = Convert.ToInt32(value);
+                        break;
+
                 }
             }
 
@@ -640,6 +734,44 @@ namespace CqlSharp
             }
 
             return "";
+        }
+
+        /// <summary>
+        /// Converts the value in a positive int or minus one if the value is smaller than 0
+        /// </summary>
+        /// <param name="value">The value.</param>
+        /// <returns></returns>
+        private static int ConvertToPositiveIntOrMinusOne(object value)
+        {
+            var str = value as string;
+            if (str != null && str.Equals("off", StringComparison.OrdinalIgnoreCase))
+                return -1;
+
+            var intVal = Convert.ToInt32(value);
+
+            if (intVal < 0 || intVal == Timeout.Infinite)
+                return -1;
+
+            return intVal;
+        }
+
+        /// <summary>
+        /// Converts the value in a positive int or minus one if the value is smaller than 0
+        /// </summary>
+        /// <param name="value">The value.</param>
+        /// <returns></returns>
+        private static long ConvertToPositiveLongOrMinusOne(object value)
+        {
+            var str = value as string;
+            if (str != null && str.Equals("off", StringComparison.OrdinalIgnoreCase))
+                return -1;
+
+            var intVal = Convert.ToInt64(value);
+
+            if (intVal < 0 || intVal == Timeout.Infinite)
+                return -1;
+
+            return intVal;
         }
 
         /// <summary>
@@ -765,7 +897,11 @@ namespace CqlSharp
             UseBuffering,
             AllowCompression,
             CompressionTreshold,
-            SocketConnectTimeout
+            SocketConnectTimeout,
+            SocketSoLinger,
+            SocketKeepAlive,
+            SocketSendBufferSize,
+            SocketReceiveBufferSize,
         }
 
         #endregion
