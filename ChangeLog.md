@@ -1,3 +1,6 @@
+## Version 0.35.0 - Make ExecuteScalar according to spec.
+* Have ExecuteScalar return null in case no row was found, and DBNull.Value if the database column value is null
+
 ## Version 0.34.0 - Socket options
 * Adding socket options: connect timeout, Linger state, KeepAlive, SendBufferSize, and ReceiveBufferSize
 * Fix: Proper CqlException returned when no cluster nodes can be reached

@@ -177,6 +177,74 @@ namespace CqlSharp.Test
         }
 
         [TestMethod]
+        public async Task BasicInsertSelectScalar()
+        {
+            //Assume
+            const string insertCql = @"insert into Test.BasicFlow (id,value) values (1001,'Hallo 1001');";
+            const string retrieveCql = @"select value from Test.BasicFlow where id=1001;";
+
+            //Act
+            using (var connection = new CqlConnection(ConnectionString))
+            {
+                await connection.OpenAsync();
+
+                //insert data
+                var cmd = new CqlCommand(connection, insertCql, CqlConsistency.One);
+                await cmd.ExecuteNonQueryAsync();
+
+                //select data
+                var selectCmd = new CqlCommand(connection, retrieveCql, CqlConsistency.One);
+
+                string value = (string)await selectCmd.ExecuteScalarAsync();
+                Assert.AreEqual("Hallo 1001", value);
+            }
+        }
+
+        [TestMethod]
+        public async Task SelectScalarNoValue()
+        {
+            //Assume
+           const string retrieveCql = @"select value from Test.BasicFlow where id=10001;";
+
+            //Act
+            using (var connection = new CqlConnection(ConnectionString))
+            {
+                await connection.OpenAsync();
+
+                //select data
+                var selectCmd = new CqlCommand(connection, retrieveCql, CqlConsistency.One);
+                string value = (string)await selectCmd.ExecuteScalarAsync();
+
+                //if row does not exist value should be null
+                Assert.IsNull(value);
+            }
+        }
+
+        [TestMethod]
+        public async Task SelectScalarNullValue()
+        {
+            //Assume
+            const string insertCql = @"insert into Test.BasicFlow (id) values (2001);";
+            const string retrieveCql = @"select value from Test.BasicFlow where id=2001;";
+
+            //Act
+            using (var connection = new CqlConnection(ConnectionString))
+            {
+                await connection.OpenAsync();
+
+                //insert data
+                var cmd = new CqlCommand(connection, insertCql, CqlConsistency.One);
+                await cmd.ExecuteNonQueryAsync();
+
+                //select data
+                var selectCmd = new CqlCommand(connection, retrieveCql, CqlConsistency.One);
+
+                object value = await selectCmd.ExecuteScalarAsync();
+                Assert.AreEqual(DBNull.Value, value);
+            }
+        }
+
+        [TestMethod]
         public async Task BasicInsertSelect()
         {
             //Assume

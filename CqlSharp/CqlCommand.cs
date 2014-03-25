@@ -544,7 +544,7 @@ namespace CqlSharp
         /// </summary>
         /// <typeparam name="T"> class representing the rows returned </typeparam>
         /// <returns> </returns>
-        public Task<CqlDataReader<T>> ExecuteReaderAsync<T>() where T: class, new()
+        public Task<CqlDataReader<T>> ExecuteReaderAsync<T>() where T : class, new()
         {
             return ExecuteReaderAsync<T>(CommandBehavior.Default, CancellationToken.None);
         }
@@ -649,7 +649,7 @@ namespace CqlSharp
                 _queryResult = new CqlError(ex);
                 throw ex;
             }
-                
+
 
             var logger = _connection.LoggerManager.GetLogger("CqlSharp.CqlCommand.ExecuteReader");
 
@@ -701,13 +701,11 @@ namespace CqlSharp
             {
                 if (await reader.ReadAsync().ConfigureAwait(false))
                 {
-                    result = reader[0];
+                    result = reader[0] ?? DBNull.Value;
                 }
                 else
                 {
-                    var ex = new CqlException("Execute Scalar Query yield no results");
-                    _queryResult = new CqlError(ex, reader.TracingId);
-                    throw ex;
+                    result = null;
                 }
             }
 
@@ -773,7 +771,7 @@ namespace CqlSharp
 
                     case CqlResultType.Void:
                         logger.LogQuery("Query {0} executed succesfully", Query);
-                        _queryResult = new CqlVoid (result.TracingId);
+                        _queryResult = new CqlVoid(result.TracingId);
                         return 1;
 
                     case CqlResultType.SchemaChange:
@@ -782,7 +780,7 @@ namespace CqlSharp
 
                         _queryResult = new CqlSchemaChange(result.Keyspace, result.Table, result.Change,
                                                            result.TracingId);
-                
+
                         return -1;
 
                     case CqlResultType.SetKeyspace:
@@ -1036,7 +1034,7 @@ namespace CqlSharp
                         var result = await connection.SendRequestAsync(useFrame, logger, 1, false, token).ConfigureAwait(false) as ResultFrame;
                         if (result == null || result.CqlResultType != CqlResultType.SetKeyspace)
                         {
-                            if (result != null) 
+                            if (result != null)
                                 result.Dispose();
 
                             throw new CqlException("Unexpected frame received");
