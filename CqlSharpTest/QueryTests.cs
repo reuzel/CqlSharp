@@ -204,7 +204,7 @@ namespace CqlSharp.Test
         public async Task SelectScalarNoValue()
         {
             //Assume
-           const string retrieveCql = @"select value from Test.BasicFlow where id=10001;";
+            const string retrieveCql = @"select value from Test.BasicFlow where id=10001;";
 
             //Act
             using (var connection = new CqlConnection(ConnectionString))
@@ -462,7 +462,7 @@ namespace CqlSharp.Test
 
 
         [TestMethod]
-        public async Task SelectWithPaging()
+        public async Task SelectWithPagingAsync()
         {
             //Assume
             const string insertCql = @"insert into Test.BasicFlow (id,value) values (?,?);";
@@ -509,8 +509,63 @@ namespace CqlSharp.Test
                         Assert.Fail("Read should have succeeded");
                     }
                 }
-
+                Assert.IsFalse(reader.Read());
                 Assert.IsTrue(results.All(p => p));
+            }
+        }
+
+        [TestMethod]
+        public void SelectWithPaging()
+        {
+            //Assume
+            const string insertCql = @"insert into Test.BasicFlow (id,value) values (?,?);";
+            const string retrieveCql = @"select * from Test.BasicFlow;";
+
+            //Act
+            using (var connection = new CqlConnection(ConnectionString))
+            {
+                connection.Open();
+
+                //insert data
+                var cmd = new CqlCommand(connection, insertCql, CqlConsistency.One);
+                cmd.Prepare();
+
+                for (int i = 0; i < 100; i++)
+                {
+                    cmd.Parameters[0].Value = i;
+                    cmd.Parameters[1].Value = "Hello " + i;
+                    cmd.ExecuteNonQuery();
+                }
+
+                //select data
+                var selectCmd = new CqlCommand(connection, retrieveCql, CqlConsistency.One);
+                selectCmd.PageSize = 10;
+
+                using (var reader = selectCmd.ExecuteReader())
+                {
+                    //no paging when version < 2.0.0 is used...
+                    var expectedCount = String.Compare(connection.ServerVersion, "2.0.0", StringComparison.Ordinal) < 0
+                                            ? 100
+                                            : 10;
+
+                    Assert.AreEqual(expectedCount, reader.Count);
+
+                    var results = new bool[100];
+                    for (int i = 0; i < 100; i++)
+                    {
+                        if (reader.Read())
+                        {
+                            results[(int)reader["id"]] = true;
+                            Assert.AreEqual("Hello " + reader["id"], reader["value"]);
+                        }
+                        else
+                        {
+                            Assert.Fail("Read should have succeeded");
+                        }
+                    }
+                    Assert.IsFalse(reader.Read());
+                    Assert.IsTrue(results.All(p => p));
+                }
             }
         }
 

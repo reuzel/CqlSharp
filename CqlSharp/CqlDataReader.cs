@@ -194,26 +194,33 @@ namespace CqlSharp
         /// <returns> </returns>
         public override async Task<bool> ReadAsync(CancellationToken cancellationToken)
         {
-            //read next row from frame
-            if (_frame.Count > 0)
+            while (true)
             {
-                cancellationToken.ThrowIfCancellationRequested();
-                CurrentValues = await _frame.ReadNextDataRowAsync().ConfigureAwait(false);
-                return true;
-            }
+                //read next row from frame
+                if (_frame.Count > 0)
+                {
+                    cancellationToken.ThrowIfCancellationRequested();
+                    CurrentValues = await _frame.ReadNextDataRowAsync().ConfigureAwait(false);
+                    return true;
+                }
 
-            //fetch next row from next page frame (if any)
-            if (_frame.ResultMetaData.HasMoreRows)
-            {
-                //get next page of data
-                cancellationToken.ThrowIfCancellationRequested();
-                _command.PagingState = _frame.ResultMetaData.PagingState;
-                _frame = await _command.ExecuteReaderAsyncInternal(CommandBehavior.Default, cancellationToken).ConfigureAwait(false);
-                _command.PagingState = null;
-
-                //get first row in this new page
-                CurrentValues = await _frame.ReadNextDataRowAsync().ConfigureAwait(false);
-                return true;
+                //fetch next page frame (if any)
+                if (_frame.ResultMetaData.HasMoreRows)
+                {
+                    //get next page of data
+                    cancellationToken.ThrowIfCancellationRequested();
+                    _command.PagingState = _frame.ResultMetaData.PagingState;
+                    _frame =
+                        await
+                        _command.ExecuteReaderAsyncInternal(CommandBehavior.Default, cancellationToken).ConfigureAwait(
+                            false);
+                    _command.PagingState = null;
+                }
+                else
+                {
+                    //no more data to fetch
+                    break;
+                }
             }
 
             //nothing else there...

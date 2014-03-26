@@ -1,3 +1,6 @@
+## Version 0.35.1 - Query With PageSize fix
+* Fixing situation where queries using a pagesize are ended with a data frame with no contents
+
 ## Version 0.35.0 - Make ExecuteScalar according to spec.
 * Have ExecuteScalar return null in case no row was found, and DBNull.Value if the database column value is null
 
