@@ -94,5 +94,27 @@ namespace CqlSharp.Serialization
         /// </summary>
         /// <value> The write function. </value>
         public Action<TTable, Object> WriteFunction { get; internal set; }
+
+        /// <summary>
+        /// Gets the function that can be used to write a column value to a table object
+        /// </summary>
+        /// <value>
+        /// The write function.
+        /// </value>
+        Action<object, object> ICqlColumnInfo.WriteFunction
+        {
+            get { return WriteFunction == null ? default(Action<object, object>) : (table, obj) => WriteFunction((TTable)table, obj); }
+        }
+
+        /// <summary>
+        /// Gets the function that can be used to read this column value from a table object
+        /// </summary>
+        /// <value>
+        /// The read function.
+        /// </value>
+        Func<object, object> ICqlColumnInfo.ReadFunction
+        {
+            get { return ReadFunction == null ? default(Func<object, object>) : table => ReadFunction((TTable)table); }
+        }
     }
 }

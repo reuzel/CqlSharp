@@ -27,7 +27,7 @@ namespace CqlSharp.Serialization
     ///   Provides access to object fields and properties based on columnn descriptions.
     /// </summary>
     /// <typeparam name="T"> </typeparam>
-    public class ObjectAccessor<T>
+    public class ObjectAccessor<T> : IObjectAccessor
     {
         /// <summary>
         ///   Singleton instance
@@ -35,7 +35,6 @@ namespace CqlSharp.Serialization
         public static readonly ObjectAccessor<T> Instance = new ObjectAccessor<T>();
 
         private readonly ReadOnlyCollection<CqlColumnInfo<T>> _clusteringKeys;
-
         private readonly ReadOnlyCollection<CqlColumnInfo<T>> _columns;
         private readonly ReadOnlyDictionary<MemberInfo, CqlColumnInfo<T>> _columnsByMember;
         private readonly ReadOnlyDictionary<string, CqlColumnInfo<T>> _columnsByName;
@@ -43,6 +42,15 @@ namespace CqlSharp.Serialization
         private readonly CqlType[] _partitionKeyTypes;
         private readonly ReadOnlyCollection<CqlColumnInfo<T>> _partitionKeys;
         private readonly Type _type;
+
+        //non-generic version of the collections
+        private readonly ReadOnlyCollection<ICqlColumnInfo> _clusteringKeysNG;
+        private readonly ReadOnlyCollection<ICqlColumnInfo> _columnsNG;
+        private readonly ReadOnlyDictionary<MemberInfo, ICqlColumnInfo> _columnsByMemberNG;
+        private readonly ReadOnlyDictionary<string, ICqlColumnInfo> _columnsByNameNG;
+        private readonly ReadOnlyCollection<ICqlColumnInfo> _normalColumnsNG;
+        private readonly ReadOnlyCollection<ICqlColumnInfo> _partitionKeysNG;
+
 
         /// <summary>
         ///   Prevents a default instance of the <see cref="ObjectAccessor{T}" /> class from being created.
@@ -109,6 +117,7 @@ namespace CqlSharp.Serialization
                 columns.Add(info);
             }
             _columns = new ReadOnlyCollection<CqlColumnInfo<T>>(columns);
+            _columnsNG = new ReadOnlyCollection<ICqlColumnInfo>(columns.ToArray());
 
             //fill index by name
             var columnsByName = new Dictionary<string, CqlColumnInfo<T>>();
@@ -124,22 +133,34 @@ namespace CqlSharp.Serialization
                 }
             }
             _columnsByName = new ReadOnlyDictionary<string, CqlColumnInfo<T>>(columnsByName);
+            _columnsByNameNG = new ReadOnlyDictionary<string, ICqlColumnInfo>(columnsByName.ToDictionary(kvp=>kvp.Key, kvp=>(ICqlColumnInfo)kvp.Value));
 
             //fill index by member
             _columnsByMember =
                 new ReadOnlyDictionary<MemberInfo, CqlColumnInfo<T>>(_columns.ToDictionary(column => column.MemberInfo));
+            _columnsByMemberNG =
+                new ReadOnlyDictionary<MemberInfo, ICqlColumnInfo>(_columns.ToDictionary(column => column.MemberInfo, column => (ICqlColumnInfo)column));
+
 
             //column (sub)sets
             _partitionKeys =
                 new ReadOnlyCollection<CqlColumnInfo<T>>(
                     _columns.Where(column => column.IsPartitionKey).OrderBy(column => column.Order).ToList());
+            _partitionKeysNG = new ReadOnlyCollection<ICqlColumnInfo>(_partitionKeys.Cast<ICqlColumnInfo>().ToList());
+            
             _partitionKeyTypes = _partitionKeys.Select(info => info.CqlType).ToArray();
+            
             _clusteringKeys =
                 new ReadOnlyCollection<CqlColumnInfo<T>>(
                     _columns.Where(column => column.IsClusteringKey).OrderBy(column => column.Order).ToList());
+            _clusteringKeysNG = new ReadOnlyCollection<ICqlColumnInfo>(_clusteringKeys.Cast<ICqlColumnInfo>().ToList());
+            
+            
             _normalColumns =
                 new ReadOnlyCollection<CqlColumnInfo<T>>(
                     _columns.Where(column => !column.IsClusteringKey && !column.IsPartitionKey).ToList());
+            _normalColumnsNG = new ReadOnlyCollection<ICqlColumnInfo>(_normalColumns.Cast<ICqlColumnInfo>().ToList());
+            
         }
 
         /// <summary>
@@ -541,6 +562,113 @@ namespace CqlSharp.Serialization
 
                 key.Set(_partitionKeyTypes, values);
             }
+        }
+
+
+        /// <summary>
+        /// Gets the partition keys.
+        /// </summary>
+        /// <value>
+        /// The partition keys.
+        /// </value>
+        ReadOnlyCollection<ICqlColumnInfo> IObjectAccessor.PartitionKeys
+        {
+            get { return _partitionKeysNG; }
+        }
+
+        /// <summary>
+        /// Gets the clustering keys.
+        /// </summary>
+        /// <value>
+        /// The clustering keys.
+        /// </value>
+        ReadOnlyCollection<ICqlColumnInfo> IObjectAccessor.ClusteringKeys
+        {
+            get { return _clusteringKeysNG; }
+        }
+
+        /// <summary>
+        /// Gets the normal (non-key) columns.
+        /// </summary>
+        /// <value>
+        /// The normal columns.
+        /// </value>
+        ReadOnlyCollection<ICqlColumnInfo> IObjectAccessor.NormalColumns
+        {
+            get { return _normalColumnsNG; }
+        }
+
+        /// <summary>
+        /// Gets all the columns.
+        /// </summary>
+        /// <value>
+        /// The columns.
+        /// </value>
+        ReadOnlyCollection<ICqlColumnInfo> IObjectAccessor.Columns
+        {
+            get { return _columnsNG; }
+        }
+
+        /// <summary>
+        /// Gets the columns by field or property member.
+        /// </summary>
+        /// <value>
+        /// The columns by member.
+        /// </value>
+        ReadOnlyDictionary<MemberInfo, ICqlColumnInfo> IObjectAccessor.ColumnsByMember
+        {
+            get { return _columnsByMemberNG; }
+        }
+
+        /// <summary>
+        /// Gets the columns by column name. When the Table or Keyspace is known the dictionary
+        /// will contain entries where the column name is combined with the Table or Keyspace names.
+        /// </summary>
+        /// <value>
+        /// The columns by member.
+        /// </value>
+        ReadOnlyDictionary<string, ICqlColumnInfo> IObjectAccessor.ColumnsByName
+        {
+            get { return _columnsByNameNG; }
+        }
+
+        /// <summary>
+        /// Tries to get a value from the source, based on the column description
+        /// </summary>
+        /// <param name="columnName">Name of the column.</param>
+        /// <param name="source">The source.</param>
+        /// <param name="value">The value.</param>
+        /// <returns>
+        /// true, if the value could be distilled from the source
+        /// </returns>
+        bool IObjectAccessor.TryGetValue(string columnName, object source, out object value)
+        {
+            return TryGetValue(columnName, (T) source, out value);
+        }
+
+        /// <summary>
+        /// Tries to set a property or field of the specified object, based on the column description
+        /// </summary>
+        /// <param name="columnName">Name of the column.</param>
+        /// <param name="target">The target.</param>
+        /// <param name="value">The value.</param>
+        /// <returns>
+        /// true if the property or field value is set
+        /// </returns>
+        bool IObjectAccessor.TrySetValue(string columnName, object target, object value)
+        {
+            return TrySetValue(columnName, (T) target, value);
+        }
+
+
+        /// <summary>
+        /// Sets the partition key based on the data found in a table entry.
+        /// </summary>
+        /// <param name="key">The key.</param>
+        /// <param name="value">The value.</param>
+        void IObjectAccessor.SetPartitionKey(PartitionKey key, object value)
+        {
+            SetPartitionKey(key, (T)value);
         }
     }
 }

@@ -171,6 +171,7 @@
     <Compile Include="Serialization\CqlIndexAttribute.cs" />
     <Compile Include="Serialization\CqlKeyAttribute.cs" />
     <Compile Include="Serialization\ICqlColumnInfo.cs" />
+    <Compile Include="Serialization\IObjectAccessor.cs" />
     <Compile Include="Serialization\ValueSerialization.cs" />
     <Compile Include="Serialization\CqlColumnAttribute.cs" />
     <Compile Include="Serialization\CqlIgnoreAttribute.cs" />

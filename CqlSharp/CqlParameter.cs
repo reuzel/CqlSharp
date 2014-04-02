@@ -13,11 +13,11 @@
 // See the License for the specific language governing permissions and
 // limitations under the License.
 
+using CqlSharp.Protocol;
+using CqlSharp.Serialization;
 using System;
 using System.Data;
 using System.Data.Common;
-using CqlSharp.Protocol;
-using CqlSharp.Serialization;
 
 namespace CqlSharp
 {
@@ -26,16 +26,17 @@ namespace CqlSharp
     /// </summary>
     public class CqlParameter : DbParameter
     {
-        private static readonly char[] TableSeperator = new[] {'.'};
+        private static readonly char[] TableSeperator = new[] { '.' };
         private readonly Column _column;
         private bool _isNullable;
         private object _value;
+        private bool _isFixed;
 
         internal CqlParameter(Column column)
         {
             _column = column;
             _isNullable = true;
-            IsFixed = true;
+            _isFixed = true;
         }
 
         /// <summary>
@@ -45,7 +46,7 @@ namespace CqlSharp
         {
             _column = new Column();
             _isNullable = true;
-            IsFixed = false;
+            _isFixed = false;
         }
 
         /// <summary>
@@ -83,9 +84,9 @@ namespace CqlSharp
             : this()
         {
             SetParameterName(name);
-            CqlType = type;
-            CollectionKeyType = keyType;
-            CollectionValueType = valueType;
+            _column.CqlType = type;
+            _column.CollectionKeyType = keyType;
+            _column.CollectionValueType = valueType;
         }
 
         /// <summary>
@@ -99,11 +100,11 @@ namespace CqlSharp
         public CqlParameter(string table, string name, CqlType type, CqlType? keyType = null, CqlType? valueType = null)
             : this()
         {
-            ColumnName = name;
-            Table = table;
-            CqlType = type;
-            CollectionKeyType = keyType;
-            CollectionValueType = valueType;
+            _column.Name = name;
+            _column.Table = table;
+            _column.CqlType = type;
+            _column.CollectionKeyType = keyType;
+            _column.CollectionValueType = valueType;
         }
 
         /// <summary>
@@ -119,12 +120,12 @@ namespace CqlSharp
                             CqlType? valueType = null)
             : this()
         {
-            Keyspace = keyspace;
-            Table = table;
-            ColumnName = name;
-            CqlType = type;
-            CollectionKeyType = keyType;
-            CollectionValueType = valueType;
+            _column.Keyspace = keyspace;
+            _column.Table = table;
+            _column.Name = name;
+            _column.CqlType = type;
+            _column.CollectionKeyType = keyType;
+            _column.CollectionValueType = valueType;
         }
 
         /// <summary>
@@ -132,7 +133,11 @@ namespace CqlSharp
         ///   longer be changed.
         /// </summary>
         /// <value> <c>true</c> if [is fixed]; otherwise, <c>false</c> . </value>
-        public bool IsFixed { get; internal set; }
+        public virtual bool IsFixed
+        {
+            get { return _isFixed; }
+            internal set { _isFixed = value; }
+        }
 
         /// <summary>
         ///   Gets the column .
@@ -147,7 +152,7 @@ namespace CqlSharp
         ///   Gets or sets the type of the column.
         /// </summary>
         /// <value> The type of the CQL. </value>
-        public CqlType CqlType
+        public virtual CqlType CqlType
         {
             get { return _column.CqlType; }
             set
@@ -162,7 +167,7 @@ namespace CqlSharp
         ///   Gets or sets the type of the collection value.
         /// </summary>
         /// <value> The type of the collection value. </value>
-        public CqlType? CollectionValueType
+        public virtual CqlType? CollectionValueType
         {
             get { return _column.CollectionValueType; }
             set
@@ -176,7 +181,7 @@ namespace CqlSharp
         ///   Gets or sets the type of the collection key.
         /// </summary>
         /// <value> The type of the collection key. </value>
-        public CqlType? CollectionKeyType
+        public virtual CqlType? CollectionKeyType
         {
             get { return _column.CollectionKeyType; }
             set
@@ -190,7 +195,7 @@ namespace CqlSharp
         ///   Gets or sets the name of the column.
         /// </summary>
         /// <value> The name of the column. </value>
-        public string ColumnName
+        public virtual string ColumnName
         {
             get { return _column.Name; }
             set
@@ -204,7 +209,7 @@ namespace CqlSharp
         ///   Gets or sets the table.
         /// </summary>
         /// <value> The table. </value>
-        public string Table
+        public virtual string Table
         {
             get { return _column.Table; }
             set
@@ -218,7 +223,7 @@ namespace CqlSharp
         ///   Gets or sets the keyspace.
         /// </summary>
         /// <value> The keyspace. </value>
-        public string Keyspace
+        public virtual string Keyspace
         {
             get { return _column.Keyspace; }
             set

@@ -13,12 +13,12 @@
 // See the License for the specific language governing permissions and
 // limitations under the License.
 
+using CqlSharp.Protocol;
+using CqlSharp.Serialization;
 using System;
 using System.Collections;
 using System.Collections.Generic;
 using System.Data.Common;
-using CqlSharp.Protocol;
-using CqlSharp.Serialization;
 
 namespace CqlSharp
 {
@@ -52,7 +52,7 @@ namespace CqlSharp
         /// <value> The <see cref="CqlParameter" /> . </value>
         /// <param name="paramName"> Name of the parameter. </param>
         /// <returns> </returns>
-        public new CqlParameter this[string paramName]
+        public virtual new CqlParameter this[string paramName]
         {
             get { return GetCqlParameter(paramName); }
             set { SetParameter(paramName, value); }
@@ -63,7 +63,7 @@ namespace CqlSharp
         /// </summary>
         /// <param name="index"> The index. </param>
         /// <returns> </returns>
-        public new CqlParameter this[int index]
+        public virtual new CqlParameter this[int index]
         {
             get { return _parameters[index]; }
             set { SetParameter(index, value); }
@@ -172,7 +172,7 @@ namespace CqlSharp
         /// <filterpriority>1</filterpriority>
         public override int Add(object value)
         {
-            return Add((CqlParameter) value);
+            return Add((CqlParameter)value);
         }
 
         /// <summary>
@@ -180,7 +180,7 @@ namespace CqlSharp
         /// </summary>
         /// <param name="parameter"> The parameter. </param>
         /// <returns> </returns>
-        public int Add(CqlParameter parameter)
+        public virtual int Add(CqlParameter parameter)
         {
             CheckIfFixed();
 
@@ -196,7 +196,7 @@ namespace CqlSharp
         /// <param name="name"> The name. </param>
         /// <param name="value"> The value. </param>
         /// <returns> </returns>
-        public CqlParameter Add(string name, object value)
+        public virtual CqlParameter Add(string name, object value)
         {
             var parameter = new CqlParameter(name, value);
             Add(parameter);
@@ -211,7 +211,7 @@ namespace CqlSharp
         /// <param name="keyType"> Type of the key. </param>
         /// <param name="valueType"> Type of the value. </param>
         /// <returns> </returns>
-        public CqlParameter Add(string name, CqlType type, CqlType? keyType = null, CqlType? valueType = null)
+        public virtual CqlParameter Add(string name, CqlType type, CqlType? keyType = null, CqlType? valueType = null)
         {
             var parameter = new CqlParameter(name, type, keyType, valueType);
             Add(parameter);
@@ -227,7 +227,7 @@ namespace CqlSharp
         /// <param name="keyType"> Type of the key. </param>
         /// <param name="valueType"> Type of the value. </param>
         /// <returns> </returns>
-        public CqlParameter Add(string table, string name, CqlType type, CqlType? keyType = null,
+        public virtual CqlParameter Add(string table, string name, CqlType type, CqlType? keyType = null,
                                 CqlType? valueType = null)
         {
             var parameter = new CqlParameter(table, name, type, keyType, valueType);
@@ -245,7 +245,7 @@ namespace CqlSharp
         /// <param name="keyType"> Type of the key (if the type if a map). </param>
         /// <param name="valueType"> Type of the value (if the type is a map, set, or list). </param>
         /// <returns> </returns>
-        public CqlParameter Add(string keyspace, string table, string name, CqlType type, CqlType? keyType = null,
+        public virtual CqlParameter Add(string keyspace, string table, string name, CqlType type, CqlType? keyType = null,
                                 CqlType? valueType = null)
         {
             var parameter = new CqlParameter(keyspace, table, name, type, keyType, valueType);
@@ -274,7 +274,7 @@ namespace CqlSharp
         /// <filterpriority>1</filterpriority>
         public override bool Contains(object value)
         {
-            return _parameters.Contains((CqlParameter) value);
+            return _parameters.Contains((CqlParameter)value);
         }
 
         /// <summary>
@@ -297,7 +297,7 @@ namespace CqlSharp
         /// <filterpriority>2</filterpriority>
         public override int IndexOf(object value)
         {
-            return _parameters.IndexOf((CqlParameter) value);
+            return _parameters.IndexOf((CqlParameter)value);
         }
 
         /// <summary>
@@ -310,7 +310,7 @@ namespace CqlSharp
         {
             CheckIfFixed();
 
-            var param = (CqlParameter) value;
+            var param = (CqlParameter)value;
             _parameters.Insert(index, param);
         }
 
@@ -323,7 +323,7 @@ namespace CqlSharp
         {
             CheckIfFixed();
 
-            var param = (CqlParameter) value;
+            var param = (CqlParameter)value;
             _parameters.Remove(param);
         }
 
@@ -358,7 +358,7 @@ namespace CqlSharp
         /// <param name="value"> The new <see cref="T:System.Data.Common.DbParameter" /> value. </param>
         protected override void SetParameter(int index, DbParameter value)
         {
-            SetParameter(index, (CqlParameter) value);
+            SetParameter(index, (CqlParameter)value);
         }
 
         /// <summary>
@@ -377,7 +377,7 @@ namespace CqlSharp
         /// <param name="value"> The new <see cref="T:System.Data.Common.DbParameter" /> value. </param>
         protected override void SetParameter(string parameterName, DbParameter value)
         {
-            SetParameter(parameterName, (CqlParameter) value);
+            SetParameter(parameterName, (CqlParameter)value);
         }
 
         /// <summary>
@@ -497,7 +497,7 @@ namespace CqlSharp
             if (array == null)
                 throw new ArgumentNullException("array");
 
-            var c = (ICollection) _parameters;
+            var c = (ICollection)_parameters;
             c.CopyTo(array, index);
         }
 
@@ -528,7 +528,7 @@ namespace CqlSharp
         /// </summary>
         /// <typeparam name="T"> Type of the object holding the parameter values. The names of the properties must match the names of the columns of the ResultMetaData of the prepared query for them to be usable. </typeparam>
         /// <param name="source"> The object holding the parameter values. </param>
-        public void Set<T>(T source)
+        public virtual void Set<T>(T source)
         {
             ObjectAccessor<T> accessor = ObjectAccessor<T>.Instance;
             foreach (var parameter in _parameters)

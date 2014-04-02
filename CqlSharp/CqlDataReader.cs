@@ -39,6 +39,14 @@ namespace CqlSharp
         private readonly CqlCommand _command;
 
         /// <summary>
+        /// Initializes a new instance of the <see cref="CqlDataReader"/> class.
+        /// </summary>
+        /// <remarks>This constructor exists solely to support the creation of testing mocks</remarks>
+        protected CqlDataReader()
+        {
+        }
+
+        /// <summary>
         ///   Initializes a new instance of the <see cref="CqlDataReader" /> class.
         /// </summary>
         /// <param name="command">The command that created this datareader </param>
@@ -370,7 +378,7 @@ namespace CqlSharp
         /// </summary>
         /// <param name="i"> The index of the field to find. </param>
         /// <returns> The bytes value of the specified field. </returns>
-        public byte[] GetBytes(int i)
+        public virtual byte[] GetBytes(int i)
         {
             return ValueSerialization.DeserializeBlob(CurrentValues[i]);
         }
@@ -557,7 +565,7 @@ namespace CqlSharp
         /// </summary>
         /// <param name="i"> The index of the field to find. </param>
         /// <returns> The IPAddress value of the specified field. </returns>
-        public IPAddress GetIPAddress(int i)
+        public virtual IPAddress GetIPAddress(int i)
         {
             return CurrentValues[i] == null ? default(IPAddress) : ValueSerialization.DeserializeIPAddress(CurrentValues[i]);
         }
@@ -567,7 +575,7 @@ namespace CqlSharp
         /// </summary>
         /// <param name="i"> The index of the field to find. </param>
         /// <returns> The BigInteger value of the specified field. </returns>
-        public BigInteger GetBigInteger(int i)
+        public virtual BigInteger GetBigInteger(int i)
         {
             return CurrentValues[i] == null ? default(BigInteger) : ValueSerialization.DeserializeBigInteger(CurrentValues[i]);
         }
@@ -578,7 +586,7 @@ namespace CqlSharp
         /// <typeparam name="T"> The type of the contents of the set </typeparam>
         /// <param name="i"> The index of the field to find. </param>
         /// <returns> The Set value of the specified field. </returns>
-        public HashSet<T> GetSet<T>(int i)
+        public virtual HashSet<T> GetSet<T>(int i)
         {
             if (CurrentValues[i] == null) return null;
 
@@ -592,7 +600,7 @@ namespace CqlSharp
         /// <typeparam name="T"> The type of the contents of the list </typeparam>
         /// <param name="i"> The index of the field to find. </param>
         /// <returns> The list value of the specified field. </returns>
-        public List<T> GetList<T>(int i)
+        public virtual List<T> GetList<T>(int i)
         {
             if (CurrentValues[i] == null) return null;
 
@@ -607,7 +615,7 @@ namespace CqlSharp
         /// <typeparam name="TValue"> The type of the value. </typeparam>
         /// <param name="i"> The index of the field to find. </param>
         /// <returns> The list value of the specified field. </returns>
-        public Dictionary<TKey, TValue> GetDictionary<TKey, TValue>(int i)
+        public virtual Dictionary<TKey, TValue> GetDictionary<TKey, TValue>(int i)
         {
             if (CurrentValues[i] == null) return null;
 
@@ -675,6 +683,14 @@ namespace CqlSharp
         private bool _currentCreated;
 
         /// <summary>
+        /// Initializes a new instance of the <see cref="CqlDataReader{T}"/> class.
+        /// </summary>
+        /// <remarks>This constructor exists solely to support the creation of testing mocks</remarks>
+        protected CqlDataReader()
+        {
+        }
+
+        /// <summary>
         /// Initializes a new instance of the <see cref="CqlDataReader{T}" /> class.
         /// </summary>
         /// <param name="command">The command.</param>
@@ -691,7 +707,7 @@ namespace CqlSharp
         ///   Gets the last read value of this reader instance.
         /// </summary>
         /// <value> The current value. </value>
-        public T Current
+        public virtual T Current
         {
             get
             {
@@ -735,7 +751,7 @@ namespace CqlSharp
         /// </summary>
         /// <returns> A <see cref="T:System.Collections.Generic.IEnumerator`1" /> that can be used to iterate through the collection. </returns>
         /// <filterpriority>1</filterpriority>
-        public new IEnumerator<T> GetEnumerator()
+        public virtual new IEnumerator<T> GetEnumerator()
         {
             while (Read())
             {

@@ -41,6 +41,9 @@ namespace CqlSharp
         private bool _prepared;
         private string _query;
         private ICqlQueryResult _queryResult;
+        private CqlConsistency _consistency;
+        private int _load;
+        private bool _useBuffering;
 
         /// <summary>
         ///   Initializes a new instance of the <see cref="CqlCommand" /> class.
@@ -52,10 +55,10 @@ namespace CqlSharp
         {
             _connection = connection;
             _commandText = cql;
-            Consistency = level;
+            _consistency = level;
             _prepared = false;
-            Load = 1;
-            UseBuffering = connection.Config.UseBuffering;
+            _load = 1;
+            _useBuffering = connection.Config.UseBuffering;
             _commandType = CommandType.Text;
             _commandTimeout = 30;
         }
@@ -125,32 +128,40 @@ namespace CqlSharp
         /// <value>
         /// <c>true</c> if use local serial for Compare-And-Set (CAS)  write operations; otherwise, <c>false</c>.
         /// </value>
-        public bool UseCASLocalSerial { get; set; }
+        public virtual bool UseCASLocalSerial { get; set; }
 
         /// <summary>
         ///   Gets or sets a value indicating whether to use response buffering.
         /// </summary>
         /// <value> <c>true</c> if buffering should be used; otherwise, <c>false</c> . </value>
-        public bool UseBuffering { get; set; }
+        public virtual bool UseBuffering
+        {
+            get { return _useBuffering; }
+            set { _useBuffering = value; }
+        }
 
         /// <summary>
         ///   Gets or sets a value indicating whether tracing enabled should be enabled.
         /// </summary>
         /// <value> <c>true</c> if tracing enabled; otherwise, <c>false</c> . </value>
-        public bool EnableTracing { get; set; }
+        public virtual bool EnableTracing { get; set; }
 
         /// <summary>
         ///   Indication of the load this query generates (e.g. the number of expected returned rows). Used by connection stratagies for balancing
         ///   queries over connections.
         /// </summary>
         /// <value> The load. Defaults to 1 </value>
-        public int Load { get; set; }
+        public virtual int Load
+        {
+            get { return _load; }
+            set { _load = value; }
+        }
 
         /// <summary>
         ///   Gets a value indicating whether this command is prepared.
         /// </summary>
         /// <value> <c>true</c> if this command is prepared; otherwise, <c>false</c> . </value>
-        public bool IsPrepared
+        public virtual bool IsPrepared
         {
             get { return _prepared; }
         }
@@ -159,13 +170,17 @@ namespace CqlSharp
         ///   Gets or sets the consistency level to use with this command Defaults to CqlConsisteny.One.
         /// </summary>
         /// <value> The consistency. </value>
-        public CqlConsistency Consistency { get; set; }
+        public virtual CqlConsistency Consistency
+        {
+            get { return _consistency; }
+            set { _consistency = value; }
+        }
 
         /// <summary>
         ///   The partition key, used to route queries to corresponding nodes in the cluster
         /// </summary>
         /// <value> The partition key. </value>
-        public PartitionKey PartitionKey
+        public virtual PartitionKey PartitionKey
         {
             get
             {
@@ -230,7 +245,7 @@ namespace CqlSharp
         /// <value>
         ///   <c>true</c> if  this command has any parameters; otherwise, <c>false</c>.
         /// </value>
-        public bool HasParameters
+        public virtual bool HasParameters
         {
             get { return _parameters != null && _parameters.Count > 0; }
         }
@@ -240,7 +255,7 @@ namespace CqlSharp
         /// </summary>
         /// <value> The parameters. </value>
         /// <exception cref="CqlException">Parameters are available only after a query has been prepared</exception>
-        public new CqlParameterCollection Parameters
+        public virtual new CqlParameterCollection Parameters
         {
             get
             {
@@ -264,7 +279,7 @@ namespace CqlSharp
         ///   Creates a new instance of a <see cref="T:CqlSharp.CqlParameter" /> object.
         /// </summary>
         /// <returns> A <see cref="T:CqlSharp.CqlParameter" /> object. </returns>
-        public new CqlParameter CreateParameter()
+        public virtual new CqlParameter CreateParameter()
         {
             return new CqlParameter();
         }
@@ -318,7 +333,7 @@ namespace CqlSharp
         ///   query, especially for NonQueries.
         /// </summary>
         /// <value> The last query result. </value>
-        public ICqlQueryResult LastQueryResult
+        public virtual ICqlQueryResult LastQueryResult
         {
             get { return _queryResult; }
         }
@@ -327,7 +342,7 @@ namespace CqlSharp
         ///   Gets or sets the <see cref="T:CqlSharp.CqlConnection" /> used by this <see cref="T:CqlSharp.CqlCommand" />.
         /// </summary>
         /// <returns> The connection to the data source. </returns>
-        public new CqlConnection Connection
+        public virtual new CqlConnection Connection
         {
             get { return _connection; }
             set { _connection = value; }
@@ -360,7 +375,7 @@ namespace CqlSharp
         /// Gets or sets the <see cref="T:CqlSharp.CqlBatchTransaction" /> within which this <see cref="T:CqlSharp.CqlCommand" /> object executes.
         /// </summary>
         /// <returns>The transaction within which a Command object of a .NET Framework data provider executes. The default value is a null reference (Nothing in Visual Basic).</returns>
-        public new CqlBatchTransaction Transaction { get; set; }
+        public virtual new CqlBatchTransaction Transaction { get; set; }
 
         /// <summary>
         ///   Gets or sets a value indicating whether the command object should be visible in a customized interface control.
@@ -380,7 +395,7 @@ namespace CqlSharp
         ///   Enables rows to be returned/queried in batches of the give page size.
         /// </summary>
         /// <value> The size of the page. If PageSize &lt; = 0; no paging will be applied, otherwise the number indicates the number of rows to fetch in each batch. Default = 0 </value>
-        public int PageSize { get; set; }
+        public virtual int PageSize { get; set; }
 
         /// <summary>
         ///   Gets or sets the state used to fetch a next page of results. This value is set/reset by a 
@@ -451,7 +466,7 @@ namespace CqlSharp
         ///   Executes the reader.
         /// </summary>
         /// <returns> </returns>
-        public new CqlDataReader ExecuteReader()
+        public virtual new CqlDataReader ExecuteReader()
         {
             return ExecuteReader(CommandBehavior.Default);
         }
@@ -461,7 +476,7 @@ namespace CqlSharp
         /// </summary>
         /// <param name="behavior"> The behavior. </param>
         /// <returns> </returns>
-        public new CqlDataReader ExecuteReader(CommandBehavior behavior)
+        public virtual new CqlDataReader ExecuteReader(CommandBehavior behavior)
         {
             try
             {
@@ -491,7 +506,7 @@ namespace CqlSharp
         ///   Executes the query asynchronous.
         /// </summary>
         /// <returns> </returns>
-        public new Task<CqlDataReader> ExecuteReaderAsync()
+        public virtual new Task<CqlDataReader> ExecuteReaderAsync()
         {
             return ExecuteReaderAsync(CommandBehavior.Default, CancellationToken.None);
         }
@@ -501,7 +516,7 @@ namespace CqlSharp
         /// </summary>
         /// <param name="cancellationToken"> The cancellation token. </param>
         /// <returns> </returns>
-        public new Task<CqlDataReader> ExecuteReaderAsync(CancellationToken cancellationToken)
+        public virtual new Task<CqlDataReader> ExecuteReaderAsync(CancellationToken cancellationToken)
         {
             return ExecuteReaderAsync(CommandBehavior.Default, cancellationToken);
         }
@@ -511,7 +526,7 @@ namespace CqlSharp
         /// </summary>
         /// <param name="behavior"> The behavior. </param>
         /// <returns> </returns>
-        public new Task<CqlDataReader> ExecuteReaderAsync(CommandBehavior behavior)
+        public virtual new Task<CqlDataReader> ExecuteReaderAsync(CommandBehavior behavior)
         {
             return ExecuteReaderAsync(behavior, CancellationToken.None);
         }
@@ -528,7 +543,7 @@ namespace CqlSharp
         /// <param name="behavior"> The behavior. </param>
         /// <param name="cancellationToken"> The cancellation token. </param>
         /// <returns> </returns>
-        public new async Task<CqlDataReader> ExecuteReaderAsync(CommandBehavior behavior,
+        public virtual new async Task<CqlDataReader> ExecuteReaderAsync(CommandBehavior behavior,
                                                                 CancellationToken cancellationToken)
         {
             var result = await ExecuteReaderAsyncInternal(behavior, cancellationToken).ConfigureAwait(false);
@@ -544,7 +559,7 @@ namespace CqlSharp
         /// </summary>
         /// <typeparam name="T"> class representing the rows returned </typeparam>
         /// <returns> </returns>
-        public Task<CqlDataReader<T>> ExecuteReaderAsync<T>() where T : class, new()
+        public virtual Task<CqlDataReader<T>> ExecuteReaderAsync<T>() where T : class, new()
         {
             return ExecuteReaderAsync<T>(CommandBehavior.Default, CancellationToken.None);
         }
@@ -556,7 +571,7 @@ namespace CqlSharp
         /// <typeparam name="T"> class representing the rows returned </typeparam>
         /// <param name="behavior"> The behavior. </param>
         /// <returns> </returns>
-        public Task<CqlDataReader<T>> ExecuteReaderAsync<T>(CommandBehavior behavior) where T : class, new()
+        public virtual Task<CqlDataReader<T>> ExecuteReaderAsync<T>(CommandBehavior behavior) where T : class, new()
         {
             return ExecuteReaderAsync<T>(behavior, CancellationToken.None);
         }
@@ -567,7 +582,7 @@ namespace CqlSharp
         /// <typeparam name="T"> class representing the rows returned </typeparam>
         /// <param name="cancellationToken"> The cancellation token. </param>
         /// <returns> </returns>
-        public Task<CqlDataReader<T>> ExecuteReaderAsync<T>(CancellationToken cancellationToken) where T : class, new()
+        public virtual Task<CqlDataReader<T>> ExecuteReaderAsync<T>(CancellationToken cancellationToken) where T : class, new()
         {
             return ExecuteReaderAsync<T>(CommandBehavior.Default, cancellationToken);
         }
@@ -579,7 +594,7 @@ namespace CqlSharp
         /// <param name="behavior"> The behavior. </param>
         /// <param name="cancellationToken"> The cancellation token. </param>
         /// <returns> </returns>
-        public async Task<CqlDataReader<T>> ExecuteReaderAsync<T>(CommandBehavior behavior,
+        public virtual async Task<CqlDataReader<T>> ExecuteReaderAsync<T>(CommandBehavior behavior,
                                                                   CancellationToken cancellationToken) where T : class, new()
         {
             var result = await ExecuteReaderAsyncInternal(behavior, cancellationToken).ConfigureAwait(false);
@@ -598,7 +613,7 @@ namespace CqlSharp
         /// <remarks>
         ///   Utility wrapper around ExecuteReaderAsync
         /// </remarks>
-        public CqlDataReader<T> ExecuteReader<T>() where T : class, new()
+        public virtual CqlDataReader<T> ExecuteReader<T>() where T : class, new()
         {
             return ExecuteReader<T>(CommandBehavior.Default);
         }
@@ -612,7 +627,7 @@ namespace CqlSharp
         /// <remarks>
         ///   Utility wrapper around ExecuteReaderAsync
         /// </remarks>
-        public CqlDataReader<T> ExecuteReader<T>(CommandBehavior behavior) where T : class, new()
+        public virtual CqlDataReader<T> ExecuteReader<T>(CommandBehavior behavior) where T : class, new()
         {
             try
             {
@@ -904,7 +919,7 @@ namespace CqlSharp
         ///   Prepares the command asynchronous.
         /// </summary>
         /// <returns> </returns>
-        public Task PrepareAsync()
+        public virtual Task PrepareAsync()
         {
             return PrepareAsync(CancellationToken.None);
         }
@@ -914,7 +929,7 @@ namespace CqlSharp
         /// </summary>
         /// <param name="token"> The cancellation token. </param>
         /// <returns> </returns>
-        public Task PrepareAsync(CancellationToken token)
+        public virtual Task PrepareAsync(CancellationToken token)
         {
             var logger = _connection.LoggerManager.GetLogger("CqlSharp.CqlCommand.Prepare");
 

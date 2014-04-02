@@ -56,13 +56,18 @@ namespace CqlSharp
         private TransactionState _state;
 
         /// <summary>
+        /// The batch type
+        /// </summary>
+        private CqlBatchType _batchType;
+
+        /// <summary>
         ///   Initializes a new instance of the <see cref="CqlBatchTransaction" /> class.
         /// </summary>
         public CqlBatchTransaction()
         {
             _batchCommand = new CqlCommand { Transaction = this };
             _commands = new List<BatchFrame.BatchedCommand>();
-            BatchType = CqlBatchType.Logged;
+            _batchType = CqlBatchType.Logged;
             _state = TransactionState.Pending;
         }
 
@@ -95,7 +100,7 @@ namespace CqlSharp
         {
             _batchCommand = new CqlCommand(connection) { Consistency = consistency, Transaction = this };
             _commands = new List<BatchFrame.BatchedCommand>();
-            BatchType = batchType;
+            _batchType = batchType;
             _state = TransactionState.Pending;
         }
 
@@ -103,7 +108,7 @@ namespace CqlSharp
         ///   Gets or sets the wait time before terminating the attempt to execute a (batch) command and generating an error.
         /// </summary>
         /// <returns> The time (in seconds) to wait for the command to execute. The default value is 30 seconds. </returns>
-        public int CommandTimeout
+        public virtual int CommandTimeout
         {
             get
             {
@@ -128,7 +133,7 @@ namespace CqlSharp
         ///   Specifies the <see cref="T:CqlSharp.CqlConnection" /> object associated with the transaction.
         /// </summary>
         /// <returns> The <see cref="T:CqlSharp.CqlConnection" /> object associated with the transaction. </returns>
-        public new CqlConnection Connection
+        public virtual new CqlConnection Connection
         {
             get
             {
@@ -154,7 +159,11 @@ namespace CqlSharp
         ///   Gets or sets the type of the batch.
         /// </summary>
         /// <value> The type of the batch. </value>
-        public CqlBatchType BatchType { get; set; }
+        public virtual CqlBatchType BatchType
+        {
+            get { return _batchType; }
+            set { _batchType = value; }
+        }
 
         /// <summary>
         ///   Gets the commands.
@@ -173,7 +182,7 @@ namespace CqlSharp
         ///   Gets or sets the consistency.
         /// </summary>
         /// <value> The consistency. </value>
-        public CqlConsistency Consistency
+        public virtual CqlConsistency Consistency
         {
             get
             {
@@ -190,7 +199,7 @@ namespace CqlSharp
         ///   queries over connections.
         /// </summary>
         /// <value> The load. Defaults to 1 </value>
-        public int Load
+        public virtual int Load
         {
             get
             {
@@ -206,7 +215,7 @@ namespace CqlSharp
         ///   Gets or sets a value indicating whether tracing enabled should be enabled.
         /// </summary>
         /// <value> <c>true</c> if tracing enabled; otherwise, <c>false</c> . </value>
-        public bool EnableTracing
+        public virtual bool EnableTracing
         {
             get
             {
@@ -222,7 +231,7 @@ namespace CqlSharp
         ///   Gets the last batch query result. Contains a reference to any tracing identifier
         /// </summary>
         /// <value> The last query result. </value>
-        public ICqlQueryResult LastBatchResult
+        public virtual ICqlQueryResult LastBatchResult
         {
             get
             {
@@ -269,7 +278,7 @@ namespace CqlSharp
         /// <summary>
         ///   Cancels the execution of this batch.
         /// </summary>
-        public void Cancel()
+        public virtual void Cancel()
         {
             _batchCommand.Cancel();
         }
@@ -300,7 +309,7 @@ namespace CqlSharp
         ///   Commits the database transaction asynchronously.
         /// </summary>
         /// <filterpriority>1</filterpriority>
-        public Task CommitAsync()
+        public virtual Task CommitAsync()
         {
             return CommitAsync(CancellationToken.None);
         }
@@ -311,7 +320,7 @@ namespace CqlSharp
         /// </summary>
         /// <param name="cancellationToken"> The cancellation token. </param>
         /// <returns> </returns>
-        public Task CommitAsync(CancellationToken cancellationToken)
+        public virtual Task CommitAsync(CancellationToken cancellationToken)
         {
             CheckIfPending();
 
@@ -354,7 +363,7 @@ namespace CqlSharp
         /// Resets this transaction. This clears the list of commands that are part of the transaction, and brings
         /// the transaction in the same state as if it was newly created
         /// </summary>
-        public void Reset()
+        public virtual void Reset()
         {
             _state = TransactionState.Pending;
             _commands.Clear();

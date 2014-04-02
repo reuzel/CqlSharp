@@ -333,7 +333,7 @@ namespace CqlSharp
         ///   Sets the connection timeout.
         /// </summary>
         /// <param name="timeout"> The timeout in seconds </param>
-        public void SetConnectionTimeout(int timeout)
+        public virtual void SetConnectionTimeout(int timeout)
         {
             _connectionTimeout = timeout < 0 ? 0 : timeout;
         }
@@ -353,7 +353,7 @@ namespace CqlSharp
         ///   Begins the transaction.
         /// </summary>
         /// <returns> </returns>
-        public new CqlBatchTransaction BeginTransaction()
+        public virtual new CqlBatchTransaction BeginTransaction()
         {
             return new CqlBatchTransaction(this);
         }
@@ -363,7 +363,7 @@ namespace CqlSharp
         /// </summary>
         /// <param name="isolationLevel"> The isolation level. </param>
         /// <returns> </returns>
-        public new CqlBatchTransaction BeginTransaction(IsolationLevel isolationLevel)
+        public virtual new CqlBatchTransaction BeginTransaction(IsolationLevel isolationLevel)
         {
             return new CqlBatchTransaction(this);
         }
@@ -428,7 +428,7 @@ namespace CqlSharp
         ///   Creates and returns a <see cref="T:CqlSharp.CqlCommand" /> object associated with the current connection.
         /// </summary>
         /// <returns> A <see cref="T:CqlSharp.CqlCommand" /> object. </returns>
-        public CqlCommand CreateCqlCommand()
+        public virtual CqlCommand CreateCqlCommand()
         {
             return new CqlCommand(this);
         }
@@ -469,7 +469,7 @@ namespace CqlSharp
         /// <summary>
         ///   Cancels any ongoing open operation.
         /// </summary>
-        public void Cancel()
+        public virtual void Cancel()
         {
             if (_openCancellationTokenSource != null)
                 _openCancellationTokenSource.Cancel();
