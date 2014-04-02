@@ -19,6 +19,7 @@ using CqlSharp.Tracing;
 using Microsoft.VisualStudio.TestTools.UnitTesting;
 using System;
 using System.Data;
+using System.Diagnostics;
 using System.Linq;
 using System.Threading;
 using System.Threading.Tasks;
@@ -330,6 +331,10 @@ namespace CqlSharp.Test
             using (var connection = new CqlConnection(ConnectionString))
             {
                 await connection.OpenAsync();
+
+                //skip if cqlversion too low
+                if (string.CompareOrdinal(connection.CqlVersion, "3.1.1") < 0)
+                    return;
 
                 //insert data
                 var cmd = new CqlCommand(connection, insertCql, CqlConsistency.One);
@@ -1003,6 +1008,10 @@ namespace CqlSharp.Test
             {
                 connection.Open();
 
+                //skip if server version too low
+                if (string.CompareOrdinal(connection.ServerVersion, "2.0.0") < 0)
+                    throw new ObjectDisposedException("dummy"); //as expected for this test
+
                 //create transaction
                 var transaction = connection.BeginTransaction();
 
@@ -1033,6 +1042,10 @@ namespace CqlSharp.Test
             using (var connection = new CqlConnection(ConnectionString))
             {
                 connection.Open();
+
+                //skip if server version too low
+                if (string.CompareOrdinal(connection.ServerVersion, "2.0.0") < 0)
+                    throw new ObjectDisposedException("dummy"); //as expected for this test
 
                 //create transaction
                 var transaction = connection.BeginTransaction();
@@ -1065,6 +1078,10 @@ namespace CqlSharp.Test
             using (var connection = new CqlConnection(ConnectionString))
             {
                 connection.Open();
+
+                //skip if server version too low
+                if (string.CompareOrdinal(connection.ServerVersion, "2.0.0") < 0)
+                    throw new InvalidOperationException("as expected by test");
 
                 //create transaction
                 using (var transaction = connection.BeginTransaction())
@@ -1124,6 +1141,10 @@ namespace CqlSharp.Test
             {
                 connection.Open();
 
+                //skip if server version too low
+                if (string.CompareOrdinal(connection.ServerVersion, "2.0.0") < 0)
+                    return;
+
                 //create transaction
                 var transaction = connection.BeginTransaction();
 
@@ -1159,6 +1180,10 @@ namespace CqlSharp.Test
             using (var connection = new CqlConnection(ConnectionString))
             {
                 connection.Open();
+
+                //skip if server version too low
+                if (string.CompareOrdinal(connection.ServerVersion, "2.0.0") < 0)
+                    return;
 
                 //create transaction
                 var transaction = connection.BeginTransaction();

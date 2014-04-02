@@ -1,5 +1,7 @@
-## Version 0.35.1 - Query With PageSize fix
+## Version 0.35.1 - Fixes
 * Fixing situation where queries using a pagesize are ended with a data frame with no contents
+* Fix of protocol negotiation flow for older Cassandra versions
+* Exposing supported CQL version from CqlConnection
 
 ## Version 0.35.0 - Make ExecuteScalar according to spec.
 * Have ExecuteScalar return null in case no row was found, and DBNull.Value if the database column value is null

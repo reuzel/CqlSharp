@@ -68,7 +68,7 @@ namespace CqlSharp.Network
             _node = node;
             _nr = nr;
             _config = node.Cluster.Config;
-            _readLoopCompleted = new ManualResetEventSlim(false);
+
 
             //setup support for multiple queries
             _availableQueryIds = new Queue<sbyte>();
@@ -80,6 +80,7 @@ namespace CqlSharp.Network
             //setup locks
             _writeLock = new SemaphoreSlim(1);
             _frameSubmitLock = new SemaphoreSlim(sbyte.MaxValue);
+            _readLoopCompleted = new ManualResetEventSlim(false);
 
             //setup state
             _activeRequests = 0;
@@ -222,7 +223,7 @@ namespace CqlSharp.Network
                     _writeLock.Dispose();
 
                     //close client if it exists, and its inner socket exists
-                    if (_client != null && _client.Client != null)
+                    if (_client != null && _client.Client != null && _client.Client.Connected)
                     {
                         if (error != null)
                         {
@@ -294,7 +295,7 @@ namespace CqlSharp.Network
                     //switch state to connected if not done so, from now on Idle timer comes into play...
                     Interlocked.CompareExchange(ref _connectionState, 1, 0);
 
-                    logger.LogVerbose("TCP connection to {0} is opened", Address);
+                    logger.LogVerbose("TCP connection for {0} is opened", this);
 
                     //start readloop
                     StartReadingAsync();
@@ -316,11 +317,19 @@ namespace CqlSharp.Network
                             //lower protocol version
                             Node.FrameVersion = FrameVersion.ProtocolVersion1;
 
+                            //move into disposed state, to allow cleanup of resources, and prevent dispose
+                            //to run after the coming induced connection errors
+                            Interlocked.Exchange(ref _connectionState, 2);
+
                             //close the client
                             _client.Close();
 
                             //wait until readloop finishes
                             _readLoopCompleted.Wait();
+
+                            //back to disconnected
+                            Interlocked.Exchange(ref _connectionState, 0);
+
                             continue;
                         }
 
@@ -768,6 +777,10 @@ namespace CqlSharp.Network
                         //some other Cql error (syntax ok?), simply rethrow
                         throw;
                 }
+            }
+            catch (ObjectDisposedException odex)
+            {
+                throw new IOException("Connection closed while processing request");
             }
             catch (Exception ex)
             {

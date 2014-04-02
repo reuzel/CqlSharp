@@ -223,7 +223,7 @@ namespace CqlSharp
         }
 
         /// <summary>
-        ///   Gets a string that represents the version of the server to which the object is connected.
+        ///   Gets a string that represents the version of the cluster to which the object is connected.
         /// </summary>
         /// <returns> The version of the database. The format of the string returned depends on the specific type of connection you are using. </returns>
         /// <exception cref="System.NotImplementedException"></exception>
@@ -238,6 +238,23 @@ namespace CqlSharp
             }
         }
 
+        /// <summary>
+        /// Gets the CQL version supported by the cluster.
+        /// </summary>
+        /// <value>
+        /// The CQL version.
+        /// </value>
+        /// <exception cref="System.InvalidOperationException">CqlConnection must be open before further use.</exception>
+        public virtual string CqlVersion
+        {
+            get
+            {
+                if (State != ConnectionState.Open)
+                    throw new InvalidOperationException("CqlConnection must be open before further use.");
+
+                return Cluster.CqlVersion;
+            }
+        }
         /// <summary>
         ///   Gets a string that describes the state of the connection.
         /// </summary>

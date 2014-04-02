@@ -118,5 +118,15 @@ namespace CqlSharp.Test
             }
 
         }
+
+        [TestMethod]
+        public async Task OpenAsync()
+        {
+            using (var connection = new CqlConnection("servers=localhost;username=cassandra;password=cassandra;MaxConnectionIdleTime=1200;Logger=Debug;LogLevel=Verbose"))
+            {
+                await connection.OpenAsync();
+            }
+
+        }
     }
 }
