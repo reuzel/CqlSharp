@@ -1,7 +1,9 @@
-## Version 0.35.1 - Fixes
+## Version 0.36.0 - Fixes and Development support
 * Fixing situation where queries using a pagesize are ended with a data frame with no contents
 * Fix of protocol negotiation flow for older Cassandra versions
 * Exposing supported CQL version from CqlConnection
+* Allowing the primary CQL* classes to be subclassed (e.g. allowing them to be mocked)
+* Introducing a non-generic interface to ObjectAccessor{T}
 
 ## Version 0.35.0 - Make ExecuteScalar according to spec.
 * Have ExecuteScalar return null in case no row was found, and DBNull.Value if the database column value is null
