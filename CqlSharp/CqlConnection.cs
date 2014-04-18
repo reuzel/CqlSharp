@@ -505,7 +505,8 @@ namespace CqlSharp
             await Cluster.OpenAsync(logger, cancellationToken).ConfigureAwait(false);
 
             //get a connection
-            _connection = Cluster.ConnectionStrategy.GetOrCreateConnection(ConnectionScope.Connection,
+            using (logger.ThreadBinding())
+                _connection = Cluster.ConnectionStrategy.GetOrCreateConnection(ConnectionScope.Connection,
                                                                            PartitionKey.None);
 
             //set database to its default
