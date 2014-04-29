@@ -24,7 +24,12 @@ namespace CqlSharp.Serialization
     public class CqlColumnAttribute : Attribute
     {
         private readonly string _column;
-        private readonly CqlType? _type;
+        private CqlType? _cqlType;
+        private int? _order;
+
+        public CqlColumnAttribute()
+        {
+        }
 
         public CqlColumnAttribute(string column)
         {
@@ -34,7 +39,7 @@ namespace CqlSharp.Serialization
         public CqlColumnAttribute(string column, CqlType type)
         {
             _column = column;
-            _type = type;
+            CqlType = type;
         }
 
         /// <summary>
@@ -46,13 +51,63 @@ namespace CqlSharp.Serialization
             get { return _column; }
         }
 
+
+        /// <summary>
+        /// Gets a value indicating whether [CQL type has value].
+        /// </summary>
+        /// <value>
+        ///   <c>true</c> if [CQL type has value]; otherwise, <c>false</c>.
+        /// </value>
+        internal bool CqlTypeHasValue
+        {
+            get { return _cqlType.HasValue; }
+        }
+
         /// <summary>
         ///   Gets or sets the Cql type of the column
         /// </summary>
         /// <value> The type of the CQL. </value>
-        public CqlType? CqlType
+        public CqlType CqlType
         {
-            get { return _type; }
+            get
+            {
+                if (!_cqlType.HasValue)
+                    throw new CqlException("CqlType attribute property was not set");
+
+                return _cqlType.Value;
+            }
+
+            set { _cqlType = value; }
+        }
+
+        /// <summary>
+        /// Gets a value indicating whether [Order has value].
+        /// </summary>
+        /// <value>
+        ///   <c>true</c> if [Order has value]; otherwise, <c>false</c>.
+        /// </value>
+        internal bool OrderHasValue
+        {
+            get { return _order.HasValue; }
+        }
+
+        /// <summary>
+        /// Gets or sets the order.
+        /// </summary>
+        /// <value>
+        /// The order.
+        /// </value>
+        public int Order
+        {
+            get
+            {
+                if (!_order.HasValue)
+                    throw new CqlException("Order attribute property was not set");
+
+                return _order.Value;
+            }
+
+            set { _order = value; }
         }
 
         /// <summary>

@@ -51,7 +51,6 @@ namespace CqlSharp.Serialization
         private readonly ReadOnlyCollection<ICqlColumnInfo> _normalColumnsNG;
         private readonly ReadOnlyCollection<ICqlColumnInfo> _partitionKeysNG;
 
-
         /// <summary>
         ///   Prevents a default instance of the <see cref="ObjectAccessor{T}" /> class from being created.
         /// </summary>
@@ -63,6 +62,53 @@ namespace CqlSharp.Serialization
             //get type
             _type = typeof(T);
 
+            var columns = GetColumns();
+            _columns = new ReadOnlyCollection<CqlColumnInfo<T>>(columns);
+            _columnsNG = new ReadOnlyCollection<ICqlColumnInfo>(columns);
+
+            //fill index by name
+            var columnsByName = new Dictionary<string, CqlColumnInfo<T>>();
+            foreach (var column in _columns)
+            {
+                var name = column.Name;
+                columnsByName[name] = column;
+                if (IsTableSet)
+                {
+                    columnsByName[Table + "." + name] = column;
+                    if (IsKeySpaceSet)
+                        columnsByName[Keyspace + "." + Table + "." + name] = column;
+                }
+            }
+            _columnsByName = new ReadOnlyDictionary<string, CqlColumnInfo<T>>(columnsByName);
+            _columnsByNameNG = new ReadOnlyDictionary<string, ICqlColumnInfo>(columnsByName.ToDictionary(kvp => kvp.Key, kvp => (ICqlColumnInfo)kvp.Value));
+
+            //fill index by member
+            _columnsByMember =
+                new ReadOnlyDictionary<MemberInfo, CqlColumnInfo<T>>(_columns.ToDictionary(column => column.MemberInfo));
+            _columnsByMemberNG =
+                new ReadOnlyDictionary<MemberInfo, ICqlColumnInfo>(_columns.ToDictionary(column => column.MemberInfo, column => (ICqlColumnInfo)column));
+            
+            //Key subsets
+            SetKeyInfo(columns);
+
+            var partitionKeys = _columns.Where(column => column.IsPartitionKey).ToArray();
+            _partitionKeys = new ReadOnlyCollection<CqlColumnInfo<T>>(partitionKeys);
+            _partitionKeysNG = new ReadOnlyCollection<ICqlColumnInfo>(partitionKeys);
+            
+            _partitionKeyTypes = partitionKeys.Select(info => info.CqlType).ToArray();
+
+            var clusteringKeys = _columns.Where(column => column.IsClusteringKey).ToArray();
+            _clusteringKeys = new ReadOnlyCollection<CqlColumnInfo<T>>(clusteringKeys);
+            _clusteringKeysNG = new ReadOnlyCollection<ICqlColumnInfo>(clusteringKeys);
+
+            var normalColumns = _columns.Where(column => !column.IsClusteringKey && !column.IsPartitionKey).ToArray();
+            _normalColumns = new ReadOnlyCollection<CqlColumnInfo<T>>(normalColumns);
+            _normalColumnsNG = new ReadOnlyCollection<ICqlColumnInfo>(normalColumns);
+
+        }
+
+        private CqlColumnInfo<T>[] GetColumns()
+        {
             //create a column List
             var columns = new List<CqlColumnInfo<T>>();
 
@@ -116,51 +162,11 @@ namespace CqlSharp.Serialization
 
                 columns.Add(info);
             }
-            _columns = new ReadOnlyCollection<CqlColumnInfo<T>>(columns);
-            _columnsNG = new ReadOnlyCollection<ICqlColumnInfo>(columns.ToArray());
 
-            //fill index by name
-            var columnsByName = new Dictionary<string, CqlColumnInfo<T>>();
-            foreach (var column in _columns)
-            {
-                var name = column.Name;
-                columnsByName[name] = column;
-                if (IsTableSet)
-                {
-                    columnsByName[Table + "." + name] = column;
-                    if (IsKeySpaceSet)
-                        columnsByName[Keyspace + "." + Table + "." + name] = column;
-                }
-            }
-            _columnsByName = new ReadOnlyDictionary<string, CqlColumnInfo<T>>(columnsByName);
-            _columnsByNameNG = new ReadOnlyDictionary<string, ICqlColumnInfo>(columnsByName.ToDictionary(kvp=>kvp.Key, kvp=>(ICqlColumnInfo)kvp.Value));
+            //sort the columns based on their order
+            var sortedColumns = columns.OrderBy(col => col.Order.HasValue ? col.Order.Value : int.MaxValue);
 
-            //fill index by member
-            _columnsByMember =
-                new ReadOnlyDictionary<MemberInfo, CqlColumnInfo<T>>(_columns.ToDictionary(column => column.MemberInfo));
-            _columnsByMemberNG =
-                new ReadOnlyDictionary<MemberInfo, ICqlColumnInfo>(_columns.ToDictionary(column => column.MemberInfo, column => (ICqlColumnInfo)column));
-
-
-            //column (sub)sets
-            _partitionKeys =
-                new ReadOnlyCollection<CqlColumnInfo<T>>(
-                    _columns.Where(column => column.IsPartitionKey).OrderBy(column => column.Order).ToList());
-            _partitionKeysNG = new ReadOnlyCollection<ICqlColumnInfo>(_partitionKeys.Cast<ICqlColumnInfo>().ToList());
-            
-            _partitionKeyTypes = _partitionKeys.Select(info => info.CqlType).ToArray();
-            
-            _clusteringKeys =
-                new ReadOnlyCollection<CqlColumnInfo<T>>(
-                    _columns.Where(column => column.IsClusteringKey).OrderBy(column => column.Order).ToList());
-            _clusteringKeysNG = new ReadOnlyCollection<ICqlColumnInfo>(_clusteringKeys.Cast<ICqlColumnInfo>().ToList());
-            
-            
-            _normalColumns =
-                new ReadOnlyCollection<CqlColumnInfo<T>>(
-                    _columns.Where(column => !column.IsClusteringKey && !column.IsPartitionKey).ToList());
-            _normalColumnsNG = new ReadOnlyCollection<ICqlColumnInfo>(_normalColumns.Cast<ICqlColumnInfo>().ToList());
-            
+            return sortedColumns.ToArray();
         }
 
         /// <summary>
@@ -309,9 +315,6 @@ namespace CqlSharp.Serialization
             //get the column name and type of the property
             SetColumnInfo(prop, info);
 
-            //set key info if any
-            SetKeyInfo(prop, info);
-
             //set index info if any
             SetIndexInfo(prop, info);
 
@@ -343,24 +346,33 @@ namespace CqlSharp.Serialization
         /// <summary>
         ///   Sets the key information.
         /// </summary>
-        /// <param name="member"> The member. </param>
-        /// <param name="column"> The column. </param>
-        private static void SetKeyInfo(MemberInfo member, CqlColumnInfo<T> column)
+        private static void SetKeyInfo(IEnumerable<CqlColumnInfo<T>> columns)
         {
-            //check for column attribute
-            var keyAttribute =
-                Attribute.GetCustomAttribute(member, typeof(CqlKeyAttribute)) as CqlKeyAttribute;
+            bool isFirstKey = true;
+            bool processingPartitionKeys = true;
 
-            if (keyAttribute != null)
+            foreach (var column in columns)
             {
-                column.Order = keyAttribute.Order;
-                column.IsPartitionKey = keyAttribute.IsPartitionKey;
-                column.IsClusteringKey = !keyAttribute.IsPartitionKey;
-            }
-            else
-            {
-                column.IsPartitionKey = false;
-                column.IsClusteringKey = false;
+                //check for column attribute
+                var keyAttribute =
+                    Attribute.GetCustomAttribute(column.MemberInfo, typeof (CqlKeyAttribute)) as CqlKeyAttribute;
+
+                if (keyAttribute != null)
+                {
+                    column.IsPartitionKey = isFirstKey || keyAttribute.IsPartitionKey;
+                    column.IsClusteringKey = !column.IsPartitionKey;
+                    
+                    if(!processingPartitionKeys && column.IsPartitionKey)
+                        throw new CqlException("Partition keys are not allowed after the first clustering keys. Make sure the column order is correct");
+
+                    isFirstKey = false;
+                    processingPartitionKeys = column.IsPartitionKey;
+                }
+                else
+                {
+                    column.IsPartitionKey = false;
+                    column.IsClusteringKey = false;
+                }
             }
         }
 
@@ -385,10 +397,16 @@ namespace CqlSharp.Serialization
                 column.Name = member.Name.ToLower();
             }
 
-            //get CqlType from attribute (if any)
-            if (columnAttribute != null && columnAttribute.CqlType.HasValue)
+            //get order if any
+            if (columnAttribute != null && columnAttribute.OrderHasValue)
             {
-                column.CqlType = columnAttribute.CqlType.Value;
+                column.Order = columnAttribute.Order;
+            }
+
+            //get CqlType from attribute (if any)
+            if (columnAttribute != null && columnAttribute.CqlTypeHasValue)
+            {
+                column.CqlType = columnAttribute.CqlType;
                 return;
             }
 
@@ -643,7 +661,7 @@ namespace CqlSharp.Serialization
         /// </returns>
         bool IObjectAccessor.TryGetValue(string columnName, object source, out object value)
         {
-            return TryGetValue(columnName, (T) source, out value);
+            return TryGetValue(columnName, (T)source, out value);
         }
 
         /// <summary>
@@ -657,7 +675,7 @@ namespace CqlSharp.Serialization
         /// </returns>
         bool IObjectAccessor.TrySetValue(string columnName, object target, object value)
         {
-            return TrySetValue(columnName, (T) target, value);
+            return TrySetValue(columnName, (T)target, value);
         }
 
 

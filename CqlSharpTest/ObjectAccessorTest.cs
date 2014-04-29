@@ -124,8 +124,7 @@ namespace CqlSharp.Test
             var info = accessor.ColumnsByMember[member];
             Assert.AreEqual("guid", info.Name);
             Assert.AreEqual(CqlType.Timeuuid, info.CqlType);
-            Assert.IsTrue(info.Order.HasValue);
-            Assert.AreEqual(0, info.Order.Value);
+            Assert.IsFalse(info.Order.HasValue);
             Assert.IsTrue(info.IsPartitionKey);
             Assert.IsFalse(info.IsClusteringKey);
             Assert.IsFalse(info.IsIndexed);
@@ -154,25 +153,33 @@ namespace CqlSharp.Test
             var accessor = ObjectAccessor<C>.Instance;
 
             MemberInfo member = typeof(C).GetField("Id");
-            var info = accessor.ColumnsByMember[member];
-            Assert.IsTrue(info.Order.HasValue);
-            Assert.AreEqual(0, info.Order.Value);
-            Assert.IsTrue(info.IsPartitionKey);
-            Assert.IsFalse(info.IsClusteringKey);
+            var info1 = accessor.ColumnsByMember[member];
+            Assert.IsTrue(info1.Order.HasValue);
+            Assert.AreEqual(0, info1.Order.Value);
+            Assert.IsTrue(info1.IsPartitionKey);
+            Assert.IsFalse(info1.IsClusteringKey);
 
             member = typeof(C).GetField("Id2");
-            info = accessor.ColumnsByMember[member];
-            Assert.IsTrue(info.Order.HasValue);
-            Assert.AreEqual(1, info.Order.Value);
-            Assert.IsTrue(info.IsPartitionKey);
-            Assert.IsFalse(info.IsClusteringKey);
+            var info2 = accessor.ColumnsByMember[member];
+            Assert.IsTrue(info2.Order.HasValue);
+            Assert.AreEqual(1, info2.Order.Value);
+            Assert.IsTrue(info2.IsPartitionKey);
+            Assert.IsFalse(info2.IsClusteringKey);
 
             member = typeof(C).GetField("Id3");
-            info = accessor.ColumnsByMember[member];
-            Assert.IsTrue(info.Order.HasValue);
-            Assert.AreEqual(2, info.Order.Value);
-            Assert.IsFalse(info.IsPartitionKey);
-            Assert.IsTrue(info.IsClusteringKey);
+            var info3 = accessor.ColumnsByMember[member];
+            Assert.IsTrue(info3.Order.HasValue);
+            Assert.AreEqual(2, info3.Order.Value);
+            Assert.IsFalse(info3.IsPartitionKey);
+            Assert.IsTrue(info3.IsClusteringKey);
+
+            Assert.AreEqual(2, accessor.PartitionKeys.Count);
+            Assert.AreEqual(info1, accessor.PartitionKeys[0]);
+            Assert.AreEqual(info2, accessor.PartitionKeys[1]);
+
+            Assert.AreEqual(1, accessor.ClusteringKeys.Count);
+            Assert.AreEqual(info3, accessor.ClusteringKeys[0]);
+
         }
 
         #region Nested type: A
@@ -222,12 +229,16 @@ namespace CqlSharp.Test
 
         private class C
         {
-            [CqlKey(IsPartitionKey = true, Order = 0)]
+            [CqlKey(IsPartitionKey = true)]
+            [CqlColumn(Order = 1)]
+            public string Id2;
+
+            [CqlKey]
+            [CqlColumn(Order = 0)]
             public Guid Id;
 
-            [CqlKey(IsPartitionKey = true, Order = 1)]
-            public string Id2;
-            [CqlKey(IsPartitionKey = false, Order = 2)]
+            [CqlKey(IsPartitionKey = false)]
+            [CqlColumn(Order = 2)]
             public string Id3;
         }
 

@@ -23,36 +23,22 @@ namespace CqlSharp.Serialization
     [AttributeUsage(AttributeTargets.Property | AttributeTargets.Field)]
     public class CqlKeyAttribute : Attribute
     {
-        private bool? _isPartitionKey;
-
         public CqlKeyAttribute()
         {
-            Order = 0;
-            _isPartitionKey = null;
+            IsPartitionKey = false;
         }
 
         /// <summary>
         ///   Gets or sets the order.
         /// </summary>
         /// <value> The order. </value>
+        [Obsolete("Please order columns using the CqlColumn attribute")]
         public int Order { get; set; }
 
         /// <summary>
         ///   Gets or sets a value indicating whether this key value is part of the partition key.
         /// </summary>
         /// <value> <c>true</c> if [is partition key]; otherwise, <c>false</c> . </value>
-        public bool IsPartitionKey
-        {
-            get
-            {
-                if (!_isPartitionKey.HasValue)
-                {
-                    return Order == 0;
-                }
-
-                return _isPartitionKey.Value;
-            }
-            set { _isPartitionKey = value; }
-        }
+        public bool IsPartitionKey { get; set; }
     }
 }
