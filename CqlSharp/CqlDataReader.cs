@@ -104,8 +104,7 @@ namespace CqlSharp
             get
             {
                 Column column = MetaData[index];
-                object value = ValueSerialization.Deserialize(column.CqlType, column.CollectionKeyType,
-                                                              column.CollectionValueType, CurrentValues[index]);
+                object value = ValueSerialization.Deserialize(column.Type, CurrentValues[index]);
                 return value ?? DBNull.Value;
             }
         }
@@ -121,8 +120,7 @@ namespace CqlSharp
             get
             {
                 Column column = MetaData[name];
-                object value = ValueSerialization.Deserialize(column.CqlType, column.CollectionKeyType,
-                                                              column.CollectionValueType, CurrentValues[column.Index]);
+                object value = ValueSerialization.Deserialize(column.Type, CurrentValues[column.Index]);
                 return value ?? DBNull.Value;
             }
         }
@@ -177,7 +175,7 @@ namespace CqlSharp
         #region ICqlQueryResult Members
 
         /// <summary>
-        ///   Gets the type of the result.
+        ///   Gets the typeCode of the result.
         /// </summary>
         /// <value> return CqlResultType.Rows </value>
         public CqlResultType ResultType
@@ -286,6 +284,7 @@ namespace CqlSharp
             table.Columns.Add(CqlSchemaTableColumnNames.CqlType, typeof(string));
             table.Columns.Add(CqlSchemaTableColumnNames.CollectionKeyType, typeof(string));
             table.Columns.Add(CqlSchemaTableColumnNames.CollectionValueType, typeof(string));
+            table.Columns.Add(CqlSchemaTableColumnNames.CustomType, typeof(string));
             table.Columns.Add(CqlSchemaTableColumnNames.Type, typeof(string));
 
             foreach (var column in MetaData)
@@ -295,14 +294,15 @@ namespace CqlSharp
                 row[CqlSchemaTableColumnNames.KeySpaceName] = column.Keyspace;
                 row[CqlSchemaTableColumnNames.TableName] = column.Table;
                 row[CqlSchemaTableColumnNames.ColumnName] = column.Name;
-                row[CqlSchemaTableColumnNames.CqlType] = column.CqlType.ToString();
-                row[CqlSchemaTableColumnNames.CollectionKeyType] = column.CollectionKeyType.HasValue
-                                                                       ? column.CollectionKeyType.ToString()
+                row[CqlSchemaTableColumnNames.CqlType] = column.Type.CqlTypeCode.ToString();
+                row[CqlSchemaTableColumnNames.CollectionKeyType] = column.Type.CollectionKeyType != null
+                                                                       ? column.Type.CollectionKeyType.ToString()
                                                                        : null;
-                row[CqlSchemaTableColumnNames.CollectionValueType] = column.CollectionValueType.HasValue
-                                                                         ? column.CollectionValueType.ToString()
+                row[CqlSchemaTableColumnNames.CollectionValueType] = column.Type.CollectionValueType != null
+                                                                         ? column.Type.CollectionValueType.ToString()
                                                                          : null;
-                row[CqlSchemaTableColumnNames.Type] = column.ToType().FullName;
+                row[CqlSchemaTableColumnNames.CustomType] = column.Type.CustomType;
+                row[CqlSchemaTableColumnNames.Type] = column.Type.ToType().FullName;
                 table.Rows.Add(row);
             }
 
@@ -427,13 +427,13 @@ namespace CqlSharp
         }
 
         /// <summary>
-        ///   Gets the data type information for the specified field.
+        ///   Gets the data typeCode information for the specified field.
         /// </summary>
         /// <param name="i"> The index of the field to find. </param>
-        /// <returns> The data type information for the specified field. </returns>
+        /// <returns> The data typeCode information for the specified field. </returns>
         public override string GetDataTypeName(int i)
         {
-            return MetaData[i].CqlType.ToString();
+            return MetaData[i].Type.CqlTypeCode.ToString();
         }
 
         /// <summary>
@@ -468,15 +468,15 @@ namespace CqlSharp
         }
 
         /// <summary>
-        ///   Gets the <see cref="T:System.Type" /> information corresponding to the type of <see cref="T:System.Object" /> that would be returned from <see
+        ///   Gets the <see cref="T:System.Type" /> information corresponding to the typeCode of <see cref="T:System.Object" /> that would be returned from <see
         ///    cref="M:System.Data.IDataRecord.GetValue(System.Int32)" />.
         /// </summary>
         /// <param name="i"> The index of the field to find. </param>
-        /// <returns> The <see cref="T:System.Type" /> information corresponding to the type of <see cref="T:System.Object" /> that would be returned from <see
+        /// <returns> The <see cref="T:System.Type" /> information corresponding to the typeCode of <see cref="T:System.Object" /> that would be returned from <see
         ///    cref="M:System.Data.IDataRecord.GetValue(System.Int32)" /> . </returns>
         public override Type GetFieldType(int i)
         {
-            return MetaData[i].ToType();
+            return MetaData[i].Type.ToType();
         }
 
         /// <summary>
@@ -583,44 +583,44 @@ namespace CqlSharp
         /// <summary>
         ///   Gets the Set value of the specified field.
         /// </summary>
-        /// <typeparam name="T"> The type of the contents of the set </typeparam>
+        /// <typeparam name="T"> The typeCode of the contents of the set </typeparam>
         /// <param name="i"> The index of the field to find. </param>
         /// <returns> The Set value of the specified field. </returns>
         public virtual HashSet<T> GetSet<T>(int i)
         {
             if (CurrentValues[i] == null) return null;
 
-            CqlType setType = typeof(T).ToCqlType();
+            CqlType setType = CqlType.FromType(typeof (T));
             return (HashSet<T>)ValueSerialization.DeserializeSet(setType, CurrentValues[i]);
         }
 
         /// <summary>
         ///   Gets the List value of the specified field.
         /// </summary>
-        /// <typeparam name="T"> The type of the contents of the list </typeparam>
+        /// <typeparam name="T"> The typeCode of the contents of the list </typeparam>
         /// <param name="i"> The index of the field to find. </param>
         /// <returns> The list value of the specified field. </returns>
         public virtual List<T> GetList<T>(int i)
         {
             if (CurrentValues[i] == null) return null;
 
-            CqlType listType = typeof(T).ToCqlType();
+            CqlType listType = CqlType.FromType(typeof(T));
             return (List<T>)ValueSerialization.DeserializeList(listType, CurrentValues[i]);
         }
 
         /// <summary>
         ///   Gets the Dictionary value of the specified field.
         /// </summary>
-        /// <typeparam name="TKey"> The type of the key. </typeparam>
-        /// <typeparam name="TValue"> The type of the value. </typeparam>
+        /// <typeparam name="TKey"> The typeCode of the key. </typeparam>
+        /// <typeparam name="TValue"> The typeCode of the value. </typeparam>
         /// <param name="i"> The index of the field to find. </param>
         /// <returns> The list value of the specified field. </returns>
         public virtual Dictionary<TKey, TValue> GetDictionary<TKey, TValue>(int i)
         {
             if (CurrentValues[i] == null) return null;
 
-            CqlType keyType = typeof(TKey).ToCqlType();
-            CqlType valueType = typeof(TValue).ToCqlType();
+            CqlType keyType = CqlType.FromType(typeof(TKey));
+            CqlType valueType = CqlType.FromType(typeof(TValue));
             return
                 (Dictionary<TKey, TValue>)
                 ValueSerialization.DeserializeMap(keyType, valueType, CurrentValues[i]);

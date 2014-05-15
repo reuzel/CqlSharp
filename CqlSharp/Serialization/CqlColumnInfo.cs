@@ -35,9 +35,11 @@ namespace CqlSharp.Serialization
         public string Name { get; internal set; }
 
         /// <summary>
-        ///   Gets the CQL type.
+        /// Gets the type of the CQL column.
         /// </summary>
-        /// <value> The type. </value>
+        /// <value>
+        /// The type of the CQL column.
+        /// </value>
         public CqlType CqlType { get; internal set; }
 
         /// <summary>
@@ -57,7 +59,6 @@ namespace CqlSharp.Serialization
         /// </summary>
         /// <value> <c>true</c> if this column is part of the partition key; otherwise, <c>false</c> . </value>
         public bool IsPartitionKey { get; internal set; }
-
 
         /// <summary>
         ///   Gets a value indicating whether this column is part of the clustering key.
@@ -116,5 +117,7 @@ namespace CqlSharp.Serialization
         {
             get { return ReadFunction == null ? default(Func<object, object>) : table => ReadFunction((TTable)table); }
         }
+
+
     }
 }

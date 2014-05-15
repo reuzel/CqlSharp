@@ -24,7 +24,7 @@ namespace CqlSharp.Serialization
     public class CqlColumnAttribute : Attribute
     {
         private readonly string _column;
-        private CqlType? _cqlType;
+        private CqlTypeCode? _cqlTypeCode;
         private int? _order;
 
         public CqlColumnAttribute()
@@ -36,10 +36,10 @@ namespace CqlSharp.Serialization
             _column = column;
         }
 
-        public CqlColumnAttribute(string column, CqlType type)
+        public CqlColumnAttribute(string column, CqlTypeCode typeCode)
         {
             _column = column;
-            CqlType = type;
+            CqlTypeCode = typeCode;
         }
 
         /// <summary>
@@ -53,31 +53,31 @@ namespace CqlSharp.Serialization
 
 
         /// <summary>
-        /// Gets a value indicating whether [CQL type has value].
+        /// Gets a value indicating whether [CQL typeCode has value].
         /// </summary>
         /// <value>
-        ///   <c>true</c> if [CQL type has value]; otherwise, <c>false</c>.
+        ///   <c>true</c> if [CQL typeCode has value]; otherwise, <c>false</c>.
         /// </value>
         internal bool CqlTypeHasValue
         {
-            get { return _cqlType.HasValue; }
+            get { return _cqlTypeCode.HasValue; }
         }
 
         /// <summary>
-        ///   Gets or sets the Cql type of the column
+        ///   Gets or sets the Cql typeCode of the column
         /// </summary>
-        /// <value> The type of the CQL. </value>
-        public CqlType CqlType
+        /// <value> The typeCode of the CQL. </value>
+        public CqlTypeCode CqlTypeCode
         {
             get
             {
-                if (!_cqlType.HasValue)
-                    throw new CqlException("CqlType attribute property was not set");
+                if (!_cqlTypeCode.HasValue)
+                    throw new CqlException("CqlTypeCode attribute property was not set");
 
-                return _cqlType.Value;
+                return _cqlTypeCode.Value;
             }
 
-            set { _cqlType = value; }
+            set { _cqlTypeCode = value; }
         }
 
         /// <summary>

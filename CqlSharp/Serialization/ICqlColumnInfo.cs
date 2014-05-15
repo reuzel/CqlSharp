@@ -27,9 +27,11 @@ namespace CqlSharp.Serialization
         string Name { get; }
 
         /// <summary>
-        ///   Gets the CQL type.
+        /// Gets the type of the CQL column.
         /// </summary>
-        /// <value> The type. </value>
+        /// <value>
+        /// The type of the CQL column.
+        /// </value>
         CqlType CqlType { get; }
 
         /// <summary>
@@ -85,5 +87,7 @@ namespace CqlSharp.Serialization
         /// </summary>
         /// <value> The read function. </value>
         Func<object, object> ReadFunction { get; }
+
+
     }
 }

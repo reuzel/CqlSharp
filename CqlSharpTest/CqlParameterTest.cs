@@ -44,9 +44,9 @@ namespace CqlSharp.Test
             Assert.AreEqual("hello", param.Table);
             Assert.AreEqual("world.me", param.ColumnName);
             Assert.AreEqual("say.hello.world.me", param.ParameterName);
-            Assert.AreEqual(CqlType.Map, param.CqlType);
-            Assert.AreEqual(CqlType.Varchar, param.CollectionKeyType);
-            Assert.AreEqual(CqlType.Int, param.CollectionValueType);
+            Assert.AreEqual(CqlTypeCode.Map, param.CqlType.CqlTypeCode);
+            Assert.AreEqual(CqlType.Varchar, param.CqlType.CollectionKeyType);
+            Assert.AreEqual(CqlType.Int, param.CqlType.CollectionValueType);
         }
 
         [TestMethod]
@@ -134,7 +134,7 @@ namespace CqlSharp.Test
                                      {"test.id", CqlType.Int},
                                      {"test.value", CqlType.Text},
                                      {"test.value2", CqlType.Blob},
-                                     {"test.map", CqlType.Map, CqlType.Text, CqlType.Boolean}
+                                     {"test.map", new CqlType(CqlTypeCode.Map, CqlType.Text, CqlType.Boolean)}
                                  };
             collection.Fixate();
 

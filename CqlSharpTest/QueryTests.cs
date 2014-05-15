@@ -19,7 +19,6 @@ using CqlSharp.Tracing;
 using Microsoft.VisualStudio.TestTools.UnitTesting;
 using System;
 using System.Data;
-using System.Diagnostics;
 using System.Linq;
 using System.Threading;
 using System.Threading.Tasks;
@@ -1222,7 +1221,7 @@ namespace CqlSharp.Test
     public class BasicFlowData
     {
         [CqlKey]
-        [CqlColumn("id", CqlType.Int)]
+        [CqlColumn("id", CqlTypeCode.Int)]
         public int Id;
 
         [CqlColumn("value")]

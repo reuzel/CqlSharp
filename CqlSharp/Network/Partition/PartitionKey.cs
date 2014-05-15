@@ -13,11 +13,11 @@
 // See the License for the specific language governing permissions and
 // limitations under the License.
 
+using CqlSharp.Protocol;
+using CqlSharp.Serialization;
 using System;
 using System.IO;
 using System.Linq;
-using CqlSharp.Protocol;
-using CqlSharp.Serialization;
 
 namespace CqlSharp.Network.Partition
 {
@@ -42,7 +42,7 @@ namespace CqlSharp.Network.Partition
         /// <value> The key. </value>
         internal byte[] Key
         {
-            get { return _key == null ? null : (byte[]) _key.Clone(); }
+            get { return _key == null ? null : (byte[])_key.Clone(); }
         }
 
         /// <summary>
@@ -61,13 +61,13 @@ namespace CqlSharp.Network.Partition
         internal PartitionKey Copy()
         {
             byte[] key = Key;
-            return new PartitionKey {_key = key};
+            return new PartitionKey { _key = key };
         }
 
         /// <summary>
         ///   Sets the partition key to the provided value
         /// </summary>
-        /// <param name="type"> The type in which the value is represented in Cassandra. </param>
+        /// <param name="type"> The typeCode in which the value is represented in Cassandra. </param>
         /// <param name="value"> The value of the partition key column. </param>
         public void Set(CqlType type, Object value)
         {
@@ -80,7 +80,7 @@ namespace CqlSharp.Network.Partition
         /// <summary>
         ///   Sets the partition key based on the provided values. Use this when composite partition keys are used
         /// </summary>
-        /// <param name="types"> The types in which the values are represented in Cassandra. </param>
+        /// <param name="types"> The typeCodes in which the values are represented in Cassandra. </param>
         /// <param name="values"> The values of the partition key columns. The values must be given in the same order as the partition key is defined. </param>
         public void Set(CqlType[] types, Object[] values)
         {
@@ -92,7 +92,7 @@ namespace CqlSharp.Network.Partition
 
 
             if (types.Length != values.Length)
-                throw new ArgumentException("types and values are not of equal length");
+                throw new ArgumentException("typeCodes and values are not of equal length");
 
             var rawValues = new byte[types.Length][];
             for (int i = 0; i < types.Length; i++)
@@ -100,7 +100,7 @@ namespace CqlSharp.Network.Partition
                 rawValues[i] = ValueSerialization.Serialize(types[i], values[i]);
             }
 
-            int length = types.Length*3 + rawValues.Sum(val => val.Length);
+            int length = types.Length * 3 + rawValues.Sum(val => val.Length);
             using (var stream = new MemoryStream(length))
             {
                 foreach (var rawValue in rawValues)
@@ -141,7 +141,7 @@ namespace CqlSharp.Network.Partition
         public override bool Equals(object obj)
         {
             if (ReferenceEquals(null, obj)) return false;
-            return obj is PartitionKey && Equals((PartitionKey) obj);
+            return obj is PartitionKey && Equals((PartitionKey)obj);
         }
 
         public override int GetHashCode()

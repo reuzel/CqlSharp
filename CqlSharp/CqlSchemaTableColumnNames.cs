@@ -43,17 +43,22 @@ namespace CqlSharp
         public const string ColumnName = "ColumnName";
 
         /// <summary>
-        ///   The CQL type
+        ///   The CQL typeCode
         /// </summary>
-        public const string CqlType = "CqlType";
+        public const string CqlType = "CqlTypeCode";
 
         /// <summary>
-        ///   The collection key type
+        ///   The CQL custom typeCode name
+        /// </summary>
+        public const string CustomType = "CustomType";
+
+        /// <summary>
+        ///   The collection key typeCode
         /// </summary>
         public const string CollectionKeyType = "CollectionKeyType";
 
         /// <summary>
-        ///   The collection value type
+        ///   The collection value typeCode
         /// </summary>
         public const string CollectionValueType = "CollectionValueType";
 

@@ -59,7 +59,7 @@ namespace CqlSharp.Serialization
             //get table and keyspace name
             SetTableProperties();
 
-            //get type
+            //get typeCode
             _type = typeof(T);
 
             var columns = GetColumns();
@@ -87,14 +87,13 @@ namespace CqlSharp.Serialization
                 new ReadOnlyDictionary<MemberInfo, CqlColumnInfo<T>>(_columns.ToDictionary(column => column.MemberInfo));
             _columnsByMemberNG =
                 new ReadOnlyDictionary<MemberInfo, ICqlColumnInfo>(_columns.ToDictionary(column => column.MemberInfo, column => (ICqlColumnInfo)column));
-            
+
             //Key subsets
             SetKeyInfo(columns);
-
             var partitionKeys = _columns.Where(column => column.IsPartitionKey).ToArray();
             _partitionKeys = new ReadOnlyCollection<CqlColumnInfo<T>>(partitionKeys);
             _partitionKeysNG = new ReadOnlyCollection<ICqlColumnInfo>(partitionKeys);
-            
+
             _partitionKeyTypes = partitionKeys.Select(info => info.CqlType).ToArray();
 
             var clusteringKeys = _columns.Where(column => column.IsClusteringKey).ToArray();
@@ -119,9 +118,9 @@ namespace CqlSharp.Serialization
                     continue;
 
                 //create the column info object
-                CqlColumnInfo<T> info = CreateColumnInfo(prop);
+                CqlColumnInfo<T> info = CreateColumnInfo(prop, prop.PropertyType);
 
-                //set the type
+                //set the typeCode
                 info.Type = prop.PropertyType;
 
                 //add the read func if we can read the property
@@ -146,9 +145,9 @@ namespace CqlSharp.Serialization
                     continue;
 
                 //create the column info object
-                CqlColumnInfo<T> info = CreateColumnInfo(field);
+                CqlColumnInfo<T> info = CreateColumnInfo(field, field.FieldType);
 
-                //set the type
+                //set the typeCode
                 info.Type = field.FieldType;
 
                 //set getter functions
@@ -195,9 +194,9 @@ namespace CqlSharp.Serialization
 
 
         /// <summary>
-        ///   Gets the type this accessor can handle
+        ///   Gets the typeCode this accessor can handle
         /// </summary>
-        /// <value> The type. </value>
+        /// <value> The typeCode. </value>
         public Type Type
         {
             get { return _type; }
@@ -303,17 +302,18 @@ namespace CqlSharp.Serialization
         }
 
         /// <summary>
-        ///   Creates the column information.
+        /// Creates the column information.
         /// </summary>
-        /// <param name="prop"> The property. </param>
-        /// <returns> </returns>
-        private static CqlColumnInfo<T> CreateColumnInfo(MemberInfo prop)
+        /// <param name="prop">The property.</param>
+        /// <param name="type">The typeCode.</param>
+        /// <returns></returns>
+        private static CqlColumnInfo<T> CreateColumnInfo(MemberInfo prop, Type type)
         {
             //create new info for property
             var info = new CqlColumnInfo<T> { MemberInfo = prop };
 
-            //get the column name and type of the property
-            SetColumnInfo(prop, info);
+            //get the column name and typeCode of the property
+            SetColumnInfo(prop, type, info);
 
             //set index info if any
             SetIndexInfo(prop, info);
@@ -344,44 +344,12 @@ namespace CqlSharp.Serialization
         }
 
         /// <summary>
-        ///   Sets the key information.
+        /// Gets the name of the column of the specified member.
         /// </summary>
-        private static void SetKeyInfo(IEnumerable<CqlColumnInfo<T>> columns)
-        {
-            bool isFirstKey = true;
-            bool processingPartitionKeys = true;
-
-            foreach (var column in columns)
-            {
-                //check for column attribute
-                var keyAttribute =
-                    Attribute.GetCustomAttribute(column.MemberInfo, typeof (CqlKeyAttribute)) as CqlKeyAttribute;
-
-                if (keyAttribute != null)
-                {
-                    column.IsPartitionKey = isFirstKey || keyAttribute.IsPartitionKey;
-                    column.IsClusteringKey = !column.IsPartitionKey;
-                    
-                    if(!processingPartitionKeys && column.IsPartitionKey)
-                        throw new CqlException("Partition keys are not allowed after the first clustering keys. Make sure the column order is correct");
-
-                    isFirstKey = false;
-                    processingPartitionKeys = column.IsPartitionKey;
-                }
-                else
-                {
-                    column.IsPartitionKey = false;
-                    column.IsClusteringKey = false;
-                }
-            }
-        }
-
-        /// <summary>
-        ///   Gets the name of the column of the specified member.
-        /// </summary>
-        /// <param name="member"> The member. </param>
-        /// <param name="column"> the column. </param>
-        private static void SetColumnInfo(MemberInfo member, CqlColumnInfo<T> column)
+        /// <param name="member">The member.</param>
+        /// <param name="type">The type.</param>
+        /// <param name="column">the column.</param>
+        private static void SetColumnInfo(MemberInfo member, Type type, CqlColumnInfo<T> column)
         {
             //check for column attribute
             var columnAttribute =
@@ -403,30 +371,49 @@ namespace CqlSharp.Serialization
                 column.Order = columnAttribute.Order;
             }
 
-            //get CqlType from attribute (if any)
+            //get CqlTypeCode from attribute (if any)
             if (columnAttribute != null && columnAttribute.CqlTypeHasValue)
             {
-                column.CqlType = columnAttribute.CqlType;
-                return;
+                column.CqlType = new CqlType(columnAttribute.CqlTypeCode);
             }
-
-            //distill CqlType from property
-            var prop = member as PropertyInfo;
-            if (prop != null)
+            else
             {
-                column.CqlType = prop.PropertyType.ToCqlType();
-                return;
+                //get CqlTypeCode from property Type
+                column.CqlType = CqlType.FromType(type);
             }
+        }
 
-            //distill CqlType from field
-            var field = member as FieldInfo;
-            if (field != null)
+        /// <summary>
+        ///   Sets the key information.
+        /// </summary>
+        private static void SetKeyInfo(IEnumerable<CqlColumnInfo<T>> columns)
+        {
+            bool isFirstKey = true;
+            bool processingPartitionKeys = true;
+
+            foreach (var column in columns)
             {
-                column.CqlType = field.FieldType.ToCqlType();
-                return;
-            }
+                //check for column attribute
+                var keyAttribute =
+                    Attribute.GetCustomAttribute(column.MemberInfo, typeof(CqlKeyAttribute)) as CqlKeyAttribute;
 
-            throw new CqlException("Only fields or properties are allowed as columns");
+                if (keyAttribute != null)
+                {
+                    column.IsPartitionKey = isFirstKey || keyAttribute.IsPartitionKey;
+                    column.IsClusteringKey = !column.IsPartitionKey;
+
+                    if (!processingPartitionKeys && column.IsPartitionKey)
+                        throw new CqlException("Partition keys are not allowed after the first clustering keys. Make sure the column order is correct");
+
+                    isFirstKey = false;
+                    processingPartitionKeys = column.IsPartitionKey;
+                }
+                else
+                {
+                    column.IsPartitionKey = false;
+                    column.IsClusteringKey = false;
+                }
+            }
         }
 
         /// <summary>

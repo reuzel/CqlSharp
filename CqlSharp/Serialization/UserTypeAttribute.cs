@@ -1,5 +1,5 @@
-// CqlSharp - CqlSharp
-// Copyright (c) 2013 Joost Reuzel
+﻿// CqlSharp - CqlSharp
+// Copyright (c) 2014 Joost Reuzel
 //   
 // Licensed under the Apache License, Version 2.0 (the "License");
 // you may not use this file except in compliance with the License.
@@ -13,31 +13,29 @@
 // See the License for the specific language governing permissions and
 // limitations under the License.
 
-namespace CqlSharp.Network
+using System;
+
+namespace CqlSharp.Serialization
 {
     /// <summary>
-    ///   CqlTypeCode of possible evented changes to a cluster
+    ///   Indicates that a class is representated as custom user type in Cassandra
     /// </summary>
-    internal enum ClusterChange
+    [AttributeUsage(AttributeTargets.Class)]
+    public class UserTypeAttribute : Attribute
     {
-        /// <summary>
-        ///   a node was restored to active duty
-        /// </summary>
-        Up,
+        public UserTypeAttribute()
+        {
+        }
+
+        public UserTypeAttribute(string name)
+        {
+            Name = name;
+        }
 
         /// <summary>
-        ///   A node become unavailable
+        ///   Gets or sets the name.
         /// </summary>
-        Down,
-
-        /// <summary>
-        ///   A node was added to the cluster
-        /// </summary>
-        New,
-
-        /// <summary>
-        ///   A node was (permanently) removed from the cluster
-        /// </summary>
-        Removed
+        /// <value> The name. </value>
+        public string Name { get; set; }
     }
 }

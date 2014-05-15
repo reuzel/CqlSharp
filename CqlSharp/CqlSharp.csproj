@@ -56,6 +56,7 @@
     <Compile Include="ConnectionStrategy.cs" />
     <Compile Include="CqlBatchTransaction.cs" />
     <Compile Include="CqlBatchType.cs" />
+    <Compile Include="CqlType.cs" />
     <Compile Include="CqlConnectionStringBuilder.cs" />
     <Compile Include="CqlDataAdapter.cs">
       <SubType>Component</SubType>
@@ -104,6 +105,7 @@
     <Compile Include="Protocol\AuthResponseFrame.cs" />
     <Compile Include="Protocol\AuthSuccessFrame.cs" />
     <Compile Include="Protocol\BatchFrame.cs" />
+    <Compile Include="Protocol\Column.cs" />
     <Compile Include="Protocol\CredentialsFrame.cs" />
     <Compile Include="Protocol\ErrorCode.cs" />
     <Compile Include="Protocol\ErrorFrame.cs" />
@@ -139,7 +141,6 @@
     <Compile Include="Network\EnumerableExtensions.cs" />
     <Compile Include="Network\Node.cs" />
     <Compile Include="Network\RandomConnectionStrategy.cs" />
-    <Compile Include="Protocol\Column.cs" />
     <Compile Include="CqlCommand.cs">
       <SubType>Component</SubType>
     </Compile>
@@ -154,7 +155,7 @@
     <Compile Include="CqlSetKeyspace.cs" />
     <Compile Include="CqlVoid.cs" />
     <Compile Include="ICqlQueryResult.cs" />
-    <Compile Include="CqlType.cs" />
+    <Compile Include="CqlTypeCode.cs" />
     <Compile Include="Network\Connection.cs" />
     <Compile Include="CqlConsistency.cs" />
     <Compile Include="CqlException.cs" />
@@ -172,6 +173,7 @@
     <Compile Include="Serialization\CqlKeyAttribute.cs" />
     <Compile Include="Serialization\ICqlColumnInfo.cs" />
     <Compile Include="Serialization\IObjectAccessor.cs" />
+    <Compile Include="Serialization\UserTypeAttribute.cs" />
     <Compile Include="Serialization\ValueSerialization.cs" />
     <Compile Include="Serialization\CqlColumnAttribute.cs" />
     <Compile Include="Serialization\CqlIgnoreAttribute.cs" />

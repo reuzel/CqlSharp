@@ -135,8 +135,7 @@ namespace CqlSharp
 
                     if (param.Value == DBNull.Value) continue;
 
-                    values[i] = ValueSerialization.Serialize(param.CqlType, param.CollectionKeyType,
-                                                             param.CollectionValueType, param.Value);
+                    values[i] = ValueSerialization.Serialize(param.CqlType, param.Value);
                 }
 
                 return values;
@@ -156,7 +155,7 @@ namespace CqlSharp
                     //add corresponding column to the metaData
                     _metaData.Add(param.Column);
 
-                    //make it unchangable in type and name
+                    //make it unchangable in typeCode and name
                     param.IsFixed = true;
                 }
             }
@@ -190,7 +189,7 @@ namespace CqlSharp
 
         /// <summary>
         ///   Adds a new parameter with the specified name and value. The name will be
-        ///   parsed to extract table and keyspace information (if any). The parameter type
+        ///   parsed to extract table and keyspace information (if any). The parameter typeCode
         ///   will be guessed from the object value.
         /// </summary>
         /// <param name="name"> The name. </param>
@@ -204,51 +203,43 @@ namespace CqlSharp
         }
 
         /// <summary>
-        ///   Adds a new parameter with the specified name and type
+        ///   Adds a new parameter with the specified name and typeCode
         /// </summary>
         /// <param name="name"> The name. </param>
-        /// <param name="type"> The type. </param>
-        /// <param name="keyType"> Type of the key. </param>
-        /// <param name="valueType"> Type of the value. </param>
+        /// <param name="type"> The type of the parameter. </param>
         /// <returns> </returns>
-        public virtual CqlParameter Add(string name, CqlType type, CqlType? keyType = null, CqlType? valueType = null)
+        public virtual CqlParameter Add(string name, CqlType type)
         {
-            var parameter = new CqlParameter(name, type, keyType, valueType);
+            var parameter = new CqlParameter(name, type);
             Add(parameter);
             return parameter;
         }
 
         /// <summary>
-        ///   Adds a new parameter with the specified name and type
+        ///   Adds a new parameter with the specified name and typeCode
         /// </summary>
         /// <param name="table"> The table. </param>
         /// <param name="name"> The name. </param>
-        /// <param name="type"> The type. </param>
-        /// <param name="keyType"> Type of the key. </param>
-        /// <param name="valueType"> Type of the value. </param>
+        /// <param name="type"> The type </param>
         /// <returns> </returns>
-        public virtual CqlParameter Add(string table, string name, CqlType type, CqlType? keyType = null,
-                                CqlType? valueType = null)
+        public virtual CqlParameter Add(string table, string name, CqlType type)
         {
-            var parameter = new CqlParameter(table, name, type, keyType, valueType);
+            var parameter = new CqlParameter(table, name, type);
             Add(parameter);
             return parameter;
         }
 
         /// <summary>
-        ///   Adds a new parameter with the specified name and type
+        ///   Adds a new parameter with the specified name and typeCode
         /// </summary>
         /// <param name="keyspace"> The name of the keyspace. </param>
         /// <param name="table"> The name of the table. </param>
         /// <param name="name"> The name of the column. </param>
         /// <param name="type"> The type. </param>
-        /// <param name="keyType"> Type of the key (if the type if a map). </param>
-        /// <param name="valueType"> Type of the value (if the type is a map, set, or list). </param>
         /// <returns> </returns>
-        public virtual CqlParameter Add(string keyspace, string table, string name, CqlType type, CqlType? keyType = null,
-                                CqlType? valueType = null)
+        public virtual CqlParameter Add(string keyspace, string table, string name, CqlType type)
         {
-            var parameter = new CqlParameter(keyspace, table, name, type, keyType, valueType);
+            var parameter = new CqlParameter(keyspace, table, name, type);
             Add(parameter);
             return parameter;
         }
@@ -504,7 +495,7 @@ namespace CqlSharp
         /// <summary>
         ///   Adds an array of items with the specified values to the <see cref="T:System.Data.Common.DbParameterCollection" />.
         /// </summary>
-        /// <param name="values"> An array of values of type <see cref="T:System.Data.Common.DbParameter" /> to add to the collection. </param>
+        /// <param name="values"> An array of values of typeCode <see cref="T:System.Data.Common.DbParameter" /> to add to the collection. </param>
         /// <filterpriority>2</filterpriority>
         public override void AddRange(Array values)
         {
