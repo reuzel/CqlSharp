@@ -15,6 +15,7 @@
 
 using CqlSharp.Authentication;
 using CqlSharp.Logging;
+using CqlSharp.Serialization.Marshal;
 using System.Collections.Generic;
 using System.ComponentModel.Composition;
 using System.ComponentModel.Composition.Hosting;
@@ -56,6 +57,8 @@ namespace CqlSharp.Extensions
 
         public List<IAuthenticatorFactory> AuthenticationFactories { get; set; }
 
+        public List<ITypeFactory> SerializerFactories { get; set; }
+
         /// <summary>
         ///   Loads the logger factories.
         /// </summary>
@@ -73,6 +76,11 @@ namespace CqlSharp.Extensions
                 .ForTypesDerivedFrom<IAuthenticatorFactory>()
                 .Export<IAuthenticatorFactory>();
 
+            //search for ISerializerFactory implementations
+            conventions
+                .ForTypesDerivedFrom<ITypeFactory>()
+                .Export<ITypeFactory>();
+
             //import into LoggerFactories
             conventions
                 .ForType<Loader>()
@@ -82,6 +90,11 @@ namespace CqlSharp.Extensions
             conventions
                 .ForType<Loader>()
                 .ImportProperty(extensions => extensions.AuthenticationFactories);
+
+            //import into AuthenticationFactories
+            conventions
+                .ForType<Loader>()
+                .ImportProperty(extensions => extensions.SerializerFactories);
 
             //create catalog of dlls
             var catalog = new AggregateCatalog();
@@ -104,7 +117,7 @@ namespace CqlSharp.Extensions
             }
             catch
             {
-                //in case of any loading errors, load only the loggers and authenticators that we implement
+                //in case of any loading errors, load only the loggers and authenticators, and serializers that we implement
                 LoggerFactories = new List<ILoggerFactory>
                                       {
                                           new NullLoggerFactory(),
@@ -116,6 +129,11 @@ namespace CqlSharp.Extensions
                                               {
                                                   new PasswordAuthenticatorFactory()
                                               };
+
+                SerializerFactories = new List<ITypeFactory>
+                                      {
+                                          //TODO: add known type factories
+                                      };
             }
         }
     }

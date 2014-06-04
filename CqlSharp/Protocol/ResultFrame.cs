@@ -163,23 +163,23 @@ namespace CqlSharp.Protocol
                 {
                     case CqlTypeCode.Custom:
                         var colCustom = await reader.ReadStringAsync().ConfigureAwait(false);
-                        type = new CqlType(colType, colCustom);
+                        type = CqlType.CreateType(colCustom);
                         break;
 
                     case CqlTypeCode.List:
                     case CqlTypeCode.Set:
                         var colValueType = (CqlTypeCode)await reader.ReadShortAsync().ConfigureAwait(false);
-                        type = new CqlType(colType, new CqlType(colValueType));
+                        type = CqlType.CreateType(colType, CqlType.CreateType(colValueType));
                         break;
 
                     case CqlTypeCode.Map:
                         var colKeyType = (CqlTypeCode)await reader.ReadShortAsync().ConfigureAwait(false);
                         var colValType = (CqlTypeCode)await reader.ReadShortAsync().ConfigureAwait(false);
-                        type = new CqlType(colType, new CqlType(colKeyType), new CqlType(colValType));
+                        type = CqlType.CreateType(colType, CqlType.CreateType(colKeyType), CqlType.CreateType(colValType));
                         break;
 
                     default:
-                        type = new CqlType(colType);
+                        type = CqlType.CreateType(colType);
                         break;
                 }
 

@@ -133,9 +133,11 @@ namespace CqlSharp
                 {
                     CqlParameter param = this[i];
 
-                    if (param.Value == DBNull.Value) continue;
+                    //skip if parameter has a null value
+                    if (param.Value == DBNull.Value || param.Value==null) 
+                        continue;
 
-                    values[i] = ValueSerialization.Serialize(param.CqlType, param.Value);
+                    values[i] = param.CqlType.Serialize(param.Value);
                 }
 
                 return values;

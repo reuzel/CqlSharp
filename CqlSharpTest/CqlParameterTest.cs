@@ -14,6 +14,7 @@
 // limitations under the License.
 
 using CqlSharp.Serialization;
+using CqlSharp.Serialization.Marshal;
 using Microsoft.VisualStudio.TestTools.UnitTesting;
 using System.Collections.Generic;
 
@@ -45,8 +46,8 @@ namespace CqlSharp.Test
             Assert.AreEqual("world.me", param.ColumnName);
             Assert.AreEqual("say.hello.world.me", param.ParameterName);
             Assert.AreEqual(CqlTypeCode.Map, param.CqlType.CqlTypeCode);
-            Assert.AreEqual(CqlType.Varchar, param.CqlType.CollectionKeyType);
-            Assert.AreEqual(CqlType.Int, param.CqlType.CollectionValueType);
+            Assert.AreEqual(CqlType.Varchar, ((MapType<string, int>)param.CqlType).KeyType);
+            Assert.AreEqual(CqlType.Int, ((MapType<string, int>)param.CqlType).ValueType);
         }
 
         [TestMethod]
@@ -134,7 +135,7 @@ namespace CqlSharp.Test
                                      {"test.id", CqlType.Int},
                                      {"test.value", CqlType.Text},
                                      {"test.value2", CqlType.Blob},
-                                     {"test.map", new CqlType(CqlTypeCode.Map, CqlType.Text, CqlType.Boolean)}
+                                     {"test.map", CqlType.CreateType(CqlTypeCode.Map, CqlType.Text, CqlType.Boolean)}
                                  };
             collection.Fixate();
 

@@ -74,7 +74,7 @@ namespace CqlSharp.Network.Partition
             if (value == null)
                 throw new ArgumentNullException("value");
 
-            _key = ValueSerialization.Serialize(type, value);
+            _key = type.Serialize(value);
         }
 
         /// <summary>
@@ -97,7 +97,7 @@ namespace CqlSharp.Network.Partition
             var rawValues = new byte[types.Length][];
             for (int i = 0; i < types.Length; i++)
             {
-                rawValues[i] = ValueSerialization.Serialize(types[i], values[i]);
+                rawValues[i] = types[i].Serialize(values[i]);
             }
 
             int length = types.Length * 3 + rawValues.Sum(val => val.Length);

@@ -374,12 +374,12 @@ namespace CqlSharp.Serialization
             //get CqlTypeCode from attribute (if any)
             if (columnAttribute != null && columnAttribute.CqlTypeHasValue)
             {
-                column.CqlType = new CqlType(columnAttribute.CqlTypeCode);
+                column.CqlType = CqlType.CreateType(columnAttribute.CqlTypeCode);
             }
             else
             {
                 //get CqlTypeCode from property Type
-                column.CqlType = CqlType.FromType(type);
+                column.CqlType = CqlType.CreateType(type);
             }
         }
 

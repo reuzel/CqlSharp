@@ -53,16 +53,6 @@ namespace CqlSharp
         public const string CustomType = "CustomType";
 
         /// <summary>
-        ///   The collection key typeCode
-        /// </summary>
-        public const string CollectionKeyType = "CollectionKeyType";
-
-        /// <summary>
-        ///   The collection value typeCode
-        /// </summary>
-        public const string CollectionValueType = "CollectionValueType";
-
-        /// <summary>
         ///   The .NET that will be used to represent the values of the column.
         /// </summary>
         public const string Type = "Type";

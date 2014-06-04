@@ -47,6 +47,16 @@ namespace CqlSharp
             return Epoch.AddMilliseconds(timestamp);
         }
 
+        /// <summary>
+        ///   Writes the datetime as a unix timestamp to the provided array
+        /// </summary>
+        /// <param name="datetime">The datetime.</param>
+        /// <param name="array">The array.</param>
+        /// <param name="offset">The offset.</param>
+        public static void ToBytes(this DateTime datetime, byte[] array, int offset = 0)
+        {
+            datetime.ToTimestamp().ToBytes(array, offset);
+        }
 
         /// <summary>
         ///   converts the array into a long value (big-endian)
@@ -68,6 +78,24 @@ namespace CqlSharp
             return value;
         }
 
+        /// <summary>
+        ///  Writes the long value to the provided array from the given offset onwards
+        /// </summary>
+        /// <param name="value">The value.</param>
+        /// <param name="array">The array.</param>
+        /// <param name="offset">The offset.</param>
+        public static void ToBytes(this long value, byte[] array, int offset = 0)
+        {
+            array[offset] = (byte)((value >> 56) & 0xff);
+            array[offset + 1] = (byte)((value >> 48) & 0xff);
+            array[offset + 2] = (byte)((value >> 40) & 0xff);
+            array[offset + 3] = (byte)((value >> 32) & 0xff);
+            array[offset + 4] = (byte)((value >> 24) & 0xff);
+            array[offset + 5] = (byte)((value >> 16) & 0xff);
+            array[offset + 6] = (byte)((value >> 8) & 0xff);
+            array[offset + 7] = (byte)((value) & 0xff);
+
+        }
 
         /// <summary>
         ///   converts the array into a int value (big-endian)
@@ -85,6 +113,22 @@ namespace CqlSharp
             return value;
         }
 
+
+        /// <summary>
+        ///  Writes the long value to the provided array from the given offset onwards
+        /// </summary>
+        /// <param name="value">The value.</param>
+        /// <param name="array">The array.</param>
+        /// <param name="offset">The offset.</param>
+        public static void ToBytes(this int value, byte[] array, int offset = 0)
+        {
+            array[offset] = (byte)((value >> 24) & 0xff);
+            array[offset + 1] = (byte)((value >> 16) & 0xff);
+            array[offset + 2] = (byte)((value >> 8) & 0xff);
+            array[offset + 3] = (byte)((value) & 0xff);
+        }
+
+
         /// <summary>
         ///   converts the array into a unsigned short value (big-endian)
         /// </summary>
@@ -95,6 +139,18 @@ namespace CqlSharp
         {
             int value = bytes[offset] << 8 | bytes[offset + 1];
             return (ushort)value;
+        }
+
+        /// <summary>
+        ///  Writes the long value to the provided array from the given offset onwards
+        /// </summary>
+        /// <param name="value">The value.</param>
+        /// <param name="array">The array.</param>
+        /// <param name="offset">The offset.</param>
+        public static void ToBytes(this ushort value, byte[] array, int offset = 0)
+        {
+            array[offset] = (byte)((value >> 8) & 0xff);
+            array[offset + 1] = (byte)((value) & 0xff);
         }
 
         /// <summary>
@@ -114,6 +170,33 @@ namespace CqlSharp
                 return new Guid(a, b, c, bytes[offset + 8], bytes[offset + 9], bytes[offset + 10], bytes[offset + 11],
                                 bytes[offset + 12], bytes[offset + 13],
                                 bytes[offset + 14], bytes[offset + 15]);
+            }
+        }
+
+        /// <summary>
+        ///  Writes the long value to the provided array from the given offset onwards
+        /// </summary>
+        /// <param name="value">The value.</param>
+        /// <param name="array">The array.</param>
+        /// <param name="offset">The offset.</param>
+        public static void ToBytes(this Guid value, byte[] array, int offset = 0)
+        {
+            byte[] rawData = value.ToByteArray();
+            if (BitConverter.IsLittleEndian)
+            {
+                array[offset + 0] = rawData[3];
+                array[offset + 1] = rawData[2];
+                array[offset + 2] = rawData[1];
+                array[offset + 3] = rawData[0];
+                array[offset + 4] = rawData[5];
+                array[offset + 5] = rawData[4];
+                array[offset + 6] = rawData[7];
+                array[offset + 7] = rawData[6];
+                Buffer.BlockCopy(rawData, 8, array, offset + 8, 8);
+            }
+            else
+            {
+                Buffer.BlockCopy(rawData, 0, array, offset, 16);
             }
         }
 

@@ -1,525 +1,164 @@
-﻿using System;
+﻿using CqlSharp.Serialization;
+using CqlSharp.Serialization.Marshal;
+using System;
+using System.Collections.Concurrent;
 using System.Collections.Generic;
 using System.Data;
-using System.Diagnostics;
+using System.Linq;
 using System.Net;
 using System.Numerics;
 
 namespace CqlSharp
 {
     /// <summary>
-    /// Describes the typeCode of a single Cql Column or User Type field
+    /// Represents a CqlType. Do not instantiate CqlTypes directly. Instead use one of the CreateType method overloads.
     /// </summary>
-    public class CqlType
+    public abstract class CqlType : IEquatable<CqlType>
     {
+        #region Native types
 
-
-        #region native types
-
-        public static readonly CqlType Ascii = new CqlType(CqlTypeCode.Ascii);
-        public static readonly CqlType Bigint = new CqlType(CqlTypeCode.Bigint);
-        public static readonly CqlType Blob = new CqlType(CqlTypeCode.Blob);
-        public static readonly CqlType Boolean = new CqlType(CqlTypeCode.Boolean);
-        public static readonly CqlType Counter = new CqlType(CqlTypeCode.Counter);
-        public static readonly CqlType Decimal = new CqlType(CqlTypeCode.Decimal);
-        public static readonly CqlType Double = new CqlType(CqlTypeCode.Double);
-        public static readonly CqlType Float = new CqlType(CqlTypeCode.Float);
-        public static readonly CqlType Inet = new CqlType(CqlTypeCode.Inet);
-        public static readonly CqlType Int = new CqlType(CqlTypeCode.Int);
-        public static readonly CqlType Text = new CqlType(CqlTypeCode.Text);
-        public static readonly CqlType Timestamp = new CqlType(CqlTypeCode.Timestamp);
-        public static readonly CqlType Timeuuid = new CqlType(CqlTypeCode.Timeuuid);
-        public static readonly CqlType Uuid = new CqlType(CqlTypeCode.Uuid);
-        public static readonly CqlType Varchar = new CqlType(CqlTypeCode.Varchar);
-        public static readonly CqlType Varint = new CqlType(CqlTypeCode.Varint);
+        public static readonly CqlType Ascii = AsciiType.Instance;
+        public static readonly CqlType Bigint = LongType.Instance;
+        public static readonly CqlType Blob = BytesType.Instance;
+        public static readonly CqlType Boolean = BooleanType.Instance;
+        public static readonly CqlType Counter = CounterColumnType.Instance;
+        public static readonly CqlType Decimal = DecimalType.Instance;
+        public static readonly CqlType Double = DoubleType.Instance;
+        public static readonly CqlType Float = FloatType.Instance;
+        public static readonly CqlType Inet = InetAddressType.Instance;
+        public static readonly CqlType Int = Int32Type.Instance;
+        public static readonly CqlType Text = UTF8Type.Instance;
+        public static readonly CqlType Timestamp = TimestampType.Instance;
+        public static readonly CqlType Uuid = UUIDType.Instance;
+        public static readonly CqlType Varchar = UTF8Type.Instance;
+        public static readonly CqlType Varint = IntegerType.Instance;
+        public static readonly CqlType TimeUuid = TimeUUIDType.Instance;
 
         #endregion
 
 
-        private static readonly Dictionary<CqlTypeCode, Type> CqlType2Type = new Dictionary<CqlTypeCode, Type>
-                                                                                 {
-                                                                                     {
-                                                                                         CqlTypeCode.Ascii, typeof (string)
-                                                                                     },
-                                                                                     {CqlTypeCode.Text, typeof (string)},
-                                                                                     {
-                                                                                         CqlTypeCode.Varchar,
-                                                                                         typeof (string)
-                                                                                     },
-                                                                                     {CqlTypeCode.Blob, typeof (byte[])},
-                                                                                     {
-                                                                                         CqlTypeCode.Double,
-                                                                                         typeof (double)
-                                                                                     },
-                                                                                     {CqlTypeCode.Float, typeof (float)},
-                                                                                     {
-                                                                                         CqlTypeCode.Decimal,
-                                                                                         typeof (decimal)
-                                                                                     },
-                                                                                     {CqlTypeCode.Bigint, typeof (long)},
-                                                                                     {
-                                                                                         CqlTypeCode.Counter, typeof (long)
-                                                                                     },
-                                                                                     {CqlTypeCode.Int, typeof (int)},
-                                                                                     {
-                                                                                         CqlTypeCode.Boolean, typeof (bool)
-                                                                                     },
-                                                                                     {CqlTypeCode.Uuid, typeof (Guid)},
-                                                                                     {
-                                                                                         CqlTypeCode.Timeuuid,
-                                                                                         typeof (Guid)
-                                                                                     },
-                                                                                     {
-                                                                                         CqlTypeCode.Inet,
-                                                                                         typeof (IPAddress)
-                                                                                     },
-                                                                                     {
-                                                                                         CqlTypeCode.Varint,
-                                                                                         typeof (BigInteger)
-                                                                                     },
-                                                                                     {
-                                                                                         CqlTypeCode.Timestamp,
-                                                                                         typeof (DateTime)
-                                                                                     }
-                                                                                 };
+        private static readonly ITypeFactory[] TypeCodeMap;
+        private static readonly ConcurrentDictionary<Type, CqlType> Type2CqlType;
+        private static readonly ConcurrentDictionary<String, CqlType> TypeName2CqlType;
+        private static readonly Dictionary<DbType, CqlType> DbType2CqlType;
 
-        private static readonly Dictionary<Type, CqlType> Type2CqlType = new Dictionary<Type, CqlType>
-                                                                             {
-                                                                                 {
-                                                                                     typeof (string),
-                                                                                     Varchar
-                                                                                 },
-                                                                                 {
-                                                                                     typeof (byte[]),
-                                                                                     Blob
-                                                                                 },
-                                                                                 {
-                                                                                     typeof (double),
-                                                                                     Double
-                                                                                 },
-                                                                                 {
-                                                                                     typeof (float),
-                                                                                     Float
-                                                                                 },
-                                                                                 {
-                                                                                     typeof (decimal),
-                                                                                     Decimal
-                                                                                 },
-                                                                                 {
-                                                                                     typeof (long),
-                                                                                     Bigint
-                                                                                 },
-                                                                                 {
-                                                                                     typeof (int),
-                                                                                     Int
-                                                                                 },
-                                                                                 {
-                                                                                     typeof (bool),
-                                                                                     Boolean
-                                                                                 },
-                                                                                 {
-                                                                                     typeof (Guid),
-                                                                                     Uuid
-                                                                                 },
-                                                                                 {
-                                                                                     typeof (IPAddress),
-                                                                                     Inet
-                                                                                 },
-                                                                                 {
-                                                                                     typeof (BigInteger),
-                                                                                     Varint
-                                                                                 },
-                                                                                 {
-                                                                                     typeof (DateTime),
-                                                                                     Timestamp
-                                                                                 }
-                                                                             };
-
-        private static readonly Dictionary<CqlTypeCode, DbType> CqlType2DbType = new Dictionary<CqlTypeCode, DbType>
-                                                                                     {
-                                                                                         {
-                                                                                             CqlTypeCode.Ascii,
-                                                                                             DbType.AnsiString
-                                                                                         },
-                                                                                         {
-                                                                                             CqlTypeCode.Text,
-                                                                                             DbType.String
-                                                                                         },
-                                                                                         {
-                                                                                             CqlTypeCode.Varchar,
-                                                                                             DbType.String
-                                                                                         },
-                                                                                         {
-                                                                                             CqlTypeCode.Blob,
-                                                                                             DbType.Binary
-                                                                                         },
-                                                                                         {
-                                                                                             CqlTypeCode.Double,
-                                                                                             DbType.Double
-                                                                                         },
-                                                                                         {
-                                                                                             CqlTypeCode.Float,
-                                                                                             DbType.Single
-                                                                                         },
-                                                                                         {
-                                                                                             CqlTypeCode.Decimal,
-                                                                                             DbType.Decimal
-                                                                                         },
-                                                                                         {
-                                                                                             CqlTypeCode.Bigint,
-                                                                                             DbType.Int64
-                                                                                         },
-                                                                                         {
-                                                                                             CqlTypeCode.Counter,
-                                                                                             DbType.Int64
-                                                                                         },
-                                                                                         {CqlTypeCode.Int, DbType.Int32},
-                                                                                         {
-                                                                                             CqlTypeCode.Boolean,
-                                                                                             DbType.Boolean
-                                                                                         },
-                                                                                         {CqlTypeCode.Uuid, DbType.Guid},
-                                                                                         {
-                                                                                             CqlTypeCode.Timeuuid,
-                                                                                             DbType.Guid
-                                                                                         },
-                                                                                         {
-                                                                                             CqlTypeCode.Varint,
-                                                                                             DbType.VarNumeric
-                                                                                         },
-                                                                                         {
-                                                                                             CqlTypeCode.Timestamp,
-                                                                                             DbType.DateTime
-                                                                                         }
-                                                                                     };
-
-        private static readonly Dictionary<DbType, CqlType> DbType2CqlType = new Dictionary<DbType, CqlType>
-                                                                                     {
-                                                                                         {
-                                                                                             DbType.AnsiString,
-                                                                                             Ascii
-                                                                                         },
-                                                                                         {
-                                                                                             DbType.Int64,
-                                                                                             Bigint
-                                                                                         },
-                                                                                         {DbType.Guid, Uuid},
-                                                                                         {
-                                                                                             DbType.Binary,
-                                                                                             Blob
-                                                                                         },
-                                                                                         {
-                                                                                             DbType.DateTime,
-                                                                                             Timestamp
-                                                                                         },
-                                                                                         {
-                                                                                             DbType.Single,
-                                                                                             Float
-                                                                                         },
-                                                                                         {
-                                                                                             DbType.Double,
-                                                                                             Double
-                                                                                         },
-                                                                                         {
-                                                                                             DbType.Decimal,
-                                                                                             Decimal
-                                                                                         },
-                                                                                         {DbType.Int32, Int},
-                                                                                         {
-                                                                                             DbType.Boolean,
-                                                                                             Boolean
-                                                                                         },
-                                                                                         {
-                                                                                             DbType.VarNumeric,
-                                                                                             Varint
-                                                                                         },
-                                                                                         {
-                                                                                             DbType.String,
-                                                                                             Varchar
-                                                                                         },
-                                                                                     };
-
-
-        /// <summary>
-        /// Initializes a new instance of the <see cref="CqlType"/> class.
-        /// </summary>
-        /// <param name="typeCode">The typeCode.</param>
-        /// <exception cref="System.ArgumentException">
-        /// Please provide key and value typeCodes for a map typeCode;typeCode
-        /// or
-        /// Please provide value typeCode for a set or list typeCode;typeCode
-        /// or
-        /// Please provide custom data typeCode for a set or list typeCode;typeCode
-        /// </exception>
-        public CqlType(CqlTypeCode typeCode)
+        static CqlType()
         {
-            if (typeCode == CqlTypeCode.Map)
-                throw new ArgumentException("Please provide key and value type for a map typeCode", "typeCode");
+            //populate typeCode to CqlType map
+            TypeCodeMap = new ITypeFactory[Enum.GetValues(typeof(CqlTypeCode)).Cast<int>().Max() + 1];
+            TypeCodeMap[(short)CqlTypeCode.Ascii] = new AsciiTypeFactory();
+            TypeCodeMap[(short)CqlTypeCode.Bigint] = new LongTypeFactory();
+            TypeCodeMap[(short)CqlTypeCode.Blob] = new BytesTypeFactory();
+            TypeCodeMap[(short)CqlTypeCode.Boolean] = new BooleanTypeFactory();
+            TypeCodeMap[(short)CqlTypeCode.Counter] = new CounterColumnTypeFactory();
+            TypeCodeMap[(short)CqlTypeCode.Decimal] = new DecimalTypeFactory();
+            TypeCodeMap[(short)CqlTypeCode.Double] = new DoubleTypeFactory();
+            TypeCodeMap[(short)CqlTypeCode.Float] = new FloatTypeFactory();
+            TypeCodeMap[(short)CqlTypeCode.Inet] = new InetAddressTypeFactory();
+            TypeCodeMap[(short)CqlTypeCode.Int] = new Int32TypeFactory();
+            TypeCodeMap[(short)CqlTypeCode.Text] = new UTF8TypeFactory();
+            TypeCodeMap[(short)CqlTypeCode.Timestamp] = new TimestampTypeFactory();
+            TypeCodeMap[(short)CqlTypeCode.Uuid] = new UUIDTypeFactory();
+            TypeCodeMap[(short)CqlTypeCode.Varchar] = new UTF8TypeFactory();
+            TypeCodeMap[(short)CqlTypeCode.Varint] = new IntegerTypeFactory();
+            TypeCodeMap[(short)CqlTypeCode.Timeuuid] = new TimeUUIDTypeFactory();
+            TypeCodeMap[(short)CqlTypeCode.List] = new ListTypeFactory();
+            TypeCodeMap[(short)CqlTypeCode.Set] = new SetTypeFactory();
+            TypeCodeMap[(short)CqlTypeCode.Map] = new MapTypeFactory();
 
-            if (typeCode == CqlTypeCode.Set || typeCode == CqlTypeCode.List)
-                throw new ArgumentException("Please provide value typeCode for a set or list typeCode", "typeCode");
+            //populate .net type to CqlType map with all native classes
+            Type2CqlType = new ConcurrentDictionary<Type, CqlType>();
+            Type2CqlType[typeof(string)] = UTF8Type.Instance;
+            Type2CqlType[typeof(long)] = LongType.Instance;
+            Type2CqlType[typeof(byte[])] = BytesType.Instance;
+            Type2CqlType[typeof(bool)] = BooleanType.Instance;
+            Type2CqlType[typeof(decimal)] = DecimalType.Instance;
+            Type2CqlType[typeof(double)] = DoubleType.Instance;
+            Type2CqlType[typeof(float)] = FloatType.Instance;
+            Type2CqlType[typeof(IPAddress)] = InetAddressType.Instance;
+            Type2CqlType[typeof(int)] = Int32Type.Instance;
+            Type2CqlType[typeof(DateTime)] = TimestampType.Instance;
+            Type2CqlType[typeof(Guid)] = UUIDType.Instance;
+            Type2CqlType[typeof(BigInteger)] = IntegerType.Instance;
 
-            if (typeCode == CqlTypeCode.Custom)
-                throw new ArgumentException("Please provide custom data typeCode for a set or list typeCode", "typeCode");
+            TypeName2CqlType = new ConcurrentDictionary<string, CqlType>();
 
-            CqlTypeCode = typeCode;
-        }
-
-        /// <summary>
-        /// Initializes a new instance of the <see cref="CqlType"/> class.
-        /// </summary>
-        /// <param name="typeCode">The typeCode.</param>
-        /// <param name="customType">Type of the custom.</param>
-        /// <exception cref="System.ArgumentNullException">customType</exception>
-        /// <exception cref="System.ArgumentException">Type must be set to CqlTypeCode.Custom when a CustomType string is provided;typeCode</exception>
-        public CqlType(CqlTypeCode typeCode, string customType)
-        {
-            if (customType == null)
-                throw new ArgumentNullException("customType");
-
-            if (typeCode != CqlTypeCode.Custom)
-                throw new ArgumentException(
-                    "Type must be set to CqlTypeCode.Custom when a CustomType string is provided", "typeCode");
-
-            CqlTypeCode = typeCode;
-            CustomType = customType;
+            DbType2CqlType = new Dictionary<DbType, CqlType>
+                                    {
+                                        { DbType.AnsiString, Ascii},
+                                        { DbType.Int64, Bigint },
+                                        { DbType.Guid, Uuid },
+                                        { DbType.Binary, Blob },
+                                        { DbType.DateTime, Timestamp },
+                                        { DbType.Single, Float },
+                                        { DbType.Double, Double },
+                                        { DbType.Decimal, Decimal },
+                                        { DbType.Int32, Int },
+                                        { DbType.Boolean, Boolean },
+                                        { DbType.VarNumeric, Varint },
+                                        { DbType.String, Varchar },
+                                    };
 
         }
 
-        /// <summary>
-        /// Initializes a new instance of the <see cref="CqlType"/> class.
-        /// </summary>
-        /// <param name="typeCode">The typeCode.</param>
-        /// <param name="collectionValueTypeCode">Type of the collection value.</param>
-        /// <exception cref="System.ArgumentException">Type must be CqlTypeCode.Set or CqlTypeCode.List when only the CollectionValueType is provided;typeCode</exception>
-        public CqlType(CqlTypeCode typeCode, CqlType collectionValueTypeCode)
+        public static CqlType CreateType(CqlTypeCode tc, params object[] arguments)
         {
-            if (typeCode != CqlTypeCode.Set && typeCode != CqlTypeCode.List)
-                throw new ArgumentException(
-                    "Type must be CqlTypeCode.Set or CqlTypeCode.List when only the CollectionValueType is provided",
-                    "typeCode");
-
-            if (collectionValueTypeCode.CqlTypeCode == CqlTypeCode.List ||
-                collectionValueTypeCode.CqlTypeCode == CqlTypeCode.Set ||
-                collectionValueTypeCode.CqlTypeCode == CqlTypeCode.Map)
-                throw new ArgumentException("Collection value can not be another list, set or map");
-
-            CqlTypeCode = typeCode;
-            CollectionValueType = collectionValueTypeCode;
+            return TypeCodeMap[(short)tc].CreateType(arguments);
         }
 
-        /// <summary>
-        /// Initializes a new instance of the <see cref="CqlType"/> class.
-        /// </summary>
-        /// <param name="typeCode">The typeCode.</param>
-        /// <param name="collectionKeyType">Type of the collection key.</param>
-        /// <param name="collectionValueType">Type of the collection value.</param>
-        /// <exception cref="System.ArgumentException">Type must be CqlTypeCode.Map when CollectionKeyType and CollectionValueType are provided;typeCode</exception>
-        public CqlType(CqlTypeCode typeCode, CqlType collectionKeyType, CqlType collectionValueType)
+        public static CqlType CreateType(string typeName)
         {
-            if (typeCode != CqlTypeCode.Map)
-                throw new ArgumentException(
-                    "Type must be CqlTypeCode.Map when CollectionKeyType and CollectionValueType are provided",
-                    "typeCode");
-
-            if (collectionKeyType.CqlTypeCode == CqlTypeCode.List || collectionKeyType.CqlTypeCode == CqlTypeCode.Set ||
-                collectionKeyType.CqlTypeCode == CqlTypeCode.Map)
-                throw new ArgumentException("Map key type can not be another list, set or map", "collectionKeyType");
-
-            if (collectionValueType.CqlTypeCode == CqlTypeCode.List ||
-                collectionValueType.CqlTypeCode == CqlTypeCode.Set || collectionValueType.CqlTypeCode == CqlTypeCode.Map)
-                throw new ArgumentException("Collection value can not be another list, set or map",
-                                            "collectionValueType");
-
-            CqlTypeCode = typeCode;
-            CollectionKeyType = collectionKeyType;
-            CollectionValueType = collectionValueType;
-        }
-
-        /// <summary>
-        /// Gets the typeCode of the CQL.
-        /// </summary>
-        /// <value>
-        /// The typeCode of the CQL.
-        /// </value>
-        public CqlTypeCode CqlTypeCode { get; private set; }
-
-        /// <summary>
-        /// Gets the custom typeCode name.
-        /// </summary>
-        /// <value>
-        /// The typeCode of the custom.
-        /// </value>
-        public string CustomType { get; private set; }
-
-        /// <summary>
-        /// Gets the typeCode of the collection key.
-        /// </summary>
-        /// <value>
-        /// The typeCode of the collection key.
-        /// </value>
-        public CqlType CollectionKeyType { get; private set; }
-
-        /// <summary>
-        /// Gets the typeCode of the collection value.
-        /// </summary>
-        /// <value>
-        /// The typeCode of the collection value.
-        /// </value>
-        public CqlType CollectionValueType { get; private set; }
-
-        /// <summary>
-        ///   Returns the .NET typeCode representing the column typeCode
-        /// </summary>
-        /// <returns> </returns>
-        public Type ToType()
-        {
-            Type type;
-            switch (CqlTypeCode)
+            return TypeName2CqlType.GetOrAdd(typeName, (name) =>
             {
-                case CqlTypeCode.Map:
-                    Type genericMapType = typeof(Dictionary<,>);
-
-                    Debug.Assert(CollectionKeyType != null, "a map should have a Key typeCode");
-                    Debug.Assert(CollectionValueType != null, "a map should have a Value typeCode");
-
-                    type = genericMapType.MakeGenericType(CollectionKeyType.ToType(),
-                                                          CollectionValueType.ToType());
-                    break;
-
-                case CqlTypeCode.Set:
-                    Type genericSetType = typeof(HashSet<>);
-
-                    Debug.Assert(CollectionValueType != null, "a set should have a Value typeCode");
-
-                    type = genericSetType.MakeGenericType(CollectionValueType.ToType());
-                    break;
-
-                case CqlTypeCode.List:
-                    Type genericListType = typeof(List<>);
-                    Debug.Assert(CollectionValueType != null, "a list should have a Value typeCode");
-
-                    type = genericListType.MakeGenericType(CollectionValueType.ToType());
-                    break;
-
-                //TODO: custom support here
-
-                default:
-                    if (!CqlType2Type.TryGetValue(CqlTypeCode, out type))
-                        throw new ArgumentException("Unsupported typeCode");
-                    break;
-            }
-
-            return type;
+                var tp = new TypeParser(name);
+                return tp.CreateType();
+            });
         }
 
-        /// <summary>
-        ///   Constructs a CqlType based on the provided Type
-        /// </summary>
-        /// <param name="type"> The type </param>
-        public static CqlType FromType(Type type)
+        public static CqlType CreateType(Type type)
         {
-            CqlType cqlType;
-            if (!Type2CqlType.TryGetValue(type, out cqlType))
+            return Type2CqlType.GetOrAdd(type, (newType) =>
             {
-                if (type.IsGenericType)
+                if (newType.IsGenericType)
                 {
                     var genericType = type.GetGenericTypeDefinition();
 
                     //check for nullable types
                     if (genericType == typeof(Nullable<>))
                     {
-                        return FromType(type.GetGenericArguments()[0]);
+                        return CreateType(newType.GetGenericArguments()[0]);
                     }
 
-                    if (genericType == typeof(List<>))
-                    {
-                        Type listType = type.GetGenericArguments()[0];
-                        CqlType valueType = FromType(listType);
-                        return new CqlType(CqlTypeCode.List, valueType);
-                    }
+                    var interfaces =
+                        newType.GetInterfaces()
+                        .Where(i => i.IsGenericType)
+                        .Select(i => i.GetGenericTypeDefinition());
 
-                    if (genericType == typeof(HashSet<>))
-                    {
-                        Type setType = type.GetGenericArguments()[0];
-                        CqlType valueType = FromType(setType);
-                        return new CqlType(CqlTypeCode.Set, valueType);
-                    }
 
-                    if (genericType == typeof(Dictionary<,>))
-                    {
-                        var keyType = FromType(type.GetGenericArguments()[0]);
-                        var valueType = FromType(type.GetGenericArguments()[1]);
-                        return new CqlType(CqlTypeCode.Map, keyType, valueType);
-                    }
+                    //check for collection types
+                    if (interfaces.Any(i => i == typeof(IDictionary<,>)))
+                        return new MapTypeFactory().CreateType(newType);
 
-                    //TODO custom support here
+                    if (interfaces.Any(i => i == typeof(ISet<>)))
+                        return new SetTypeFactory().CreateType(newType);
 
-                    throw new CqlException("Unsupported type");
+                    if (interfaces.Any(i => i == typeof(IList<>)))
+                        return new ListTypeFactory().CreateType(newType);
                 }
-            }
 
-            return cqlType;
+                //TODO custom support here
+
+                throw new Exception("Unsupported type");
+
+            });
         }
 
+        public abstract CqlTypeCode CqlTypeCode { get; }
+        public abstract string TypeName { get; }
+        public abstract Type Type { get; }
+        public abstract byte[] Serialize<TSource>(TSource source);
+        public abstract TTarget Deserialize<TTarget>(byte[] data);
 
-        /// <summary>
-        ///   gets the corresponding the DbType
-        /// </summary>
-        /// <returns> </returns>
-        public DbType ToDbType()
-        {
-            DbType type;
-
-            if (CqlType2DbType.TryGetValue(CqlTypeCode, out type))
-            {
-                return type;
-            }
-
-            return DbType.Object;
-        }
-
-        /// <summary>
-        /// Determines whether the specified typeCode is a supported CQL typeCode
-        /// </summary>
-        /// <param name="type">The typeCode.</param>
-        /// <returns></returns>
-        /// <exception cref="System.NotSupportedException">CqlTypeCode can not be mapped to a valid CQL typeCode</exception>
-        public static bool IsSupportedCqlType(Type type)
-        {
-            try
-            {
-                //TODO refactor such that no exceptions is thrown
-                return FromType(type) != null;
-            }
-            catch (Exception)
-            {
-                return false;
-            }
-        }
-
-        /// <summary>
-        /// Returns a <see cref="System.String" /> that represents this instance.
-        /// </summary>
-        /// <returns>
-        /// A <see cref="System.String" /> that represents this instance.
-        /// </returns>
-        public override string ToString()
-        {
-            switch (CqlTypeCode)
-            {
-                case CqlTypeCode.List:
-                    return string.Format("list<{0}>", CollectionValueType);
-                case CqlTypeCode.Set:
-                    return string.Format("set<{0}>", CollectionValueType);
-                case CqlTypeCode.Map:
-                    return string.Format("map<{0},{1}>", CollectionKeyType, CollectionValueType);
-                case CqlTypeCode.Custom:
-                    return CustomType;
-                default:
-                    return CqlTypeCode.ToString();
-            }
-        }
 
         /// <summary>
         /// Creates a CqlType from the type of the database.
@@ -538,5 +177,109 @@ namespace CqlSharp
 
             throw new ArgumentOutOfRangeException("type", type, "CqlType can not be derived from the given DbType");
         }
+
+        /// <summary>
+        ///   gets the corresponding the DbType
+        /// </summary>
+        /// <returns> </returns>
+        public abstract DbType ToDbType();
+
+        /// <summary>
+        /// Indicates whether the current object is equal to another object of the same type.
+        /// </summary>
+        /// <param name="other">An object to compare with this object.</param>
+        /// <returns>
+        /// true if the current object is equal to the <paramref name="other" /> parameter; otherwise, false.
+        /// </returns>
+        public bool Equals(CqlType other)
+        {
+            if (CqlTypeCode != other.CqlTypeCode)
+                return false;
+
+            if (GetType() != other.GetType())
+                return false;
+
+            if (CqlTypeCode == CqlTypeCode.Custom)
+                return other.TypeName.Equals(TypeName, StringComparison.OrdinalIgnoreCase);
+
+            return false;
+        }
+
+        /// <summary>
+        /// Determines whether the specified <see cref="System.Object" }, is equal to this instance.
+        /// </summary>
+        /// <param name="obj">The <see cref="System.Object" /> to compare with this instance.</param>
+        /// <returns>
+        ///   <c>true</c> if the specified <see cref="System.Object" /> is equal to this instance; otherwise, <c>false</c>.
+        /// </returns>
+        public override bool Equals(object obj)
+        {
+            if (ReferenceEquals(null, obj)) return false;
+            if (ReferenceEquals(this, obj)) return true;
+            return Equals((CqlType)obj);
+        }
+
+        /// <summary>
+        /// Returns a hash code for this instance.
+        /// </summary>
+        /// <returns>
+        /// A hash code for this instance, suitable for use in hashing algorithms and data structures like a hash table. 
+        /// </returns>
+        public override int GetHashCode()
+        {
+            return TypeName.GetHashCode();
+        }
+
+        public static bool operator ==(CqlType left, CqlType right)
+        {
+            return Equals(left, right);
+        }
+
+        public static bool operator !=(CqlType left, CqlType right)
+        {
+            return !Equals(left, right);
+        }
+
+        /// <summary>
+        /// Returns a <see cref="System.String" /> that represents this instance.
+        /// </summary>
+        /// <returns>
+        /// A <see cref="System.String" /> that represents this instance.
+        /// </returns>
+        public override string ToString()
+        {
+            if (CqlTypeCode == CqlTypeCode.Custom)
+                return TypeName;
+
+            return CqlTypeCode.ToString();
+        }
+
+    }
+
+    /// <summary>
+    /// Typed version of the CqlType class. Implementers of new types should subclass this class
+    /// </summary>
+    /// <typeparam name="T">the .NET type represented by the given type</typeparam>
+    public abstract class CqlType<T> : CqlType
+    {
+        public override Type Type
+        {
+            get { return typeof(T); }
+        }
+
+        public override byte[] Serialize<TSource>(TSource source)
+        {
+            T value = Converter.ChangeType<TSource, T>(source);
+            return Serialize(value);
+        }
+
+        public override TTarget Deserialize<TTarget>(byte[] data)
+        {
+            T value = Deserialize(data);
+            return Converter.ChangeType<T, TTarget>(value);
+        }
+
+        public abstract byte[] Serialize(T value);
+        public abstract T Deserialize(byte[] data);
     }
 }

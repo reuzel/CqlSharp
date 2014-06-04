@@ -18,24 +18,29 @@ using System;
 namespace CqlSharp.Serialization
 {
     /// <summary>
-    ///   Indicates that a class is representated as custom user type in Cassandra
+    ///   Indicates the order in which this column is to be placed
     /// </summary>
-    [AttributeUsage(AttributeTargets.Class)]
-    public class UserTypeAttribute : Attribute
+    [AttributeUsage(AttributeTargets.Property | AttributeTargets.Field)]
+    public class CqlOrderAttribute : Attribute
     {
-        public UserTypeAttribute()
-        {
-        }
+        private readonly int _order;
 
-        public UserTypeAttribute(string name)
+        /// <summary>
+        /// Initializes a new instance of the <see cref="CqlOrderAttribute"/> class.
+        /// </summary>
+        /// <param name="order">The order.</param>
+        public CqlOrderAttribute(int order)
         {
-            Name = name;
+            _order = order;
         }
 
         /// <summary>
-        ///   Gets or sets the name.
+        ///   Gets the name of the index.
         /// </summary>
         /// <value> The name. </value>
-        public string Name { get; set; }
+        public int Order
+        {
+            get { return _order; }
+        }
     }
 }

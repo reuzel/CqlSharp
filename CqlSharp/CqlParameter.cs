@@ -69,7 +69,7 @@ namespace CqlSharp
             : this()
         {
             SetParameterName(name);
-            _column.Type = CqlType.FromType(value.GetType());
+            _column.Type = CqlType.CreateType(value.GetType());
             _value = value;
         }
 
@@ -285,7 +285,7 @@ namespace CqlSharp
                 if (Value == null)
                     return 0;
 
-                return ValueSerialization.Serialize(CqlType, Value).Length;
+                return CqlType.Serialize(Value).Length;
             }
             set
             {
