@@ -16,7 +16,7 @@ namespace CqlSharp.Logging
     /// </summary>
     internal class TraceLogger : ILogger
     {
-        private const int EVENT_ID = -1; // TODO: maybe change to anything more useful later
+        private const int EVENT_ID = 0; // TODO: maybe change to anything more useful later
         private readonly string _name;
         private TraceSource _source { get; set; }
 
