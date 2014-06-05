@@ -14,43 +14,20 @@
 // limitations under the License.
 
 using System;
-using System.Collections.Concurrent;
 
 namespace CqlSharp.Logging
 {
     /// <summary>
     ///   Logger factory for logging to Console output window
     /// </summary>
-    internal class ConsoleLoggerFactory : ILoggerFactory
+    internal class ConsoleLoggerFactory : LoggerFactory<ConsoleLogger>
     {
-        /// <summary>
-        ///   The Console logger instances
-        /// </summary>
-        private readonly ConcurrentDictionary<string, ConsoleLogger> _loggers =
-            new ConcurrentDictionary<string, ConsoleLogger>();
-
         #region Implementation of ILoggerFactory
 
-        /// <summary>
-        ///   Gets the name for this logger implementation. E.g. Null, Console, Log4Net
-        /// </summary>
-        /// <value> The name </value>
-        public string Name
-        {
-            get { return "Console"; }
-        }
-
-        /// <summary>
-        ///   Creates a logger implementation.
-        /// </summary>
-        /// <param name="name"> The name. </param>
-        /// <returns> </returns>
-        public ILogger CreateLogger(string name)
-        {
-            return _loggers.GetOrAdd(name, n => new ConsoleLogger(n));
-        }
+        public ConsoleLoggerFactory() : base("Console") { }
 
         #endregion
+
     }
 
     /// <summary>

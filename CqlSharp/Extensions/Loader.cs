@@ -13,14 +13,14 @@
 // See the License for the specific language governing permissions and
 // limitations under the License.
 
-using CqlSharp.Authentication;
-using CqlSharp.Logging;
 using System.Collections.Generic;
 using System.ComponentModel.Composition;
 using System.ComponentModel.Composition.Hosting;
 using System.ComponentModel.Composition.Registration;
 using System.IO;
 using System.Reflection;
+using CqlSharp.Authentication;
+using CqlSharp.Logging;
 
 namespace CqlSharp.Extensions
 {
@@ -109,7 +109,8 @@ namespace CqlSharp.Extensions
                                       {
                                           new NullLoggerFactory(),
                                           new ConsoleLoggerFactory(),
-                                          new DebugLoggerFactory()
+                                          new DebugLoggerFactory(),
+                                          new TraceLoggerFactory()
                                       };
 
                 AuthenticationFactories = new List<IAuthenticatorFactory>
