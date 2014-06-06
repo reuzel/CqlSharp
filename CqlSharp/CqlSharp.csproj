@@ -227,11 +227,14 @@
     <Compile Include="TypeExtensions.cs" />
   </ItemGroup>
   <ItemGroup>
+    <None Include="BuildPackage.cmd" />
     <None Include="Network\nSnappy\readme.txt" />
     <None Include="Properties\logo.ico" />
   </ItemGroup>
   <ItemGroup>
-    <None Include="CqlSharp.nuspec" />
+    <None Include="CqlSharp.nuspec">
+      <SubType>Designer</SubType>
+    </None>
   </ItemGroup>
   <Import Project="$(MSBuildToolsPath)\Microsoft.CSharp.targets" />
   <PropertyGroup>
