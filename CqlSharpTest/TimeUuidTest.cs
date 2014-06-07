@@ -55,6 +55,7 @@ namespace CqlSharp.Test
             var guid = time.GenerateTimeBasedGuid();
             var time2 = guid.GetDateTime();
 
+            Assert.AreEqual(0, time.Ticks - time2.Ticks);
             Assert.AreEqual(time, time2);
         }
 

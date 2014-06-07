@@ -17,6 +17,8 @@ using System;
 using System.Collections;
 using System.Collections.Generic;
 using System.Threading;
+using System.Linq;
+using CqlSharp.Logging;
 
 namespace CqlSharp.Network.Partition
 {
@@ -27,7 +29,7 @@ namespace CqlSharp.Network.Partition
     {
         private readonly ReaderWriterLockSlim _nodeLock;
         private readonly List<Node> _nodes;
-        private readonly string _partitioner;
+        private string _partitioner;
         private readonly List<IToken> _tokens;
         private volatile int _nodeCount;
         private Dictionary<IToken, List<Node>> _tokenMap;
@@ -37,15 +39,12 @@ namespace CqlSharp.Network.Partition
         /// </summary>
         /// <param name="nodes"> The nodes. </param>
         /// <param name="partitioner"> </param>
-        public Ring(IEnumerable<Node> nodes, string partitioner)
+        public Ring()
         {
-            _nodes = nodes is List<Node> ? (List<Node>) nodes : new List<Node>(nodes);
-            _nodeCount = _nodes.Count;
+            _nodes = new List<Node>();
+            _nodeCount = 0;
             _tokens = new List<IToken>();
-            _partitioner = partitioner;
             _nodeLock = new ReaderWriterLockSlim();
-
-            RebuildMap();
         }
 
         #region IList<Node> Members
@@ -83,7 +82,16 @@ namespace CqlSharp.Network.Partition
         {
             return GetEnumerator();
         }
-
+                
+        /// <summary>
+        /// Adds a range of nodes
+        /// </summary>
+        /// <param name="items"></param>
+        public void AddRange(IEnumerable<Node> items)
+        {
+            
+        }
+        
         /// <summary>
         ///   Adds an item to the <see cref="T:System.Collections.Generic.ICollection`1" />.
         /// </summary>
@@ -452,6 +460,58 @@ namespace CqlSharp.Network.Partition
             finally
             {
                 _nodeLock.ExitReadLock();
+            }
+        }
+
+        internal void Update(List<Node> found, string partitioner, Logger logger)
+        {
+            _nodeLock.EnterWriteLock();
+            
+            try
+            {
+                _partitioner = partitioner;
+
+                foreach (var node in found)
+                {
+                    var index = _nodes.IndexOf(node);
+
+                    if(index<0)
+                    {
+                        //the node is new, add it
+                        logger.LogInfo("{0} was added to the cluster", node);
+                        _nodes.Add(node);
+                        _nodeCount++;
+                    }
+                    else
+                    {
+                        //update the existing node with the found information
+                        var oldNode = _nodes[index];
+                        oldNode.DataCenter = node.DataCenter;
+                        oldNode.Rack = node.Rack;
+                        oldNode.Tokens = node.Tokens;
+                        oldNode.FrameVersion = Protocol.FrameVersion.ProtocolVersion2;
+                    }
+                }
+
+                //remove nodes not found
+                foreach (var node in _nodes.Except(found))
+                {
+                    logger.LogInfo("{0} was removed from the cluster", node);
+                    
+                    //remove from list
+                    _nodes.Remove(node);
+                    _nodeCount--;
+
+                    //dispose the node
+                    node.Dispose();
+                }
+
+                //rebuild the token map
+                RebuildMap();
+            }
+            finally
+            {
+                _nodeLock.ExitWriteLock();
             }
         }
     }

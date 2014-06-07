@@ -13,6 +13,7 @@
 // See the License for the specific language governing permissions and
 // limitations under the License.
 
+using CqlSharp;
 using System;
 using System.Collections.Concurrent;
 using System.Collections.Generic;
@@ -240,14 +241,20 @@ namespace CqlTest
 
         public static void Main(string[] args)
         {
-            const int prepared = 10000;
-            const int queries = 50000;
-            const int threads = 4;
+            using (var connection = new CqlConnection("cartDB"))
+            {
+                connection.SetConnectionTimeout(Timeout.Infinite);
+                connection.Open();
+            }
+                        
+            //const int prepared = 10000;
+            //const int queries = 50000;
+            //const int threads = 4;
 
-            var program = new Program();
-            program.Run(queries, threads, prepared);
+            //var program = new Program();
+            //program.Run(queries, threads, prepared);
 
-            //Console.ReadLine();
+            Console.ReadLine();
         }
     }
 
