@@ -1,3 +1,8 @@
+## Version 0.37.0 - TraceLogger and Fixes on cluster reconfiguration
+* Fix crash when nodes are added to a running system (and have no tokens gossiped). CqlSharp now reloads configurations every minute until all tokens are found.
+* Fix missing logger binding when using exclusive connection strategy
+* Simplified logger classes and added TraceLogger (thanks to justmara)
+
 ## Version 0.36.0 - Fixes and Development support
 * Fixing situation where queries using a pagesize are ended with a data frame with no contents
 * Fix of protocol negotiation flow for older Cassandra versions

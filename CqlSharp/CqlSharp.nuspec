@@ -31,6 +31,11 @@
       See https://github.com/reuzel/CqlSharp/wiki/Features for an extensive feature list.
     </description>
     <releaseNotes>
+      ## Version 0.37.0 - TraceLogger and Fixes on cluster reconfiguration
+      * Fix crash when nodes are added to a running system (and have no tokens gossiped). CqlSharp now reloads configurations every minute until all tokens are found.
+      * Fix missing logger binding when using exclusive connection strategy
+      * Simplified logger classes and added TraceLogger (thanks to justmara)
+
       ## Version 0.36.0 - Fixes and Development support
       * Fixing situation where queries using a pagesize are ended with a data frame with no contents
       * Fix of protocol negotiation flow for older Cassandra versions
@@ -38,18 +43,6 @@
       * Allowing the primary CQL* classes to be subclassed (e.g. allowing them to be mocked)
       * Introducing a non-generic interface to ObjectAccessor{T}
       
-      ## Version 0.35.0 - Make ExecuteScalar according to spec.
-      * Fix: ExecuteScalar now returns null in case no row was found, and DBNull.Value if the database column value is null
-
-      ## Version 0.34.0 - Socket options
-      * Adding socket options: connect timeout, Linger state, KeepAlive, SendBufferSize, and ReceiveBufferSize
-      * Fix: Proper CqlException returned when no cluster nodes can be reached
-
-      ## Version 0.33.0 - Improved transaction handling
-      * Improved state management of transaction
-      * Adding Reset to CqlTransaction, allowing reuse of transaction objects
-      * Adding CqlError class, to expose Cql error details (including trace ids) as LastQueryResult on CqlCommand
-
       ...
 
       See https://github.com/reuzel/CqlSharp/blob/master/ChangeLog.md for the full changelog.

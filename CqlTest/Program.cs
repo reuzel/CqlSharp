@@ -241,20 +241,20 @@ namespace CqlTest
 
         public static void Main(string[] args)
         {
-            using (var connection = new CqlConnection("cartDB"))
-            {
-                connection.SetConnectionTimeout(Timeout.Infinite);
-                connection.Open();
-            }
-                        
-            //const int prepared = 10000;
-            //const int queries = 50000;
-            //const int threads = 4;
+            //using (var connection = new CqlConnection("cartDB"))
+            //{
+            //    connection.SetConnectionTimeout(Timeout.Infinite);
+            //    connection.Open();
+            //}
 
-            //var program = new Program();
-            //program.Run(queries, threads, prepared);
+            const int prepared = 10000;
+            const int queries = 50000;
+            const int threads = 4;
 
-            Console.ReadLine();
+            var program = new Program();
+            program.Run(queries, threads, prepared);
+
+            //Console.ReadLine();
         }
     }
 
