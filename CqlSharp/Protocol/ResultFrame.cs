@@ -156,38 +156,50 @@ namespace CqlSharp.Protocol
                 string colTable = globalTablesSpec ? table : await reader.ReadStringAsync().ConfigureAwait(false);
                 string colName = await reader.ReadStringAsync().ConfigureAwait(false);
 
-                //read typeCode
-                var colType = (CqlTypeCode)await reader.ReadShortAsync().ConfigureAwait(false);
-                CqlType type;
-                switch (colType)
-                {
-                    case CqlTypeCode.Custom:
-                        var colCustom = await reader.ReadStringAsync().ConfigureAwait(false);
-                        type = CqlType.CreateType(colCustom);
-                        break;
-
-                    case CqlTypeCode.List:
-                    case CqlTypeCode.Set:
-                        var colValueType = (CqlTypeCode)await reader.ReadShortAsync().ConfigureAwait(false);
-                        type = CqlType.CreateType(colType, CqlType.CreateType(colValueType));
-                        break;
-
-                    case CqlTypeCode.Map:
-                        var colKeyType = (CqlTypeCode)await reader.ReadShortAsync().ConfigureAwait(false);
-                        var colValType = (CqlTypeCode)await reader.ReadShortAsync().ConfigureAwait(false);
-                        type = CqlType.CreateType(colType, CqlType.CreateType(colKeyType), CqlType.CreateType(colValType));
-                        break;
-
-                    default:
-                        type = CqlType.CreateType(colType);
-                        break;
-                }
+                //read type
+                CqlType type = await ReadCqlType(reader).ConfigureAwait(false);
 
                 //add to the MetaData
                 metaData.Add(new Column(colIdx, colKeyspace, colTable, colName, type));
             }
 
             return metaData;
+        }
+
+        /// <summary>
+        /// Reads the CqlType
+        /// </summary>
+        /// <param name="reader">The reader.</param>
+        /// <returns>a CqlType</returns>
+        private static async Task<CqlType> ReadCqlType(FrameReader reader)
+        {
+            //read typeCode
+            var colType = (CqlTypeCode)await reader.ReadShortAsync().ConfigureAwait(false);
+            CqlType type;
+            switch (colType)
+            {
+                case CqlTypeCode.Custom:
+                    var colCustom = await reader.ReadStringAsync().ConfigureAwait(false);
+                    type = CqlType.CreateType(colCustom);
+                    break;
+
+                case CqlTypeCode.List:
+                case CqlTypeCode.Set:
+                    var colValueType = await ReadCqlType(reader).ConfigureAwait(false);
+                    type = CqlType.CreateType(colType, colValueType);
+                    break;
+
+                case CqlTypeCode.Map:
+                    var colKeyType = await ReadCqlType(reader).ConfigureAwait(false);
+                    var colValType = await ReadCqlType(reader).ConfigureAwait(false);
+                    type = CqlType.CreateType(colType, colKeyType, colValType);
+                    break;
+
+                default:
+                    type = CqlType.CreateType(colType);
+                    break;
+            }
+            return type;
         }
     }
 }
