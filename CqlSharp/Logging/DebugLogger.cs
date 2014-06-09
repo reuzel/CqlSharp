@@ -14,7 +14,6 @@
 // limitations under the License.
 
 using System;
-using System.Collections.Concurrent;
 using System.Diagnostics;
 
 namespace CqlSharp.Logging
@@ -22,34 +21,11 @@ namespace CqlSharp.Logging
     /// <summary>
     ///   Logger factory for logging to Debug output window
     /// </summary>
-    internal class DebugLoggerFactory : ILoggerFactory
+    internal class DebugLoggerFactory : LoggerFactory<DebugLogger>
     {
-        /// <summary>
-        ///   The debug logger instances
-        /// </summary>
-        private readonly ConcurrentDictionary<string, DebugLogger> _loggers =
-            new ConcurrentDictionary<string, DebugLogger>();
-
         #region Implementation of ILoggerFactory
 
-        /// <summary>
-        ///   Gets the name for this logger implementation. E.g. Null, Debug, Log4Net
-        /// </summary>
-        /// <value> The name </value>
-        public string Name
-        {
-            get { return "Debug"; }
-        }
-
-        /// <summary>
-        ///   Creates a logger implementation.
-        /// </summary>
-        /// <param name="name"> The name. </param>
-        /// <returns> </returns>
-        public ILogger CreateLogger(string name)
-        {
-            return _loggers.GetOrAdd(name, n => new DebugLogger(n));
-        }
+        public DebugLoggerFactory() : base("Debug") { }
 
         #endregion
     }

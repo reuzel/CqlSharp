@@ -47,8 +47,7 @@ namespace CqlSharp.Network
         private string _rack;
         private string _release;
         private SemaphoreSlim _throttle;
-
-
+        
         /// <summary>
         ///   Initializes a new instance of the <see cref="Cluster" /> class.
         /// </summary>
@@ -258,6 +257,9 @@ namespace CqlSharp.Network
         private async Task OpenAsyncInternal(Logger logger, CancellationToken token)
         {
             logger.LogInfo("Opening Cluster with parameters: {0}", _config.ToString());
+            
+            //initialize the ring
+            _nodes = new Ring();
 
             //try to connect to the seeds in turn
             foreach (IPAddress seedAddress in _config.ServerAddresses)
@@ -301,15 +303,13 @@ namespace CqlSharp.Network
             }
 
             //check if we found any nodes
-            if (_nodes == null)
+            if (_nodes.Count == 0)
             {
                 var ex = new CqlException("Unable to connect to the cluster as none of the provided seeds is reachable.");
                 logger.LogCritical("Unable to setup Cluster based on given configuration: {0}", ex);
                 throw ex;
             }
-
-            logger.LogInfo("Nodes detected: " + string.Join(", ", _nodes.Select(n => n.Address)));
-
+           
             //setup cluster connection strategy
             switch (_config.ConnectionStrategy)
             {
@@ -420,7 +420,20 @@ namespace CqlSharp.Network
             using (logger.ThreadBinding())
             {
                 //get a connection
-                c = seed.GetOrCreateConnection(null);
+                if (seed != null && seed.IsUp)
+                {
+                    c = seed.GetOrCreateConnection(null);
+                }
+                else if(_maintenanceConnection!=null && _maintenanceConnection.IsConnected)
+                {
+                    c = _maintenanceConnection;
+                    seed = c.Node;
+                }
+                else
+                {
+                    c = _connectionStrategy.GetOrCreateConnection(ConnectionScope.Infrastructure, null);
+                    seed = c.Node;
+                }
             }
 
             //get local information
@@ -440,11 +453,11 @@ namespace CqlSharp.Network
                 partitioner = result.GetString(3);
                 _dataCenter = seed.DataCenter = result.GetString(4);
                 _rack = seed.Rack = result.GetString(5);
-                seed.Tokens = result.GetSet<string>(6);
+                seed.Tokens = result.GetSet<string>(6) ?? new HashSet<string>();
             }
 
             logger.LogInfo(
-                "Connected to cluster {0}, based on Cassandra Release {1}, supporting CqlVersion {2}, using partitioner '{3}'",
+                "Reconfigured cluster {0}: based on Cassandra Release {1}, supporting CqlVersion {2}, using partitioner '{3}'",
                 _name, _release, _cqlVersion, partitioner);
 
             //create list of nodes that make up the cluster, and add the seed
@@ -460,18 +473,7 @@ namespace CqlSharp.Network
                 //iterate over the peers
                 while (await result.ReadAsync().ConfigureAwait(false))
                 {
-                    //get address of new node, and fallback to listen_address when address is set to any
-                    var address = (IPAddress)result["rpc_address"];
-                    if (address.Equals(IPAddress.Any))
-                        address = (IPAddress)result["peer"];
-
-                    //create a new node
-                    var newNode = new Node(address, this)
-                                      {
-                                          DataCenter = (string)result["data_center"],
-                                          Rack = (string)result["rack"],
-                                          Tokens = (ISet<string>)result["tokens"]
-                                      };
+                    var newNode = GetNodeFromDataReader(result, logger);
 
                     //add it if it is in scope
                     if (InDiscoveryScope(seed, newNode, _config.DiscoveryScope))
@@ -480,9 +482,63 @@ namespace CqlSharp.Network
             }
 
             //set the new Ring of nodes
-            _nodes = new Ring(found, partitioner);
+            _nodes.Update(found, partitioner, logger);
+
+            //check if all tokens are received
+            if(_nodes.Any(n => n.Tokens.Count==0))
+            {
+                //wait and retry the fetch later...
+                var retry = Task.Run(async () =>
+                {
+                    try
+                    {
+                        logger.LogInfo("Cluster info incomplete scheduling new retrieval in 1 minute");
+                        await Task.Delay(TimeSpan.FromMinutes(1));
+                        await GetClusterInfoAsync(null, logger, CancellationToken.None);
+                    }
+                    catch(Exception ex)
+                    {
+                        logger.LogCritical("Critical error occured while updating cluster info: {0}", ex);
+                        return;
+                    }
+                });
+                
+            }
         }
 
+        private Node GetNodeFromDataReader(CqlDataReader reader, Logger logger)
+        {
+                //get address of new node, and fallback to listen_address when address is set to any
+                var address = reader["rpc_address"] as IPAddress;
+                if(address==null || address.Equals(IPAddress.Any))
+                    address = reader["peer"] as IPAddress;
+
+                var dc = reader["data_center"] as string;
+                var rack = reader["rack"] as string;
+
+                //check if we have an address, otherwise ignore
+                if (address == null || dc==null || rack==null)
+                {
+                    logger.LogError("Incomplete node information retrieved for a node: address={0}, dc={1}, rack={2}", 
+                        address!=null ?  address.ToString() :"(address not found!)", 
+                        dc ?? "(datacenter not found)",
+                        rack ?? "(rack not found)");
+
+                    return null;
+                }
+
+                var tokens = (reader["tokens"] as ISet<string>) ?? new HashSet<string>();
+
+                //create a new node
+                return new Node(address, this)
+                                    {
+                                        DataCenter = dc,
+                                        Rack = rack,
+                                        Tokens = tokens
+                                    };
+
+                    
+        }
         /// <summary>
         ///   Executes a query.
         /// </summary>
@@ -548,66 +604,36 @@ namespace CqlSharp.Network
 
             var logger = LoggerManager.GetLogger("CqlSharp.Cluster.Changes");
 
-            if (args.Change.Equals(ClusterChange.New))
+            try
             {
-                //get the connection from which we received the event
-                var connection = (Connection)source;
 
-                //get the new peer
-                using (
-                    var result =
-                        await
-                        ExecQuery(connection,
-                                  "select rpc_address, data_center, rack, tokens from system.peers where peer = '" +
-                                  args.Node + "'", logger, CancellationToken.None).ConfigureAwait(false))
+                if (args.Change.Equals(ClusterChange.New) || args.Change.Equals(ClusterChange.Removed))
                 {
-                    if (await result.ReadAsync().ConfigureAwait(false))
+                    logger.LogVerbose("Cluster changed: {0} is {1}", args.Node, args.Change);
+
+                    //get the connection from which we received the event
+                    var connection = (Connection)source;
+                    var node = connection.Node;
+
+                    //refetch the cluster configuration
+                    await GetClusterInfoAsync(node, logger, CancellationToken.None);
+                }
+                else if (args.Change.Equals(ClusterChange.Up))
+                {
+                    Node upNode = _nodes.FirstOrDefault(node => args.Node.Equals(node.Address));
+
+                    if (upNode != null)
                     {
-                        var newNode = new Node((IPAddress)result["rpc_address"], this)
-                                          {
-                                              DataCenter = (string)result["data_center"],
-                                              Rack = (string)result["rack"],
-                                              Tokens = (ISet<string>)result["tokens"]
-                                          };
-
-
-                        if (InDiscoveryScope(_nodes.First(), newNode, _config.DiscoveryScope))
+                        using (logger.ThreadBinding())
                         {
-                            logger.LogInfo("{0} added to the cluster", newNode);
-                            _nodes.Add(newNode);
-                        }
-                        else
-                        {
-                            logger.LogVerbose("new {0} is ignored as it does not fit in the discovery scope", newNode);
+                            upNode.Reactivate();
                         }
                     }
                 }
             }
-            else if (args.Change.Equals(ClusterChange.Removed))
+            catch(Exception ex)
             {
-                Node removedNode = _nodes.FirstOrDefault(node => args.Node.Equals(node.Address));
-                if (removedNode != null)
-                {
-                    _nodes.Remove(removedNode);
-                    logger.LogInfo("{0} was removed from the cluster", removedNode);
-                }
-                else
-                {
-                    logger.LogVerbose(
-                        "Node with address {0} was removed but not used within the current configuration", args.Node);
-                }
-            }
-            else if (args.Change.Equals(ClusterChange.Up))
-            {
-                Node upNode = _nodes.FirstOrDefault(node => args.Node.Equals(node.Address));
-
-                if (upNode != null)
-                {
-                    using (logger.ThreadBinding())
-                    {
-                        upNode.Reactivate();
-                    }
-                }
+                logger.LogError("Exception occured while handling cluster change {0} - {1}: {2}", args.Node, args.Change, ex);
             }
         }
 

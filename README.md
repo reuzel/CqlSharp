@@ -10,6 +10,8 @@ Installation
 
 The latest release of CqlSharp can be found as a [package on NuGet](http://nuget.org/packages/CqlSharp/). Please install from there.
 
+If you would like to have Linq support, please have a look at [CqlSharp.Linq](https://github.com/reuzel/CqlSharp.Linq), which can be installed via the [CqlSharp.Linq NuGet package](http://nuget.org/packages/CqlSharp.Linq/).
+
 Features
 --------
 

@@ -25,6 +25,7 @@ using CqlSharp.Network.Partition;
 using CqlSharp.Protocol;
 using Microsoft.QualityTools.Testing.Fakes;
 using Microsoft.VisualStudio.TestTools.UnitTesting;
+using CqlSharp.Logging;
 
 namespace CqlSharp.Test
 {
@@ -46,7 +47,8 @@ namespace CqlSharp.Test
                 var n2 = new Node(IPAddress.Parse("127.0.0.2"), cluster);
                 var n3 = new Node(IPAddress.Parse("127.0.0.3"), cluster);
                 var n4 = new Node(IPAddress.Parse("127.0.0.4"), cluster);
-                var nodes = new Ring(new List<Node> {n, n2, n3, n4}, "RandomPartitioner");
+                var nodes = new Ring();
+                nodes.Update(new List<Node> { n, n2, n3, n4 }, "RandomPartitioner", new Logger(new NullLogger(), LogLevel.None));
 
                 ShimAllConnections();
 
@@ -88,7 +90,8 @@ namespace CqlSharp.Test
                 var n2 = new Node(IPAddress.Parse("127.0.0.2"), cluster);
                 var n3 = new Node(IPAddress.Parse("127.0.0.3"), cluster);
                 var n4 = new Node(IPAddress.Parse("127.0.0.4"), cluster);
-                var nodes = new Ring(new List<Node> {n1, n2, n3, n4}, "RandomPartitioner");
+                var nodes = new Ring();
+                nodes.Update(new List<Node> { n1, n2, n3, n4 }, "RandomPartitioner", new Logger(new NullLogger(), LogLevel.None));
 
                 ShimAllConnections();
 
@@ -130,7 +133,9 @@ namespace CqlSharp.Test
                 var n2 = new Node(IPAddress.Parse("127.0.0.2"), cluster);
                 var n3 = new Node(IPAddress.Parse("127.0.0.3"), cluster);
                 var n4 = new Node(IPAddress.Parse("127.0.0.4"), cluster);
-                var nodes = new Ring(new List<Node> {n, n2, n3, n4}, "RandomPartitioner");
+                var nodes = new Ring();
+                nodes.Update(new List<Node> { n, n2, n3, n4 }, "RandomPartitioner", new Logger(new NullLogger(), LogLevel.None));
+
 
                 ShimAllConnections();
 
@@ -172,7 +177,8 @@ namespace CqlSharp.Test
                 var n2 = new Node(IPAddress.Parse("127.0.0.2"), cluster);
                 var n3 = new Node(IPAddress.Parse("127.0.0.3"), cluster);
                 var n4 = new Node(IPAddress.Parse("127.0.0.4"), cluster);
-                var nodes = new Ring(new List<Node> {n1, n2, n3, n4}, "RandomPartitioner");
+                var nodes = new Ring();
+                nodes.Update(new List<Node> { n1, n2, n3, n4 }, "RandomPartitioner", new Logger(new NullLogger(), LogLevel.None));
 
                 ShimAllConnections();
 
@@ -214,7 +220,8 @@ namespace CqlSharp.Test
                 var n2 = new Node(IPAddress.Parse("127.0.0.2"), cluster);
                 var n3 = new Node(IPAddress.Parse("127.0.0.3"), cluster);
                 var n4 = new Node(IPAddress.Parse("127.0.0.4"), cluster);
-                var nodes = new Ring(new List<Node> {n, n2, n3, n4}, "RandomPartitioner");
+                var nodes = new Ring();
+                nodes.Update(new List<Node> { n, n2, n3, n4 }, "RandomPartitioner", new Logger(new NullLogger(), LogLevel.None));
 
                 ShimAllConnections();
 
@@ -257,7 +264,9 @@ namespace CqlSharp.Test
                 var n2 = new Node(IPAddress.Parse("127.0.0.2"), cluster);
                 var n3 = new Node(IPAddress.Parse("127.0.0.3"), cluster);
                 var n4 = new Node(IPAddress.Parse("127.0.0.4"), cluster);
-                var nodes = new Ring(new List<Node> {n, n2, n3, n4}, "RandomPartitioner");
+                var nodes = new Ring();
+                nodes.Update(new List<Node> { n, n2, n3, n4 }, "RandomPartitioner", new Logger(new NullLogger(), LogLevel.None));
+
 
                 ShimAllConnections();
 
@@ -300,7 +309,9 @@ namespace CqlSharp.Test
                 var n2 = new Node(IPAddress.Parse("127.0.0.2"), cluster);
                 var n3 = new Node(IPAddress.Parse("127.0.0.3"), cluster);
                 var n4 = new Node(IPAddress.Parse("127.0.0.4"), cluster);
-                var nodes = new Ring(new List<Node> {n, n2, n3, n4}, "RandomPartitioner");
+                var nodes = new Ring();
+                nodes.Update(new List<Node> { n, n2, n3, n4 }, "RandomPartitioner", new Logger(new NullLogger(), LogLevel.None));
+
 
                 ShimAllConnections();
 

@@ -122,7 +122,8 @@ namespace CqlSharp.Extensions
                                       {
                                           new NullLoggerFactory(),
                                           new ConsoleLoggerFactory(),
-                                          new DebugLoggerFactory()
+                                          new DebugLoggerFactory(),
+                                          new TraceLoggerFactory()
                                       };
 
                 AuthenticationFactories = new List<IAuthenticatorFactory>

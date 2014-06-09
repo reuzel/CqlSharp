@@ -46,7 +46,7 @@ namespace CqlSharp.Test
             }
             catch (Exception ex)
             {
-                Assert.Fail("Wong exception thrown: {0}", ex.GetType().Name);
+                Assert.Fail("Wrong exception thrown: {0}", ex.GetType().Name);
             }
         }
 

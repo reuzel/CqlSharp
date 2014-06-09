@@ -55,7 +55,9 @@ namespace CqlSharp.Test
             var guid = time.GenerateTimeBasedGuid();
             var time2 = guid.GetDateTime();
 
-            Assert.AreEqual(time, time2);
+            //allow a clock drift of 1ms. other unit tests have created a lot of
+            //guids, and a single ms drift is therefore allowed here.
+            Assert.IsTrue(Math.Abs(time.Ticks - time2.Ticks)<=1);
         }
 
         [TestMethod]
