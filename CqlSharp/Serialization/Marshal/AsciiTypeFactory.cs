@@ -4,6 +4,11 @@ namespace CqlSharp.Serialization.Marshal
 {
     public class AsciiTypeFactory : ITypeFactory
     {
+        public string TypeName
+        {
+            get { return "org.apache.cassandra.db.marshal.AsciiType"; }
+        }
+        
         public CqlType CreateType(params object[] innerTypes)
         {
             return AsciiType.Instance;

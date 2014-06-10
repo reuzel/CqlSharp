@@ -57,7 +57,7 @@ namespace CqlSharp.Extensions
 
         public List<IAuthenticatorFactory> AuthenticationFactories { get; set; }
 
-        public List<ITypeFactory> SerializerFactories { get; set; }
+        public List<ITypeFactory> TypeFactories { get; set; }
 
         /// <summary>
         ///   Loads the logger factories.
@@ -94,7 +94,7 @@ namespace CqlSharp.Extensions
             //import into AuthenticationFactories
             conventions
                 .ForType<Loader>()
-                .ImportProperty(extensions => extensions.SerializerFactories);
+                .ImportProperty(extensions => extensions.TypeFactories);
 
             //create catalog of dlls
             var catalog = new AggregateCatalog();
@@ -131,9 +131,28 @@ namespace CqlSharp.Extensions
                                                   new PasswordAuthenticatorFactory()
                                               };
 
-                SerializerFactories = new List<ITypeFactory>
+                TypeFactories = new List<ITypeFactory>
                                       {
-                                          //TODO: add known type factories
+                                          new AsciiTypeFactory(),
+                                          new BooleanTypeFactory(),
+                                          new BytesTypeFactory(),
+                                          new CounterColumnTypeFactory(),
+                                          new DateTypeFactory(),
+                                          new DecimalTypeFactory(),
+                                          new DoubleTypeFactory(),
+                                          new FloatTypeFactory(),
+                                          new InetAddressTypeFactory(),
+                                          new Int32TypeFactory(),
+                                          new IntegerTypeFactory(),
+                                          new LexicalUUIDTypeFactory(),
+                                          new ListTypeFactory(),
+                                          new LongTypeFactory(),
+                                          new MapTypeFactory(),
+                                          new SetTypeFactory(),
+                                          new TimestampTypeFactory(),
+                                          new TimeUUIDTypeFactory(),
+                                          new UTF8TypeFactory(),
+                                          new UUIDTypeFactory()
                                       };
             }
         }

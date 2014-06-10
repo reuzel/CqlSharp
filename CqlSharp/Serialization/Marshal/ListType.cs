@@ -22,7 +22,7 @@ namespace CqlSharp.Serialization.Marshal
 
         public override CqlTypeCode CqlTypeCode
         {
-            get { return _valueType.CqlTypeCode == CqlTypeCode.Custom ? CqlTypeCode.Custom : CqlTypeCode.List; }
+            get { return CqlTypeCode.List; }
         }
 
         public override string TypeName
@@ -74,6 +74,12 @@ namespace CqlSharp.Serialization.Marshal
                 }
                 return list;
             }
+        }
+
+        public override bool Equals(CqlType other)
+        {
+            var listType = other as ListType<T>;
+            return listType!=null && listType._valueType.Equals(_valueType);
         }
 
         public override string ToString()

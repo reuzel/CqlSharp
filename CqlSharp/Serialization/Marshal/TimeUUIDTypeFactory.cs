@@ -4,6 +4,11 @@ namespace CqlSharp.Serialization.Marshal
 {
     public class TimeUUIDTypeFactory : ITypeFactory
     {
+        public string TypeName
+        {
+            get { return "org.apache.cassandra.db.marshal.TimeUUIDType"; }
+        }
+
         public CqlType CreateType(params object[] innerTypes)
         {
             return TimeUUIDType.Instance;

@@ -4,6 +4,11 @@ namespace CqlSharp.Serialization.Marshal
 {
     public class FloatTypeFactory : ITypeFactory
     {
+        public string TypeName
+        {
+            get { return "org.apache.cassandra.db.marshal.FloatType"; }
+        }
+
         public CqlType CreateType(params object[] innerTypes)
         {
             return FloatType.Instance;

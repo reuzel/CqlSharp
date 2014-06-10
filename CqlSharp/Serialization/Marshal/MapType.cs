@@ -20,9 +20,7 @@ namespace CqlSharp.Serialization.Marshal
         {
             get
             {
-                return (_keyType.CqlTypeCode == CqlTypeCode.Custom || _valueType.CqlTypeCode == CqlTypeCode.Custom)
-                           ? CqlTypeCode.Custom
-                           : CqlTypeCode.Map;
+                return CqlTypeCode.Map;
             }
         }
 
@@ -80,6 +78,12 @@ namespace CqlSharp.Serialization.Marshal
             }
         }
 
+        public override bool Equals(CqlType other)
+        {
+            var mapType = other as MapType<TKey, TValue>;
+            return mapType != null && mapType._keyType.Equals(_keyType) && mapType._valueType.Equals(_valueType);
+        }
+        
         public override string ToString()
         {
             return string.Format("map<{0},{1}>", _keyType, _valueType);

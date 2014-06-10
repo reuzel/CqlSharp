@@ -4,6 +4,11 @@ namespace CqlSharp.Serialization.Marshal
 {
     public class CounterColumnTypeFactory : ITypeFactory
     {
+        public string TypeName
+        {
+            get { return "org.apache.cassandra.db.marshal.CounterColumnType"; }
+        }
+
         public CqlType CreateType(params object[] innerTypes)
         {
             return CounterColumnType.Instance;

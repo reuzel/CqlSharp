@@ -4,6 +4,11 @@ namespace CqlSharp.Serialization.Marshal
 {
     public class DecimalTypeFactory : ITypeFactory
     {
+        public string TypeName
+        {
+            get { return "org.apache.cassandra.db.marshal.DecimalType"; }
+        }
+        
         public CqlType CreateType(params object[] innerTypes)
         {
             return DecimalType.Instance;

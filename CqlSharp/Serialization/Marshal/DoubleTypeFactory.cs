@@ -4,6 +4,11 @@ namespace CqlSharp.Serialization.Marshal
 {
     public class DoubleTypeFactory : ITypeFactory
     {
+        public string TypeName
+        {
+            get { return "org.apache.cassandra.db.marshal.DoubleType"; }
+        }
+
         public CqlType CreateType(params object[] innerTypes)
         {
             return DoubleType.Instance;

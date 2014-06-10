@@ -4,6 +4,11 @@ namespace CqlSharp.Serialization.Marshal
 {
     public class BytesTypeFactory : ITypeFactory
     {
+        public string TypeName
+        {
+            get { return "org.apache.cassandra.db.marshal.BytesType"; }
+        }
+        
         public CqlType CreateType(params object[] innerTypes)
         {
             return BytesType.Instance;

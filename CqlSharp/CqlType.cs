@@ -111,7 +111,7 @@ namespace CqlSharp
             return TypeName2CqlType.GetOrAdd(typeName, (name) =>
             {
                 var tp = new TypeParser(name);
-                return tp.CreateType();
+                return tp.ReadCqlType();
             });
         }
 
@@ -191,18 +191,15 @@ namespace CqlSharp
         /// <returns>
         /// true if the current object is equal to the <paramref name="other" /> parameter; otherwise, false.
         /// </returns>
-        public bool Equals(CqlType other)
+        public virtual bool Equals(CqlType other)
         {
             if (CqlTypeCode != other.CqlTypeCode)
                 return false;
-
-            if (GetType() != other.GetType())
-                return false;
-
+            
             if (CqlTypeCode == CqlTypeCode.Custom)
                 return other.TypeName.Equals(TypeName, StringComparison.OrdinalIgnoreCase);
 
-            return false;
+            return true;
         }
 
         /// <summary>
@@ -216,6 +213,7 @@ namespace CqlSharp
         {
             if (ReferenceEquals(null, obj)) return false;
             if (ReferenceEquals(this, obj)) return true;
+            if (GetType() != obj.GetType()) return false;
             return Equals((CqlType)obj);
         }
 
@@ -251,7 +249,7 @@ namespace CqlSharp
             if (CqlTypeCode == CqlTypeCode.Custom)
                 return TypeName;
 
-            return CqlTypeCode.ToString();
+            return CqlTypeCode.ToString().ToLower();
         }
 
     }

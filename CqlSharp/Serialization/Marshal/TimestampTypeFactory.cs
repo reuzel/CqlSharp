@@ -4,6 +4,11 @@ namespace CqlSharp.Serialization.Marshal
 {
     public class TimestampTypeFactory : ITypeFactory
     {
+        public string TypeName
+        {
+            get { return "org.apache.cassandra.db.marshal.TimestampType"; }
+        }
+
         public CqlType CreateType(params object[] innerTypes)
         {
             return TimestampType.Instance;

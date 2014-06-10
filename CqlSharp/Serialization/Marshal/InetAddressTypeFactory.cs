@@ -4,6 +4,11 @@ namespace CqlSharp.Serialization.Marshal
 {
     public class InetAddressTypeFactory : ITypeFactory
     {
+        public string TypeName
+        {
+            get { return "org.apache.cassandra.db.marshal.InetAddressType"; }
+        }
+
         public CqlType CreateType(params object[] innerTypes)
         {
             return InetAddressType.Instance;

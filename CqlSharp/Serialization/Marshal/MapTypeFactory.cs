@@ -5,8 +5,13 @@ namespace CqlSharp.Serialization.Marshal
 {
     public class MapTypeFactory : ITypeFactory
     {
-        private readonly ConcurrentDictionary<Tuple<CqlType, CqlType>, CqlType> _types = new ConcurrentDictionary<Tuple<CqlType, CqlType>, CqlType>();
+        private static readonly ConcurrentDictionary<Tuple<CqlType, CqlType>, CqlType> _types = new ConcurrentDictionary<Tuple<CqlType, CqlType>, CqlType>();
 
+        public string TypeName
+        {
+            get { return "org.apache.cassandra.db.marshal.MapType"; }
+        }
+        
         public CqlType CreateType(params object[] innerTypes)
         {
             var keyType = innerTypes[0] as CqlType;
@@ -15,6 +20,11 @@ namespace CqlSharp.Serialization.Marshal
             if (keyType == null || valueType == null)
                 throw new CqlException("Need two CqlTypes for key and value as parameters when constructing a MapType");
 
+            return CreateType(keyType, valueType);
+        }
+
+        private CqlType CreateType(CqlType keyType, CqlType valueType)
+        {
             var tuple = new Tuple<CqlType, CqlType>(keyType, valueType);
 
             return _types.GetOrAdd(tuple, types =>
@@ -26,7 +36,14 @@ namespace CqlSharp.Serialization.Marshal
 
         public CqlType CreateType(TypeParser parser)
         {
-            throw new NotImplementedException();
+            var keyType = parser.ReadCqlType();
+            
+            if (parser.ReadNextChar() != ',')
+                throw new CqlException("Expected a ',' during parsing of a map type");
+
+            var valueType = parser.ReadCqlType();
+
+            return CreateType(keyType, valueType);
         }
 
         public CqlType CreateType(Type type)

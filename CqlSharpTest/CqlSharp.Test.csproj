@@ -78,6 +78,7 @@
     <Compile Include="SynchronizationContext.cs" />
     <Compile Include="ObjectAccessorTest.cs" />
     <Compile Include="TimeUuidTest.cs" />
+    <Compile Include="TypeParserTest.cs" />
   </ItemGroup>
   <ItemGroup>
     <ProjectReference Include="..\CqlSharp\CqlSharp.csproj">

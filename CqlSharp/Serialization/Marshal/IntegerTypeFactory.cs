@@ -4,6 +4,12 @@ namespace CqlSharp.Serialization.Marshal
 {
     public class IntegerTypeFactory : ITypeFactory
     {
+
+        public string TypeName
+        {
+            get { return "org.apache.cassandra.db.marshal.IntegerType"; }
+        }
+
         public CqlType CreateType(params object[] innerTypes)
         {
             return IntegerType.Instance;
