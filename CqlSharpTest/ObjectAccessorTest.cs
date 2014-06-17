@@ -37,8 +37,8 @@ namespace CqlSharp.Test
 
             Assert.IsFalse(accessor.IsKeySpaceSet);
             Assert.IsNull(accessor.Keyspace);
-            Assert.IsTrue(accessor.IsTableSet);
-            Assert.AreEqual("a", accessor.Table);
+            Assert.IsTrue(accessor.IsNameSet);
+            Assert.AreEqual("a", accessor.Name);
 
             Assert.AreEqual(6, accessor.Columns.Count);
             Assert.AreEqual(12, accessor.ColumnsByName.Count);
@@ -111,8 +111,8 @@ namespace CqlSharp.Test
 
             Assert.IsTrue(accessor.IsKeySpaceSet);
             Assert.AreEqual("bKeyspace", accessor.Keyspace);
-            Assert.IsTrue(accessor.IsTableSet);
-            Assert.AreEqual("bTable", accessor.Table);
+            Assert.IsTrue(accessor.IsNameSet);
+            Assert.AreEqual("bTable", accessor.Name);
 
             Assert.AreEqual(2, accessor.Columns.Count);
             Assert.AreEqual(6, accessor.ColumnsByName.Count);

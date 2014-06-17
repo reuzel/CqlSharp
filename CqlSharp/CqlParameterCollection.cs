@@ -529,7 +529,7 @@ namespace CqlSharp
                 string name;
                 if (accessor.IsKeySpaceSet)
                     name = parameter.Column.KeySpaceTableAndName;
-                else if (accessor.IsTableSet)
+                else if (accessor.IsNameSet)
                     name = parameter.Column.TableAndName;
                 else
                     name = parameter.Column.Name;

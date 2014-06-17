@@ -146,7 +146,10 @@ namespace CqlSharp
                         return new ListTypeFactory().CreateType(newType);
                 }
 
-                //TODO custom support here
+                //check if custom type attribute is set
+                var customAttribute = Attribute.GetCustomAttribute(newType, typeof(CqlCustomTypeAttribute)) as CqlCustomTypeAttribute;
+                if (customAttribute != null)
+                    return customAttribute.CreateFactory().CreateType(newType);
 
                 throw new Exception("Unsupported type");
 

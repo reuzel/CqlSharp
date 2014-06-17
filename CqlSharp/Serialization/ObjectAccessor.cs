@@ -57,7 +57,7 @@ namespace CqlSharp.Serialization
         private ObjectAccessor()
         {
             //get table and keyspace name
-            SetTableProperties();
+            SetEntityProperties();
 
             //get typeCode
             _type = typeof(T);
@@ -72,11 +72,11 @@ namespace CqlSharp.Serialization
             {
                 var name = column.Name;
                 columnsByName[name] = column;
-                if (IsTableSet)
+                if (IsNameSet)
                 {
-                    columnsByName[Table + "." + name] = column;
+                    columnsByName[Name + "." + name] = column;
                     if (IsKeySpaceSet)
-                        columnsByName[Keyspace + "." + Table + "." + name] = column;
+                        columnsByName[Keyspace + "." + Name + "." + name] = column;
                 }
             }
             _columnsByName = new ReadOnlyDictionary<string, CqlColumnInfo<T>>(columnsByName);
@@ -184,13 +184,13 @@ namespace CqlSharp.Serialization
         ///   Gets a value indicating whether [is table set].
         /// </summary>
         /// <value> <c>true</c> if [is table set]; otherwise, <c>false</c> . </value>
-        public bool IsTableSet { get; private set; }
+        public bool IsNameSet { get; private set; }
 
         /// <summary>
         ///   Gets the table name.
         /// </summary>
         /// <value> The table. </value>
-        public string Table { get; private set; }
+        public string Name { get; private set; }
 
 
         /// <summary>
@@ -258,31 +258,31 @@ namespace CqlSharp.Serialization
         }
 
         /// <summary>
-        ///   Sets the table properties.
+        ///   Sets the entity properties.
         /// </summary>
-        private void SetTableProperties()
+        private void SetEntityProperties()
         {
-            //set default keyspace and table name to empty strings (nothing)
+            //set default keyspace and entity name to empty strings (nothing)
             Keyspace = null;
-            Table = null;
+            Name = null;
 
-            //set default table name to class name if table is not anonymous
+            //set default name to class name if class is not anonymous
             Type type = typeof(T);
-            IsTableSet = !type.IsAnonymous();
-            if (IsTableSet)
-                Table = type.Name.ToLower();
+            IsNameSet = !type.IsAnonymous();
+            if (IsNameSet)
+                Name = type.Name.ToLower();
 
-            //check for CqlTable attribute
-            var tableAttribute = Attribute.GetCustomAttribute(type, typeof(CqlTableAttribute)) as CqlTableAttribute;
-            if (tableAttribute != null)
+            //check for CqlEntity attribute
+            var entityAttribute = Attribute.GetCustomAttribute(type, typeof(CqlEntityAttribute)) as CqlEntityAttribute;
+            if (entityAttribute != null)
             {
                 //overwrite keyspace if any
-                IsKeySpaceSet = tableAttribute.Keyspace != null;
+                IsKeySpaceSet = entityAttribute.Keyspace != null;
                 if (IsKeySpaceSet)
-                    Keyspace = tableAttribute.Keyspace;
+                    Keyspace = entityAttribute.Keyspace;
 
-                //set default table name
-                Table = tableAttribute.Table ?? Table;
+                //set default name
+                Name = entityAttribute.Name ?? Name;
             }
         }
 

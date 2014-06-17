@@ -14,6 +14,7 @@
 // limitations under the License.
 
 using System;
+using System.Collections.Concurrent;
 using System.Collections.Generic;
 using System.Diagnostics;
 using System.Linq;
@@ -45,6 +46,13 @@ namespace CqlSharp.Serialization
         public static TT ChangeType<TS, TT>(TS source)
         {
             return TypeConverter<TS, TT>.Convert(source);
+        }
+
+        public static object ChangeType(object source, Type target)
+        {
+            var converterType = typeof(TypeConverter<,>).MakeGenericType(source.GetType(), target);
+            var converter = (Delegate)converterType.GetProperty("Convert", BindingFlags.Static).GetValue(null, null);
+            return converter.DynamicInvoke(source);
         }
 
         #region Nested type: TypeConverter

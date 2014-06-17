@@ -732,7 +732,7 @@ namespace CqlSharp
                         {
                             name = column.KeySpaceTableAndName;
                         }
-                        else if (accessor.IsTableSet)
+                        else if (accessor.IsNameSet)
                         {
                             name = column.TableAndName;
                         }

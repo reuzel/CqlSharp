@@ -48,5 +48,7 @@ namespace CqlSharp.Test
 
             Assert.AreEqual(expected, type);
         }
+
+
     }
 }

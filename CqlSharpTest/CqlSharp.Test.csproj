@@ -79,6 +79,7 @@
     <Compile Include="ObjectAccessorTest.cs" />
     <Compile Include="TimeUuidTest.cs" />
     <Compile Include="TypeParserTest.cs" />
+    <Compile Include="UserDefinedTypeTest.cs" />
   </ItemGroup>
   <ItemGroup>
     <ProjectReference Include="..\CqlSharp\CqlSharp.csproj">

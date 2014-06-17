@@ -30,6 +30,32 @@ namespace CqlSharp.Serialization.Marshal
                 index++;
         }
 
+        /// <summary>
+        /// Skips the blanks and a single comma.
+        /// </summary>
+        /// <returns>true if more data is available after this call</returns>
+        public bool SkipBlankAndComma()
+        {
+            bool commaFound = false;
+            while (!IsEOS())
+            {
+                char c = _typeName[index];
+                if (c == ',')
+                {
+                    if (commaFound)
+                        return true;
+                    else
+                        commaFound = true;
+                }
+                else if (!IsBlank(c))
+                {
+                    return true;
+                }
+                index++;
+            }
+            return false;
+        }
+
         private static bool IsBlank(char c)
         {
             return c == ' ' || c == '\t' || c == '\n';
@@ -42,21 +68,19 @@ namespace CqlSharp.Serialization.Marshal
                 || c == '-' || c == '+' || c == '.' || c == '_' || c == '&';
         }
 
-        public String ReadNextIdentifier()
+        public String ReadNextIdentifier(bool expandNamespace = true)
         {
             SkipBlank();
             int i = index;
-            bool hasDot = false;
             while (!IsEOS() && IsIdentifierChar(_typeName[index]))
             {
-                hasDot |= (_typeName[index] == '.');
                 index++;
             }
 
             if (i == index)
                 throw new CqlException(string.Format("Error parsing type {0}. Expected an identifier at position {1}", _typeName, index));
 
-            return hasDot ? _typeName.Substring(i, index - i) : "org.apache.cassandra.db.marshal." + _typeName.Substring(i, index - i);
+            return _typeName.Substring(i, index - i);
         }
 
         public char ReadNextChar()
@@ -68,6 +92,9 @@ namespace CqlSharp.Serialization.Marshal
         public CqlType ReadCqlType()
         {
             string type = ReadNextIdentifier();
+
+            if(type.IndexOf('.')<0)
+                type = "org.apache.cassandra.db.marshal." + type;
             
             var typeFactory = Extensions.Loader.Extensions.TypeFactories.Find(factory => factory.TypeName.Equals(type, StringComparison.OrdinalIgnoreCase));
 

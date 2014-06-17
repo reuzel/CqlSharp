@@ -18,17 +18,23 @@ using System;
 namespace CqlSharp.Serialization
 {
     /// <summary>
-    ///   Annotates a class to have it map to a specific table and optionally keyspace
+    ///   Annotates a class to have it map to a specific name and optionally keyspace
     /// </summary>
-    public class CqlTableAttribute : CqlEntityAttribute
+    [AttributeUsage(AttributeTargets.Class)]
+    public class CqlEntityAttribute : Attribute
     {
-        public CqlTableAttribute(string table) : base(table)
+        private readonly string _name;
+
+        public CqlEntityAttribute(string name)
         {
+            _name = name;
         }
 
-        public string Table
+        public string Name
         {
-            get { return Name; }
+            get { return _name; }
         }
+
+        public string Keyspace { get; set; }
     }
 }

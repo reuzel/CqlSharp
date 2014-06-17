@@ -67,6 +67,9 @@
     <Compile Include="CqlSchemaTableColumnNames.cs" />
     <Compile Include="DiscoveryScope.cs" />
     <Compile Include="Extensions\Loader.cs" />
+    <Compile Include="Serialization\CqlCustomTypeAttribute.cs" />
+    <Compile Include="Serialization\CqlEntityAttribute.cs" />
+    <Compile Include="Serialization\ICastable.cs" />
     <Compile Include="Logging\ConsoleLogger.cs" />
     <Compile Include="Logging\DebugLogger.cs" />
     <Compile Include="Logging\FastGuid.cs" />
@@ -214,6 +217,8 @@
     <Compile Include="Serialization\Marshal\TimeUUIDType.cs" />
     <Compile Include="Serialization\Marshal\TimeUUIDTypeFactory.cs" />
     <Compile Include="Serialization\Marshal\TypeParser.cs" />
+    <Compile Include="Serialization\Marshal\UserDefinedType.cs" />
+    <Compile Include="Serialization\Marshal\UserDefinedTypeFactory.cs" />
     <Compile Include="Serialization\Marshal\UTF8Type.cs" />
     <Compile Include="Serialization\Marshal\UTF8TypeFactory.cs" />
     <Compile Include="Serialization\Marshal\UUIDType.cs" />
@@ -222,11 +227,13 @@
     <Compile Include="Serialization\CqlIgnoreAttribute.cs" />
     <Compile Include="Serialization\CqlTableAttribute.cs" />
     <Compile Include="Serialization\ObjectAccessor.cs" />
+    <Compile Include="Serialization\CqlUserTypeAttribute.cs" />
     <Compile Include="TimeGuid.cs" />
     <Compile Include="Tracing\QueryTraceCommand.cs" />
     <Compile Include="Tracing\TracingEvent.cs" />
     <Compile Include="Tracing\TracingSession.cs" />
     <Compile Include="TypeExtensions.cs" />
+    <Compile Include="UserDefined.cs" />
   </ItemGroup>
   <ItemGroup>
     <None Include="BuildPackage.cmd" />

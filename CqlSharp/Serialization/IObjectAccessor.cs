@@ -41,13 +41,13 @@ namespace CqlSharp.Serialization
         ///   Gets a value indicating whether [is table set].
         /// </summary>
         /// <value> <c>true</c> if [is table set]; otherwise, <c>false</c> . </value>
-        bool IsTableSet { get; }
+        bool IsNameSet { get; }
 
         /// <summary>
-        ///   Gets the table name.
+        ///   Gets the name of the entity (e.g. table).
         /// </summary>
-        /// <value> The table. </value>
-        string Table { get; }
+        /// <value> The name. </value>
+        string Name { get; }
 
         /// <summary>
         ///   Gets the type this accessor can handle
