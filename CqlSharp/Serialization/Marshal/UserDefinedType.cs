@@ -107,39 +107,103 @@ namespace CqlSharp.Serialization.Marshal
         {
             return _fieldList.Count;
         }
-        
+
+        public override byte[] Serialize<TSource>(TSource source)
+        {
+            if(typeof(TSource) == typeof(UserDefined))
+                return Serialize((UserDefined)(object)source);
+                        
+            var accessor = ObjectAccessor<TSource>.Instance;
+            var rawValues = new byte[_fieldList.Count][];
+
+            if(accessor.Columns.Count>_fieldList.Count)
+                throw new CqlException(string.Format("Type {0} is not compatible with CqlType {1}", typeof(TSource), this));
+
+            for (int i = 0; i < accessor.Columns.Count; i++)
+            {
+                var column = accessor.Columns[i];
+                if(column.CqlType != _fieldList[i].Value)
+                    throw new CqlException(string.Format("Type {0} is not compatible with CqlType {1}", typeof(TSource), this));
+
+                rawValues[i] = column.CqlType.Serialize(column.Read<object>(source));
+            }
+
+            return Serialize(rawValues);
+        }
+
         public override byte[] Serialize(UserDefined value)
+        {
+            var rawValues = new byte[_fieldList.Count][];
+            for(int i=0; i<_fieldList.Count; i++)
+            {
+                rawValues[i] = _fieldList[i].Value.Serialize(value.Values[i]);
+            }
+            
+            return Serialize(rawValues);
+        }
+
+        private byte[] Serialize(byte[][] rawValues)
         {
             //calculate array size
             int size = 0;
-            for(int i=0; i<_fieldList.Count; i++)
-                size+=  4 + (value.RawValues[i]==null? 0 : value.RawValues[i].Length);
+            for (int i = 0; i < rawValues.Length; i++)
+                size += 4 + (rawValues[i] == null ? 0 : rawValues[i].Length);
 
             //write all the components
-            using(var stream = new MemoryStream(size))
+            using (var stream = new MemoryStream(size))
             {
-                for(int i=0;i<_fieldList.Count;i++)
+                for (int i = 0; i < _fieldList.Count; i++)
                 {
-                    stream.WriteByteArray(value.RawValues[i]);
+                    stream.WriteByteArray(rawValues[i]);
                 }
 
                 return stream.ToArray();
             }
         }
 
+        public override TTarget Deserialize<TTarget>(byte[] data)
+        {
+            if (typeof(TTarget) == typeof(UserDefined) || typeof(TTarget) == typeof(object))
+            {
+                return (TTarget)(object)Deserialize(data);
+            }
+            
+            using (var stream = new MemoryStream(data))
+            {
+                TTarget result = Activator.CreateInstance<TTarget>();
+                var accessor = ObjectAccessor<TTarget>.Instance;
+
+                foreach(var field in _fieldList)
+                {
+                    byte[] rawValue = stream.ReadByteArray();
+
+                    ICqlColumnInfo<TTarget> column;
+                    if (accessor.ColumnsByName.TryGetValue(field.Key, out column))
+                    {
+                        column.DeserializeTo(result, rawValue, field.Value);
+                    }
+                }
+
+                return result;
+            }
+        }
+
         public override UserDefined Deserialize(byte[] data)
         {
-            var rawValues = new byte[_fieldList.Count][];
+            var values = new object[_fieldList.Count];
 
             using (var stream = new MemoryStream(data))
             {
-                for (int i = 0; i < _fieldList.Count; i++)
+                for(int i=0; i<_fieldList.Count; i++)
                 {
-                    rawValues[i] = stream.ReadByteArray();
+                    byte[] rawValue = stream.ReadByteArray();
+
+                    if(rawValue!=null)
+                        values[i] = _fieldList[i].Value.Deserialize<object>(rawValue);
                 }
             }
 
-            return new UserDefined(this, rawValues);
+            return new UserDefined(this, values);
         }
 
         public override CqlTypeCode CqlTypeCode

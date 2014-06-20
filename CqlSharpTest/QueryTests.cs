@@ -152,7 +152,7 @@ namespace CqlSharp.Test
         // ReSharper restore InconsistentNaming
         {
             //Assume
-            const string insertCql = @"select count(*) from system.schema_keyspaces where keyspace_name = 'system';";
+            const string insertCql = @"select count(*) from system.schema_keyspaces;";
 
             long count;
 

@@ -1195,13 +1195,13 @@ namespace CqlSharp
                     queryId = prepareResult.PreparedQueryId;
                 }
 
-                queryFrame = new ExecuteFrame(queryId, Consistency, Parameters.Values);
+                queryFrame = new ExecuteFrame(queryId, Consistency, Parameters.Serialize());
 
                 logger.LogVerbose("Sending execute {0} using {1}", Query, connection);
             }
             else
             {
-                byte[][] values = _parameters != null && _parameters.Count > 0 ? _parameters.Values : null;
+                byte[][] values = _parameters != null && _parameters.Count > 0 ? _parameters.Serialize() : null;
                 queryFrame = new QueryFrame(Query, Consistency, values);
                 logger.LogVerbose("Sending query {0} using {1}", Query, connection);
             }
@@ -1260,7 +1260,7 @@ namespace CqlSharp
                                          {
                                              IsPrepared = IsPrepared,
                                              CqlQuery = Query,
-                                             ParameterValues = HasParameters ? Parameters.Values : null
+                                             ParameterValues = HasParameters ? Parameters.Serialize() : null
                                          };
 
                 Transaction.Commands.Add(batchedCommand);

@@ -18,6 +18,41 @@ using System.Reflection;
 
 namespace CqlSharp.Serialization
 {
+    public interface ICqlColumnInfo<TTable> : ICqlColumnInfo
+    {
+        /// <summary>
+        /// Serializes the column value from the provided source using the given type.
+        /// </summary>
+        /// <param name="source">The source.</param>
+        /// <param name="type">The type.</param>
+        /// <returns></returns>
+        byte[] SerializeFrom(TTable source, CqlType type);
+
+        /// <summary>
+        /// Deserializes the provided data using the given type and assigns it to the column member of the given target.
+        /// </summary>
+        /// <param name="target">The target.</param>
+        /// <param name="data">The data.</param>
+        /// <param name="type">The type of the data.</param>
+        void DeserializeTo(TTable target, byte[] data, CqlType type);
+        
+        /// <summary>
+        /// Writes a value to the member belonging to this column on the specified target.
+        /// </summary>
+        /// <typeparam name="TValue">The type of the value.</typeparam>
+        /// <param name="target">The target.</param>
+        /// <param name="value">The value.</param>
+        void Write<TValue>(TTable target, TValue value);
+
+        /// <summary>
+        /// Reads a value from the member belonging to this column from the specified source.
+        /// </summary>
+        /// <typeparam name="TValue">The type of the value.</typeparam>
+        /// <param name="target">The target.</param>
+        /// <param name="value">The value.</param>
+        TValue Read<TValue>(TTable source);
+    }
+    
     public interface ICqlColumnInfo
     {
         /// <summary>
@@ -77,16 +112,36 @@ namespace CqlSharp.Serialization
         MemberInfo MemberInfo { get; }
 
         /// <summary>
-        ///   Gets the function that can be used to write a column value to a table object
+        /// Writes a value to the member belonging to this column on the specified target.
         /// </summary>
-        /// <value> The write function. </value>
-        Action<object, object> WriteFunction { get; }
+        /// <typeparam name="TValue">The type of the value.</typeparam>
+        /// <param name="target">The target.</param>
+        /// <param name="value">The value.</param>
+        void Write<TValue>(object target, TValue value);
 
         /// <summary>
-        ///   Gets the function that can be used to read this column value from a table object
+        /// Reads a value from the member belonging to this column from the specified source.
         /// </summary>
-        /// <value> The read function. </value>
-        Func<object, object> ReadFunction { get; }
+        /// <typeparam name="TValue">The type of the value.</typeparam>
+        /// <param name="target">The target.</param>
+        /// <param name="value">The value.</param>
+        TValue Read<TValue>(object source);
+
+        /// <summary>
+        /// Serializes the column value from the provided source using the given type.
+        /// </summary>
+        /// <param name="source">The source.</param>
+        /// <param name="type">The type.</param>
+        /// <returns></returns>
+        byte[] SerializeFrom(object source, CqlType type);
+
+        /// <summary>
+        /// Deserializes the provided data using the given type and assigns it to the column member of the given target.
+        /// </summary>
+        /// <param name="target">The target.</param>
+        /// <param name="data">The data.</param>
+        /// <param name="type">The type of the data.</param>
+        void DeserializeTo(object target, byte[] data, CqlType type);
 
 
     }

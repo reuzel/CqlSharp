@@ -5,6 +5,7 @@ using System.Collections.Concurrent;
 using System.Collections.Generic;
 using System.Data;
 using System.Linq;
+using System.Linq.Expressions;
 using System.Net;
 using System.Numerics;
 
@@ -35,8 +36,7 @@ namespace CqlSharp
         public static readonly CqlType TimeUuid = TimeUUIDType.Instance;
 
         #endregion
-
-
+        
         private static readonly ITypeFactory[] TypeCodeMap;
         private static readonly ConcurrentDictionary<Type, CqlType> Type2CqlType;
         private static readonly ConcurrentDictionary<String, CqlType> TypeName2CqlType;
@@ -159,6 +159,23 @@ namespace CqlSharp
         public abstract CqlTypeCode CqlTypeCode { get; }
         public abstract string TypeName { get; }
         public abstract Type Type { get; }
+
+        private static ConcurrentDictionary<Type, Func<CqlType, object, byte[]>> TypeSerializers = new ConcurrentDictionary<Type, Func<CqlType, object, byte[]>>();
+        public virtual byte[] Serialize(object source)
+        {
+            var serializer = TypeSerializers.GetOrAdd(source.GetType(), (type) => 
+                {
+                    var parameter = Expression.Parameter(typeof(object));
+                    var instance = Expression.Parameter(typeof(CqlType));
+                    var call = Expression.Call(instance, "Serialize", new[] {type}, Expression.Convert(parameter, type));
+                    var lambda = Expression.Lambda<Func<CqlType, object, byte[]>>(call, instance, parameter);
+                    return lambda.Compile();
+
+                });
+
+            return serializer(this, source);
+        }
+
         public abstract byte[] Serialize<TSource>(TSource source);
         public abstract TTarget Deserialize<TTarget>(byte[] data);
 
@@ -267,7 +284,7 @@ namespace CqlSharp
         {
             get { return typeof(T); }
         }
-
+              
         public override byte[] Serialize<TSource>(TSource source)
         {
             T value = Converter.ChangeType<TSource, T>(source);

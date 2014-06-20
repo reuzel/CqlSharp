@@ -47,13 +47,7 @@ namespace CqlSharp.Serialization
         {
             return TypeConverter<TS, TT>.Convert(source);
         }
-
-        public static object ChangeType(object source, Type target)
-        {
-            var converterType = typeof(TypeConverter<,>).MakeGenericType(source.GetType(), target);
-            var converter = (Delegate)converterType.GetProperty("Convert", BindingFlags.Static).GetValue(null, null);
-            return converter.DynamicInvoke(source);
-        }
+                
 
         #region Nested type: TypeConverter
 
@@ -85,6 +79,7 @@ namespace CqlSharp.Serialization
                 Expression call = GetIdentityConversion(srcType, targetType, src) ??
                                   GetCastConversion(targetType, src) ??
                                   GetIConvertibleConversion(srcType, targetType, src) ??
+                                  GetICastableConversion(srcType, targetType, src) ??
                                   GetCopyConstructorConversion(srcType, targetType, src) ??
                                   GetToStringConversion(srcType, targetType, src) ??
                                   GetInvalidConversion(srcType, targetType);
@@ -176,6 +171,25 @@ namespace CqlSharp.Serialization
                 return call != null ? AddNullCheck(srcType, targetType, src, call) : null;
             }
 
+            /// <summary>
+            ///  Gets a cast expression that utilizes the ICastable implementation of the source
+            /// </summary>
+            /// <param name="srcType">Type of the source.</param>
+            /// <param name="targetType">Type of the target.</param>
+            /// <param name="src">The source.</param>
+            /// <returns></returns>
+            private static Expression GetICastableConversion(Type srcType, Type targetType, ParameterExpression src)
+            {
+                if(srcType.GetInterfaces().Contains(typeof(ICastable)))
+                {
+                    var castMethod = typeof(ICastable).GetMethod("CastTo");
+                    var genericMethod = castMethod.MakeGenericMethod(targetType);
+
+                    return AddNullCheck(srcType, targetType, src, Expression.Call(src, genericMethod));
+                }
+
+                return null;
+            }
 
             /// <summary>
             ///   Gets the copy constructor conversion expression, where conversion is attempted by feeding the source to a constructor of the target type.

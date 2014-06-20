@@ -83,24 +83,6 @@ namespace CqlSharp.Test
                         Assert.Fail("unknown member name {0} found!", info.Name);
                         break;
                 }
-
-                switch (info.Name)
-                {
-                    case "readonlyentries":
-                    case "constant":
-                        Assert.IsNotNull(info.ReadFunction);
-                        Assert.IsNull(info.WriteFunction);
-                        break;
-
-                    case "writeonlyentries":
-                        Assert.IsNull(info.ReadFunction);
-                        Assert.IsNotNull(info.WriteFunction);
-                        break;
-                    default:
-                        Assert.IsNotNull(info.ReadFunction);
-                        Assert.IsNotNull(info.WriteFunction);
-                        break;
-                }
             }
         }
 
@@ -130,8 +112,6 @@ namespace CqlSharp.Test
             Assert.IsFalse(info.IsIndexed);
             Assert.IsNull(info.IndexName);
             Assert.AreEqual(member, info.MemberInfo);
-            Assert.IsNotNull(info.ReadFunction);
-            Assert.IsNotNull(info.WriteFunction);
 
             member = typeof(B).GetProperty("Indexed");
             info = accessor.ColumnsByMember[member];
@@ -143,8 +123,6 @@ namespace CqlSharp.Test
             Assert.IsTrue(info.IsIndexed);
             Assert.AreEqual("bTableIndex", info.IndexName);
             Assert.AreEqual(member, info.MemberInfo);
-            Assert.IsNotNull(info.ReadFunction);
-            Assert.IsNotNull(info.WriteFunction);
         }
 
         [TestMethod]

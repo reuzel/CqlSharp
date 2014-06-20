@@ -2,6 +2,7 @@
 using CqlSharp.Serialization.Marshal;
 using System;
 using System.Collections.Generic;
+using System.Dynamic;
 using System.Linq;
 using System.Text;
 using System.Threading.Tasks;
@@ -13,58 +14,86 @@ namespace CqlSharp
     /// is not used directly but it is cast to a type holds each field as 
     /// a seperated property.
     /// </summary>
-    public class UserDefined : ICastable
+    public class UserDefined: DynamicObject
     {
         public UserDefinedType Type { get; private set; }
-        private byte[][] _values;
+        private object[] _values;
 
-        internal UserDefined(UserDefinedType userDefinedType, byte[][] rawValues)
+        public object[] Values
+        {
+            get { return _values; }
+            set 
+            {
+                if (value.Length != Type.GetFieldCount())
+                    throw new ArgumentException("Number of values provided does not match the number of fields in the UserDefinedType", "values");
+
+                _values = value; 
+            }
+        }
+
+        public UserDefined(UserDefinedType userDefinedType, object[] values)
         {
             Type = userDefinedType;
-            _values = rawValues;
+
+            if (values.Length != Type.GetFieldCount())
+                throw new ArgumentException("Number of values provided does not match the number of fields in the UserDefinedType", "values");
+
+            _values = values;
         }
 
-        public T CastTo<T>()
-	    {
-            if (typeof(T) == typeof(UserDefined))
-                return (T)(object)this;
+        public UserDefined(UserDefinedType cqlType)
+        {
+            Type = cqlType;
+            _values = new byte[Type.GetFieldCount()][];
+        }
 
-            T result = Activator.CreateInstance<T>();
-
-            foreach(CqlColumnInfo<T> column in ObjectAccessor<T>.Instance.Columns)
+        public object this[string name]
+        {
+            get
             {
-                int index = Type.GetFieldIndex(column.Name);
+                int index = Type.GetFieldIndex(name);
+                
+                if(index < 0)
+                    throw new ArgumentOutOfRangeException("name", "UserDefined object does not contain a field with name "+name);
+                                
+                return _values[index];
+            }
+            set
+            {
+                int index = Type.GetFieldIndex(name);
 
-                if (index >= 0)
-                {
-                    object value = Type.GetFieldType(index).Deserialize<object>(_values[index]);
-                    object targetValue = Converter.ChangeType(value, column.Type);
-                    column.WriteFunction(result, targetValue);
-                }
+                if (index < 0)
+                    throw new ArgumentOutOfRangeException("name", "UserDefined object does not contain a field with name " + name);
+
+                _values[index] = value;
+            }
+        }
+
+        public override bool TryGetMember(GetMemberBinder binder, out object result)
+        {
+            string name = binder.Name;
+            int index = Type.GetFieldIndex(name);
+            if(index < 0)
+            {
+                result = null;
+                return false;
             }
 
-            return result;
-	    }
-
-        T GetValue<T>(int i)
-        {
-            return Type.GetFieldType(i).Deserialize<T>(_values[i]);
+            result = _values[index];
+            return true;
         }
 
-        T GetValue<T>(string name)
+        public override bool TrySetMember(SetMemberBinder binder, object value)
         {
-            int i = Type.GetFieldIndex(name);
-            return GetValue<T>(i);
-        }
+            string name = binder.Name;
+            int index = Type.GetFieldIndex(name);
+            if (index < 0)
+            {
+                return false;
+            }
 
-        void SetValue<T>(int i, T value)
-        {
-            _values[i] = Type.GetFieldType(i).Serialize<T>(value);
-        }
-
-        internal byte[][] RawValues 
-        { 
-            get { return _values; } 
+            _values[index] = value;
+            return true;
         }
     }
 }

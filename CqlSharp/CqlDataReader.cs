@@ -741,8 +741,17 @@ namespace CqlSharp
                             name = column.Name;
                         }
 
-                        var fieldValue = IsDBNull(column.Index) ? null : this[column.Index];
-                        accessor.TrySetValue(name, value, fieldValue);
+                        if (IsDBNull(column.Index))
+                            accessor.TrySetValue(name, value, (object)null);
+                        else
+                        { 
+                            ICqlColumnInfo<T> member;
+                            if(accessor.ColumnsByName.TryGetValue(name, out member))
+                            {
+                                int index = column.Index;
+                                member.DeserializeTo(value, CurrentValues[index], column.Type);
+                            }
+                        }
                     }
 
                     _current = value;

@@ -1,4 +1,5 @@
 ﻿using CqlSharp.Serialization;
+using CqlSharp.Serialization.Marshal;
 using Microsoft.VisualStudio.TestTools.UnitTesting;
 using System;
 using System.Collections.Generic;

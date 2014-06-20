@@ -34,14 +34,14 @@ namespace CqlSharp.Serialization
         /// </summary>
         public static readonly ObjectAccessor<T> Instance = new ObjectAccessor<T>();
 
-        private readonly ReadOnlyCollection<CqlColumnInfo<T>> _clusteringKeys;
-        private readonly ReadOnlyCollection<CqlColumnInfo<T>> _columns;
-        private readonly ReadOnlyDictionary<MemberInfo, CqlColumnInfo<T>> _columnsByMember;
-        private readonly ReadOnlyDictionary<string, CqlColumnInfo<T>> _columnsByName;
-        private readonly ReadOnlyCollection<CqlColumnInfo<T>> _normalColumns;
+        private readonly ReadOnlyCollection<ICqlColumnInfo<T>> _clusteringKeys;
+        private readonly ReadOnlyCollection<ICqlColumnInfo<T>> _columns;
+        private readonly ReadOnlyDictionary<MemberInfo, ICqlColumnInfo<T>> _columnsByMember;
+        private readonly ReadOnlyDictionary<string, ICqlColumnInfo<T>> _columnsByName;
+        private readonly ReadOnlyCollection<ICqlColumnInfo<T>> _normalColumns;
         private readonly CqlType[] _partitionKeyTypes;
-        private readonly ReadOnlyCollection<CqlColumnInfo<T>> _partitionKeys;
-        private readonly Type _type;
+        private readonly ReadOnlyCollection<ICqlColumnInfo<T>> _partitionKeys;
+        private Type _type;
 
         //non-generic version of the collections
         private readonly ReadOnlyCollection<ICqlColumnInfo> _clusteringKeysNG;
@@ -58,16 +58,15 @@ namespace CqlSharp.Serialization
         {
             //get table and keyspace name
             SetEntityProperties();
-
-            //get typeCode
-            _type = typeof(T);
-
+            
+            //get columns
             var columns = GetColumns();
-            _columns = new ReadOnlyCollection<CqlColumnInfo<T>>(columns);
+            SetKeyInfo(columns);
+            _columns = new ReadOnlyCollection<ICqlColumnInfo<T>>(columns);
             _columnsNG = new ReadOnlyCollection<ICqlColumnInfo>(columns);
 
             //fill index by name
-            var columnsByName = new Dictionary<string, CqlColumnInfo<T>>();
+            var columnsByName = new Dictionary<string, ICqlColumnInfo<T>>();
             foreach (var column in _columns)
             {
                 var name = column.Name;
@@ -79,94 +78,33 @@ namespace CqlSharp.Serialization
                         columnsByName[Keyspace + "." + Name + "." + name] = column;
                 }
             }
-            _columnsByName = new ReadOnlyDictionary<string, CqlColumnInfo<T>>(columnsByName);
+            _columnsByName = new ReadOnlyDictionary<string, ICqlColumnInfo<T>>(columnsByName);
             _columnsByNameNG = new ReadOnlyDictionary<string, ICqlColumnInfo>(columnsByName.ToDictionary(kvp => kvp.Key, kvp => (ICqlColumnInfo)kvp.Value));
 
             //fill index by member
             _columnsByMember =
-                new ReadOnlyDictionary<MemberInfo, CqlColumnInfo<T>>(_columns.ToDictionary(column => column.MemberInfo));
+                new ReadOnlyDictionary<MemberInfo, ICqlColumnInfo<T>>(_columns.ToDictionary(column => column.MemberInfo));
             _columnsByMemberNG =
                 new ReadOnlyDictionary<MemberInfo, ICqlColumnInfo>(_columns.ToDictionary(column => column.MemberInfo, column => (ICqlColumnInfo)column));
 
             //Key subsets
-            SetKeyInfo(columns);
             var partitionKeys = _columns.Where(column => column.IsPartitionKey).ToArray();
-            _partitionKeys = new ReadOnlyCollection<CqlColumnInfo<T>>(partitionKeys);
+            _partitionKeys = new ReadOnlyCollection<ICqlColumnInfo<T>>(partitionKeys);
             _partitionKeysNG = new ReadOnlyCollection<ICqlColumnInfo>(partitionKeys);
 
             _partitionKeyTypes = partitionKeys.Select(info => info.CqlType).ToArray();
 
             var clusteringKeys = _columns.Where(column => column.IsClusteringKey).ToArray();
-            _clusteringKeys = new ReadOnlyCollection<CqlColumnInfo<T>>(clusteringKeys);
+            _clusteringKeys = new ReadOnlyCollection<ICqlColumnInfo<T>>(clusteringKeys);
             _clusteringKeysNG = new ReadOnlyCollection<ICqlColumnInfo>(clusteringKeys);
 
             var normalColumns = _columns.Where(column => !column.IsClusteringKey && !column.IsPartitionKey).ToArray();
-            _normalColumns = new ReadOnlyCollection<CqlColumnInfo<T>>(normalColumns);
+            _normalColumns = new ReadOnlyCollection<ICqlColumnInfo<T>>(normalColumns);
             _normalColumnsNG = new ReadOnlyCollection<ICqlColumnInfo>(normalColumns);
 
         }
 
-        private CqlColumnInfo<T>[] GetColumns()
-        {
-            //create a column List
-            var columns = new List<CqlColumnInfo<T>>();
-
-            //go over all properties
-            foreach (PropertyInfo prop in _type.GetProperties())
-            {
-                if (ShouldIgnoreMember(prop))
-                    continue;
-
-                //create the column info object
-                CqlColumnInfo<T> info = CreateColumnInfo(prop, prop.PropertyType);
-
-                //set the typeCode
-                info.Type = prop.PropertyType;
-
-                //add the read func if we can read the property
-                if (prop.CanRead && !prop.GetMethod.IsPrivate)
-                {
-                    info.ReadFunction = MakeGetterDelegate(prop);
-                }
-
-                //add write func if we can write the property
-                if (prop.CanWrite && !prop.SetMethod.IsPrivate)
-                {
-                    info.WriteFunction = MakeSetterDelegate(prop);
-                }
-
-                columns.Add(info);
-            }
-
-            //go over all fields
-            foreach (FieldInfo field in _type.GetFields())
-            {
-                if (ShouldIgnoreMember(field))
-                    continue;
-
-                //create the column info object
-                CqlColumnInfo<T> info = CreateColumnInfo(field, field.FieldType);
-
-                //set the typeCode
-                info.Type = field.FieldType;
-
-                //set getter functions
-                info.ReadFunction = MakeFieldGetterDelegate(field);
-
-                //set setter functions if not readonly
-                if (!field.IsInitOnly)
-                {
-                    info.WriteFunction = MakeFieldSetterDelegate(field);
-                }
-
-                columns.Add(info);
-            }
-
-            //sort the columns based on their order
-            var sortedColumns = columns.OrderBy(col => col.Order.HasValue ? col.Order.Value : int.MaxValue);
-
-            return sortedColumns.ToArray();
-        }
+      
 
         /// <summary>
         ///   Gets a value indicating whether [is key space set].
@@ -206,7 +144,7 @@ namespace CqlSharp.Serialization
         ///   Gets the partition keys.
         /// </summary>
         /// <value> The partition keys. </value>
-        public ReadOnlyCollection<CqlColumnInfo<T>> PartitionKeys
+        public ReadOnlyCollection<ICqlColumnInfo<T>> PartitionKeys
         {
             get { return _partitionKeys; }
         }
@@ -215,7 +153,7 @@ namespace CqlSharp.Serialization
         ///   Gets the clustering keys.
         /// </summary>
         /// <value> The clustering keys. </value>
-        public ReadOnlyCollection<CqlColumnInfo<T>> ClusteringKeys
+        public ReadOnlyCollection<ICqlColumnInfo<T>> ClusteringKeys
         {
             get { return _clusteringKeys; }
         }
@@ -224,7 +162,7 @@ namespace CqlSharp.Serialization
         ///   Gets the normal (non-key) columns.
         /// </summary>
         /// <value> The normal columns. </value>
-        public ReadOnlyCollection<CqlColumnInfo<T>> NormalColumns
+        public ReadOnlyCollection<ICqlColumnInfo<T>> NormalColumns
         {
             get { return _normalColumns; }
         }
@@ -233,7 +171,7 @@ namespace CqlSharp.Serialization
         ///   Gets all the columns.
         /// </summary>
         /// <value> The columns. </value>
-        public ReadOnlyCollection<CqlColumnInfo<T>> Columns
+        public ReadOnlyCollection<ICqlColumnInfo<T>> Columns
         {
             get { return _columns; }
         }
@@ -242,7 +180,7 @@ namespace CqlSharp.Serialization
         ///   Gets the columns by field or property member.
         /// </summary>
         /// <value> The columns by member. </value>
-        public ReadOnlyDictionary<MemberInfo, CqlColumnInfo<T>> ColumnsByMember
+        public ReadOnlyDictionary<MemberInfo, ICqlColumnInfo<T>> ColumnsByMember
         {
             get { return _columnsByMember; }
         }
@@ -252,7 +190,7 @@ namespace CqlSharp.Serialization
         ///   will contain entries where the column name is combined with the Table or Keyspace names.
         /// </summary>
         /// <value> The columns by member. </value>
-        public ReadOnlyDictionary<string, CqlColumnInfo<T>> ColumnsByName
+        public ReadOnlyDictionary<string, ICqlColumnInfo<T>> ColumnsByName
         {
             get { return _columnsByName; }
         }
@@ -267,13 +205,13 @@ namespace CqlSharp.Serialization
             Name = null;
 
             //set default name to class name if class is not anonymous
-            Type type = typeof(T);
-            IsNameSet = !type.IsAnonymous();
+            _type = typeof(T);
+            IsNameSet = !_type.IsAnonymous();
             if (IsNameSet)
-                Name = type.Name.ToLower();
+                Name = _type.Name.ToLower();
 
             //check for CqlEntity attribute
-            var entityAttribute = Attribute.GetCustomAttribute(type, typeof(CqlEntityAttribute)) as CqlEntityAttribute;
+            var entityAttribute = Attribute.GetCustomAttribute(_type, typeof(CqlEntityAttribute)) as CqlEntityAttribute;
             if (entityAttribute != null)
             {
                 //overwrite keyspace if any
@@ -284,6 +222,45 @@ namespace CqlSharp.Serialization
                 //set default name
                 Name = entityAttribute.Name ?? Name;
             }
+        }
+
+        /// <summary>
+        /// Create column info objects for all relevant fields or properties
+        /// </summary>
+        /// <returns></returns>
+        private ICqlColumnInfo<T>[] GetColumns()
+        {
+            //create a column List
+            var columns = new List<ICqlColumnInfo<T>>();
+
+            //go over all properties
+            foreach (PropertyInfo prop in _type.GetProperties())
+            {
+                if (ShouldIgnoreMember(prop))
+                    continue;
+
+                //create the column info object
+                ICqlColumnInfo<T> info = CreateColumnInfo(prop, prop.PropertyType);
+
+                columns.Add(info);
+            }
+
+            //go over all fields
+            foreach (FieldInfo field in _type.GetFields())
+            {
+                if (ShouldIgnoreMember(field))
+                    continue;
+
+                //create the column info object
+                ICqlColumnInfo<T> info = CreateColumnInfo(field, field.FieldType);
+
+                columns.Add(info);
+            }
+
+            //sort the columns based on their order
+            var sortedColumns = columns.OrderBy(col => col.Order.HasValue ? col.Order.Value : int.MaxValue);
+
+            return sortedColumns.ToArray();
         }
 
         /// <summary>
@@ -304,94 +281,26 @@ namespace CqlSharp.Serialization
         /// <summary>
         /// Creates the column information.
         /// </summary>
-        /// <param name="prop">The property.</param>
-        /// <param name="type">The typeCode.</param>
+        /// <param name="prop">The property or field.</param>
+        /// <param name="type">The type of the property or field.</param>
         /// <returns></returns>
-        private static CqlColumnInfo<T> CreateColumnInfo(MemberInfo prop, Type type)
+        private static ICqlColumnInfo<T> CreateColumnInfo(MemberInfo prop, Type type)
         {
-            //create new info for property
-            var info = new CqlColumnInfo<T> { MemberInfo = prop };
-
-            //get the column name and typeCode of the property
-            SetColumnInfo(prop, type, info);
-
-            //set index info if any
-            SetIndexInfo(prop, info);
-
-            return info;
+            var columnType = typeof(CqlColumnInfo<,>).MakeGenericType(typeof(T), type);
+            var column = (ICqlColumnInfo<T>) Activator.CreateInstance(columnType, prop);
+            return column;
         }
 
-        /// <summary>
-        ///   Sets any index information
-        /// </summary>
-        /// <param name="member"> The member. </param>
-        /// <param name="column"> The column. </param>
-        private static void SetIndexInfo(MemberInfo member, CqlColumnInfo<T> column)
-        {
-            //check for column attribute
-            var indexAttribute =
-                Attribute.GetCustomAttribute(member, typeof(CqlIndexAttribute)) as CqlIndexAttribute;
-
-            if (indexAttribute != null)
-            {
-                column.IsIndexed = true;
-                column.IndexName = indexAttribute.Name;
-            }
-            else
-            {
-                column.IsIndexed = false;
-            }
-        }
-
-        /// <summary>
-        /// Gets the name of the column of the specified member.
-        /// </summary>
-        /// <param name="member">The member.</param>
-        /// <param name="type">The type.</param>
-        /// <param name="column">the column.</param>
-        private static void SetColumnInfo(MemberInfo member, Type type, CqlColumnInfo<T> column)
-        {
-            //check for column attribute
-            var columnAttribute =
-                Attribute.GetCustomAttribute(member, typeof(CqlColumnAttribute)) as CqlColumnAttribute;
-
-            //get column name from attribute or base on name otherwise
-            if (columnAttribute != null && columnAttribute.Column != null)
-            {
-                column.Name = columnAttribute.Column;
-            }
-            else
-            {
-                column.Name = member.Name.ToLower();
-            }
-
-            //get order if any
-            if (columnAttribute != null && columnAttribute.OrderHasValue)
-            {
-                column.Order = columnAttribute.Order;
-            }
-
-            //get CqlTypeCode from attribute (if any)
-            if (columnAttribute != null && columnAttribute.CqlTypeHasValue)
-            {
-                column.CqlType = CqlType.CreateType(columnAttribute.CqlTypeCode);
-            }
-            else
-            {
-                //get CqlTypeCode from property Type
-                column.CqlType = CqlType.CreateType(type);
-            }
-        }
 
         /// <summary>
         ///   Sets the key information.
         /// </summary>
-        private static void SetKeyInfo(IEnumerable<CqlColumnInfo<T>> columns)
+        private static void SetKeyInfo(IEnumerable<ICqlColumnInfo<T>> columns)
         {
             bool isFirstKey = true;
             bool processingPartitionKeys = true;
 
-            foreach (var column in columns)
+            foreach (IKeyMember column in columns)
             {
                 //check for column attribute
                 var keyAttribute =
@@ -415,70 +324,7 @@ namespace CqlSharp.Serialization
                 }
             }
         }
-
-        /// <summary>
-        ///   Makes the getter delegate.
-        /// </summary>
-        /// <param name="property"> The property. </param>
-        /// <returns> </returns>
-        private static Func<T, object> MakeGetterDelegate(PropertyInfo property)
-        {
-            MethodInfo getMethod = property.GetGetMethod();
-            var target = Expression.Parameter(typeof(T));
-            var body = Expression.Convert(Expression.Call(target, getMethod), typeof(object));
-            return Expression.Lambda<Func<T, object>>(body, target)
-                .Compile();
-        }
-
-        /// <summary>
-        ///   Makes the setter delegate.
-        /// </summary>
-        /// <param name="property"> The property. </param>
-        /// <returns> </returns>
-        private static Action<T, object> MakeSetterDelegate(PropertyInfo property)
-        {
-            MethodInfo setMethod = property.GetSetMethod();
-            var target = Expression.Parameter(typeof(T));
-            var value = Expression.Parameter(typeof(object));
-            var valueOrDefault = Expression.Condition(
-                Expression.Equal(value, Expression.Constant(null)),
-                Expression.Default(property.PropertyType),
-                Expression.Convert(value, property.PropertyType));
-            var body = Expression.Call(target, setMethod, valueOrDefault);
-            return Expression.Lambda<Action<T, object>>(body, target, value)
-                .Compile();
-        }
-
-        /// <summary>
-        ///   Makes the field getter delegate.
-        /// </summary>
-        /// <param name="property"> The property. </param>
-        /// <returns> </returns>
-        private static Func<T, object> MakeFieldGetterDelegate(FieldInfo property)
-        {
-            var target = Expression.Parameter(typeof(T));
-            var body = Expression.Convert(Expression.Field(target, property), typeof(object));
-            return Expression.Lambda<Func<T, object>>(body, target).Compile();
-        }
-
-        /// <summary>
-        ///   Makes the field setter delegate.
-        /// </summary>
-        /// <param name="property"> The property. </param>
-        /// <returns> </returns>
-        private static Action<T, object> MakeFieldSetterDelegate(FieldInfo property)
-        {
-            var target = Expression.Parameter(typeof(T));
-            var field = Expression.Field(target, property);
-            var value = Expression.Parameter(typeof(object));
-            var valueOrDefault = Expression.Condition(
-                Expression.Equal(value, Expression.Constant(null)),
-                Expression.Default(property.FieldType),
-                Expression.Convert(value, property.FieldType));
-            var body = Expression.Assign(field, valueOrDefault);
-            return Expression.Lambda<Action<T, object>>(body, target, value).Compile();
-        }
-
+               
         /// <summary>
         ///   Tries to get a value from the source, based on the column description
         /// </summary>
@@ -487,7 +333,7 @@ namespace CqlSharp.Serialization
         /// <param name="value"> The value. </param>
         /// <returns> true, if the value could be distilled from the source </returns>
         /// <exception cref="System.ArgumentNullException">columnName or source are null</exception>
-        public bool TryGetValue(string columnName, T source, out object value)
+        public bool TryGetValue<TValue>(string columnName, T source, out TValue value)
         {
             if (columnName == null)
                 throw new ArgumentNullException("columnName");
@@ -497,18 +343,14 @@ namespace CqlSharp.Serialization
                 // ReSharper restore CompareNonConstrainedGenericWithNull
                 throw new ArgumentNullException("source");
 
-            CqlColumnInfo<T> column;
+            ICqlColumnInfo<T> column;
             if (_columnsByName.TryGetValue(columnName, out column))
             {
-                Func<T, object> func = column.ReadFunction;
-                if (func != null)
-                {
-                    value = func(source);
-                    return true;
-                }
+                value = column.Read<TValue>(source);
+                return true;
             }
 
-            value = null;
+            value = default(TValue);
             return false;
         }
 
@@ -520,7 +362,7 @@ namespace CqlSharp.Serialization
         /// <param name="value"> The value. </param>
         /// <returns> true if the property or field value is set </returns>
         /// <exception cref="System.ArgumentNullException">columnName or target are null</exception>
-        public bool TrySetValue(string columnName, T target, object value)
+        public bool TrySetValue<TValue>(string columnName, T target, TValue value)
         {
             if (columnName == null)
                 throw new ArgumentNullException("columnName");
@@ -531,15 +373,11 @@ namespace CqlSharp.Serialization
                 throw new ArgumentNullException("target");
 
 
-            CqlColumnInfo<T> column;
+            ICqlColumnInfo<T> column;
             if (_columnsByName.TryGetValue(columnName, out column))
             {
-                Action<T, object> func = column.WriteFunction;
-                if (func != null)
-                {
-                    func(target, value);
-                    return true;
-                }
+                column.Write(target, value);
+                return true;
             }
 
             return false;
@@ -559,10 +397,7 @@ namespace CqlSharp.Serialization
                 var values = new object[length];
                 for (int i = 0; i < length; i++)
                 {
-                    if (_partitionKeys[i].ReadFunction == null)
-                        throw new CqlException("Unable to read value for partition key column " + _partitionKeys[i].Name);
-
-                    values[i] = _partitionKeys[i].ReadFunction(value);
+                    values[i] = _partitionKeys[i].Read<object>(value);
                 }
 
                 key.Set(_partitionKeyTypes, values);

@@ -282,10 +282,8 @@ namespace CqlSharp
         {
             get
             {
-                if (Value == null)
-                    return 0;
-
-                return CqlType.Serialize(Value).Length;
+                byte[] bytes = Serialize();
+                return bytes == null ? 0 : bytes.Length;
             }
             set
             {
@@ -335,6 +333,18 @@ namespace CqlSharp
         /// <exception cref="System.NotImplementedException"></exception>
         public override void ResetDbType()
         {
+        }
+
+        /// <summary>
+        /// Serializes this parameter.
+        /// </summary>
+        /// <returns></returns>
+        internal virtual byte[] Serialize()
+        {
+            if (Value == null)
+                return null;
+
+            return CqlType.Serialize(Value);
         }
     }
 }

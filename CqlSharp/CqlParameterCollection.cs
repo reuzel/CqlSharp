@@ -19,6 +19,7 @@ using System;
 using System.Collections;
 using System.Collections.Generic;
 using System.Data.Common;
+using System.Reflection;
 
 namespace CqlSharp
 {
@@ -42,7 +43,8 @@ namespace CqlSharp
             _parameters = new List<CqlParameter>();
             foreach (Column column in metaData)
             {
-                _parameters.Add(new CqlParameter(column));
+                var parameter = new CqlParameter(column);
+                _parameters.Add(parameter);
             }
         }
 
@@ -124,24 +126,21 @@ namespace CqlSharp
         ///   Gets the serialized values of this CqlParameterCollection
         /// </summary>
         /// <value> The values. </value>
-        internal byte[][] Values
+        internal byte[][] Serialize()
         {
-            get
+            var values = new byte[Count][];
+            for (int i = 0; i < Count; i++)
             {
-                var values = new byte[Count][];
-                for (int i = 0; i < Count; i++)
-                {
-                    CqlParameter param = this[i];
+                CqlParameter param = this[i];
 
-                    //skip if parameter has a null value
-                    if (param.Value == DBNull.Value || param.Value==null) 
-                        continue;
+                //skip if parameter has a null value
+                if (param.Value == DBNull.Value || param.Value==null) 
+                    continue;
 
-                    values[i] = param.CqlType.Serialize(param.Value);
-                }
-
-                return values;
+                values[i] = param.Serialize();
             }
+
+            return values;
         }
 
         /// <summary>
@@ -203,7 +202,7 @@ namespace CqlSharp
             Add(parameter);
             return parameter;
         }
-
+     
         /// <summary>
         ///   Adds a new parameter with the specified name and typeCode
         /// </summary>
@@ -216,7 +215,7 @@ namespace CqlSharp
             Add(parameter);
             return parameter;
         }
-
+               
         /// <summary>
         ///   Adds a new parameter with the specified name and typeCode
         /// </summary>
@@ -230,7 +229,7 @@ namespace CqlSharp
             Add(parameter);
             return parameter;
         }
-
+                
         /// <summary>
         ///   Adds a new parameter with the specified name and typeCode
         /// </summary>

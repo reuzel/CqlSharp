@@ -3,64 +3,167 @@ using Microsoft.VisualStudio.TestTools.UnitTesting;
 using CqlSharp;
 using CqlSharp.Serialization.Marshal;
 using CqlSharp.Serialization;
+using System.Collections.Generic;
+using CqlSharp.Protocol;
 
 namespace CqlSharp.Test
 {
     [TestClass]
     public class UserDefinedTypeTest
     {
-        [TestMethod]
-        public void ParseUDT()
+        private const string ConnectionString =
+              "server=localhost;throttle=256;MaxConnectionIdleTime=3600;ConnectionStrategy=Exclusive;loggerfactory=debug;loglevel=verbose;username=cassandra;password=cassandra";
+
+        [ClassInitialize]
+        public static void Init(TestContext context)
         {
-            const string typeName = "org.apache.cassandra.db.marshal.UserType(user_defined_types,61646472657373,737472656574:org.apache.cassandra.db.marshal.UTF8Type,63697479:org.apache.cassandra.db.marshal.UTF8Type,7a69705f636f6465:org.apache.cassandra.db.marshal.Int32Type,70686f6e6573:org.apache.cassandra.db.marshal.SetType(org.apache.cassandra.db.marshal.UTF8Type))";
+            const string createKsCql =
+                @"CREATE KEYSPACE TestUDT WITH replication = {'class': 'SimpleStrategy', 'replication_factor' : 1} and durable_writes = 'false';";
 
-            var type = CqlType.CreateType(typeName);
-
-            Assert.AreEqual(CqlTypeCode.Custom, type.CqlTypeCode);
-            Assert.IsInstanceOfType(type, typeof(UserDefinedType));
-        }
-
-        [TestMethod]
-        public void TypeForClass()
-        {
-            var type = CqlType.CreateType(typeof(C));
-
-            Assert.IsInstanceOfType(type, typeof(UserDefinedType));
-
-            var udt = (UserDefinedType)type;
-
-            Assert.IsNull(udt.Keyspace);
-            Assert.AreEqual("c", udt.Name);
-            Assert.AreEqual(3, udt.GetFieldCount());
+            const string createAddressType =
+                @"create type TestUDT.address (street text, number int);";
             
-            Assert.AreEqual("id", udt.GetFieldName(0));
-            Assert.AreEqual(CqlType.Uuid, udt.GetFieldType(0));
+            const string createUserType =
+                @"CREATE type TestUDT.user (name text, password blob, address address);";
 
-            Assert.AreEqual("id2", udt.GetFieldName(1));
-            Assert.AreEqual(CqlType.Varchar, udt.GetFieldType(1));
+            const string createTableCql = @"create table TestUDT.Members (id int primary key, user user, comment text);";
 
-            Assert.AreEqual("id3", udt.GetFieldName(2));
-            Assert.AreEqual(CqlType.Varchar, udt.GetFieldType(2));
+            using (var connection = new CqlConnection(ConnectionString))
+            {
+                connection.SetConnectionTimeout(0);
+                connection.Open();
+
+                try
+                {
+                    var createKs = new CqlCommand(connection, createKsCql);
+                    createKs.ExecuteNonQuery();
+                
+                    var createAddress = new CqlCommand(connection, createAddressType);
+                    createAddress.ExecuteNonQuery();
+                
+                    var createUser = new CqlCommand(connection, createUserType);
+                    createUser.ExecuteNonQuery();
+                                                       
+                    var createTable = new CqlCommand(connection, createTableCql);
+                    createTable.ExecuteNonQuery();
+                }
+                catch (AlreadyExistsException)
+                {
+                }
+            }
         }
 
-        #region Nested typeCode: C
+        [ClassCleanup]
+        public static void Cleanup()
+        {
+            const string dropCql = @"drop keyspace TestUDT;";
+
+            using (var connection = new CqlConnection(ConnectionString))
+            {
+                connection.Open();
+
+                try
+                {
+                    var drop = new CqlCommand(connection, dropCql);
+                    drop.ExecuteNonQuery();
+                }
+                catch (InvalidException)
+                {
+                    //ignore
+                }
+            }
+
+            CqlConnection.ShutdownAll();
+        }
+
+        [TestInitialize]
+        public void PrepareTest()
+        {
+            const string truncateTableCql = @"truncate TestUDT.Members;";
+
+            using (var connection = new CqlConnection(ConnectionString))
+            {
+                connection.Open();
+                var truncTable = new CqlCommand(connection, truncateTableCql);
+                truncTable.ExecuteNonQuery();
+            }
+        }
+
+        [TestMethod]
+        public void InsertUser()
+        {
+            var address = new Address { Street = "MyWay", Number = 1 };
+            var user = new User { Name = "Joost", Password = new byte[] { 1, 2, 3 }, Address = address };
+            var member = new Member { Id = 1, User = user, Comment = "phew" };
+
+            using (var connection = new CqlConnection(ConnectionString))
+            {
+                connection.Open();
+
+                var command = new CqlCommand(connection, "insert into testudt.members (id, user, comment) values (?,?,?);");
+                command.Prepare();
+                command.Parameters.Set(member);
+                command.ExecuteNonQuery();
+
+                var select = new CqlCommand(connection, "select * from testudt.members;");
+                using(var reader = select.ExecuteReader<Member>())
+                {
+                    Assert.AreEqual(1, reader.Count);
+                    if(reader.Read())
+                    {
+                        var actual = reader.Current;
+
+                        Assert.IsNotNull(actual);
+                        Assert.AreEqual(member.Id, actual.Id);
+                        Assert.AreEqual(member.Comment, actual.Comment);
+                        Assert.IsNotNull(member.User);
+                        Assert.AreEqual(member.User.Name, actual.User.Name);
+                        Assert.IsNotNull(member.User.Address);
+                        Assert.AreEqual(member.User.Address.Street, actual.User.Address.Street);
+                    }
+                }
+            }
+
+
+        }
 
         [CqlUserType]
-        private class C
+        [CqlEntity("address", Keyspace="testudt")]
+        public class Address
         {
-            [CqlKey(IsPartitionKey = true)]
+            [CqlColumn(Order=0)]
+            public string Street { get; set; }
+
             [CqlColumn(Order = 1)]
-            public string Id2;
-
-            [CqlKey]
-            [CqlColumn(Order = 0)]
-            public Guid Id;
-
-            [CqlKey(IsPartitionKey = false)]
-            [CqlColumn(Order = 2)]
-            public string Id3;
+            public int Number { get; set; }
         }
 
-        #endregion
+        [CqlUserType]
+        [CqlEntity("user", Keyspace = "testudt")]
+        class User
+        {
+            [CqlColumn(Order = 0)]
+            public string Name { get; set; }
+
+            [CqlColumn(Order = 1)]
+            public byte[] Password { get; set; }
+
+            [CqlColumn(Order = 2)]
+            public Address Address { get; set; }
+        }
+
+        [CqlTable("members", Keyspace="testudt")]
+        class Member
+        {
+            [CqlKey]
+            [CqlColumn(Order=0)]
+            public int Id { get; set; }
+
+            [CqlColumn(Order=1)]
+            public User User { get; set; }
+
+            [CqlColumn(Order=2)]
+            public string Comment { get; set; }
+        }
     }
 }
