@@ -66,6 +66,7 @@
   </Choose>
   <ItemGroup>
     <Compile Include="ConnectionStrategyTest.cs" />
+    <Compile Include="ConnectionStringTest.cs" />
     <Compile Include="CqlConnectionTest.cs" />
     <Compile Include="CqlParameterTest.cs" />
     <Compile Include="IssueTest.cs" />

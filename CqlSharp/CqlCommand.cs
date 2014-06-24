@@ -60,7 +60,7 @@ namespace CqlSharp
             _load = 1;
             _useBuffering = connection.Config.UseBuffering;
             _commandType = CommandType.Text;
-            _commandTimeout = 30;
+            _commandTimeout = connection.Config.CommandTimeout;
         }
 
         /// <summary>
