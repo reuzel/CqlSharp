@@ -47,6 +47,30 @@ namespace CqlSharp.Serialization
         {
             return TypeConverter<TS, TT>.Convert(source);
         }
+
+        private static ConcurrentDictionary<Tuple<Type, Type>, Func<object, object>> _conversionFunctions = new ConcurrentDictionary<Tuple<Type, Type>, Func<object, object>>();
+        /// <summary>
+        /// Changes the type of the given object to the specific type.
+        /// </summary>
+        /// <param name="source">The source.</param>
+        /// <param name="targetType">Type of the target.</param>
+        /// <returns>an object of the given targetType</returns>
+        public static object ChangeType(object source, Type targetType)
+        {
+            var types = Tuple.Create(source.GetType(), targetType);
+
+            var converter = _conversionFunctions.GetOrAdd(types, ts =>
+                {
+                    var src = Expression.Parameter(typeof(object));
+                    var converted = Expression.Convert(src, ts.Item1);
+                    var call = Expression.Call(typeof(Converter), "ChangeType", new[] { ts.Item1, ts.Item2 }, converted);
+                    var result = Expression.Convert(call, typeof(object));
+                    var lambda = Expression.Lambda<Func<object, object>>(result, src);
+                    return lambda.Compile();
+                });
+
+            return converter(source);
+        }
                 
 
         #region Nested type: TypeConverter
@@ -80,6 +104,8 @@ namespace CqlSharp.Serialization
                                   GetCastConversion(targetType, src) ??
                                   GetIConvertibleConversion(srcType, targetType, src) ??
                                   GetICastableConversion(srcType, targetType, src) ??
+                                  GetITypeConverterConversion(srcType, targetType, src) ??
+                                  GetCollectionConversion(srcType, targetType, src) ??
                                   GetCopyConstructorConversion(srcType, targetType, src) ??
                                   GetToStringConversion(srcType, targetType, src) ??
                                   GetInvalidConversion(srcType, targetType);
@@ -189,6 +215,69 @@ namespace CqlSharp.Serialization
                 }
 
                 return null;
+            }
+
+            private static Expression GetITypeConverterConversion(Type srcType, Type targetType, ParameterExpression src)
+            {
+                var converterAttribute = Attribute.GetCustomAttribute(srcType, typeof(CqlTypeConverterAttribute)) as CqlTypeConverterAttribute;
+
+                if(converterAttribute!=null)
+                {
+                    var converterType = converterAttribute.Converter;
+                    var converter = Expression.Constant(Activator.CreateInstance(converterType));
+                    var call = Expression.Call(converter, "ConvertTo", new[] { targetType }, src);
+                    return AddNullCheck(srcType, targetType, src, call);
+                }
+
+                converterAttribute = Attribute.GetCustomAttribute(targetType, typeof(CqlTypeConverterAttribute)) as CqlTypeConverterAttribute;
+
+                if (converterAttribute != null)
+                {
+                    var converterType = converterAttribute.Converter;
+                    var converter = Expression.Constant(Activator.CreateInstance(converterType));
+                    var call = Expression.Call(converter, "ConvertFrom", new[] { srcType }, src);
+                    return AddNullCheck(srcType, targetType, src, call);
+                }
+
+                return null;
+            }
+
+            private static Expression GetCollectionConversion(Type srcType, Type targetType, ParameterExpression src)
+            {
+                var enumerable = srcType.GetInterfaces()
+                        .FirstOrDefault(i => i.IsGenericType && i.GetGenericTypeDefinition() == typeof(IEnumerable<>));
+
+                if(enumerable!=null)
+                {
+                    var collection = targetType.GetInterfaces()
+                        .FirstOrDefault(i => i.IsGenericType && i.GetGenericTypeDefinition() == typeof(ICollection<>));
+
+                    if(collection!=null)
+                    {
+                        var call = Expression.Call(typeof(TypeConverter<TSource, TTarget>), "CopyCollection", new[] { enumerable.GetGenericArguments()[0], targetType, collection.GetGenericArguments()[0] }, src);
+                        return AddNullCheck(srcType, targetType, src, call);
+                    }
+                }
+
+                return null;
+
+            }
+
+            /// <summary>
+            /// Copies the collection.
+            /// </summary>
+            /// <typeparam name="TSource">The type of the source.</typeparam>
+            /// <typeparam name="TCollection">The type of the collection.</typeparam>
+            /// <typeparam name="TCollectionElement">The type of the target.</typeparam>
+            /// <param name="source">The source.</param>
+            /// <returns></returns>
+            private static TCollection CopyCollection<TSource, TCollection, TCollectionElement>(IEnumerable<TSource> source) where TCollection : ICollection<TCollectionElement>, new()
+            {
+                var result = new TCollection();
+                foreach (TSource elem in source)
+                    result.Add(Converter.ChangeType<TSource, TCollectionElement>(elem));
+
+                return result;
             }
 
             /// <summary>

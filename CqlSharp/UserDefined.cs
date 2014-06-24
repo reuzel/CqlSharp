@@ -14,6 +14,7 @@ namespace CqlSharp
     /// is not used directly but it is cast to a type holds each field as 
     /// a seperated property.
     /// </summary>
+    [CqlTypeConverter(typeof(UserDefinedConverter))]
     public class UserDefined: DynamicObject
     {
         public UserDefinedType Type { get; private set; }
@@ -95,5 +96,7 @@ namespace CqlSharp
             _values[index] = value;
             return true;
         }
+
+       
     }
 }

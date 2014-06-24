@@ -1,4 +1,5 @@
 ﻿using System;
+using System.Linq;
 using Microsoft.VisualStudio.TestTools.UnitTesting;
 using CqlSharp;
 using CqlSharp.Serialization.Marshal;
@@ -12,7 +13,7 @@ namespace CqlSharp.Test
     public class UserDefinedTypeTest
     {
         private const string ConnectionString =
-              "server=localhost;throttle=256;MaxConnectionIdleTime=3600;ConnectionStrategy=Exclusive;loggerfactory=debug;loglevel=verbose;username=cassandra;password=cassandra";
+              "server=localhost;throttle=256;MaxConnectionIdleTime=3600;ConnectionStrategy=Exclusive;loggerfactory=debug;loglevel=query;username=cassandra;password=cassandra";
 
         [ClassInitialize]
         public static void Init(TestContext context)
@@ -27,6 +28,8 @@ namespace CqlSharp.Test
                 @"CREATE type TestUDT.user (name text, password blob, address address);";
 
             const string createTableCql = @"create table TestUDT.Members (id int primary key, user user, comment text);";
+
+            const string createTable2Cql = @"create table TestUDT.Groups (id int primary key, members set<user>);";
 
             using (var connection = new CqlConnection(ConnectionString))
             {
@@ -46,6 +49,9 @@ namespace CqlSharp.Test
                                                        
                     var createTable = new CqlCommand(connection, createTableCql);
                     createTable.ExecuteNonQuery();
+
+                    var createTable2 = new CqlCommand(connection, createTable2Cql);
+                    createTable2.ExecuteNonQuery();
                 }
                 catch (AlreadyExistsException)
                 {
@@ -80,12 +86,16 @@ namespace CqlSharp.Test
         public void PrepareTest()
         {
             const string truncateTableCql = @"truncate TestUDT.Members;";
+            const string truncateTable2Cql = @"truncate TestUDT.Groups;";
 
             using (var connection = new CqlConnection(ConnectionString))
             {
                 connection.Open();
                 var truncTable = new CqlCommand(connection, truncateTableCql);
                 truncTable.ExecuteNonQuery();
+
+                var truncTable2 = new CqlCommand(connection, truncateTable2Cql);
+                truncTable2.ExecuteNonQuery();
             }
         }
 
@@ -123,8 +133,41 @@ namespace CqlSharp.Test
                     }
                 }
             }
+        }
 
+        [TestMethod]
+        public void InsertGroup()
+        {
+            var address = new Address { Street = "MyWay", Number = 1 };
+            var user = new User { Name = "Joost", Password = new byte[] { 1, 2, 3 }, Address = address };
+            var group = new Group { Id = 1, Members = new HashSet<User> { user } };
 
+            using (var connection = new CqlConnection(ConnectionString))
+            {
+                connection.Open();
+
+                var command = new CqlCommand(connection, "insert into testudt.groups (id, members) values (?,?);");
+                command.Prepare();
+                command.Parameters.Set(group);
+                command.ExecuteNonQuery();
+
+                var select = new CqlCommand(connection, "select * from testudt.groups;");
+                using (var reader = select.ExecuteReader<Group>())
+                {
+                    Assert.AreEqual(1, reader.Count);
+                    if (reader.Read())
+                    {
+                        var actual = reader.Current;
+
+                        Assert.IsNotNull(actual);
+                        Assert.AreEqual(group.Id, actual.Id);
+                        Assert.IsNotNull(group.Members);
+                        Assert.IsInstanceOfType(group.Members, typeof(HashSet<User>));
+                        Assert.AreEqual(1, group.Members.Count);
+                        Assert.AreEqual("Joost", group.Members.First().Name);
+                    }
+                }
+            }
         }
 
         [CqlUserType]
@@ -164,6 +207,17 @@ namespace CqlSharp.Test
 
             [CqlColumn(Order=2)]
             public string Comment { get; set; }
+        }
+
+        [CqlTable("groups", Keyspace = "testudt")]
+        class Group
+        {
+            [CqlKey]
+            [CqlColumn(Order = 0)]
+            public int Id { get; set; }
+
+            [CqlColumn(Order = 1)]
+            public HashSet<User> Members { get; set; }
         }
     }
 }

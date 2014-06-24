@@ -108,28 +108,28 @@ namespace CqlSharp.Serialization.Marshal
             return _fieldList.Count;
         }
 
-        public override byte[] Serialize<TSource>(TSource source)
-        {
-            if(typeof(TSource) == typeof(UserDefined))
-                return Serialize((UserDefined)(object)source);
+        //public override byte[] Serialize<TSource>(TSource source)
+        //{
+        //    if(typeof(TSource) == typeof(UserDefined))
+        //        return Serialize((UserDefined)(object)source);
                         
-            var accessor = ObjectAccessor<TSource>.Instance;
-            var rawValues = new byte[_fieldList.Count][];
+        //    var accessor = ObjectAccessor<TSource>.Instance;
+        //    var rawValues = new byte[_fieldList.Count][];
 
-            if(accessor.Columns.Count>_fieldList.Count)
-                throw new CqlException(string.Format("Type {0} is not compatible with CqlType {1}", typeof(TSource), this));
+        //    if(accessor.Columns.Count>_fieldList.Count)
+        //        throw new CqlException(string.Format("Type {0} is not compatible with CqlType {1}", typeof(TSource), this));
 
-            for (int i = 0; i < accessor.Columns.Count; i++)
-            {
-                var column = accessor.Columns[i];
-                if(column.CqlType != _fieldList[i].Value)
-                    throw new CqlException(string.Format("Type {0} is not compatible with CqlType {1}", typeof(TSource), this));
+        //    for (int i = 0; i < accessor.Columns.Count; i++)
+        //    {
+        //        var column = accessor.Columns[i];
+        //        if(column.CqlType != _fieldList[i].Value)
+        //            throw new CqlException(string.Format("Type {0} is not compatible with CqlType {1}", typeof(TSource), this));
 
-                rawValues[i] = column.CqlType.Serialize(column.Read<object>(source));
-            }
+        //        rawValues[i] = column.SerializeFrom(source, _fieldList[i].Value);
+        //    }
 
-            return Serialize(rawValues);
-        }
+        //    return Serialize(rawValues);
+        //}
 
         public override byte[] Serialize(UserDefined value)
         {
@@ -161,32 +161,32 @@ namespace CqlSharp.Serialization.Marshal
             }
         }
 
-        public override TTarget Deserialize<TTarget>(byte[] data)
-        {
-            if (typeof(TTarget) == typeof(UserDefined) || typeof(TTarget) == typeof(object))
-            {
-                return (TTarget)(object)Deserialize(data);
-            }
+        //public override TTarget Deserialize<TTarget>(byte[] data)
+        //{
+        //    if (typeof(TTarget) == typeof(UserDefined) || typeof(TTarget) == typeof(object))
+        //    {
+        //        return (TTarget)(object)Deserialize(data);
+        //    }
             
-            using (var stream = new MemoryStream(data))
-            {
-                TTarget result = Activator.CreateInstance<TTarget>();
-                var accessor = ObjectAccessor<TTarget>.Instance;
+        //    using (var stream = new MemoryStream(data))
+        //    {
+        //        TTarget result = Activator.CreateInstance<TTarget>();
+        //        var accessor = ObjectAccessor<TTarget>.Instance;
 
-                foreach(var field in _fieldList)
-                {
-                    byte[] rawValue = stream.ReadByteArray();
+        //        foreach(var field in _fieldList)
+        //        {
+        //            byte[] rawValue = stream.ReadByteArray();
 
-                    ICqlColumnInfo<TTarget> column;
-                    if (accessor.ColumnsByName.TryGetValue(field.Key, out column))
-                    {
-                        column.DeserializeTo(result, rawValue, field.Value);
-                    }
-                }
+        //            ICqlColumnInfo<TTarget> column;
+        //            if (accessor.ColumnsByName.TryGetValue(field.Key, out column))
+        //            {
+        //                column.DeserializeTo(result, rawValue, field.Value);
+        //            }
+        //        }
 
-                return result;
-            }
-        }
+        //        return result;
+        //    }
+        //}
 
         public override UserDefined Deserialize(byte[] data)
         {
