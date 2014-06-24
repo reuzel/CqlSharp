@@ -1,63 +1,44 @@
-﻿using CqlSharp.Serialization.Marshal;
-using System;
-using System.Collections.Generic;
-using System.Linq;
-using System.Text;
-using System.Threading.Tasks;
+﻿// CqlSharp - CqlSharp
+// Copyright (c) 2014 Joost Reuzel
+//   
+// Licensed under the Apache License, Version 2.0 (the "License");
+// you may not use this file except in compliance with the License.
+// You may obtain a copy of the License at
+//   
+// http://www.apache.org/licenses/LICENSE-2.0
+//  
+// Unless required by applicable law or agreed to in writing, software
+// distributed under the License is distributed on an "AS IS" BASIS,
+// WITHOUT WARRANTIES OR CONDITIONS OF ANY KIND, either express or implied.
+// See the License for the specific language governing permissions and
+// limitations under the License.
+
+using CqlSharp.Annotations;
 
 namespace CqlSharp.Serialization
 {
-    interface ITypeConverter<TType>
+    /// <summary>
+    /// Defines conversions from an to the given type
+    /// </summary>
+    /// <typeparam name="TType">The type of the type.</typeparam>
+    public interface ITypeConverter<TType>
     {
+        /// <summary>
+        /// Converts the source object to an object of the the given target type.
+        /// </summary>
+        /// <typeparam name="TTarget">The type of the target.</typeparam>
+        /// <param name="source">The source.</param>
+        /// <returns>an object of the the given target type</returns>
+        [UsedImplicitly]
         TTarget ConvertTo<TTarget>(TType source);
 
+        /// <summary>
+        /// Converts an object of the given source type to an instance of this converters type
+        /// </summary>
+        /// <typeparam name="TSource">The type of the source.</typeparam>
+        /// <param name="source">The source.</param>
+        /// <returns></returns>
+        [UsedImplicitly]
         TType ConvertFrom<TSource>(TSource source);
-    }
-
-    class UserDefinedConverter : ITypeConverter<UserDefined>
-    {
-        public TTarget ConvertTo<TTarget>(UserDefined source)
-        {
-            TTarget instance = Activator.CreateInstance<TTarget>();
-            var accessor = ObjectAccessor<TTarget>.Instance;
-
-            int count = source.Type.GetFieldCount();
-            for (int i = 0; i < count; i++)
-            {
-                ICqlColumnInfo<TTarget> column;
-                if (accessor.ColumnsByName.TryGetValue(source.Type.GetFieldName(i), out column))
-                {
-                    object value = Converter.ChangeType(source.Values[i], column.Type);
-                    column.Write(instance, value);
-                }
-            }
-
-            return instance;
-        }
-
-        public UserDefined ConvertFrom<TSource>(TSource source)
-        {
-            var type = CqlType.CreateType(typeof(TSource)) as UserDefinedType;
-
-            if(type==null)
-                throw new ArgumentException("Source must be mapped to a UserDefinedType to have it converted");
-
-            var accessor = ObjectAccessor<TSource>.Instance;
-
-            int count = type.GetFieldCount();
-            object[] values = new object[count];
-
-            for (int i = 0; i < count; i++)
-            {
-                ICqlColumnInfo<TSource> column;
-                if (accessor.ColumnsByName.TryGetValue(type.GetFieldName(i), out column))
-                {
-                    values[i] = column.Read<object>(source);
-                }
-            }
-
-            return new UserDefined(type, values);
-
-        }
     }
 }

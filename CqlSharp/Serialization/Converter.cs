@@ -20,24 +20,25 @@ using System.Diagnostics;
 using System.Linq;
 using System.Linq.Expressions;
 using System.Reflection;
+using CqlSharp.Annotations;
 
 namespace CqlSharp.Serialization
 {
     /// <summary>
-    ///   Provides a generic conversion routine between types.
+    /// Provides a generic conversion routine between types.
     /// </summary>
     public static class Converter
     {
         /// <summary>
-        ///   The conversion methods provided by the IConvertible interface. Used by the different TypeConverter classes
+        /// The conversion methods provided by the IConvertible interface. Used by the different TypeConverter classes
         /// </summary>
         private static readonly Dictionary<Type, MethodInfo> ConversionMethods =
             typeof(IConvertible).GetMethods()
-                .Where(m => m.Name.StartsWith("To") && m.Name != "ToType")
-                .ToDictionary(m => m.ReturnType, m => m);
+                                .Where(m => m.Name.StartsWith("To") && m.Name != "ToType")
+                                .ToDictionary(m => m.ReturnType, m => m);
 
         /// <summary>
-        ///   Changes the type. Uses IConvertible methods when source implements them
+        /// Changes the type. Uses IConvertible methods when source implements them
         /// </summary>
         /// <typeparam name="TS"> The type of the struct or class to be converted/casted </typeparam>
         /// <typeparam name="TT"> The type of struct or class to which the source must be converted or casted </typeparam>
@@ -48,7 +49,9 @@ namespace CqlSharp.Serialization
             return TypeConverter<TS, TT>.Convert(source);
         }
 
-        private static ConcurrentDictionary<Tuple<Type, Type>, Func<object, object>> _conversionFunctions = new ConcurrentDictionary<Tuple<Type, Type>, Func<object, object>>();
+        private static readonly ConcurrentDictionary<Tuple<Type, Type>, Func<object, object>> ConversionFunctions =
+            new ConcurrentDictionary<Tuple<Type, Type>, Func<object, object>>();
+
         /// <summary>
         /// Changes the type of the given object to the specific type.
         /// </summary>
@@ -59,36 +62,35 @@ namespace CqlSharp.Serialization
         {
             var types = Tuple.Create(source.GetType(), targetType);
 
-            var converter = _conversionFunctions.GetOrAdd(types, ts =>
-                {
-                    var src = Expression.Parameter(typeof(object));
-                    var converted = Expression.Convert(src, ts.Item1);
-                    var call = Expression.Call(typeof(Converter), "ChangeType", new[] { ts.Item1, ts.Item2 }, converted);
-                    var result = Expression.Convert(call, typeof(object));
-                    var lambda = Expression.Lambda<Func<object, object>>(result, src);
-                    return lambda.Compile();
-                });
+            var converter = ConversionFunctions.GetOrAdd(types, ts =>
+            {
+                var src = Expression.Parameter(typeof(object));
+                var converted = Expression.Convert(src, ts.Item1);
+                var call = Expression.Call(typeof(Converter), "ChangeType", new[] {ts.Item1, ts.Item2}, converted);
+                var result = Expression.Convert(call, typeof(object));
+                var lambda = Expression.Lambda<Func<object, object>>(result, src);
+                return lambda.Compile();
+            });
 
             return converter(source);
         }
-                
 
         #region Nested type: TypeConverter
 
         /// <summary>
-        ///   Container class for the conversion routine between two specific types
+        /// Container class for the conversion routine between two specific types
         /// </summary>
         /// <typeparam name="TSource"> The type of the source. </typeparam>
         /// <typeparam name="TTarget"> The type of the target. </typeparam>
         private static class TypeConverter<TSource, TTarget>
         {
             /// <summary>
-            ///   The conversion function.
+            /// The conversion function.
             /// </summary>
             public static readonly Func<TSource, TTarget> Convert;
 
             /// <summary>
-            ///   Initializes the <see cref="TypeConverter{TSource, TTarget}" /> conversion routine.
+            /// Initializes the <see cref="TypeConverter{TSource, TTarget}" /> conversion routine.
             /// </summary>
             static TypeConverter()
             {
@@ -103,7 +105,6 @@ namespace CqlSharp.Serialization
                 Expression call = GetIdentityConversion(srcType, targetType, src) ??
                                   GetCastConversion(targetType, src) ??
                                   GetIConvertibleConversion(srcType, targetType, src) ??
-                                  GetICastableConversion(srcType, targetType, src) ??
                                   GetITypeConverterConversion(srcType, targetType, src) ??
                                   GetCollectionConversion(srcType, targetType, src) ??
                                   GetCopyConstructorConversion(srcType, targetType, src) ??
@@ -113,7 +114,7 @@ namespace CqlSharp.Serialization
                 //translate the call into a lamda and compile it
                 var lambda = Expression.Lambda<Func<TSource, TTarget>>(call,
                                                                        "Convert" + srcType.Name + "To" + targetType.Name,
-                                                                       new[] { src });
+                                                                       new[] {src});
 
                 Debug.WriteLine(lambda.Name + " : " + lambda);
 
@@ -121,7 +122,7 @@ namespace CqlSharp.Serialization
             }
 
             /// <summary>
-            ///   Gets the identity conversion, where src is returned when src and target types are identical
+            /// Gets the identity conversion, where src is returned when src and target types are identical
             /// </summary>
             /// <param name="srcType"> Type of the source. </param>
             /// <param name="targetType"> Type of the target. </param>
@@ -133,7 +134,7 @@ namespace CqlSharp.Serialization
             }
 
             /// <summary>
-            ///   Gets the cast conversion expression, where conversion occurs by a direct checked cast between the types
+            /// Gets the cast conversion expression, where conversion occurs by a direct checked cast between the types
             /// </summary>
             /// <param name="targetType"> Type of the target. </param>
             /// <param name="src"> The source. </param>
@@ -155,7 +156,7 @@ namespace CqlSharp.Serialization
             }
 
             /// <summary>
-            ///   Gets a conversion expression using the IConvirtable implementation of the source (if any).
+            /// Gets a conversion expression using the IConvirtable implementation of the source (if any).
             /// </summary>
             /// <param name="srcType"> Type of the source. </param>
             /// <param name="targetType"> Type of the target. </param>
@@ -166,19 +167,20 @@ namespace CqlSharp.Serialization
                 Expression call = null;
 
                 //Check if type implements IConvertible
-                if (typeof(IConvertible).IsAssignableFrom(srcType))
+                if(typeof(IConvertible).IsAssignableFrom(srcType))
                 {
                     //remove any nullable wrappers on the target, increasing the chance of finding the right conversion method
                     var nonNullableTargetType = Nullable.GetUnderlyingType(targetType) ?? targetType;
 
                     //check if one of the conversion methods can be used
                     MethodInfo method;
-                    if (ConversionMethods.TryGetValue(nonNullableTargetType, out method))
+                    if(ConversionMethods.TryGetValue(nonNullableTargetType, out method))
                     {
+                        // ReSharper disable once PossiblyMistakenUseOfParamsMethod
                         call = Expression.Call(src, method, Expression.Constant(null, typeof(IFormatProvider)));
 
                         //convert result back to nullable value if necessary
-                        if (nonNullableTargetType != targetType)
+                        if(nonNullableTargetType != targetType)
                             call = Expression.Convert(call, targetType);
                     }
                     else
@@ -197,45 +199,29 @@ namespace CqlSharp.Serialization
                 return call != null ? AddNullCheck(srcType, targetType, src, call) : null;
             }
 
-            /// <summary>
-            ///  Gets a cast expression that utilizes the ICastable implementation of the source
-            /// </summary>
-            /// <param name="srcType">Type of the source.</param>
-            /// <param name="targetType">Type of the target.</param>
-            /// <param name="src">The source.</param>
-            /// <returns></returns>
-            private static Expression GetICastableConversion(Type srcType, Type targetType, ParameterExpression src)
-            {
-                if(srcType.GetInterfaces().Contains(typeof(ICastable)))
-                {
-                    var castMethod = typeof(ICastable).GetMethod("CastTo");
-                    var genericMethod = castMethod.MakeGenericMethod(targetType);
-
-                    return AddNullCheck(srcType, targetType, src, Expression.Call(src, genericMethod));
-                }
-
-                return null;
-            }
-
             private static Expression GetITypeConverterConversion(Type srcType, Type targetType, ParameterExpression src)
             {
-                var converterAttribute = Attribute.GetCustomAttribute(srcType, typeof(CqlTypeConverterAttribute)) as CqlTypeConverterAttribute;
+                var converterAttribute =
+                    Attribute.GetCustomAttribute(srcType, typeof(CqlTypeConverterAttribute)) as
+                        CqlTypeConverterAttribute;
 
-                if(converterAttribute!=null)
+                if(converterAttribute != null)
                 {
                     var converterType = converterAttribute.Converter;
                     var converter = Expression.Constant(Activator.CreateInstance(converterType));
-                    var call = Expression.Call(converter, "ConvertTo", new[] { targetType }, src);
+                    var call = Expression.Call(converter, "ConvertTo", new[] {targetType}, src);
                     return AddNullCheck(srcType, targetType, src, call);
                 }
 
-                converterAttribute = Attribute.GetCustomAttribute(targetType, typeof(CqlTypeConverterAttribute)) as CqlTypeConverterAttribute;
+                converterAttribute =
+                    Attribute.GetCustomAttribute(targetType, typeof(CqlTypeConverterAttribute)) as
+                        CqlTypeConverterAttribute;
 
-                if (converterAttribute != null)
+                if(converterAttribute != null)
                 {
                     var converterType = converterAttribute.Converter;
                     var converter = Expression.Constant(Activator.CreateInstance(converterType));
-                    var call = Expression.Call(converter, "ConvertFrom", new[] { srcType }, src);
+                    var call = Expression.Call(converter, "ConvertFrom", new[] {srcType}, src);
                     return AddNullCheck(srcType, targetType, src, call);
                 }
 
@@ -245,43 +231,55 @@ namespace CqlSharp.Serialization
             private static Expression GetCollectionConversion(Type srcType, Type targetType, ParameterExpression src)
             {
                 var enumerable = srcType.GetInterfaces()
-                        .FirstOrDefault(i => i.IsGenericType && i.GetGenericTypeDefinition() == typeof(IEnumerable<>));
+                                        .FirstOrDefault(
+                                            i =>
+                                                i.IsGenericType && i.GetGenericTypeDefinition() == typeof(IEnumerable<>));
 
-                if(enumerable!=null)
+                if(enumerable != null)
                 {
                     var collection = targetType.GetInterfaces()
-                        .FirstOrDefault(i => i.IsGenericType && i.GetGenericTypeDefinition() == typeof(ICollection<>));
+                                               .FirstOrDefault(
+                                                   i =>
+                                                       i.IsGenericType &&
+                                                       i.GetGenericTypeDefinition() == typeof(ICollection<>));
 
-                    if(collection!=null)
+                    if(collection != null)
                     {
-                        var call = Expression.Call(typeof(TypeConverter<TSource, TTarget>), "CopyCollection", new[] { enumerable.GetGenericArguments()[0], targetType, collection.GetGenericArguments()[0] }, src);
+                        var call = Expression.Call(typeof(TypeConverter<TSource, TTarget>), "CopyCollection",
+                                                   new[]
+                                                   {
+                                                       enumerable.GetGenericArguments()[0], targetType,
+                                                       collection.GetGenericArguments()[0]
+                                                   }, src);
                         return AddNullCheck(srcType, targetType, src, call);
                     }
                 }
 
                 return null;
-
             }
 
             /// <summary>
             /// Copies the collection.
             /// </summary>
-            /// <typeparam name="TSource">The type of the source.</typeparam>
+            /// <typeparam name="TSourceElement">The type of the source.</typeparam>
             /// <typeparam name="TCollection">The type of the collection.</typeparam>
             /// <typeparam name="TCollectionElement">The type of the target.</typeparam>
             /// <param name="source">The source.</param>
             /// <returns></returns>
-            private static TCollection CopyCollection<TSource, TCollection, TCollectionElement>(IEnumerable<TSource> source) where TCollection : ICollection<TCollectionElement>, new()
+            [UsedImplicitly]
+            private static TCollection CopyCollection<TSourceElement, TCollection, TCollectionElement>(
+                IEnumerable<TSourceElement> source) where TCollection : ICollection<TCollectionElement>, new()
             {
                 var result = new TCollection();
-                foreach (TSource elem in source)
-                    result.Add(Converter.ChangeType<TSource, TCollectionElement>(elem));
+                foreach(TSourceElement elem in source)
+                    result.Add(ChangeType<TSourceElement, TCollectionElement>(elem));
 
                 return result;
             }
 
             /// <summary>
-            ///   Gets the copy constructor conversion expression, where conversion is attempted by feeding the source to a constructor of the target type.
+            /// Gets the copy constructor conversion expression, where conversion is attempted by feeding the source to a constructor
+            /// of the target type.
             /// </summary>
             /// <param name="srcType"> Type of the source. </param>
             /// <param name="targetType"> Type of the target. </param>
@@ -291,21 +289,21 @@ namespace CqlSharp.Serialization
                                                                    ParameterExpression src)
             {
                 //first try if constructor exists that excepts our src directly
-                var constructor = targetType.GetConstructor(new[] { srcType });
+                var constructor = targetType.GetConstructor(new[] {srcType});
 
-                if (constructor == null)
+                if(constructor == null)
                 {
                     //start looking for a constructor that could accept our src
                     var constructors = targetType.GetConstructors();
-                    foreach (var cnstr in constructors)
+                    foreach(var cnstr in constructors)
                     {
                         //get the constructor parameters
                         var parameters = cnstr.GetParameters();
-                        if (parameters.Length != 1)
+                        if(parameters.Length != 1)
                             continue;
 
                         //check if it can accept our src
-                        if (parameters[0].ParameterType.IsAssignableFrom(srcType))
+                        if(parameters[0].ParameterType.IsAssignableFrom(srcType))
                         {
                             constructor = cnstr;
                             break;
@@ -315,12 +313,12 @@ namespace CqlSharp.Serialization
 
                 //check if we found our constructor. If so, use it
                 return constructor != null
-                           ? AddNullCheck(srcType, targetType, src, Expression.New(constructor, src))
-                           : null;
+                    ? AddNullCheck(srcType, targetType, src, Expression.New(constructor, src))
+                    : null;
             }
 
             /// <summary>
-            ///   Gets the automatic string conversion.
+            /// Gets the automatic string conversion.
             /// </summary>
             /// <param name="srcType"> Type of the source. </param>
             /// <param name="targetType"> Type of the target. </param>
@@ -328,7 +326,7 @@ namespace CqlSharp.Serialization
             /// <returns> </returns>
             private static Expression GetToStringConversion(Type srcType, Type targetType, ParameterExpression src)
             {
-                if (targetType == typeof(string))
+                if(targetType == typeof(string))
                 {
                     MethodInfo method = srcType.GetMethod("ToString", Type.EmptyTypes);
                     return AddNullCheck(srcType, targetType, src, Expression.Call(src, method));
@@ -339,7 +337,7 @@ namespace CqlSharp.Serialization
 
 
             /// <summary>
-            ///   Gets the invalid conversion expression, which throws a InvalidCast exception
+            /// Gets the invalid conversion expression, which throws a InvalidCast exception
             /// </summary>
             /// <param name="srcType"> Type of the source. </param>
             /// <param name="targetType"> Type of the target. </param>
@@ -353,7 +351,7 @@ namespace CqlSharp.Serialization
             }
 
             /// <summary>
-            ///   Adds a null check on the source when applicable.
+            /// Adds a null check on the source when applicable.
             /// </summary>
             /// <param name="srcType"> Type of the source. </param>
             /// <param name="targetType"> Type of the target. </param>
@@ -363,7 +361,7 @@ namespace CqlSharp.Serialization
             private static Expression AddNullCheck(Type srcType, Type targetType, Expression src, Expression call)
             {
                 //check if src can be null, and if not, return immediatly
-                if (srcType.IsValueType)
+                if(srcType.IsValueType)
                     return call;
 
                 return Expression.Condition(
@@ -381,7 +379,7 @@ namespace CqlSharp.Serialization
             }
 
             /// <summary>
-            ///   Determines whether the specified type can be assigned a null value.
+            /// Determines whether the specified type can be assigned a null value.
             /// </summary>
             /// <param name="type"> The type. </param>
             /// <returns> </returns>

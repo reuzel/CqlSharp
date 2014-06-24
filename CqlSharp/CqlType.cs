@@ -1,5 +1,18 @@
-﻿using CqlSharp.Serialization;
-using CqlSharp.Serialization.Marshal;
+﻿// CqlSharp - CqlSharp
+// Copyright (c) 2014 Joost Reuzel
+//   
+// Licensed under the Apache License, Version 2.0 (the "License");
+// you may not use this file except in compliance with the License.
+// You may obtain a copy of the License at
+//   
+// http://www.apache.org/licenses/LICENSE-2.0
+//  
+// Unless required by applicable law or agreed to in writing, software
+// distributed under the License is distributed on an "AS IS" BASIS,
+// WITHOUT WARRANTIES OR CONDITIONS OF ANY KIND, either express or implied.
+// See the License for the specific language governing permissions and
+// limitations under the License.
+
 using System;
 using System.Collections.Concurrent;
 using System.Collections.Generic;
@@ -8,6 +21,9 @@ using System.Linq;
 using System.Linq.Expressions;
 using System.Net;
 using System.Numerics;
+using System.Text;
+using CqlSharp.Serialization;
+using CqlSharp.Serialization.Marshal;
 
 namespace CqlSharp
 {
@@ -16,6 +32,8 @@ namespace CqlSharp
     /// </summary>
     public abstract class CqlType : IEquatable<CqlType>
     {
+ 
+
         #region Native types
 
         public static readonly CqlType Ascii = AsciiType.Instance;
@@ -36,11 +54,22 @@ namespace CqlSharp
         public static readonly CqlType TimeUuid = TimeUUIDType.Instance;
 
         #endregion
-        
+
         private static readonly ITypeFactory[] TypeCodeMap;
         private static readonly ConcurrentDictionary<Type, CqlType> Type2CqlType;
         private static readonly ConcurrentDictionary<String, CqlType> TypeName2CqlType;
         private static readonly Dictionary<DbType, CqlType> DbType2CqlType;
+
+        /// <summary>
+        /// The type serializers. Cached version of the serializers, giving efficient access to the generic serialize methods from
+        /// objects
+        /// </summary>
+        private static readonly ConcurrentDictionary<Type, Func<CqlType, object, byte[]>> TypeSerializers;
+
+        /// <summary>
+        /// The cached version of the type name
+        /// </summary>
+        private string _typeName;
 
         static CqlType()
         {
@@ -84,99 +113,184 @@ namespace CqlSharp
             TypeName2CqlType = new ConcurrentDictionary<string, CqlType>();
 
             DbType2CqlType = new Dictionary<DbType, CqlType>
-                                    {
-                                        { DbType.AnsiString, Ascii},
-                                        { DbType.Int64, Bigint },
-                                        { DbType.Guid, Uuid },
-                                        { DbType.Binary, Blob },
-                                        { DbType.DateTime, Timestamp },
-                                        { DbType.Single, Float },
-                                        { DbType.Double, Double },
-                                        { DbType.Decimal, Decimal },
-                                        { DbType.Int32, Int },
-                                        { DbType.Boolean, Boolean },
-                                        { DbType.VarNumeric, Varint },
-                                        { DbType.String, Varchar },
-                                    };
+            {
+                {DbType.AnsiString, Ascii},
+                {DbType.Int64, Bigint},
+                {DbType.Guid, Uuid},
+                {DbType.Binary, Blob},
+                {DbType.DateTime, Timestamp},
+                {DbType.Single, Float},
+                {DbType.Double, Double},
+                {DbType.Decimal, Decimal},
+                {DbType.Int32, Int},
+                {DbType.Boolean, Boolean},
+                {DbType.VarNumeric, Varint},
+                {DbType.String, Varchar},
+            };
 
+            TypeSerializers = new ConcurrentDictionary<Type, Func<CqlType, object, byte[]>>();
         }
 
+        /// <summary>
+        /// Creates a CqlType from the given typecode and a set of construction arguments
+        /// </summary>
+        /// <param name="tc">The CqlTypeCode</param>
+        /// <param name="arguments">The arguments. This are different per type</param>
+        /// <returns>A CqlType, constructed from the CqlTypeCode and arguments</returns>
         public static CqlType CreateType(CqlTypeCode tc, params object[] arguments)
         {
             return TypeCodeMap[(short)tc].CreateType(arguments);
         }
 
+        /// <summary>
+        /// Creates a CqlType from the given full Cassandra type name
+        /// </summary>
+        /// <param name="typeName">Name of the type. (e.g. ListType(UTF8Type) )</param>
+        /// <returns>a CqlType representing the full type name</returns>
         public static CqlType CreateType(string typeName)
         {
-            return TypeName2CqlType.GetOrAdd(typeName, (name) =>
+            return TypeName2CqlType.GetOrAdd(typeName, name =>
             {
                 var tp = new TypeParser(name);
                 return tp.ReadCqlType();
             });
         }
 
+        /// <summary>
+        /// Creates a CqlType by reflecting the given .NET type
+        /// </summary>
+        /// <param name="type">The type.</param>
+        /// <returns>A CqlType that can be used to serialize/deserialize the given .NET type</returns>
         public static CqlType CreateType(Type type)
         {
-            return Type2CqlType.GetOrAdd(type, (newType) =>
+            return Type2CqlType.GetOrAdd(type, newType =>
             {
-                if (newType.IsGenericType)
+                if(newType.IsGenericType)
                 {
                     var genericType = type.GetGenericTypeDefinition();
 
                     //check for nullable types
-                    if (genericType == typeof(Nullable<>))
-                    {
+                    if(genericType == typeof(Nullable<>))
                         return CreateType(newType.GetGenericArguments()[0]);
-                    }
 
                     var interfaces =
                         newType.GetInterfaces()
-                        .Where(i => i.IsGenericType)
-                        .Select(i => i.GetGenericTypeDefinition());
-
+                               .Where(i => i.IsGenericType)
+                               .Select(i => i.GetGenericTypeDefinition())
+                               .ToArray();
 
                     //check for collection types
-                    if (interfaces.Any(i => i == typeof(IDictionary<,>)))
+                    if(interfaces.Any(i => i == typeof(IDictionary<,>)))
                         return new MapTypeFactory().CreateType(newType);
 
-                    if (interfaces.Any(i => i == typeof(ISet<>)))
+                    if(interfaces.Any(i => i == typeof(ISet<>)))
                         return new SetTypeFactory().CreateType(newType);
 
-                    if (interfaces.Any(i => i == typeof(IList<>)))
+                    if(interfaces.Any(i => i == typeof(IList<>)))
                         return new ListTypeFactory().CreateType(newType);
                 }
 
+                //check for user types
+                var userTypeAttribute =
+                    Attribute.GetCustomAttribute(newType, typeof(CqlUserTypeAttribute)) as CqlUserTypeAttribute;
+                if(userTypeAttribute != null)
+                {
+                    return new UserDefinedTypeFactory().CreateType(newType);
+                }
+
                 //check if custom type attribute is set
-                var customAttribute = Attribute.GetCustomAttribute(newType, typeof(CqlCustomTypeAttribute)) as CqlCustomTypeAttribute;
-                if (customAttribute != null)
+                var customAttribute =
+                    Attribute.GetCustomAttribute(newType, typeof(CqlCustomTypeAttribute)) as CqlCustomTypeAttribute;
+                if(customAttribute != null)
                     return customAttribute.CreateFactory().CreateType(newType);
 
                 throw new Exception("Unsupported type");
-
             });
         }
 
+        /// <summary>
+        /// Gets the CQL type code.
+        /// </summary>
+        /// <value>
+        /// The CQL type code.
+        /// </value>
         public abstract CqlTypeCode CqlTypeCode { get; }
-        public abstract string TypeName { get; }
+
+        /// <summary>
+        /// Gets the full Cassandra name of the type (e.g. ListType(UTF8Type) ).
+        /// </summary>
+        /// <returns>
+        /// The name of the type.
+        /// </returns>
+        public string TypeName
+        {
+            get
+            {
+                if(_typeName == null)
+                {
+                    var builder = new StringBuilder();
+                    AppendTypeName(builder);
+                    _typeName = builder.ToString();
+                }
+
+                return _typeName;
+            }
+        }
+
+        /// <summary>
+        /// Adds the name of the type to the provided builder.
+        /// </summary>
+        /// <param name="builder">The builder.</param>
+        public abstract void AppendTypeName(StringBuilder builder);
+
+        /// <summary>
+        /// Gets the .NET type
+        /// </summary>
+        /// <value>
+        /// The type.
+        /// </value>
         public abstract Type Type { get; }
 
-        private static ConcurrentDictionary<Type, Func<CqlType, object, byte[]>> TypeSerializers = new ConcurrentDictionary<Type, Func<CqlType, object, byte[]>>();
-        public virtual byte[] Serialize(object source)
+        /// <summary>
+        /// Serializes the specified object.
+        /// </summary>
+        /// <param name="source">The source object to serialize using this type.</param>
+        /// <returns>byte array containing the serialized value of the source object</returns>
+        /// <remarks>This method may try to convert the source to a type serializable by this type</remarks>
+        public byte[] Serialize(object source)
         {
-            var serializer = TypeSerializers.GetOrAdd(source.GetType(), (type) => 
-                {
-                    var parameter = Expression.Parameter(typeof(object));
-                    var instance = Expression.Parameter(typeof(CqlType));
-                    var call = Expression.Call(instance, "Serialize", new[] {type}, Expression.Convert(parameter, type));
-                    var lambda = Expression.Lambda<Func<CqlType, object, byte[]>>(call, instance, parameter);
-                    return lambda.Compile();
-
-                });
+            var serializer = TypeSerializers.GetOrAdd(source.GetType(), type =>
+            {
+                var parameter = Expression.Parameter(typeof(object));
+                var instance = Expression.Parameter(typeof(CqlType));
+                var call = Expression.Call(instance, "Serialize", new[] {type}, Expression.Convert(parameter, type));
+                var lambda = Expression.Lambda<Func<CqlType, object, byte[]>>(call, instance, parameter);
+                return lambda.Compile();
+            });
 
             return serializer(this, source);
         }
 
+        /// <summary>
+        /// Serializes the specified object.
+        /// </summary>
+        /// <typeparam name="TSource">The type of the source.</typeparam>
+        /// <param name="source">The source object to serialize using this type.</param>
+        /// <returns>
+        /// byte array containing the serialized value of the source object
+        /// </returns>
+        /// <remarks>
+        /// This method may try to convert the source to a type serializable by this type
+        /// </remarks>
         public abstract byte[] Serialize<TSource>(TSource source);
+
+        /// <summary>
+        /// Deserializes the specified data to object of the given target type.
+        /// </summary>
+        /// <typeparam name="TTarget">The type of the target.</typeparam>
+        /// <param name="data">The data to deserialize.</param>
+        /// <returns>an object of the given type</returns>
+        /// <remarks>The result may be type converted version of the actual deserialized value</remarks>
         public abstract TTarget Deserialize<TTarget>(byte[] data);
 
 
@@ -190,16 +304,14 @@ namespace CqlSharp
         {
             CqlType cqlType;
 
-            if (DbType2CqlType.TryGetValue(type, out cqlType))
-            {
+            if(DbType2CqlType.TryGetValue(type, out cqlType))
                 return cqlType;
-            }
 
             throw new ArgumentOutOfRangeException("type", type, "CqlType can not be derived from the given DbType");
         }
 
         /// <summary>
-        ///   gets the corresponding the DbType
+        /// gets the corresponding the DbType
         /// </summary>
         /// <returns> </returns>
         public abstract DbType ToDbType();
@@ -213,27 +325,27 @@ namespace CqlSharp
         /// </returns>
         public virtual bool Equals(CqlType other)
         {
-            if (CqlTypeCode != other.CqlTypeCode)
+            if(CqlTypeCode != other.CqlTypeCode)
                 return false;
-            
-            if (CqlTypeCode == CqlTypeCode.Custom)
+
+            if(CqlTypeCode == CqlTypeCode.Custom)
                 return other.TypeName.Equals(TypeName, StringComparison.OrdinalIgnoreCase);
 
             return true;
         }
 
         /// <summary>
-        /// Determines whether the specified <see cref="System.Object" }, is equal to this instance.
+        /// Determines whether the specified <see cref="System.Object" />, is equal to this instance.
         /// </summary>
         /// <param name="obj">The <see cref="System.Object" /> to compare with this instance.</param>
         /// <returns>
-        ///   <c>true</c> if the specified <see cref="System.Object" /> is equal to this instance; otherwise, <c>false</c>.
+        /// <c>true</c> if the specified <see cref="System.Object" /> is equal to this instance; otherwise, <c>false</c>.
         /// </returns>
         public override bool Equals(object obj)
         {
-            if (ReferenceEquals(null, obj)) return false;
-            if (ReferenceEquals(this, obj)) return true;
-            if (GetType() != obj.GetType()) return false;
+            if(ReferenceEquals(null, obj)) return false;
+            if(ReferenceEquals(this, obj)) return true;
+            if(GetType() != obj.GetType()) return false;
             return Equals((CqlType)obj);
         }
 
@@ -241,18 +353,34 @@ namespace CqlSharp
         /// Returns a hash code for this instance.
         /// </summary>
         /// <returns>
-        /// A hash code for this instance, suitable for use in hashing algorithms and data structures like a hash table. 
+        /// A hash code for this instance, suitable for use in hashing algorithms and data structures like a hash table.
         /// </returns>
         public override int GetHashCode()
         {
             return TypeName.GetHashCode();
         }
 
+        /// <summary>
+        /// Implements the operator ==.
+        /// </summary>
+        /// <param name="left">The left.</param>
+        /// <param name="right">The right.</param>
+        /// <returns>
+        /// The result of the operator.
+        /// </returns>
         public static bool operator ==(CqlType left, CqlType right)
         {
             return Equals(left, right);
         }
 
+        /// <summary>
+        /// Implements the operator !=.
+        /// </summary>
+        /// <param name="left">The left.</param>
+        /// <param name="right">The right.</param>
+        /// <returns>
+        /// The result of the operator.
+        /// </returns>
         public static bool operator !=(CqlType left, CqlType right)
         {
             return !Equals(left, right);
@@ -266,12 +394,11 @@ namespace CqlSharp
         /// </returns>
         public override string ToString()
         {
-            if (CqlTypeCode == CqlTypeCode.Custom)
+            if(CqlTypeCode == CqlTypeCode.Custom)
                 return TypeName;
 
             return CqlTypeCode.ToString().ToLower();
         }
-
     }
 
     /// <summary>
@@ -284,20 +411,51 @@ namespace CqlSharp
         {
             get { return typeof(T); }
         }
-              
+
+        /// <summary>
+        /// Serializes the specified object.
+        /// </summary>
+        /// <typeparam name="TSource">The type of the source.</typeparam>
+        /// <param name="source">The source object to serialize using this type.</param>
+        /// <returns>
+        /// byte array containing the serialized value of the source object
+        /// </returns>
+        /// <remarks>
+        /// This method may try to convert the source to a type serializable by this type
+        /// </remarks>
         public override byte[] Serialize<TSource>(TSource source)
         {
             T value = Converter.ChangeType<TSource, T>(source);
             return Serialize(value);
         }
 
+        /// <summary>
+        /// Deserializes the specified data to object of the given target type.
+        /// </summary>
+        /// <typeparam name="TTarget">The type of the target.</typeparam>
+        /// <param name="data">The data to deserialize.</param>
+        /// <returns>an object of the given type</returns>
+        /// <remarks>The result may be type converted version of the actual deserialized value</remarks>
         public override TTarget Deserialize<TTarget>(byte[] data)
         {
             T value = Deserialize(data);
             return Converter.ChangeType<T, TTarget>(value);
         }
 
+        /// <summary>
+        /// Serializes the specified object.
+        /// </summary>
+        /// <param name="value">The value to serialize using this type.</param>
+        /// <returns>
+        /// byte array containing the serialized version of the value
+        /// </returns>
         public abstract byte[] Serialize(T value);
+
+        /// <summary>
+        /// Deserializes the specified data to object of the type corresponding to this CqlType.
+        /// </summary>
+        /// <param name="data">The data to deserialize.</param>
+        /// <returns>an object of the T</returns>
         public abstract T Deserialize(byte[] data);
     }
 }

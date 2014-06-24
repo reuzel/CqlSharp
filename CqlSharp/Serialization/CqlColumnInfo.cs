@@ -13,53 +13,47 @@
 // See the License for the specific language governing permissions and
 // limitations under the License.
 
+
+// ReSharper disable CompareNonConstrainedGenericWithNull
+
 using System;
 using System.Linq.Expressions;
 using System.Reflection;
-using System.Linq;
-using System.Collections.Concurrent;
 
 namespace CqlSharp.Serialization
 {
     /// <summary>
-    ///   Provides CQL information of a table class property or field
+    /// Provides CQL information of a table class property or field
     /// </summary>
     /// <typeparam name="TTable"> The type of the table. </typeparam>
+    /// <typeparam name="TMember"> The type of the class member that stores this column value</typeparam>
     internal class CqlColumnInfo<TTable, TMember> : ICqlColumnInfo<TTable>, IKeyMember
     {
         public CqlColumnInfo(MemberInfo member)
         {
             //set the member
             MemberInfo = member;
-            
+
             //set the type
             Type = typeof(TMember);
-            
+
             //check for column attribute
             var columnAttribute =
                 Attribute.GetCustomAttribute(member, typeof(CqlColumnAttribute)) as CqlColumnAttribute;
 
             //get column name from attribute or base on name otherwise
-            if (columnAttribute != null && columnAttribute.Column != null)
-            {
+            if(columnAttribute != null && columnAttribute.Column != null)
                 Name = columnAttribute.Column;
-            }
             else
-            {
                 Name = member.Name.ToLower();
-            }
 
             //get order if any
-            if (columnAttribute != null && columnAttribute.OrderHasValue)
-            {
+            if(columnAttribute != null && columnAttribute.OrderHasValue)
                 Order = columnAttribute.Order;
-            }
 
             //get CqlTypeCode from attribute (if any)
-            if (columnAttribute != null && columnAttribute.CqlTypeHasValue)
-            {
+            if(columnAttribute != null && columnAttribute.CqlTypeHasValue)
                 CqlType = CqlType.CreateType(columnAttribute.CqlTypeCode);
-            }
             else
             {
                 //get CqlTypeCode from property Type
@@ -70,15 +64,13 @@ namespace CqlSharp.Serialization
             var indexAttribute =
                 Attribute.GetCustomAttribute(member, typeof(CqlIndexAttribute)) as CqlIndexAttribute;
 
-            if (indexAttribute != null)
+            if(indexAttribute != null)
             {
                 IsIndexed = true;
                 IndexName = indexAttribute.Name;
             }
             else
-            {
                 IsIndexed = false;
-            }
         }
 
         /// <summary>
@@ -90,9 +82,9 @@ namespace CqlSharp.Serialization
         /// The function to read the member (compiled expression for performance reasons)
         /// </summary>
         private Func<TTable, TMember> _readFunction;
-        
+
         /// <summary>
-        ///   Gets the column name.
+        /// Gets the column name.
         /// </summary>
         /// <value> The name. </value>
         public string Name { get; private set; }
@@ -106,43 +98,43 @@ namespace CqlSharp.Serialization
         public CqlType CqlType { get; private set; }
 
         /// <summary>
-        ///   Gets the .NET type.
+        /// Gets the .NET type.
         /// </summary>
         /// <value> The type. </value>
         public Type Type { get; private set; }
 
         /// <summary>
-        ///   Gets the order/index of a key column.
+        /// Gets the order/index of a key column.
         /// </summary>
         /// <value> The order. </value>
         public int? Order { get; private set; }
 
         /// <summary>
-        ///   Gets a value indicating whether this column is part of the partition key.
+        /// Gets a value indicating whether this column is part of the partition key.
         /// </summary>
         /// <value> <c>true</c> if this column is part of the partition key; otherwise, <c>false</c> . </value>
         public bool IsPartitionKey { get; set; }
 
         /// <summary>
-        ///   Gets a value indicating whether this column is part of the clustering key.
+        /// Gets a value indicating whether this column is part of the clustering key.
         /// </summary>
         /// <value> <c>true</c> if this column is part of the clustering key; otherwise, <c>false</c> . </value>
         public bool IsClusteringKey { get; set; }
 
         /// <summary>
-        ///   Gets a value indicating whether this column is indexed.
+        /// Gets a value indicating whether this column is indexed.
         /// </summary>
         /// <value> <c>true</c> if this column is indexed; otherwise, <c>false</c> . </value>
         public bool IsIndexed { get; private set; }
 
         /// <summary>
-        ///   Gets the name of the index (if any).
+        /// Gets the name of the index (if any).
         /// </summary>
         /// <value> The name of the index. </value>
         public string IndexName { get; private set; }
 
         /// <summary>
-        ///   Gets the member information.
+        /// Gets the member information.
         /// </summary>
         /// <value> The member information. </value>
         public MemberInfo MemberInfo { get; private set; }
@@ -158,7 +150,7 @@ namespace CqlSharp.Serialization
         {
             var value = ReadFunction(source);
 
-            if (value == null)
+            if(value == null)
                 return default(TResult);
 
             return Converter.ChangeType<TMember, TResult>(value);
@@ -175,11 +167,11 @@ namespace CqlSharp.Serialization
         {
             get
             {
-                if(_readFunction==null)
+                if(_readFunction == null)
                 {
                     var source = Expression.Parameter(typeof(TTable));
                     var member = Expression.MakeMemberAccess(source, MemberInfo);
-            
+
                     _readFunction = Expression.Lambda<Func<TTable, TMember>>(member, source).Compile();
                 }
 
@@ -196,16 +188,18 @@ namespace CqlSharp.Serialization
         /// <exception cref="System.ArgumentNullException">target</exception>
         public void Write<TValue>(TTable target, TValue value)
         {
-            if(target==null)
+            if(target == null)
                 throw new ArgumentNullException("target");
 
-            if(value==null)
+            if(value == null)
                 WriteFunction(target, default(TMember));
             else
             {
                 var memberValue = Converter.ChangeType<TValue, TMember>(value);
                 WriteFunction(target, memberValue);
             }
+
+
         }
 
 
@@ -219,12 +213,12 @@ namespace CqlSharp.Serialization
         {
             get
             {
-                if(_writeFunction==null)
+                if(_writeFunction == null)
                 {
                     var target = Expression.Parameter(typeof(TTable));
                     var value = Expression.Parameter(typeof(TMember));
                     var member = Expression.MakeMemberAccess(target, MemberInfo);
-                                  
+
                     Expression body = Expression.Assign(member, value);
 
                     _writeFunction = Expression.Lambda<Action<TTable, TMember>>(body, target, value).Compile();

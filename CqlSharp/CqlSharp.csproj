@@ -67,10 +67,10 @@
     <Compile Include="CqlSchemaTableColumnNames.cs" />
     <Compile Include="DiscoveryScope.cs" />
     <Compile Include="Extensions\Loader.cs" />
+    <Compile Include="Properties\Annotations.cs" />
     <Compile Include="Serialization\CqlCustomTypeAttribute.cs" />
     <Compile Include="Serialization\CqlEntityAttribute.cs" />
     <Compile Include="Serialization\CqlTypeConverterAttribute.cs" />
-    <Compile Include="Serialization\ICastable.cs" />
     <Compile Include="Logging\ConsoleLogger.cs" />
     <Compile Include="Logging\DebugLogger.cs" />
     <Compile Include="Logging\FastGuid.cs" />

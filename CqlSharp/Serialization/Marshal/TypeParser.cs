@@ -1,5 +1,20 @@
-using CqlSharp.Extensions;
+// CqlSharp - CqlSharp
+// Copyright (c) 2014 Joost Reuzel
+//   
+// Licensed under the Apache License, Version 2.0 (the "License");
+// you may not use this file except in compliance with the License.
+// You may obtain a copy of the License at
+//   
+// http://www.apache.org/licenses/LICENSE-2.0
+//  
+// Unless required by applicable law or agreed to in writing, software
+// distributed under the License is distributed on an "AS IS" BASIS,
+// WITHOUT WARRANTIES OR CONDITIONS OF ANY KIND, either express or implied.
+// See the License for the specific language governing permissions and
+// limitations under the License.
+
 using System;
+using CqlSharp.Extensions;
 
 namespace CqlSharp.Serialization.Marshal
 {
@@ -7,7 +22,7 @@ namespace CqlSharp.Serialization.Marshal
     {
         private readonly string _typeName;
         private int index;
-        
+
         public TypeParser(string typeName)
         {
             _typeName = typeName;
@@ -26,7 +41,7 @@ namespace CqlSharp.Serialization.Marshal
 
         public void SkipBlank()
         {
-            while (!IsEOS() && IsBlank(Peek()))
+            while(!IsEOS() && IsBlank(Peek()))
                 index++;
         }
 
@@ -37,20 +52,17 @@ namespace CqlSharp.Serialization.Marshal
         public bool SkipBlankAndComma()
         {
             bool commaFound = false;
-            while (!IsEOS())
+            while(!IsEOS())
             {
                 char c = _typeName[index];
-                if (c == ',')
+                if(c == ',')
                 {
-                    if (commaFound)
+                    if(commaFound)
                         return true;
-                    else
-                        commaFound = true;
+                    commaFound = true;
                 }
-                else if (!IsBlank(c))
-                {
+                else if(!IsBlank(c))
                     return true;
-                }
                 index++;
             }
             return false;
@@ -60,25 +72,26 @@ namespace CqlSharp.Serialization.Marshal
         {
             return c == ' ' || c == '\t' || c == '\n';
         }
-         
+
         private static bool IsIdentifierChar(char c)
         {
             return (c >= '0' && c <= '9')
-                || (c >= 'a' && c <= 'z') || (c >= 'A' && c <= 'Z')
-                || c == '-' || c == '+' || c == '.' || c == '_' || c == '&';
+                   || (c >= 'a' && c <= 'z') || (c >= 'A' && c <= 'Z')
+                   || c == '-' || c == '+' || c == '.' || c == '_' || c == '&';
         }
 
         public String ReadNextIdentifier(bool expandNamespace = true)
         {
             SkipBlank();
             int i = index;
-            while (!IsEOS() && IsIdentifierChar(_typeName[index]))
-            {
+            while(!IsEOS() && IsIdentifierChar(_typeName[index]))
                 index++;
-            }
 
-            if (i == index)
-                throw new CqlException(string.Format("Error parsing type {0}. Expected an identifier at position {1}", _typeName, index));
+            if(i == index)
+            {
+                throw new CqlException(string.Format("Error parsing type {0}. Expected an identifier at position {1}",
+                                                     _typeName, index));
+            }
 
             return _typeName.Substring(i, index - i);
         }
@@ -93,22 +106,28 @@ namespace CqlSharp.Serialization.Marshal
         {
             string type = ReadNextIdentifier();
 
-            if(type.IndexOf('.')<0)
+            if(type.IndexOf('.') < 0)
                 type = "org.apache.cassandra.db.marshal." + type;
-            
-            var typeFactory = Extensions.Loader.Extensions.TypeFactories.Find(factory => factory.TypeName.Equals(type, StringComparison.OrdinalIgnoreCase));
 
-            if (typeFactory == null)
+            var typeFactory =
+                Loader.Extensions.TypeFactories.Find(
+                    factory => factory.TypeName.Equals(type, StringComparison.OrdinalIgnoreCase));
+
+            if(typeFactory == null)
                 throw new CqlException(string.Format("Type {0} is not supported", type));
 
             CqlType cqlType;
             SkipBlank();
-            if (!IsEOS() && Peek() == '(')
+            if(!IsEOS() && Peek() == '(')
             {
                 ReadNextChar();
                 cqlType = typeFactory.CreateType(this);
-                if (ReadNextChar() != ')')
-                    throw new CqlException(string.Format("Error parsing type string \"{0}\", expected ')' at position {1}.", _typeName, index));
+                if(ReadNextChar() != ')')
+                {
+                    throw new CqlException(
+                        string.Format("Error parsing type string \"{0}\", expected ')' at position {1}.", _typeName,
+                                      index));
+                }
             }
             else
                 cqlType = typeFactory.CreateType();

@@ -1,5 +1,21 @@
+// CqlSharp - CqlSharp
+// Copyright (c) 2014 Joost Reuzel
+//   
+// Licensed under the Apache License, Version 2.0 (the "License");
+// you may not use this file except in compliance with the License.
+// You may obtain a copy of the License at
+//   
+// http://www.apache.org/licenses/LICENSE-2.0
+//  
+// Unless required by applicable law or agreed to in writing, software
+// distributed under the License is distributed on an "AS IS" BASIS,
+// WITHOUT WARRANTIES OR CONDITIONS OF ANY KIND, either express or implied.
+// See the License for the specific language governing permissions and
+// limitations under the License.
+
 using System.Data;
 using System.Numerics;
+using System.Text;
 
 namespace CqlSharp.Serialization.Marshal
 {
@@ -12,9 +28,9 @@ namespace CqlSharp.Serialization.Marshal
             get { return CqlTypeCode.Decimal; }
         }
 
-        public override string TypeName
+        public override void AppendTypeName(StringBuilder builder)
         {
-            get { return "org.apache.cassandra.db.marshal.DecimalType"; }
+            builder.Append("org.apache.cassandra.db.marshal.DecimalType");
         }
 
         public override DbType ToDbType()
@@ -34,7 +50,7 @@ namespace CqlSharp.Serialization.Marshal
             BigInteger unscaled = (uint)bits[2];
             unscaled = (unscaled << 32) + (uint)bits[1];
             unscaled = (unscaled << 32) + (uint)bits[0];
-            if (sign) unscaled *= -1;
+            if(sign) unscaled *= -1;
 
             //get the unscaled value binary representation (Little Endian)
             var unscaledData = unscaled.ToByteArray();
@@ -50,8 +66,10 @@ namespace CqlSharp.Serialization.Marshal
             rawData[3] = (byte)(scale);
 
             //copy the unscaled value (Big Endian)
-            for (int i = 0; i < unscaledData.Length; i++)
+            for(int i = 0; i < unscaledData.Length; i++)
+            {
                 rawData[i + 4] = unscaledData[unscaledData.Length - 1 - i];
+            }
 
             return rawData;
         }
@@ -62,23 +80,25 @@ namespace CqlSharp.Serialization.Marshal
             int scale = data.ToInt();
 
             //check the scale if it ain't too large (or small)
-            if (scale < 0 || scale > 28)
+            if(scale < 0 || scale > 28)
                 throw new CqlException("Received decimal is too large to fit in a System.Decimal");
 
             //copy the unscaled big integer data (and reverse to Little Endian)
             var unscaledData = new byte[data.Length - 4];
-            for (int i = 0; i < unscaledData.Length; i++)
+            for(int i = 0; i < unscaledData.Length; i++)
+            {
                 unscaledData[i] = data[data.Length - 1 - i];
+            }
 
             //get the unscaled value
             var unscaled = new BigInteger(unscaledData);
 
             //get the sign, and make sure unscaled data is positive
             bool sign = unscaled < 0;
-            if (sign) unscaled *= -1;
+            if(sign) unscaled *= -1;
 
             //check unscaled size (Java BigDecimal can be larger the System.Decimal)
-            if ((unscaled >> 96) != 0)
+            if((unscaled >> 96) != 0)
                 throw new CqlException("Received decimal is too large to fit in a System.Decimal");
 
             //get the decimal int values

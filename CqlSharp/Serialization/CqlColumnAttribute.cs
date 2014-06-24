@@ -18,7 +18,7 @@ using System;
 namespace CqlSharp.Serialization
 {
     /// <summary>
-    ///   Annotates a field or property to have it map to a specific column, and optionally table and keyspace
+    /// Annotates a field or property to have it map to a specific column, and optionally table and keyspace
     /// </summary>
     [AttributeUsage(AttributeTargets.Property | AttributeTargets.Field)]
     public class CqlColumnAttribute : Attribute
@@ -43,7 +43,7 @@ namespace CqlSharp.Serialization
         }
 
         /// <summary>
-        ///   Gets the name of the column
+        /// Gets the name of the column
         /// </summary>
         /// <value> The column. </value>
         public string Column
@@ -56,7 +56,7 @@ namespace CqlSharp.Serialization
         /// Gets a value indicating whether [CQL typeCode has value].
         /// </summary>
         /// <value>
-        ///   <c>true</c> if [CQL typeCode has value]; otherwise, <c>false</c>.
+        /// <c>true</c> if [CQL typeCode has value]; otherwise, <c>false</c>.
         /// </value>
         internal bool CqlTypeHasValue
         {
@@ -64,14 +64,14 @@ namespace CqlSharp.Serialization
         }
 
         /// <summary>
-        ///   Gets or sets the Cql typeCode of the column
+        /// Gets or sets the Cql typeCode of the column
         /// </summary>
         /// <value> The typeCode of the CQL. </value>
         public CqlTypeCode CqlTypeCode
         {
             get
             {
-                if (!_cqlTypeCode.HasValue)
+                if(!_cqlTypeCode.HasValue)
                     throw new CqlException("CqlTypeCode attribute property was not set");
 
                 return _cqlTypeCode.Value;
@@ -84,7 +84,7 @@ namespace CqlSharp.Serialization
         /// Gets a value indicating whether [Order has value].
         /// </summary>
         /// <value>
-        ///   <c>true</c> if [Order has value]; otherwise, <c>false</c>.
+        /// <c>true</c> if [Order has value]; otherwise, <c>false</c>.
         /// </value>
         internal bool OrderHasValue
         {
@@ -101,7 +101,7 @@ namespace CqlSharp.Serialization
         {
             get
             {
-                if (!_order.HasValue)
+                if(!_order.HasValue)
                     throw new CqlException("Order attribute property was not set");
 
                 return _order.Value;
@@ -111,7 +111,7 @@ namespace CqlSharp.Serialization
         }
 
         /// <summary>
-        ///   Gets or sets the index of column in the partition key.
+        /// Gets or sets the index of column in the partition key.
         /// </summary>
         /// <value> The index of the partition key. </value>
         [Obsolete("Please use CqlKeyAttribute instead", true)]

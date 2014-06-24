@@ -3,12 +3,13 @@
 * Previous CqlType enum is now called CqlTypeCode.
 * Primitive Cql types can be accessed through CqlType.* static properties. Others can be constructed from .NET class, type string, or TypeCode + parameter via the CqlType.CreateType overloads.
 * CqlParameter no longer accepts different CqlTypeCodes, but requires a single CqlType
-* Added high performance very flexible type conversion that prevents boxing, and even converts collection types (e.g. hashset{int} to list{long})
+* Added high performance and extremely flexible type conversion that prevents boxing, and even converts collection types (e.g. hashset{int} to list{long})
 * Removed explicit references to collection key and value types. They are not used separate from the corresponding CqlTypes anymore
 * CqlDataReader.GetDataTypeName(int i) now returns full string representation of the Cassandra type (e.g. map<varchar, int>)
 * CqlDataReader.GetFieldCqlType added that returns the CqlType used for the given field
 * Removed a lot of boxing/unboxing of primitive types during serialization/deserialization
 * Implemented DbDataReader.GetFieldValue{T}(int i)
+* Supports User Defined Types. Annotate your class with CqlUserType and CqlColumn to have it correctly mapped to a Cassandra User Defined Type
 
 ## Version 0.37.0 - TraceLogger and Fixes on cluster reconfiguration
 * Fix crash when nodes are added to a running system (and have no tokens gossiped). CqlSharp now reloads configurations every minute until all tokens are found.

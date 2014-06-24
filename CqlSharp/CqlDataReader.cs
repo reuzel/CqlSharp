@@ -614,10 +614,31 @@ namespace CqlSharp
         /// <typeparam name="TKey"> The typeCode of the key. </typeparam>
         /// <typeparam name="TValue"> The typeCode of the value. </typeparam>
         /// <param name="i"> The index of the field to find. </param>
-        /// <returns> The list value of the specified field. </returns>
+        /// <returns> The dictionary value of the specified field. </returns>
         public virtual Dictionary<TKey, TValue> GetDictionary<TKey, TValue>(int i)
         {
             return GetFieldValue<Dictionary<TKey, TValue>>(i);
+        }
+
+        /// <summary>
+        /// Gets the user defined type value of the specified field.
+        /// </summary>
+        /// <typeparam name="TUserType">The type of the user defined type.</typeparam>
+        /// <param name="i">The index of the field to find</param>
+        /// <returns>An instance of TUserType, or null if IsDBNull(i)==true</returns>
+        public virtual TUserType GetUserDefinedType<TUserType>(int i)
+        {
+            return GetFieldValue<TUserType>(i);
+        }
+
+        /// <summary>
+        /// Gets the user defined type value of the specified field.
+        /// </summary>
+        /// <param name="i">The index of the field to find</param>
+        /// <returns>An instance of UserDefined, or null if IsDBNull(i)==true</returns>
+        public virtual UserDefined GetUserDefinedType(int i)
+        {
+            return GetFieldValue<UserDefined>(i);
         }
 
         /// <summary>

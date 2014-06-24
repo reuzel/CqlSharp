@@ -1,8 +1,23 @@
-﻿using System;
-using Microsoft.VisualStudio.TestTools.UnitTesting;
+﻿// CqlSharp - CqlSharp.Test
+// Copyright (c) 2014 Joost Reuzel
+//   
+// Licensed under the Apache License, Version 2.0 (the "License");
+// you may not use this file except in compliance with the License.
+// You may obtain a copy of the License at
+//   
+// http://www.apache.org/licenses/LICENSE-2.0
+//  
+// Unless required by applicable law or agreed to in writing, software
+// distributed under the License is distributed on an "AS IS" BASIS,
+// WITHOUT WARRANTIES OR CONDITIONS OF ANY KIND, either express or implied.
+// See the License for the specific language governing permissions and
+// limitations under the License.
+
+using System;
 using System.Collections.Generic;
 using CqlSharp.Serialization;
 using CqlSharp.Serialization.Marshal;
+using Microsoft.VisualStudio.TestTools.UnitTesting;
 
 namespace CqlSharp.Test
 {
@@ -36,14 +51,13 @@ namespace CqlSharp.Test
             CqlType expected = CqlType.CreateType(CqlTypeCode.Map, CqlType.Uuid, CqlType.Varchar);
 
             CqlType type = CqlType.CreateType(typeName);
-            
+
             Assert.AreEqual(expected, type);
         }
 
         [TestMethod]
         public void CreateDictionaryType()
         {
-            
             CqlType expected = CqlType.CreateType(CqlTypeCode.Map, CqlType.Uuid, CqlType.Varchar);
 
             CqlType type = CqlType.CreateType(typeof(Dictionary<Guid, string>));
@@ -54,7 +68,8 @@ namespace CqlSharp.Test
         [TestMethod]
         public void ParseUDTTypeString()
         {
-            const string typeName = "org.apache.cassandra.db.marshal.UserType(user_defined_types,61646472657373,737472656574:org.apache.cassandra.db.marshal.UTF8Type,63697479:org.apache.cassandra.db.marshal.UTF8Type,7a69705f636f6465:org.apache.cassandra.db.marshal.Int32Type,70686f6e6573:org.apache.cassandra.db.marshal.SetType(org.apache.cassandra.db.marshal.UTF8Type))";
+            const string typeName =
+                "org.apache.cassandra.db.marshal.UserType(user_defined_types,61646472657373,737472656574:org.apache.cassandra.db.marshal.UTF8Type,63697479:org.apache.cassandra.db.marshal.UTF8Type,7a69705f636f6465:org.apache.cassandra.db.marshal.Int32Type,70686f6e6573:org.apache.cassandra.db.marshal.SetType(org.apache.cassandra.db.marshal.UTF8Type))";
 
             var type = CqlType.CreateType(typeName);
 
@@ -71,7 +86,7 @@ namespace CqlSharp.Test
 
             var udt = (UserDefinedType)type;
 
-            Assert.IsNull(udt.Keyspace);
+            Assert.IsNotNull(udt.Keyspace);
             Assert.AreEqual("c", udt.Name);
             Assert.AreEqual(3, udt.GetFieldCount());
 
@@ -94,7 +109,7 @@ namespace CqlSharp.Test
 
             var udt = (UserDefinedType)type;
 
-            Assert.IsNull(udt.Keyspace);
+            Assert.IsNotNull(udt.Keyspace);
             Assert.AreEqual("d", udt.Name);
             Assert.AreEqual(2, udt.GetFieldCount());
 
@@ -119,37 +134,28 @@ namespace CqlSharp.Test
         }
 
 #pragma warning disable 0649
+#pragma warning disable 169
 
         #region Nested typeCode: C
 
-        [CqlUserType]
+        [CqlUserType("testudt", "c")]
         private class C
         {
-            [CqlKey(IsPartitionKey = true)]
-            [CqlColumn(Order = 1)]
-            public string Id2;
+            [CqlKey(IsPartitionKey = true)] [CqlColumn(Order = 1)] public string Id2;
 
-            [CqlKey]
-            [CqlColumn(Order = 0)]
-            public Guid Id;
+            [CqlKey] [CqlColumn(Order = 0)] public Guid Id;
 
-            [CqlKey(IsPartitionKey = false)]
-            [CqlColumn(Order = 2)]
-            public string Id3;
+            [CqlKey(IsPartitionKey = false)] [CqlColumn(Order = 2)] public string Id3;
         }
 
-        [CqlUserType]
+        [CqlUserType("testudt", "d")]
         private class D
         {
-            [CqlKey]
-            [CqlColumn(Order = 0)]
-            public Guid Id;
+            [CqlKey] [CqlColumn(Order = 0)] public Guid Id;
 
-            [CqlColumn(Order = 1)]
-            public C c;
+            [CqlColumn(Order = 1)] public C C;
         }
+
         #endregion
-
-
     }
 }

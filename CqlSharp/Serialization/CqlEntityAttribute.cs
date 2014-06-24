@@ -23,18 +23,40 @@ namespace CqlSharp.Serialization
     [AttributeUsage(AttributeTargets.Class)]
     public class CqlEntityAttribute : Attribute
     {
-        private readonly string _name;
-
+        /// <summary>
+        /// Initializes a new instance of the <see cref="CqlEntityAttribute"/> class.
+        /// </summary>
+        /// <param name="name">The name.</param>
         public CqlEntityAttribute(string name)
         {
-            _name = name;
+            Name = name;
         }
 
-        public string Name
+        /// <summary>
+        /// Initializes a new instance of the <see cref="CqlEntityAttribute"/> class.
+        /// </summary>
+        /// <param name="keySpace">The key space.</param>
+        /// <param name="name">The name.</param>
+        public CqlEntityAttribute(string keySpace, string name)
         {
-            get { return _name; }
+            Name = name;
+            Keyspace = keySpace;
         }
 
+        /// <summary>
+        /// Gets the name.
+        /// </summary>
+        /// <value>
+        /// The name.
+        /// </value>
+        public string Name { get; private set; }
+
+        /// <summary>
+        /// Gets or sets the keyspace.
+        /// </summary>
+        /// <value>
+        /// The keyspace.
+        /// </value>
         public string Keyspace { get; set; }
     }
 }
