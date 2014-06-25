@@ -44,6 +44,7 @@ namespace CqlSharp
                       {Keyword.Database, string.Empty},
                       {Keyword.DiscoveryScope, DiscoveryScope.None},
                       {Keyword.ConnectionStrategy, ConnectionStrategy.Balanced},
+                      {Keyword.CommandTimeout, 30},
                       {Keyword.CqlVersion, "3.0.2"},
                       {Keyword.MaxDownTime, 60*60*1000}, //node max down for 1 hour
                       {Keyword.MinDownTime, 500}, //Node min down for 500 milli sec
@@ -84,6 +85,8 @@ namespace CqlSharp
                     {"discoveryscope", Keyword.DiscoveryScope},
                     {"connection strategy", Keyword.ConnectionStrategy},
                     {"connectionstrategy", Keyword.ConnectionStrategy},
+                    {"commandtimeout", Keyword.CommandTimeout},
+                    {"command timeout", Keyword.CommandTimeout},
                     {"cql", Keyword.CqlVersion},
                     {"version", Keyword.CqlVersion},
                     {"cql version", Keyword.CqlVersion},
@@ -342,6 +345,17 @@ namespace CqlSharp
         {
             get { return (ConnectionStrategy)_values[Keyword.ConnectionStrategy]; }
             set { SetValue(Keyword.ConnectionStrategy, value); }
+        }
+
+
+        /// <summary>
+        ///   Gets or sets the default timeout for CqlCommand.
+        /// </summary>
+        /// <value> The timeout in seconds. Default: 30</value>
+        public int CommandTimeout
+        {
+            get { return (int)_values[Keyword.CommandTimeout]; }
+            set { SetValue(Keyword.CommandTimeout, value); }
         }
 
         /// <summary>
@@ -650,6 +664,9 @@ namespace CqlSharp
                     case Keyword.ConnectionStrategy:
                         sanatizedValue = ConvertToEnum<ConnectionStrategy>(value);
                         break;
+                    case Keyword.CommandTimeout:
+                        sanatizedValue = Convert.ToInt32(value);
+                        break;
                     case Keyword.CqlVersion:
                         sanatizedValue = value.ToString();
                         break;
@@ -883,6 +900,7 @@ namespace CqlSharp
             Database,
             DiscoveryScope,
             ConnectionStrategy,
+			CommandTimeout,
             CqlVersion,
             MaxDownTime,
             MinDownTime,
