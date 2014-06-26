@@ -51,7 +51,7 @@ namespace CqlSharp
         /// <param name="connection"> The connection. </param>
         /// <param name="cql"> The CQL. </param>
         /// <param name="level"> The level. </param>
-        public CqlCommand(CqlConnection connection, string cql, CqlConsistency level)
+        public CqlCommand(CqlConnection connection, string cql="", CqlConsistency level = CqlConsistency.One)
         {
             _connection = connection;
             _commandText = cql;
@@ -69,57 +69,19 @@ namespace CqlSharp
         /// <param name="connection"> The connection. </param>
         /// <param name="cql"> The CQL. </param>
         /// <param name="level"> The level. </param>
-        public CqlCommand(IDbConnection connection, string cql, CqlConsistency level)
+        public CqlCommand(IDbConnection connection, string cql="", CqlConsistency level=CqlConsistency.One)
             : this((CqlConnection)connection, cql, level)
         {
         }
-
-        /// <summary>
-        ///   Initializes a new instance of the <see cref="CqlCommand" /> class. Uses a default consistency level One
-        /// </summary>
-        /// <param name="connection"> The connection. </param>
-        /// <param name="cql"> The CQL. </param>
-        public CqlCommand(CqlConnection connection, string cql)
-            : this(connection, cql, CqlConsistency.One)
-        {
-        }
-
-        /// <summary>
-        ///   Initializes a new instance of the <see cref="CqlCommand" /> class. Uses a default consistency level One
-        /// </summary>
-        /// <param name="connection"> The connection. </param>
-        /// <param name="cql"> The CQL. </param>
-        public CqlCommand(IDbConnection connection, string cql)
-            : this((CqlConnection)connection, cql, CqlConsistency.One)
-        {
-        }
-
-
-        /// <summary>
-        ///   Initializes a new instance of the <see cref="CqlCommand" /> class.
-        /// </summary>
-        /// <param name="connection"> The connection. </param>
-        public CqlCommand(CqlConnection connection)
-            : this(connection, "", CqlConsistency.One)
-        {
-        }
-
-        // <summary>
-        /// <summary>
-        ///   Initializes a new instance of the <see cref="CqlCommand" /> class.
-        /// </summary>
-        /// <param name="connection"> The connection. </param>
-        public CqlCommand(IDbConnection connection)
-            : this((CqlConnection)connection, "", CqlConsistency.One)
-        {
-        }
-
+        
         /// <summary>
         ///   Initializes a new instance of the <see cref="CqlCommand" /> class.
         /// </summary>
         public CqlCommand()
-            : this(null, "", CqlConsistency.One)
         {
+            _prepared = false;
+            _load = 1;
+            _commandType = CommandType.Text;
         }
 
         /// <summary>
@@ -128,6 +90,7 @@ namespace CqlSharp
         /// <value>
         /// <c>true</c> if use local serial for Compare-And-Set (CAS)  write operations; otherwise, <c>false</c>.
         /// </value>
+        // ReSharper disable once InconsistentNaming
         public virtual bool UseCASLocalSerial { get; set; }
 
         /// <summary>
@@ -714,7 +677,7 @@ namespace CqlSharp
 
             using (var reader = await ExecuteReaderAsync(token).ConfigureAwait(false))
             {
-                if (await reader.ReadAsync().ConfigureAwait(false))
+                if (await reader.ReadAsync(token).ConfigureAwait(false))
                 {
                     result = reader[0] ?? DBNull.Value;
                 }
@@ -826,6 +789,7 @@ namespace CqlSharp
             try
             {
                 var token = SetupCancellationToken();
+                // ReSharper disable once MethodSupportsCancellation
                 ExecuteBatchAsync(token).Wait();
             }
             catch (AggregateException aex)
@@ -850,7 +814,7 @@ namespace CqlSharp
             logger.LogVerbose("Waiting on Throttle");
 
             //wait until allowed
-            _connection.Throttle.Wait();
+            _connection.Throttle.Wait(token);
 
             try
             {
@@ -902,6 +866,7 @@ namespace CqlSharp
                 try
                 {
                     var token = SetupCancellationToken();
+                    // ReSharper disable once MethodSupportsCancellation
                     PrepareAsyncInternal(token, logger).Wait();
                 }
                 catch (AggregateException aex)
@@ -976,13 +941,10 @@ namespace CqlSharp
         /// <returns> </returns>
         private async Task PrepareAsyncInternal(CancellationToken token, Logger logger)
         {
-            //continue?
-            token.ThrowIfCancellationRequested();
-
             logger.LogVerbose("Waiting on Throttle");
 
             //wait until allowed
-            _connection.Throttle.Wait();
+            _connection.Throttle.Wait(token);
 
             try
             {
