@@ -172,22 +172,28 @@ namespace CqlSharp
                     //check for nullable types
                     if(genericType == typeof(Nullable<>))
                         return CreateType(newType.GetGenericArguments()[0]);
-
+                    
                     var interfaces =
                         newType.GetInterfaces()
                                .Where(i => i.IsGenericType)
                                .Select(i => i.GetGenericTypeDefinition())
                                .ToArray();
 
-                    //check for collection types
+                    //check for map types
                     if(interfaces.Any(i => i == typeof(IDictionary<,>)))
                         return new MapTypeFactory().CreateType(newType);
-
+                    
+                    //check for set types
                     if(interfaces.Any(i => i == typeof(ISet<>)))
                         return new SetTypeFactory().CreateType(newType);
 
+                    //check for list types
                     if(interfaces.Any(i => i == typeof(IList<>)))
                         return new ListTypeFactory().CreateType(newType);
+
+                    //check for tupleTypes
+                    if(TypeExtensions.TupleTypes.Contains(genericType))
+                        return new TupleTypeFactory().CreateType(newType);
                 }
 
                 //check for user types
@@ -198,7 +204,7 @@ namespace CqlSharp
                     return new UserDefinedTypeFactory().CreateType(newType);
                 }
 
-                //check if custom type attribute is set
+                //check for custom types
                 var customAttribute =
                     Attribute.GetCustomAttribute(newType, typeof(CqlCustomTypeAttribute)) as CqlCustomTypeAttribute;
                 if(customAttribute != null)
@@ -425,6 +431,10 @@ namespace CqlSharp
         /// </remarks>
         public override byte[] Serialize<TSource>(TSource source)
         {
+            // ReSharper disable once CompareNonConstrainedGenericWithNull
+            if(source == null)
+                return null;
+
             T value = Converter.ChangeType<TSource, T>(source);
             return Serialize(value);
         }
@@ -438,6 +448,9 @@ namespace CqlSharp
         /// <remarks>The result may be type converted version of the actual deserialized value</remarks>
         public override TTarget Deserialize<TTarget>(byte[] data)
         {
+            if(data == null)
+                return default(TTarget);
+
             T value = Deserialize(data);
             return Converter.ChangeType<T, TTarget>(value);
         }

@@ -133,10 +133,24 @@ namespace CqlSharp.Test
             Assert.IsInstanceOfType(list.ValueType, typeof(UserDefinedType));
         }
 
-#pragma warning disable 0649
-#pragma warning disable 169
+        [TestMethod]
+        public void ParseTupleTypeString()
+        {
+            const string typeName =
+                "org.apache.cassandra.db.marshal.TupleType(org.apache.cassandra.db.marshal.UTF8Type,org.apache.cassandra.db.marshal.Int32Type)";
+
+            var type = CqlType.CreateType(typeName);
+
+            Assert.AreEqual(CqlTypeCode.Custom, type.CqlTypeCode);
+            Assert.IsInstanceOfType(type, typeof(TupleType<Tuple<string, int>>));
+        }
+
+
 
         #region Nested typeCode: C
+
+#pragma warning disable 0649
+#pragma warning disable 169
 
         [CqlUserType("testudt", "c")]
         private class C

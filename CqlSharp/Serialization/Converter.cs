@@ -38,6 +38,12 @@ namespace CqlSharp.Serialization
                                 .ToDictionary(m => m.ReturnType, m => m);
 
         /// <summary>
+        /// The conversion functions, mapping the untyped interface to calls on the typed generic conversion interface
+        /// </summary>
+        private static readonly ConcurrentDictionary<Tuple<Type, Type>, Func<object, object>> ConversionFunctions =
+            new ConcurrentDictionary<Tuple<Type, Type>, Func<object, object>>();
+
+        /// <summary>
         /// Changes the type. Uses IConvertible methods when source implements them
         /// </summary>
         /// <typeparam name="TS"> The type of the struct or class to be converted/casted </typeparam>
@@ -48,10 +54,7 @@ namespace CqlSharp.Serialization
         {
             return TypeConverter<TS, TT>.Convert(source);
         }
-
-        private static readonly ConcurrentDictionary<Tuple<Type, Type>, Func<object, object>> ConversionFunctions =
-            new ConcurrentDictionary<Tuple<Type, Type>, Func<object, object>>();
-
+        
         /// <summary>
         /// Changes the type of the given object to the specific type.
         /// </summary>
@@ -107,7 +110,7 @@ namespace CqlSharp.Serialization
                                   GetIConvertibleConversion(srcType, targetType, src) ??
                                   GetITypeConverterConversion(srcType, targetType, src) ??
                                   GetCollectionConversion(srcType, targetType, src) ??
-                                  GetCopyConstructorConversion(srcType, targetType, src) ??
+                                  GetTupleConversion(srcType, targetType, src) ??
                                   GetToStringConversion(srcType, targetType, src) ??
                                   GetInvalidConversion(srcType, targetType);
 
@@ -201,6 +204,7 @@ namespace CqlSharp.Serialization
 
             private static Expression GetITypeConverterConversion(Type srcType, Type targetType, ParameterExpression src)
             {
+                //check if src has a related TypeConverter attribute
                 var converterAttribute =
                     Attribute.GetCustomAttribute(srcType, typeof(CqlTypeConverterAttribute)) as
                         CqlTypeConverterAttribute;
@@ -213,6 +217,7 @@ namespace CqlSharp.Serialization
                     return AddNullCheck(srcType, targetType, src, call);
                 }
 
+                //check if target has a related TypeConverter attribute
                 converterAttribute =
                     Attribute.GetCustomAttribute(targetType, typeof(CqlTypeConverterAttribute)) as
                         CqlTypeConverterAttribute;
@@ -227,6 +232,49 @@ namespace CqlSharp.Serialization
 
                 return null;
             }
+
+            private static Expression GetTupleConversion(Type srcType, Type targetType, ParameterExpression src)
+            {
+                //tuple types are generic types
+                if(!srcType.IsGenericType && !targetType.IsGenericType)
+                    return null;
+
+                //are they tuple types?
+                if(!TypeExtensions.TupleTypes.Contains(srcType.GetGenericTypeDefinition()) ||
+                   !TypeExtensions.TupleTypes.Contains(targetType.GetGenericTypeDefinition()))
+                    return null;
+
+                var srcArguments = srcType.GetGenericArguments();
+                var targetArguments = targetType.GetGenericArguments();
+
+                //conversion only possible if target has equal or smaller number of fields
+                if(targetArguments.Length > srcArguments.Length)
+                    return null;
+
+                //iterate over all items and convert the values
+                var expressions = new Expression[targetArguments.Length];
+                for(int i = 0; i < targetArguments.Length; i++)
+                {
+                    var sourceMember = srcType.GetProperty("Item" + (i + 1));
+                    var targetMember = targetType.GetProperty("Item" + (i + 1));
+                    
+                    var value = Expression.Property(src, sourceMember);
+                    expressions[i] = Expression.Call(typeof(Converter),
+                                                     "ChangeType",
+                                                     new[] {sourceMember.PropertyType, targetMember.PropertyType},
+                                                     value);
+                }
+
+                //create the new tupe
+                var newTuple = Expression.Call(typeof(Tuple), 
+                                               "Create", 
+                                               expressions.Select(e => e.Type).ToArray(),
+                                               expressions);
+
+                //return the new tuple
+                return AddNullCheck(srcType, targetType, src, newTuple);
+            }
+            
 
             private static Expression GetCollectionConversion(Type srcType, Type targetType, ParameterExpression src)
             {
@@ -277,45 +325,7 @@ namespace CqlSharp.Serialization
                 return result;
             }
 
-            /// <summary>
-            /// Gets the copy constructor conversion expression, where conversion is attempted by feeding the source to a constructor
-            /// of the target type.
-            /// </summary>
-            /// <param name="srcType"> Type of the source. </param>
-            /// <param name="targetType"> Type of the target. </param>
-            /// <param name="src"> The source. </param>
-            /// <returns> </returns>
-            private static Expression GetCopyConstructorConversion(Type srcType, Type targetType,
-                                                                   ParameterExpression src)
-            {
-                //first try if constructor exists that excepts our src directly
-                var constructor = targetType.GetConstructor(new[] {srcType});
-
-                if(constructor == null)
-                {
-                    //start looking for a constructor that could accept our src
-                    var constructors = targetType.GetConstructors();
-                    foreach(var cnstr in constructors)
-                    {
-                        //get the constructor parameters
-                        var parameters = cnstr.GetParameters();
-                        if(parameters.Length != 1)
-                            continue;
-
-                        //check if it can accept our src
-                        if(parameters[0].ParameterType.IsAssignableFrom(srcType))
-                        {
-                            constructor = cnstr;
-                            break;
-                        }
-                    }
-                }
-
-                //check if we found our constructor. If so, use it
-                return constructor != null
-                    ? AddNullCheck(srcType, targetType, src, Expression.New(constructor, src))
-                    : null;
-            }
+            
 
             /// <summary>
             /// Gets the automatic string conversion.

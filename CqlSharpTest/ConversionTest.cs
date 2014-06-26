@@ -168,6 +168,29 @@ namespace CqlSharp.Test
             Assert.AreEqual(str, value.MyString);
         }
 
+        [TestMethod]
+        public void ConvertTuple()
+        {
+            var t1 = Tuple.Create("123", 100, (short)200);
+
+            var value = Converter.ChangeType<Tuple<string, int, short>, Tuple<int, string, byte>>(t1);
+
+            Assert.AreEqual(123, value.Item1);
+            Assert.AreEqual("100", value.Item2);
+            Assert.AreEqual((byte)200, value.Item3);
+        }
+
+        [TestMethod]
+        public void ConvertTupleToShorterTuple()
+        {
+            var t1 = Tuple.Create("123", 100, (short)200);
+
+            var value = Converter.ChangeType<Tuple<string, int, short>, Tuple<int, string>>(t1);
+
+            Assert.AreEqual(123, value.Item1);
+            Assert.AreEqual("100", value.Item2);
+        }
+
         [CqlCustomType(typeof(BytesTypeFactory))]
         [CqlTypeConverter(typeof(MyCustomTypeConverter))]
         private class MyCustomType

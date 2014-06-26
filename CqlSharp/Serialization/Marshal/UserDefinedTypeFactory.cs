@@ -15,6 +15,7 @@
 
 using System;
 using System.Collections.Generic;
+using System.Diagnostics;
 using System.Linq;
 using System.Reflection;
 
@@ -29,10 +30,10 @@ namespace CqlSharp.Serialization.Marshal
 
         public CqlType CreateType(params object[] args)
         {
-            string keyspace = (string)args[0];
-            string name = (string)args[1];
-            IEnumerable<string> fieldNames = (IEnumerable<string>)args[2];
-            IEnumerable<CqlType> types = (IEnumerable<CqlType>)args[3];
+            var keyspace = (string)args[0];
+            var name = (string)args[1];
+            var fieldNames = (IEnumerable<string>)args[2];
+            var types = (IEnumerable<CqlType>)args[3];
 
             return new UserDefinedType(keyspace, name, fieldNames, types);
         }
@@ -43,8 +44,8 @@ namespace CqlSharp.Serialization.Marshal
             parser.SkipBlankAndComma();
             string name = parser.ReadNextIdentifier().DecodeHex();
 
-            List<string> fieldNames = new List<string>();
-            List<CqlType> fieldTypes = new List<CqlType>();
+            var fieldNames = new List<string>();
+            var fieldTypes = new List<CqlType>();
 
             while(parser.SkipBlankAndComma())
             {
@@ -72,6 +73,8 @@ namespace CqlSharp.Serialization.Marshal
             var instanceProperty = accessorType.GetField("Instance",
                                                          BindingFlags.Public | BindingFlags.Static |
                                                          BindingFlags.FlattenHierarchy);
+
+            Debug.Assert(instanceProperty != null, "instanceProperty != null");
             var accessor = (IObjectAccessor)instanceProperty.GetValue(null);
 
             //return new UserDefinedType

@@ -140,7 +140,11 @@ namespace CqlSharp.Serialization.Marshal
         /// </remarks>
         public override byte[] Serialize<TSource>(TSource source)
         {
-            //check if 
+            // ReSharper disable once CompareNonConstrainedGenericWithNull
+            if(source == null)
+                return null;
+
+            //check if UserDefined
             var userDefined = source as UserDefined;
             if (userDefined != null)
                 return Serialize(userDefined);
@@ -206,6 +210,9 @@ namespace CqlSharp.Serialization.Marshal
         /// </remarks>
         public override TTarget Deserialize<TTarget>(byte[] data)
         {
+            if(data == null)
+                return default(TTarget);
+
             if (typeof(TTarget) == typeof(UserDefined) || typeof(TTarget) == typeof(object))
             {
                 return (TTarget)(object)Deserialize(data);
