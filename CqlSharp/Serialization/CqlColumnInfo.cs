@@ -172,7 +172,12 @@ namespace CqlSharp.Serialization
                     var source = Expression.Parameter(typeof(TTable));
                     var member = Expression.MakeMemberAccess(source, MemberInfo);
 
-                    _readFunction = Expression.Lambda<Func<TTable, TMember>>(member, source).Compile();
+                    _readFunction = Expression.Lambda<Func<TTable, TMember>>(member, 
+                                                                             string.Format(
+                                                                                    "CqlColumnInfo.Read({0}.{1})",
+                                                                                    source.Type.Name, member.Member.Name), 
+                                                                             new[] {source})
+                                                                             .Compile();
                 }
 
                 return _readFunction;
@@ -221,7 +226,13 @@ namespace CqlSharp.Serialization
 
                     Expression body = Expression.Assign(member, value);
 
-                    _writeFunction = Expression.Lambda<Action<TTable, TMember>>(body, target, value).Compile();
+
+                    _writeFunction = Expression.Lambda<Action<TTable, TMember>>(body,
+                                                                                string.Format(
+                                                                                    "CqlColumnInfo.Write({0}.{1})",
+                                                                                    target.Type.Name, member.Member.Name),
+                                                                                new[] { target,value})
+                                                                                .Compile();
                 }
 
                 return _writeFunction;

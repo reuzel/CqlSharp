@@ -270,7 +270,7 @@ namespace CqlSharp
                 var parameter = Expression.Parameter(typeof(object));
                 var instance = Expression.Parameter(typeof(CqlType));
                 var call = Expression.Call(instance, "Serialize", new[] {type}, Expression.Convert(parameter, type));
-                var lambda = Expression.Lambda<Func<CqlType, object, byte[]>>(call, instance, parameter);
+                var lambda = Expression.Lambda<Func<CqlType, object, byte[]>>(call, string.Format("CqlType.Serialize<{0}>",type.Name), new[] {instance, parameter});
                 return lambda.Compile();
             });
 

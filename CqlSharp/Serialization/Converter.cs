@@ -71,7 +71,7 @@ namespace CqlSharp.Serialization
                 var converted = Expression.Convert(src, ts.Item1);
                 var call = Expression.Call(typeof(Converter), "ChangeType", new[] {ts.Item1, ts.Item2}, converted);
                 var result = Expression.Convert(call, typeof(object));
-                var lambda = Expression.Lambda<Func<object, object>>(result, src);
+                var lambda = Expression.Lambda<Func<object, object>>(result,string.Format("ChangeType<{0},{1}>",ts.Item1.Name, ts.Item2.Name), new []{src});
                 return lambda.Compile();
             });
 
