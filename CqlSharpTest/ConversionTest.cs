@@ -191,6 +191,22 @@ namespace CqlSharp.Test
             Assert.AreEqual("100", value.Item2);
         }
 
+        [TestMethod]
+        public void ConvertDictionary()
+        {
+            var t1 = new Dictionary<string, int>
+            {
+                {"123", 1},
+                {"456", 2}
+            };
+
+            var value = Converter.ChangeType<Dictionary<string, int>, Dictionary<int, string>>(t1);
+
+            Assert.IsTrue(value.ContainsKey(123));
+            Assert.AreEqual("2", value[456]);
+        }
+
+
         [CqlCustomType(typeof(BytesTypeFactory))]
         [CqlTypeConverter(typeof(MyCustomTypeConverter))]
         private class MyCustomType

@@ -109,6 +109,7 @@ namespace CqlSharp.Serialization
                                   GetCastConversion(targetType, src) ??
                                   GetIConvertibleConversion(srcType, targetType, src) ??
                                   GetITypeConverterConversion(srcType, targetType, src) ??
+                                  GetDictionaryConversion(srcType, targetType, src) ??
                                   GetCollectionConversion(srcType, targetType, src) ??
                                   GetTupleConversion(srcType, targetType, src) ??
                                   GetToStringConversion(srcType, targetType, src) ??
@@ -256,12 +257,11 @@ namespace CqlSharp.Serialization
                 for(int i = 0; i < targetArguments.Length; i++)
                 {
                     var sourceMember = srcType.GetProperty("Item" + (i + 1));
-                    var targetMember = targetType.GetProperty("Item" + (i + 1));
                     
                     var value = Expression.Property(src, sourceMember);
                     expressions[i] = Expression.Call(typeof(Converter),
                                                      "ChangeType",
-                                                     new[] {sourceMember.PropertyType, targetMember.PropertyType},
+                                                     new[] {value.Type, targetArguments[i]},
                                                      value);
                 }
 
@@ -319,8 +319,76 @@ namespace CqlSharp.Serialization
                 IEnumerable<TSourceElement> source) where TCollection : ICollection<TCollectionElement>, new()
             {
                 var result = new TCollection();
-                foreach(TSourceElement elem in source)
+                foreach (TSourceElement elem in source)
                     result.Add(ChangeType<TSourceElement, TCollectionElement>(elem));
+
+                return result;
+            }
+
+            /// <summary>
+            /// Gets the dictionary conversion.
+            /// </summary>
+            /// <param name="srcType">Type of the source.</param>
+            /// <param name="targetType">Type of the target.</param>
+            /// <param name="src">The source.</param>
+            /// <returns></returns>
+            private static Expression GetDictionaryConversion(Type srcType, Type targetType, ParameterExpression src)
+            {
+                var srcDictionary = srcType.GetInterfaces()
+                                        .FirstOrDefault(
+                                            i =>
+                                                i.IsGenericType && i.GetGenericTypeDefinition() == typeof(IDictionary<,>));
+
+                if (srcDictionary != null)
+                {
+                    var targetDictionary = targetType.GetInterfaces()
+                                               .FirstOrDefault(
+                                                   i =>
+                                                       i.IsGenericType &&
+                                                       i.GetGenericTypeDefinition() == typeof(IDictionary<,>));
+
+                    if (targetDictionary != null)
+                    {
+                        var call = Expression.Call(typeof(TypeConverter<TSource, TTarget>), "CopyDictionary",
+                                                   new[]
+                                                   {
+                                                       srcType,
+                                                       srcDictionary.GetGenericArguments()[0],
+                                                       srcDictionary.GetGenericArguments()[1], 
+                                                       targetType,
+                                                       targetDictionary.GetGenericArguments()[0],
+                                                       targetDictionary.GetGenericArguments()[1]
+                                                   }, src);
+                        return AddNullCheck(srcType, targetType, src, call);
+                    }
+                }
+
+                return null;
+            }
+
+            /// <summary>
+            /// Copies the dictionary into a dictionary of a new type.
+            /// </summary>
+            /// <typeparam name="TSourceD">The type of the source dictionary.</typeparam>
+            /// <typeparam name="TSourceKey">The type of the source key.</typeparam>
+            /// <typeparam name="TSourceVal">The type of the source value.</typeparam>
+            /// <typeparam name="TTargetD">The type of the target dictionary.</typeparam>
+            /// <typeparam name="TTargetKey">The type of the target key.</typeparam>
+            /// <typeparam name="TTargetVal">The type of the target value.</typeparam>
+            /// <param name="source">The source.</param>
+            /// <returns></returns>
+            [UsedImplicitly]
+            private static TTargetD CopyDictionary<TSourceD, TSourceKey, TSourceVal, TTargetD, TTargetKey, TTargetVal>(
+                TSourceD source)
+                where TSourceD : IDictionary<TSourceKey, TSourceVal>
+                where TTargetD : IDictionary<TTargetKey, TTargetVal>, new()
+            {
+                var result = new TTargetD();
+                foreach(var kvp in source)
+                {
+                    result.Add(ChangeType<TSourceKey, TTargetKey>(kvp.Key),
+                               ChangeType<TSourceVal, TTargetVal>(kvp.Value));
+                }
 
                 return result;
             }
