@@ -48,9 +48,18 @@ namespace CqlSharp.Serialization
         /// Reads a value from the member belonging to this column from the specified source.
         /// </summary>
         /// <typeparam name="TValue">The type of the value.</typeparam>
-        /// <param name="target">The target.</param>
-        /// <param name="value">The value.</param>
+        /// <param name="source">The target.</param>
         TValue Read<TValue>(TTable source);
+
+        /// <summary>
+        /// Copies the value of this column on the source object to the specified column on the
+        /// target object.
+        /// </summary>
+        /// <typeparam name="TTarget">The type of the target.</typeparam>
+        /// <param name="source">The source.</param>
+        /// <param name="target">The target.</param>
+        /// <param name="column">The column.</param>
+        void CopyValue<TTarget>(TTable source, TTarget target, ICqlColumnInfo<TTarget> column);
     }
     
     public interface ICqlColumnInfo
@@ -123,9 +132,17 @@ namespace CqlSharp.Serialization
         /// Reads a value from the member belonging to this column from the specified source.
         /// </summary>
         /// <typeparam name="TValue">The type of the value.</typeparam>
-        /// <param name="target">The target.</param>
-        /// <param name="value">The value.</param>
+        /// <param name="source">The object the value is read from</param>
         TValue Read<TValue>(object source);
+
+        /// <summary>
+        /// Copies the value of this column on the source object to the specified column on the
+        /// target object.
+        /// </summary>
+        /// <param name="source">The source.</param>
+        /// <param name="target">The target.</param>
+        /// <param name="column">The column.</param>
+        void CopyValue(object source, object target, ICqlColumnInfo column);
 
         /// <summary>
         /// Serializes the column value from the provided source using the given type.

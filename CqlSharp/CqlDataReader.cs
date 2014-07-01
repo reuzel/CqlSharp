@@ -636,9 +636,142 @@ namespace CqlSharp
         /// </summary>
         /// <param name="i">The index of the field to find</param>
         /// <returns>An instance of UserDefined, or null if IsDBNull(i)==true</returns>
-        public virtual UserDefined GetUserDefinedType(int i)
+        public virtual object GetUserDefinedType(int i)
         {
-            return GetFieldValue<UserDefined>(i);
+            return GetFieldValue<object>(i);
+        }
+
+        /// <summary>
+        /// Gets the user defined type value of the specified field.
+        /// </summary>
+        /// <typeparam name="T1">The type of the first tuple field.</typeparam>
+        /// <param name="i">The index of the field to find</param>
+        /// <returns>
+        /// an instance of a Tuple, or null if IsDBNull(i)==true
+        /// </returns>
+        internal Tuple<T1> GetTuple<T1>(int i)
+        {
+            return GetFieldValue<Tuple<T1>>(i);
+        }
+
+        /// <summary>
+        /// Gets the user defined type value of the specified field.
+        /// </summary>
+        /// <typeparam name="T1">The type of the first tuple field.</typeparam>
+        /// <typeparam name="T2">The type of the second tuple field</typeparam>
+        /// <param name="i">The index of the field to find</param>
+        /// <returns>
+        /// an instance of a Tuple, or null if IsDBNull(i)==true
+        /// </returns>
+        internal Tuple<T1, T2> GetTuple<T1, T2>(int i)
+        {
+            return GetFieldValue<Tuple<T1, T2>>(i);
+        }
+
+
+        /// <summary>
+        /// Gets the user defined type value of the specified field.
+        /// </summary>
+        /// <typeparam name="T1">The type of the first tuple field.</typeparam>
+        /// <typeparam name="T2">The type of the second tuple field</typeparam>
+        /// <typeparam name="T3">The type of the third tuple field.</typeparam>
+        /// <param name="i">The index of the field to find</param>
+        /// <returns>
+        /// an instance of a Tuple, or null if IsDBNull(i)==true
+        /// </returns>
+        internal Tuple<T1, T2, T3> GetTuple<T1, T2, T3>(int i)
+        {
+            return GetFieldValue<Tuple<T1, T2, T3>>(i);
+        }
+
+        /// <summary>
+        /// Gets the user defined type value of the specified field.
+        /// </summary>
+        /// <typeparam name="T1">The type of the first tuple field.</typeparam>
+        /// <typeparam name="T2">The type of the second tuple field</typeparam>
+        /// <typeparam name="T3">The type of the third tuple field.</typeparam>
+        /// <typeparam name="T4">The type of the fourth tuple field.</typeparam>
+        /// <param name="i">The index of the field to find</param>
+        /// <returns>
+        /// an instance of a Tuple, or null if IsDBNull(i)==true
+        /// </returns>
+        internal Tuple<T1, T2, T3, T4> GetTuple<T1, T2, T3, T4>(int i)
+        {
+            return GetFieldValue<Tuple<T1, T2, T3, T4>>(i);
+        }
+
+        /// <summary>
+        /// Gets the user defined type value of the specified field.
+        /// </summary>
+        /// <typeparam name="T1">The type of the first tuple field.</typeparam>
+        /// <typeparam name="T2">The type of the second tuple field</typeparam>
+        /// <typeparam name="T3">The type of the third tuple field.</typeparam>
+        /// <typeparam name="T4">The type of the fourth tuple field.</typeparam>
+        /// <typeparam name="T5">The type of the fifth tuple field.</typeparam>
+        /// <param name="i">The index of the field to find</param>
+        /// <returns>
+        /// an instance of a Tuple, or null if IsDBNull(i)==true
+        /// </returns>
+        internal Tuple<T1, T2, T3, T4, T5> GetTuple<T1, T2, T3, T4, T5>(int i)
+        {
+            return GetFieldValue<Tuple<T1, T2, T3, T4, T5>>(i);
+        }
+
+        /// <summary>
+        /// Gets the user defined type value of the specified field.
+        /// </summary>
+        /// <typeparam name="T1">The type of the first tuple field.</typeparam>
+        /// <typeparam name="T2">The type of the second tuple field</typeparam>
+        /// <typeparam name="T3">The type of the third tuple field.</typeparam>
+        /// <typeparam name="T4">The type of the fourth tuple field.</typeparam>
+        /// <typeparam name="T5">The type of the fifth tuple field.</typeparam>
+        /// <typeparam name="T6">The type of the sixth tuple field.</typeparam>
+        /// <param name="i">The index of the field to find</param>
+        /// <returns>
+        /// an instance of a Tuple, or null if IsDBNull(i)==true
+        /// </returns>
+        internal Tuple<T1, T2, T3, T4, T5, T6> GetTuple<T1, T2, T3, T4, T5, T6>(int i)
+        {
+            return GetFieldValue<Tuple<T1, T2, T3, T4, T5, T6>>(i);
+        }
+
+        /// <summary>
+        /// Gets the user defined type value of the specified field.
+        /// </summary>
+        /// <typeparam name="T1">The type of the first tuple field.</typeparam>
+        /// <typeparam name="T2">The type of the second tuple field</typeparam>
+        /// <typeparam name="T3">The type of the third tuple field.</typeparam>
+        /// <typeparam name="T4">The type of the fourth tuple field.</typeparam>
+        /// <typeparam name="T5">The type of the fifth tuple field.</typeparam>
+        /// <typeparam name="T6">The type of the sixth tuple field.</typeparam>
+        /// <typeparam name="T7">The type of the seventh tuple field.</typeparam>
+        /// <param name="i">The index of the field to find</param>
+        /// <returns>
+        /// an instance of a Tuple, or null if IsDBNull(i)==true
+        /// </returns>
+        internal Tuple<T1, T2, T3, T4, T5, T6, T7> GetTuple<T1, T2, T3, T4, T5, T6, T7>(int i)
+        {
+            return GetFieldValue<Tuple<T1, T2, T3, T4, T5, T6, T7>>(i);
+        }
+
+        /// <summary>
+        /// Gets the user defined type value of the specified field.
+        /// </summary>
+        /// <typeparam name="T1">The type of the first tuple field.</typeparam>
+        /// <typeparam name="T2">The type of the second tuple field</typeparam>
+        /// <typeparam name="T3">The type of the third tuple field.</typeparam>
+        /// <typeparam name="T4">The type of the fourth tuple field.</typeparam>
+        /// <typeparam name="T5">The type of the fifth tuple field.</typeparam>
+        /// <typeparam name="T6">The type of the sixth tuple field.</typeparam>
+        /// <typeparam name="T7">The type of the seventh tuple field.</typeparam>
+        /// <typeparam name="T8">The type of the eightth tuple field.</typeparam>
+        /// <param name="i">The index of the field to find</param>
+        /// <returns>
+        /// an instance of a Tuple, or null if IsDBNull(i)==true
+        /// </returns>
+        internal Tuple<T1, T2, T3, T4, T5, T6, T7, T8> GetTuple<T1, T2, T3, T4, T5, T6, T7, T8>(int i)
+        {
+            return GetFieldValue<Tuple<T1, T2, T3, T4, T5, T6, T7, T8>>(i);
         }
 
         /// <summary>
@@ -820,5 +953,7 @@ namespace CqlSharp
             _currentCreated = false;
             return base.ReadAsync(cancellationToken);
         }
+
+
     }
 }

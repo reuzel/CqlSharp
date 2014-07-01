@@ -265,6 +265,20 @@ namespace CqlSharp.Serialization
         }
 
         /// <summary>
+        /// Copies the value of this column on the source object to the specified column on the
+        /// target object.
+        /// </summary>
+        /// <typeparam name="TTarget">The type of the target.</typeparam>
+        /// <param name="source">The source.</param>
+        /// <param name="target">The target.</param>
+        /// <param name="column">The column.</param>
+        public void CopyValue<TTarget>(TTable source, TTarget target, ICqlColumnInfo<TTarget> column)
+        {
+            TMember value = ReadFunction(source);
+            column.Write(target, value);
+        }
+
+        /// <summary>
         /// Writes a value to the member belonging to this column on the specified target.
         /// </summary>
         /// <typeparam name="TValue">The type of the value.</typeparam>
@@ -286,6 +300,18 @@ namespace CqlSharp.Serialization
             return Read<TValue>((TTable)source);
         }
 
+        /// <summary>
+        /// Copies the value of this column on the source object to the specified column on the
+        /// target object.
+        /// </summary>
+        /// <param name="source">The source.</param>
+        /// <param name="target">The target.</param>
+        /// <param name="column">The column.</param>
+        void ICqlColumnInfo.CopyValue(object source, object target, ICqlColumnInfo column)
+        {
+            TMember value = ReadFunction((TTable)source);
+            column.Write(target, value);
+        }
 
         /// <summary>
         /// Serializes the column value from the provided source using the given type.

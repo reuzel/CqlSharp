@@ -13,6 +13,7 @@
 // See the License for the specific language governing permissions and
 // limitations under the License.
 
+using System;
 using System.Collections.Generic;
 using System.Linq;
 using CqlSharp.Protocol;
@@ -22,7 +23,7 @@ using Microsoft.VisualStudio.TestTools.UnitTesting;
 namespace CqlSharp.Test
 {
     [TestClass]
-    public class UserDefinedTypeTest
+    public class SerializationTest210
     {
         private const string ConnectionString =
             "server=localhost;throttle=256;MaxConnectionIdleTime=3600;ConnectionStrategy=Exclusive;loggerfactory=debug;loglevel=query;username=cassandra;password=cassandra";
@@ -39,9 +40,9 @@ namespace CqlSharp.Test
             const string createUserType =
                 @"CREATE type TestUDT.user (name text, password blob, address address);";
 
-            const string createTableCql = @"create table TestUDT.Members (id int primary key, user user, comment text);";
+            const string createTableCql = @"create table TestUDT.Members (id int primary key, user user, comment tuple<text,text>);";
 
-            const string createTable2Cql = @"create table TestUDT.Groups (id int primary key, members set<user>);";
+            const string createTable2Cql = @"create table TestUDT.Groups (id int primary key, members set<tuple<int, user>>);";
 
             using(var connection = new CqlConnection(ConnectionString))
             {
@@ -112,11 +113,11 @@ namespace CqlSharp.Test
         }
 
         [TestMethod]
-        public void InsertUser()
+        public void InsertTupleAndUDT()
         {
             var address = new Address {Street = "MyWay", Number = 1};
             var user = new User {Name = "Joost", Password = new byte[] {1, 2, 3}, Address = address};
-            var member = new Member {Id = 1, User = user, Comment = "phew"};
+            var member = new Member {Id = 1, User = user, Comment = Tuple.Create("my title","phew")};
 
             using(var connection = new CqlConnection(ConnectionString))
             {
@@ -149,11 +150,11 @@ namespace CqlSharp.Test
         }
 
         [TestMethod]
-        public void InsertGroup()
+        public void InsertNestedUDTAndTuples()
         {
             var address = new Address {Street = "MyWay", Number = 1};
             var user = new User {Name = "Joost", Password = new byte[] {1, 2, 3}, Address = address};
-            var group = new Group {Id = 1, Members = new HashSet<User> {user}};
+            var group = new Group {Id = 1, Members = new HashSet<Tuple<int, User>> {Tuple.Create(1, user)}};
 
             using(var connection = new CqlConnection(ConnectionString))
             {
@@ -175,9 +176,39 @@ namespace CqlSharp.Test
                         Assert.IsNotNull(actual);
                         Assert.AreEqual(group.Id, actual.Id);
                         Assert.IsNotNull(group.Members);
-                        Assert.IsInstanceOfType(group.Members, typeof(HashSet<User>));
+                        Assert.IsInstanceOfType(group.Members, typeof(HashSet<Tuple<int,User>>));
                         Assert.AreEqual(1, group.Members.Count);
-                        Assert.AreEqual("Joost", group.Members.First().Name);
+                        Assert.AreEqual("Joost", group.Members.First().Item2.Name);
+                    }
+                }
+            }
+        }
+
+        [TestMethod]
+        public void SerializeTupleAndUDTOutNullTest()
+        {
+            using (var connection = new CqlConnection(ConnectionString))
+            {
+                connection.Open();
+
+                var command = new CqlCommand(connection, "insert into testudt.members (id) values (1);");
+                command.ExecuteNonQuery();
+
+                var select = new CqlCommand(connection, "select * from testudt.members;");
+                using (var reader = select.ExecuteReader<Member>())
+                {
+                    Assert.AreEqual(1, reader.Count);
+                    if (reader.Read())
+                    {
+                        Assert.IsNull(reader.GetUserDefinedType(1));
+                        Assert.IsNull(reader.GetTuple<string, string>(2));
+
+
+                        var actual = reader.Current;
+                        Assert.IsNotNull(actual);
+                        Assert.AreEqual(1, actual.Id);
+                        Assert.IsNull(actual.User);
+                        Assert.IsNull(actual.Comment);
                     }
                 }
             }
@@ -217,7 +248,7 @@ namespace CqlSharp.Test
             public User User { get; set; }
 
             [CqlColumn(Order = 2)]
-            public string Comment { get; set; }
+            public Tuple<string, string> Comment { get; set; }
         }
 
         [CqlTable("groups", Keyspace = "testudt")]
@@ -228,7 +259,7 @@ namespace CqlSharp.Test
             public int Id { get; set; }
 
             [CqlColumn(Order = 1)]
-            public HashSet<User> Members { get; set; }
+            public HashSet<Tuple<int, User>> Members { get; set; }
         }
     }
 }

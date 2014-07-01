@@ -351,7 +351,7 @@ namespace CqlSharp
         {
             if(ReferenceEquals(null, obj)) return false;
             if(ReferenceEquals(this, obj)) return true;
-            if(GetType() != obj.GetType()) return false;
+            if(!(obj is CqlType)) return false;
             return Equals((CqlType)obj);
         }
 

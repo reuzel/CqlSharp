@@ -16,9 +16,13 @@
 using System;
 using System.Collections.Generic;
 using System.Data;
+using System.Diagnostics;
 using System.IO;
 using System.Linq;
+using System.Reflection;
+using System.Reflection.Emit;
 using System.Text;
+using CqlSharp.Annotations;
 using CqlSharp.Protocol;
 
 namespace CqlSharp.Serialization.Marshal
@@ -26,7 +30,7 @@ namespace CqlSharp.Serialization.Marshal
     /// <summary>
     /// The definition of a User Defined Type
     /// </summary>
-    public class UserDefinedType : CqlType<UserDefined>
+    public class UserDefinedType<T> : CqlType<T>
     {
         private readonly string _keyspace;
         private readonly string _name;
@@ -34,14 +38,20 @@ namespace CqlSharp.Serialization.Marshal
         private readonly Dictionary<string, int> _fieldIndexes;
 
         /// <summary>
-        /// Initializes a new instance of the <see cref="UserDefinedType" /> class.
+        /// Initializes a new instance of the <see cref="UserDefinedType{T}" /> class.
         /// </summary>
         /// <param name="keyspace">The keyspace.</param>
         /// <param name="name">The name.</param>
         /// <param name="fieldNames">The field names.</param>
         /// <param name="types">The field types.</param>
-        public UserDefinedType(string keyspace, string name, IEnumerable<string> fieldNames, IEnumerable<CqlType> types)
+        public UserDefinedType([NotNull] string keyspace, [NotNull] string name, [NotNull] IEnumerable<string> fieldNames,
+                               [NotNull] IEnumerable<CqlType> types)
         {
+            if(keyspace == null) throw new ArgumentNullException("keyspace");
+            if(name == null) throw new ArgumentNullException("name");
+            if(fieldNames == null) throw new ArgumentNullException("fieldNames");
+            if(types == null) throw new ArgumentNullException("types");
+
             _keyspace = keyspace;
             _name = name;
 
@@ -143,61 +153,36 @@ namespace CqlSharp.Serialization.Marshal
             // ReSharper disable once CompareNonConstrainedGenericWithNull
             if(source == null)
                 return null;
-
-            //check if UserDefined
-            var userDefined = source as UserDefined;
-            if (userDefined != null)
-                return Serialize(userDefined);
-
+            
             var accessor = ObjectAccessor<TSource>.Instance;
-            var rawValues = new byte[_fieldList.Count][];
 
             if (accessor.Columns.Count > _fieldList.Count)
                 throw new CqlException(string.Format("Type {0} is not compatible with CqlType {1}", typeof(TSource), this));
 
-            for (int i = 0; i < accessor.Columns.Count; i++)
+             //write all the components
+            using(var stream = new MemoryStream())
             {
-                var column = accessor.Columns[i];
-                if (column.CqlType != _fieldList[i].Value)
-                    throw new CqlException(string.Format("Type {0} is not compatible with CqlType {1}", typeof(TSource), this));
-
-                rawValues[i] = column.SerializeFrom(source, _fieldList[i].Value);
-            }
-
-            return Serialize(rawValues);
-        }
-
-        public override byte[] Serialize(UserDefined value)
-        {
-            var rawValues = new byte[_fieldList.Count][];
-            for(int i = 0; i < _fieldList.Count; i++)
-            {
-                rawValues[i] = _fieldList[i].Value.Serialize(value.Values[i]);
-            }
-
-            return Serialize(rawValues);
-        }
-
-        private byte[] Serialize(byte[][] rawValues)
-        {
-            //calculate array size
-            int size = 0;
-            for(int i = 0; i < rawValues.Length; i++)
-            {
-                size += 4 + (rawValues[i] == null ? 0 : rawValues[i].Length);
-            }
-
-            //write all the components
-            using(var stream = new MemoryStream(size))
-            {
-                for(int i = 0; i < _fieldList.Count; i++)
+                for(int i = 0; i < accessor.Columns.Count; i++)
                 {
-                    stream.WriteByteArray(rawValues[i]);
+                    var column = accessor.Columns[i];
+                    if(column.CqlType != _fieldList[i].Value)
+                        throw new CqlException(string.Format("Type {0} is not compatible with CqlType {1}",
+                                                             typeof(TSource), this));
+
+                    var rawValue = column.SerializeFrom(source, _fieldList[i].Value);
+                    stream.WriteByteArray(rawValue);
                 }
 
                 return stream.ToArray();
             }
         }
+
+        public override byte[] Serialize(T value)
+        {
+            return Serialize<T>(value);
+        }
+
+        
 
         /// <summary>
         /// Deserializes the specified data to object of the given target type.
@@ -213,28 +198,35 @@ namespace CqlSharp.Serialization.Marshal
             if(data == null)
                 return default(TTarget);
 
-            if (typeof(TTarget) == typeof(UserDefined) || typeof(TTarget) == typeof(object))
+            IObjectAccessor accessor;
+            object result;
+
+            if (typeof(TTarget) == typeof(object))
             {
-                return (TTarget)(object)Deserialize(data);
+                accessor = ObjectAccessor<T>.Instance;
+                result = Activator.CreateInstance<T>();
+            }
+            else
+            {
+                accessor = ObjectAccessor<TTarget>.Instance;
+                result = Activator.CreateInstance<TTarget>();
             }
 
             using (var stream = new MemoryStream(data))
             {
-                var result = Activator.CreateInstance<TTarget>();
-                var accessor = ObjectAccessor<TTarget>.Instance;
-
+                
                 foreach (var field in _fieldList)
                 {
                     byte[] rawValue = stream.ReadByteArray();
 
-                    ICqlColumnInfo<TTarget> column;
+                    ICqlColumnInfo column;
                     if (accessor.ColumnsByName.TryGetValue(field.Key, out column))
                     {
                         column.DeserializeTo(result, rawValue, field.Value);
                     }
                 }
 
-                return result;
+                return (TTarget)result;
             }
         }
 
@@ -243,22 +235,9 @@ namespace CqlSharp.Serialization.Marshal
         /// </summary>
         /// <param name="data">The data to deserialize.</param>
         /// <returns>a deserialized UserDefined object</returns>
-        public override UserDefined Deserialize(byte[] data)
+        public override T Deserialize(byte[] data)
         {
-            var values = new object[_fieldList.Count];
-
-            using(var stream = new MemoryStream(data))
-            {
-                for(int i = 0; i < _fieldList.Count; i++)
-                {
-                    byte[] rawValue = stream.ReadByteArray();
-
-                    if(rawValue != null)
-                        values[i] = _fieldList[i].Value.Deserialize<object>(rawValue);
-                }
-            }
-
-            return new UserDefined(this, values);
+            return Deserialize<T>(data);
         }
 
         /// <summary>
@@ -299,5 +278,7 @@ namespace CqlSharp.Serialization.Marshal
         {
             return DbType.Object;
         }
+
+        
     }
 }

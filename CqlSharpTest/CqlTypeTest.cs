@@ -22,7 +22,7 @@ using Microsoft.VisualStudio.TestTools.UnitTesting;
 namespace CqlSharp.Test
 {
     [TestClass]
-    public class TypeParserTest
+    public class CqlTypeTest
     {
         [TestMethod]
         public void ParseSimpleAscii()
@@ -74,7 +74,7 @@ namespace CqlSharp.Test
             var type = CqlType.CreateType(typeName);
 
             Assert.AreEqual(CqlTypeCode.Custom, type.CqlTypeCode);
-            Assert.IsInstanceOfType(type, typeof(UserDefinedType));
+            Assert.AreEqual(type.GetType().GetGenericTypeDefinition(), typeof(UserDefinedType<>));
         }
 
         [TestMethod]
@@ -82,9 +82,9 @@ namespace CqlSharp.Test
         {
             var type = CqlType.CreateType(typeof(C));
 
-            Assert.IsInstanceOfType(type, typeof(UserDefinedType));
+            Assert.IsInstanceOfType(type, typeof(UserDefinedType<C>));
 
-            var udt = (UserDefinedType)type;
+            var udt = (UserDefinedType<C>)type;
 
             Assert.IsNotNull(udt.Keyspace);
             Assert.AreEqual("c", udt.Name);
@@ -105,9 +105,9 @@ namespace CqlSharp.Test
         {
             var type = CqlType.CreateType(typeof(D));
 
-            Assert.IsInstanceOfType(type, typeof(UserDefinedType));
+            Assert.IsInstanceOfType(type, typeof(UserDefinedType<D>));
 
-            var udt = (UserDefinedType)type;
+            var udt = (UserDefinedType<D>)type;
 
             Assert.IsNotNull(udt.Keyspace);
             Assert.AreEqual("d", udt.Name);
@@ -117,8 +117,8 @@ namespace CqlSharp.Test
             Assert.AreEqual(CqlType.Uuid, udt.GetFieldType(0));
 
             Assert.AreEqual("c", udt.GetFieldName(1));
-            Assert.IsInstanceOfType(udt.GetFieldType(1), typeof(UserDefinedType));
-            Assert.AreEqual("c", ((UserDefinedType)udt.GetFieldType(1)).Name);
+            Assert.IsInstanceOfType(udt.GetFieldType(1), typeof(UserDefinedType<C>));
+            Assert.AreEqual("c", ((UserDefinedType<C>)udt.GetFieldType(1)).Name);
         }
 
         [TestMethod]
@@ -126,11 +126,11 @@ namespace CqlSharp.Test
         {
             var type = CqlType.CreateType(typeof(List<C>));
 
-            Assert.IsInstanceOfType(type, typeof(ListType<UserDefined>));
+            Assert.IsInstanceOfType(type, typeof(ListType<C>));
 
-            var list = (ListType<UserDefined>)type;
+            var list = (ListType<C>)type;
 
-            Assert.IsInstanceOfType(list.ValueType, typeof(UserDefinedType));
+            Assert.IsInstanceOfType(list.ValueType, typeof(UserDefinedType<C>));
         }
 
         [TestMethod]
@@ -145,6 +145,48 @@ namespace CqlSharp.Test
             Assert.IsInstanceOfType(type, typeof(TupleType<Tuple<string, int>>));
         }
 
+        [TestMethod]
+        public void TypeOfTupleInList()
+        {
+            var type = CqlType.CreateType(typeof(List<Tuple<string, int>>));
+
+            Assert.IsInstanceOfType(type, typeof(ListType<Tuple<string, int>>));
+
+            var list = (ListType<Tuple<string, int>>)type;
+
+            Assert.IsInstanceOfType(list.ValueType, typeof(TupleType<Tuple<string, int>>));
+        }
+
+        [TestMethod]
+        public void TupleRoundTripSerialization()
+        {
+            var t = Tuple.Create("hallo", 43);
+
+            var cqlType = CqlType.CreateType(t.GetType());
+
+            byte[] data = cqlType.Serialize(t);
+
+            var result = cqlType.Deserialize<Tuple<string, int>>(data);
+
+            Assert.AreEqual(t.Item1, result.Item1);
+            Assert.AreEqual(t.Item2, result.Item2);
+
+        }
+
+        [TestMethod]
+        public void TupleRoundTripSerializationWithNullValues()
+        {
+            var t = Tuple.Create((string)null, 43);
+
+            var cqlType = CqlType.CreateType(t.GetType());
+
+            byte[] data = cqlType.Serialize(t);
+
+            var result = cqlType.Deserialize<Tuple<string, int>>(data);
+
+            Assert.AreEqual(t.Item1, result.Item1);
+            Assert.AreEqual(t.Item2, result.Item2);
+        }
 
 
         #region Nested typeCode: C
