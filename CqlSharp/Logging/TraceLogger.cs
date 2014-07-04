@@ -30,31 +30,37 @@ namespace CqlSharp.Logging
 
         public void LogVerbose(Guid traceId, string format, params object[] values)
         {
+            Trace.CorrelationManager.ActivityId = traceId;
             _source.TraceEvent(TraceEventType.Verbose, EVENT_ID, format, values);
         }
 
         public void LogQuery(Guid traceId, string format, params object[] values)
         {
+            Trace.CorrelationManager.ActivityId = traceId;
             _source.TraceEvent(TraceEventType.Verbose, EVENT_ID, format, values);
         }
 
         public void LogInfo(Guid traceId, string format, params object[] values)
         {
+            Trace.CorrelationManager.ActivityId = traceId;
             _source.TraceEvent(TraceEventType.Information, EVENT_ID, format, values);
         }
 
         public void LogWarning(Guid traceId, string format, params object[] values)
         {
+            Trace.CorrelationManager.ActivityId = traceId;
             _source.TraceEvent(TraceEventType.Warning, EVENT_ID, format, values);
         }
 
         public void LogError(Guid traceId, string format, params object[] values)
         {
+            Trace.CorrelationManager.ActivityId = traceId;
             _source.TraceEvent(TraceEventType.Error, EVENT_ID, format, values);
         }
 
         public void LogCritical(Guid traceId, string format, params object[] values)
         {
+            Trace.CorrelationManager.ActivityId = traceId;
             _source.TraceEvent(TraceEventType.Critical, EVENT_ID, format, values);
         }
 
