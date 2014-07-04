@@ -60,7 +60,7 @@ namespace CqlSharp
             _load = 1;
             _useBuffering = connection.Config.UseBuffering;
             _commandType = CommandType.Text;
-            _commandTimeout = 30;
+            _commandTimeout = connection.Config.CommandTimeout;
         }
 
         /// <summary>
@@ -78,8 +78,10 @@ namespace CqlSharp
         /// Initializes a new instance of the <see cref="CqlCommand" /> class.
         /// </summary>
         public CqlCommand()
-            : this(null)
         {
+            _prepared = false;
+            _load = 1;
+            _commandType = CommandType.Text;
         }
 
         /// <summary>
@@ -439,7 +441,7 @@ namespace CqlSharp
             //setup new token
             _cancelTokenSource = CommandTimeout > 0
                 ? new CancellationTokenSource(CommandTimeout*1000)
-                : new CancellationTokenSource();
+                                     : new CancellationTokenSource();
             return _cancelTokenSource.Token;
         }
 
@@ -525,7 +527,7 @@ namespace CqlSharp
         /// <param name="cancellationToken"> The cancellation token. </param>
         /// <returns> </returns>
         public new virtual async Task<CqlDataReader> ExecuteReaderAsync(CommandBehavior behavior,
-                                                                        CancellationToken cancellationToken)
+                                                                CancellationToken cancellationToken)
         {
             var result = await ExecuteReaderAsyncInternal(behavior, cancellationToken).ConfigureAwait(false);
 
@@ -640,8 +642,8 @@ namespace CqlSharp
                 UseBuffering = false;
 
             if(behavior.HasFlag(CommandBehavior.KeyInfo) ||
-               behavior.HasFlag(CommandBehavior.SchemaOnly) ||
-               behavior.HasFlag(CommandBehavior.SingleRow))
+                behavior.HasFlag(CommandBehavior.SchemaOnly) ||
+                behavior.HasFlag(CommandBehavior.SingleRow))
             {
                 var ex = new ArgumentException("Command behavior not supported", "behavior");
                 _queryResult = new CqlError(ex);
@@ -958,9 +960,6 @@ namespace CqlSharp
         /// <returns> </returns>
         private async Task PrepareAsyncInternal(CancellationToken token, Logger logger)
         {
-            //continue?
-            token.ThrowIfCancellationRequested();
-
             logger.LogVerbose("Waiting on Throttle");
 
             //wait until allowed
@@ -1020,7 +1019,7 @@ namespace CqlSharp
                 {
                     //set correct database if necessary
                     if(!string.IsNullOrWhiteSpace(_connection.Database) &&
-                       !_connection.Database.Equals(connection.CurrentKeySpace))
+                        !_connection.Database.Equals(connection.CurrentKeySpace))
                     {
                         var useQuery = "use \"" + _connection.Database.Trim() + "\";";
 
@@ -1239,11 +1238,11 @@ namespace CqlSharp
             if(Transaction != null)
             {
                 var batchedCommand = new BatchFrame.BatchedCommand
-                {
-                    IsPrepared = IsPrepared,
-                    CqlQuery = Query,
+                                         {
+                                             IsPrepared = IsPrepared,
+                                             CqlQuery = Query,
                     ParameterValues = HasParameters ? Parameters.Serialize() : null
-                };
+                                         };
 
                 Transaction.Commands.Add(batchedCommand);
 

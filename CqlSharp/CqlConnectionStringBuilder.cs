@@ -36,152 +36,155 @@ namespace CqlSharp
         /// </summary>
         private static readonly Dictionary<Keyword, object> DefaultValues
             = new Dictionary<Keyword, object>
-            {
-                {Keyword.Servers, ""},
-                {Keyword.Port, 9042},
-                {Keyword.Username, null},
-                {Keyword.Password, null},
-                {Keyword.Database, string.Empty},
-                {Keyword.DiscoveryScope, DiscoveryScope.None},
-                {Keyword.ConnectionStrategy, ConnectionStrategy.Balanced},
-                {Keyword.CqlVersion, "3.0.2"},
-                {Keyword.MaxDownTime, 60*60*1000}, //node max down for 1 hour
-                {Keyword.MinDownTime, 500}, //Node min down for 500 milli sec
-                {Keyword.MaxConnectionsPerNode, 2},
-                {Keyword.MaxConnections, -1},
-                {Keyword.NewConnectionTreshold, 10},
-                {Keyword.MaxConcurrentQueries, -1},
-                {Keyword.MaxConnectionIdleTime, 10},
-                {Keyword.MaxQueryRetries, 3},
-                {Keyword.LoggerFactory, "Null"},
-                {Keyword.LogLevel, LogLevel.Info},
-                {Keyword.UseBuffering, true},
-                {Keyword.AllowCompression, true},
-                {Keyword.CompressionTreshold, 2048},
-                {Keyword.SocketConnectTimeout, 0},
-                {Keyword.SocketSoLinger, -1},
-                {Keyword.SocketKeepAlive, -1L},
-                {Keyword.SocketSendBufferSize, 8192},
-                {Keyword.SocketReceiveBufferSize, 8192}
-            };
+                  {
+                      {Keyword.Servers, ""},
+                      {Keyword.Port, 9042},
+                      {Keyword.Username, null},
+                      {Keyword.Password, null},
+                      {Keyword.Database, string.Empty},
+                      {Keyword.DiscoveryScope, DiscoveryScope.None},
+                      {Keyword.ConnectionStrategy, ConnectionStrategy.Balanced},
+                      {Keyword.CommandTimeout, 30},
+                      {Keyword.CqlVersion, "3.0.2"},
+                      {Keyword.MaxDownTime, 60*60*1000}, //node max down for 1 hour
+                      {Keyword.MinDownTime, 500}, //Node min down for 500 milli sec
+                      {Keyword.MaxConnectionsPerNode, 2},
+                      {Keyword.MaxConnections, -1},
+                      {Keyword.NewConnectionTreshold, 10},
+                      {Keyword.MaxConcurrentQueries, -1},
+                      {Keyword.MaxConnectionIdleTime, 10},
+                      {Keyword.MaxQueryRetries, 3},
+                      {Keyword.LoggerFactory, "Null"},
+                      {Keyword.LogLevel, LogLevel.Info},
+                      {Keyword.UseBuffering, true},
+                      {Keyword.AllowCompression, true},
+                      {Keyword.CompressionTreshold, 2048},
+                      {Keyword.SocketConnectTimeout, 0},
+                      {Keyword.SocketSoLinger, -1},
+                      {Keyword.SocketKeepAlive, -1L},
+                      {Keyword.SocketSendBufferSize, 8192},
+                      {Keyword.SocketReceiveBufferSize, 8192}
+                  };
 
         /// <summary>
         /// The mapping of connection string strings to allowed keywords
         /// </summary>
         private static readonly Dictionary<string, Keyword> Keywords =
             new Dictionary<string, Keyword>(StringComparer.OrdinalIgnoreCase)
-            {
-                {"servers", Keyword.Servers},
-                {"server", Keyword.Servers},
-                {"nodes", Keyword.Servers},
-                {"node", Keyword.Servers},
-                {"port", Keyword.Port},
-                {"database", Keyword.Database},
-                {"keyspace", Keyword.Database},
-                {"default database", Keyword.Database},
-                {"default keyspace", Keyword.Database},
-                {"discovery scope", Keyword.DiscoveryScope},
-                {"discoveryscope", Keyword.DiscoveryScope},
-                {"connection strategy", Keyword.ConnectionStrategy},
-                {"connectionstrategy", Keyword.ConnectionStrategy},
-                {"cql", Keyword.CqlVersion},
-                {"version", Keyword.CqlVersion},
-                {"cql version", Keyword.CqlVersion},
-                {"cqlversion", Keyword.CqlVersion},
-                {"user name", Keyword.Username},
-                {"user id", Keyword.Username},
-                {"username", Keyword.Username},
-                {"user", Keyword.Username},
-                {"password", Keyword.Password},
-                {"max downtime", Keyword.MaxDownTime},
-                {"maxdowntime", Keyword.MaxDownTime},
-                {"min downtime", Keyword.MinDownTime},
-                {"mindowntime", Keyword.MinDownTime},
-                {"max connections", Keyword.MaxConnections},
-                {"maxconnections", Keyword.MaxConnections},
-                {"connections per node", Keyword.MaxConnectionsPerNode},
-                {"max connections per node", Keyword.MaxConnectionsPerNode},
-                {"maxconnectionspernode", Keyword.MaxConnectionsPerNode},
-                {"connectionspernode", Keyword.MaxConnectionsPerNode},
-                {"maxpernode", Keyword.MaxConnectionsPerNode},
-                {"max per node", Keyword.MaxConnectionsPerNode},
-                {"newconnectiontreshold", Keyword.NewConnectionTreshold},
-                {"new connection treshold", Keyword.NewConnectionTreshold},
-                {"treshold", Keyword.NewConnectionTreshold},
-                {"connection treshold", Keyword.NewConnectionTreshold},
-                {"maxconcurrentqueries", Keyword.MaxConcurrentQueries},
-                {"max concurrent queries", Keyword.MaxConcurrentQueries},
-                {"max concurrent", Keyword.MaxConcurrentQueries},
-                {"concurrent queries", Keyword.MaxConcurrentQueries},
-                {"concurrentqueries", Keyword.MaxConcurrentQueries},
-                {"max queries", Keyword.MaxConcurrentQueries},
-                {"maxqueries", Keyword.MaxConcurrentQueries},
-                {"throttle", Keyword.MaxConcurrentQueries},
-                {"maxconnectionidletime", Keyword.MaxConnectionIdleTime},
-                {"max connection idle time", Keyword.MaxConnectionIdleTime},
-                {"connectionidletime", Keyword.MaxConnectionIdleTime},
-                {"connection idle time", Keyword.MaxConnectionIdleTime},
-                {"maxidletime", Keyword.MaxConnectionIdleTime},
-                {"max idle time", Keyword.MaxConnectionIdleTime},
-                {"retries", Keyword.MaxQueryRetries},
-                {"queryretries", Keyword.MaxQueryRetries},
-                {"query retries", Keyword.MaxQueryRetries},
-                {"maxretries", Keyword.MaxQueryRetries},
-                {"max retries", Keyword.MaxQueryRetries},
-                {"maxqueryretries", Keyword.MaxQueryRetries},
-                {"max query retries", Keyword.MaxQueryRetries},
-                {"logger", Keyword.LoggerFactory},
-                {"loggerfactory", Keyword.LoggerFactory},
-                {"logger factory", Keyword.LoggerFactory},
-                {"loglevel", Keyword.LogLevel},
-                {"level", Keyword.LogLevel},
-                {"log level", Keyword.LogLevel},
-                {"log", Keyword.LogLevel},
-                {"buffering", Keyword.UseBuffering},
-                {"use buffering", Keyword.UseBuffering},
-                {"usebuffering", Keyword.UseBuffering},
-                {"compression", Keyword.AllowCompression},
-                {"allow compression", Keyword.AllowCompression},
-                {"enable compression", Keyword.AllowCompression},
-                {"support compression", Keyword.AllowCompression},
-                {"allowcompression", Keyword.AllowCompression},
-                {"enablecompression", Keyword.AllowCompression},
-                {"supportcompression", Keyword.AllowCompression},
-                {"compressiontreshold", Keyword.CompressionTreshold},
-                {"compression treshold", Keyword.CompressionTreshold},
-                {"compressionsize", Keyword.CompressionTreshold},
-                {"compression size", Keyword.CompressionTreshold},
-                {"min compression size", Keyword.CompressionTreshold},
-                {"mincompressionsize", Keyword.CompressionTreshold},
-                {"socketconnecttimeout", Keyword.SocketConnectTimeout},
-                {"socket connect timeout", Keyword.SocketConnectTimeout},
-                {"connecttimeout", Keyword.SocketConnectTimeout},
-                {"connect timeout", Keyword.SocketConnectTimeout},
-                {"socket so linger", Keyword.SocketSoLinger},
-                {"socketsolinger", Keyword.SocketSoLinger},
-                {"socket solinger", Keyword.SocketSoLinger},
-                {"socket linger", Keyword.SocketSoLinger},
-                {"socketlinger", Keyword.SocketSoLinger},
-                {"so linger", Keyword.SocketSoLinger},
-                {"solinger", Keyword.SocketSoLinger},
-                {"linger", Keyword.SocketSoLinger},
-                {"socket keep alive", Keyword.SocketKeepAlive},
-                {"socketkeepalive", Keyword.SocketKeepAlive},
-                {"keep alive", Keyword.SocketKeepAlive},
-                {"keepalive", Keyword.SocketKeepAlive},
-                {"socket send buffer size", Keyword.SocketSendBufferSize},
-                {"socketsendbuffersize", Keyword.SocketSendBufferSize},
-                {"send buffer size", Keyword.SocketSendBufferSize},
-                {"sendbuffersize", Keyword.SocketSendBufferSize},
-                {"send buffer", Keyword.SocketSendBufferSize},
-                {"sendbuffer", Keyword.SocketSendBufferSize},
-                {"socket receive buffer size", Keyword.SocketReceiveBufferSize},
-                {"socketreceivebuffersize", Keyword.SocketReceiveBufferSize},
-                {"receive buffer size", Keyword.SocketReceiveBufferSize},
-                {"receivebuffersize", Keyword.SocketReceiveBufferSize},
-                {"receive buffer", Keyword.SocketReceiveBufferSize},
-                {"receivebuffer", Keyword.SocketReceiveBufferSize},
-            };
+                {
+                    {"servers", Keyword.Servers},
+                    {"server", Keyword.Servers},
+                    {"nodes", Keyword.Servers},
+                    {"node", Keyword.Servers},
+                    {"port", Keyword.Port},
+                    {"database", Keyword.Database},
+                    {"keyspace", Keyword.Database},
+                    {"default database", Keyword.Database},
+                    {"default keyspace", Keyword.Database},
+                    {"discovery scope", Keyword.DiscoveryScope},
+                    {"discoveryscope", Keyword.DiscoveryScope},
+                    {"connection strategy", Keyword.ConnectionStrategy},
+                    {"connectionstrategy", Keyword.ConnectionStrategy},
+                    {"commandtimeout", Keyword.CommandTimeout},
+                    {"command timeout", Keyword.CommandTimeout},
+                    {"cql", Keyword.CqlVersion},
+                    {"version", Keyword.CqlVersion},
+                    {"cql version", Keyword.CqlVersion},
+                    {"cqlversion", Keyword.CqlVersion},
+                    {"user name", Keyword.Username},
+                    {"user id", Keyword.Username},
+                    {"username", Keyword.Username},
+                    {"user", Keyword.Username},
+                    {"password", Keyword.Password},
+                    {"max downtime", Keyword.MaxDownTime},
+                    {"maxdowntime", Keyword.MaxDownTime},
+                    {"min downtime", Keyword.MinDownTime},
+                    {"mindowntime", Keyword.MinDownTime},
+                    {"max connections", Keyword.MaxConnections},
+                    {"maxconnections", Keyword.MaxConnections},
+                    {"connections per node", Keyword.MaxConnectionsPerNode},
+                    {"max connections per node", Keyword.MaxConnectionsPerNode},
+                    {"maxconnectionspernode", Keyword.MaxConnectionsPerNode},
+                    {"connectionspernode", Keyword.MaxConnectionsPerNode},
+                    {"maxpernode", Keyword.MaxConnectionsPerNode},
+                    {"max per node", Keyword.MaxConnectionsPerNode},
+                    {"newconnectiontreshold", Keyword.NewConnectionTreshold},
+                    {"new connection treshold", Keyword.NewConnectionTreshold},
+                    {"treshold", Keyword.NewConnectionTreshold},
+                    {"connection treshold", Keyword.NewConnectionTreshold},
+                    {"maxconcurrentqueries", Keyword.MaxConcurrentQueries},
+                    {"max concurrent queries", Keyword.MaxConcurrentQueries},
+                    {"max concurrent", Keyword.MaxConcurrentQueries},
+                    {"concurrent queries", Keyword.MaxConcurrentQueries},
+                    {"concurrentqueries", Keyword.MaxConcurrentQueries},
+                    {"max queries", Keyword.MaxConcurrentQueries},
+                    {"maxqueries", Keyword.MaxConcurrentQueries},
+                    {"throttle", Keyword.MaxConcurrentQueries},
+                    {"maxconnectionidletime", Keyword.MaxConnectionIdleTime},
+                    {"max connection idle time", Keyword.MaxConnectionIdleTime},
+                    {"connectionidletime", Keyword.MaxConnectionIdleTime},
+                    {"connection idle time", Keyword.MaxConnectionIdleTime},
+                    {"maxidletime", Keyword.MaxConnectionIdleTime},
+                    {"max idle time", Keyword.MaxConnectionIdleTime},
+                    {"retries", Keyword.MaxQueryRetries},
+                    {"queryretries", Keyword.MaxQueryRetries},
+                    {"query retries", Keyword.MaxQueryRetries},
+                    {"maxretries", Keyword.MaxQueryRetries},
+                    {"max retries", Keyword.MaxQueryRetries},
+                    {"maxqueryretries", Keyword.MaxQueryRetries},
+                    {"max query retries", Keyword.MaxQueryRetries},
+                    {"logger", Keyword.LoggerFactory},
+                    {"loggerfactory", Keyword.LoggerFactory},
+                    {"logger factory", Keyword.LoggerFactory},
+                    {"loglevel", Keyword.LogLevel},
+                    {"level", Keyword.LogLevel},
+                    {"log level", Keyword.LogLevel},
+                    {"log", Keyword.LogLevel},
+                    {"buffering", Keyword.UseBuffering},
+                    {"use buffering", Keyword.UseBuffering},
+                    {"usebuffering", Keyword.UseBuffering},
+                    {"compression", Keyword.AllowCompression},
+                    {"allow compression", Keyword.AllowCompression},
+                    {"enable compression", Keyword.AllowCompression},
+                    {"support compression", Keyword.AllowCompression},
+                    {"allowcompression", Keyword.AllowCompression},
+                    {"enablecompression", Keyword.AllowCompression},
+                    {"supportcompression", Keyword.AllowCompression},
+                    {"compressiontreshold", Keyword.CompressionTreshold},
+                    {"compression treshold", Keyword.CompressionTreshold},
+                    {"compressionsize", Keyword.CompressionTreshold},
+                    {"compression size", Keyword.CompressionTreshold},
+                    {"min compression size", Keyword.CompressionTreshold},
+                    {"mincompressionsize", Keyword.CompressionTreshold},
+                    {"socketconnecttimeout", Keyword.SocketConnectTimeout},
+                    {"socket connect timeout", Keyword.SocketConnectTimeout},
+                    {"connecttimeout", Keyword.SocketConnectTimeout},
+                    {"connect timeout", Keyword.SocketConnectTimeout},
+                    {"socket so linger", Keyword.SocketSoLinger},
+                    {"socketsolinger", Keyword.SocketSoLinger},
+                    {"socket solinger", Keyword.SocketSoLinger},
+                    {"socket linger", Keyword.SocketSoLinger},
+                    {"socketlinger", Keyword.SocketSoLinger},
+                    {"so linger", Keyword.SocketSoLinger},
+                    {"solinger", Keyword.SocketSoLinger},
+                    {"linger", Keyword.SocketSoLinger},
+                    {"socket keep alive", Keyword.SocketKeepAlive},
+                    {"socketkeepalive", Keyword.SocketKeepAlive},
+                    {"keep alive", Keyword.SocketKeepAlive},
+                    {"keepalive", Keyword.SocketKeepAlive},
+                    {"socket send buffer size", Keyword.SocketSendBufferSize},
+                    {"socketsendbuffersize", Keyword.SocketSendBufferSize},
+                    {"send buffer size", Keyword.SocketSendBufferSize},
+                    {"sendbuffersize", Keyword.SocketSendBufferSize},
+                    {"send buffer", Keyword.SocketSendBufferSize},
+                    {"sendbuffer", Keyword.SocketSendBufferSize},
+                    {"socket receive buffer size", Keyword.SocketReceiveBufferSize},
+                    {"socketreceivebuffersize", Keyword.SocketReceiveBufferSize},
+                    {"receive buffer size", Keyword.SocketReceiveBufferSize},
+                    {"receivebuffersize", Keyword.SocketReceiveBufferSize},
+                    {"receive buffer", Keyword.SocketReceiveBufferSize},
+                    {"receivebuffer", Keyword.SocketReceiveBufferSize},
+                };
 
         /// <summary>
         /// The server addresses, translated from server name to server IPAddress
@@ -233,8 +236,8 @@ namespace CqlSharp
                 Keyword k;
                 if(Keywords.TryGetValue(keyword, out k))
                     SetValue(k, value);
+                }
             }
-        }
 
         /// <summary>
         /// Gets or sets a list of addresses or ip's pointing to nodes in Cassandra cluster.
@@ -277,8 +280,8 @@ namespace CqlSharp
                                         nameOrAddress).
                                         FirstOrDefault(
                                             addr =>
-                                                addr.AddressFamily ==
-                                                AddressFamily.
+                                            addr.AddressFamily ==
+                                            AddressFamily.
                                                 InterNetwork);
                             }
 
@@ -338,6 +341,17 @@ namespace CqlSharp
         {
             get { return (ConnectionStrategy)_values[Keyword.ConnectionStrategy]; }
             set { SetValue(Keyword.ConnectionStrategy, value); }
+        }
+
+
+        /// <summary>
+        ///   Gets or sets the default timeout for CqlCommand.
+        /// </summary>
+        /// <value> The timeout in seconds. Default: 30</value>
+        public int CommandTimeout
+        {
+            get { return (int)_values[Keyword.CommandTimeout]; }
+            set { SetValue(Keyword.CommandTimeout, value); }
         }
 
         /// <summary>
@@ -528,7 +542,7 @@ namespace CqlSharp
         /// <remarks>
         /// The linger time in seconds. If the linger time is negative, the default
         /// IP timeouts are applied. When the linger time is zero, an immediate
-        /// connection reset is send upon socket closure. Otherwise, the socket waits for the
+        /// connection reset is send upon socket closure. Otherwise, the socket waits for the 
         /// givan amount of time for the last buffers to be send.
         /// </remarks>
         public int SocketSoLinger
@@ -668,6 +682,9 @@ namespace CqlSharp
                         break;
                     case Keyword.ConnectionStrategy:
                         sanatizedValue = ConvertToEnum<ConnectionStrategy>(value);
+                        break;
+                    case Keyword.CommandTimeout:
+                        sanatizedValue = Convert.ToInt32(value);
                         break;
                     case Keyword.CqlVersion:
                         sanatizedValue = value.ToString();
@@ -822,11 +839,11 @@ namespace CqlSharp
             {
                 string trimmed = str.Trim();
                 if(StringComparer.OrdinalIgnoreCase.Equals(trimmed, "true") ||
-                   StringComparer.OrdinalIgnoreCase.Equals(trimmed, "yes"))
+                    StringComparer.OrdinalIgnoreCase.Equals(trimmed, "yes"))
                     return true;
 
                 if(StringComparer.OrdinalIgnoreCase.Equals(trimmed, "false") ||
-                   StringComparer.OrdinalIgnoreCase.Equals(trimmed, "no"))
+                    StringComparer.OrdinalIgnoreCase.Equals(trimmed, "no"))
                     return false;
 
                 return bool.Parse(str);
@@ -908,6 +925,7 @@ namespace CqlSharp
             Database,
             DiscoveryScope,
             ConnectionStrategy,
+			CommandTimeout,
             CqlVersion,
             MaxDownTime,
             MinDownTime,

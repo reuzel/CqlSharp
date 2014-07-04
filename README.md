@@ -43,6 +43,11 @@ Some non-functionals
 * CqlSharp uses multiple connections in parallel to execute queries faster. Queries are also multiplexed on single connections, leading to efficient connection usage.
 * Using compiled expressions, mapping rows to objects and vice-versa is very fast
 
+License
+-------
+
+CqlSharp and CqlSharp.Linq are both available under the [Apache License version 2.0](http://www.apache.org/licenses/LICENSE-2.0).
+
 Wish list
 ---------
 
