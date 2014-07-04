@@ -28,9 +28,9 @@ namespace CqlSharp.Serialization.Marshal
 
         public CqlType CreateType(params object[] innerTypes)
         {
-            if(innerTypes==null || !innerTypes.All(t => t is CqlType))
+            if(innerTypes == null || !innerTypes.All(t => t is CqlType))
                 throw new ArgumentException("Arguments to create a TupleType must consist of CqlTypes only");
-            
+
             //cast the innerTypes to CqlTypes
             var subTypes = innerTypes.Cast<CqlType>().ToList();
 
@@ -46,7 +46,7 @@ namespace CqlSharp.Serialization.Marshal
                 types.Add(parser.ReadCqlType());
                 parser.SkipBlankAndComma();
             }
-            
+
             return CreateType(types);
         }
 
@@ -55,16 +55,23 @@ namespace CqlSharp.Serialization.Marshal
         /// </summary>
         /// <param name="cqlTypes">The CQL types.</param>
         /// <returns></returns>
-        /// <exception cref="System.ArgumentException">The number of subtypes used to create a Tuple must be between 1 and 8 (inclusive)</exception>
+        /// <exception cref="System.ArgumentException">
+        /// The number of subtypes used to create a Tuple must be between 1 and 8
+        /// (inclusive)
+        /// </exception>
         private CqlType CreateType(List<CqlType> cqlTypes)
         {
             int typeCount = cqlTypes.Count;
 
-            if (typeCount > 8 || typeCount < 1)
-                throw new ArgumentException("The number of subtypes used to create a Tuple must be between 1 and 8 (inclusive)");
-            
+            if(typeCount > 8 || typeCount < 1)
+            {
+                throw new ArgumentException(
+                    "The number of subtypes used to create a Tuple must be between 1 and 8 (inclusive)");
+            }
+
             //get the system.Tuple version that represent the provided tuple
-            var tupleArgumentType = TypeExtensions.TupleTypes[typeCount - 1].MakeGenericType(cqlTypes.Select(st => st.Type).ToArray());
+            var tupleArgumentType =
+                TypeExtensions.TupleTypes[typeCount - 1].MakeGenericType(cqlTypes.Select(st => st.Type).ToArray());
 
             //define the TupleType necessary
             var tupleType = typeof(TupleType<>).MakeGenericType(tupleArgumentType);

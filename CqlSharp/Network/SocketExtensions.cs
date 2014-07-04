@@ -1,4 +1,19 @@
-﻿using System;
+﻿// CqlSharp - CqlSharp
+// Copyright (c) 2014 Joost Reuzel
+//   
+// Licensed under the Apache License, Version 2.0 (the "License");
+// you may not use this file except in compliance with the License.
+// You may obtain a copy of the License at
+//   
+// http://www.apache.org/licenses/LICENSE-2.0
+//  
+// Unless required by applicable law or agreed to in writing, software
+// distributed under the License is distributed on an "AS IS" BASIS,
+// WITHOUT WARRANTIES OR CONDITIONS OF ANY KIND, either express or implied.
+// See the License for the specific language governing permissions and
+// limitations under the License.
+
+using System;
 using System.IO;
 using System.Net;
 using System.Net.Sockets;
@@ -9,7 +24,6 @@ namespace CqlSharp.Network
 {
     internal static class TcpClientExtensions
     {
-
         /// <summary>
         /// Connects the client to the given remote address and port, using a maximum timeout. The client
         /// will be closed when the timeout has passed and the client is still not connected
@@ -23,19 +37,19 @@ namespace CqlSharp.Network
         {
             //create connection timeout token
             var token = timeout > 0
-                            ? new CancellationTokenSource(timeout).Token
-                            : CancellationToken.None;
+                ? new CancellationTokenSource(timeout).Token
+                : CancellationToken.None;
             try
             {
                 //close connection when timeout is invoked
-                using (token.Register((cl) => ((TcpClient)cl).Close(), client))
+                using(token.Register(cl => ((TcpClient)cl).Close(), client))
                 {
                     await client.ConnectAsync(address, port).ConfigureAwait(false);
                 }
             }
-            catch (Exception ex)
+            catch(Exception ex)
             {
-                if (token.IsCancellationRequested)
+                if(token.IsCancellationRequested)
                 {
                     var error = string.Format("Connection to {0}:{1} could not be established within set timeout",
                                               address, port);
@@ -74,19 +88,19 @@ namespace CqlSharp.Network
                 // Array to hold input values.
                 var input = new[]
                 {
-            	    (time == 0 || interval == 0) ? 0UL : 1UL, // on or off
-				    time,
-				    interval 
-			    };
+                    (time == 0 || interval == 0) ? 0UL : 1UL, // on or off
+                    time,
+                    interval
+                };
 
                 // Pack input into byte struct.
-                var inValue = new byte[3 * bytesPerLong];
-                for (int i = 0; i < input.Length; i++)
+                var inValue = new byte[3*bytesPerLong];
+                for(int i = 0; i < input.Length; i++)
                 {
-                    inValue[i * bytesPerLong + 3] = (byte)(input[i] >> ((bytesPerLong - 1) * bitsPerByte) & 0xff);
-                    inValue[i * bytesPerLong + 2] = (byte)(input[i] >> ((bytesPerLong - 2) * bitsPerByte) & 0xff);
-                    inValue[i * bytesPerLong + 1] = (byte)(input[i] >> ((bytesPerLong - 3) * bitsPerByte) & 0xff);
-                    inValue[i * bytesPerLong + 0] = (byte)(input[i] >> ((bytesPerLong - 4) * bitsPerByte) & 0xff);
+                    inValue[i*bytesPerLong + 3] = (byte)(input[i] >> ((bytesPerLong - 1)*bitsPerByte) & 0xff);
+                    inValue[i*bytesPerLong + 2] = (byte)(input[i] >> ((bytesPerLong - 2)*bitsPerByte) & 0xff);
+                    inValue[i*bytesPerLong + 1] = (byte)(input[i] >> ((bytesPerLong - 3)*bitsPerByte) & 0xff);
+                    inValue[i*bytesPerLong + 0] = (byte)(input[i] >> ((bytesPerLong - 4)*bitsPerByte) & 0xff);
                 }
 
                 // Create bytestruct for result (bytes pending on server socket).
@@ -96,11 +110,10 @@ namespace CqlSharp.Network
                 client.Client.SetSocketOption(SocketOptionLevel.Socket, SocketOptionName.KeepAlive, true);
                 client.Client.IOControl(IOControlCode.KeepAliveValues, inValue, outValue);
             }
-            catch (Exception ex)
+            catch(Exception ex)
             {
                 throw new IOException("Could not set Socket Keep Alive values", ex);
             }
-
         }
     }
 }

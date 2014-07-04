@@ -1,5 +1,5 @@
 // CqlSharp - CqlSharp
-// Copyright (c) 2013 Joost Reuzel
+// Copyright (c) 2014 Joost Reuzel
 //   
 // Licensed under the Apache License, Version 2.0 (the "License");
 // you may not use this file except in compliance with the License.
@@ -44,10 +44,8 @@ namespace CqlSharp.Network.nSnappy
         public bool Append(Pointer ip, int len)
         {
             int spaceLeft = _length - _index;
-            if (spaceLeft < len)
-            {
+            if(spaceLeft < len)
                 return false;
-            }
 
             var op = new Pointer(_buffer, _index);
             op.Copy(ip, len);
@@ -59,10 +57,8 @@ namespace CqlSharp.Network.nSnappy
         {
             int spaceLeft = _length - _index;
 
-            if (len > 16 || available < 16 || spaceLeft < 16)
-            {
+            if(len > 16 || available < 16 || spaceLeft < 16)
                 return false;
-            }
 
             var op = new Pointer(_buffer, _index);
             op.Copy64(ip);
@@ -76,31 +72,27 @@ namespace CqlSharp.Network.nSnappy
         {
             int spaceLeft = _length - _index;
 
-            if (_index <= offset - 1u)
+            if(_index <= offset - 1u)
             {
                 // -1u catches offset==0
                 return false;
             }
 
             var op = new Pointer(_buffer, _index);
-            if (len <= 16 && offset >= 8 && spaceLeft >= 16)
+            if(len <= 16 && offset >= 8 && spaceLeft >= 16)
             {
                 var src = new Pointer(_buffer, _index - offset);
                 op.Copy64(src);
-                op.Copy64(src + 8, offset: 8);
+                op.Copy64(src + 8, 8);
             }
             else
             {
-                if (spaceLeft >= len + CompressorConstants.MaxIncrementCopyOverflow)
-                {
+                if(spaceLeft >= len + CompressorConstants.MaxIncrementCopyOverflow)
                     IncrementalCopyFastPath(op - offset, op, len);
-                }
                 else
                 {
-                    if (spaceLeft < len)
-                    {
+                    if(spaceLeft < len)
                         return false;
-                    }
 
                     IncrementalCopy(op - offset, op, len);
                 }
@@ -118,19 +110,19 @@ namespace CqlSharp.Network.nSnappy
 
                 op += 1;
                 src += 1;
-            } while (--len > 0);
+            } while(--len > 0);
         }
 
         private void IncrementalCopyFastPath(Pointer src, Pointer op, int len)
         {
-            while (op - src < 8)
+            while(op - src < 8)
             {
                 op.Copy64(src);
                 len -= op - src;
                 op += op - src;
             }
 
-            while (len > 0)
+            while(len > 0)
             {
                 op.Copy64(src);
                 src += 8;

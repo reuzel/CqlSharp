@@ -1,5 +1,5 @@
 // CqlSharp - CqlSharp
-// Copyright (c) 2013 Joost Reuzel
+// Copyright (c) 2014 Joost Reuzel
 //   
 // Licensed under the Apache License, Version 2.0 (the "License");
 // you may not use this file except in compliance with the License.
@@ -22,14 +22,14 @@ using System.Text;
 namespace CqlSharp
 {
     /// <summary>
-    ///   DateTime extensions to convert date-time values to and from unix-time
+    /// DateTime extensions to convert date-time values to and from unix-time
     /// </summary>
     public static class TypeExtensions
     {
         public static readonly DateTime Epoch = new DateTime(1970, 1, 1, 0, 0, 0, DateTimeKind.Utc);
 
         /// <summary>
-        ///   Translates the DateTime to a unix/POSIX timestamp
+        /// Translates the DateTime to a unix/POSIX timestamp
         /// </summary>
         /// <param name="datetime"> The datetime. </param>
         /// <returns> </returns>
@@ -39,7 +39,7 @@ namespace CqlSharp
         }
 
         /// <summary>
-        ///   Translates a unix/POSIX timestamp to a DateTime
+        /// Translates a unix/POSIX timestamp to a DateTime
         /// </summary>
         /// <param name="timestamp"> The timestamp. </param>
         /// <returns> </returns>
@@ -49,7 +49,7 @@ namespace CqlSharp
         }
 
         /// <summary>
-        ///   Writes the datetime as a unix timestamp to the provided array
+        /// Writes the datetime as a unix timestamp to the provided array
         /// </summary>
         /// <param name="datetime">The datetime.</param>
         /// <param name="array">The array.</param>
@@ -60,7 +60,7 @@ namespace CqlSharp
         }
 
         /// <summary>
-        ///   converts the array into a long value (big-endian)
+        /// converts the array into a long value (big-endian)
         /// </summary>
         /// <param name="bytes"> The bytes. </param>
         /// <param name="offset"> The offset. </param>
@@ -80,7 +80,7 @@ namespace CqlSharp
         }
 
         /// <summary>
-        ///  Writes the long value to the provided array from the given offset onwards
+        /// Writes the long value to the provided array from the given offset onwards
         /// </summary>
         /// <param name="value">The value.</param>
         /// <param name="array">The array.</param>
@@ -95,11 +95,10 @@ namespace CqlSharp
             array[offset + 5] = (byte)((value >> 16) & 0xff);
             array[offset + 6] = (byte)((value >> 8) & 0xff);
             array[offset + 7] = (byte)((value) & 0xff);
-
         }
 
         /// <summary>
-        ///   converts the array into a int value (big-endian)
+        /// converts the array into a int value (big-endian)
         /// </summary>
         /// <param name="bytes"> The bytes. </param>
         /// <param name="offset"> The offset. </param>
@@ -116,7 +115,7 @@ namespace CqlSharp
 
 
         /// <summary>
-        ///  Writes the long value to the provided array from the given offset onwards
+        /// Writes the long value to the provided array from the given offset onwards
         /// </summary>
         /// <param name="value">The value.</param>
         /// <param name="array">The array.</param>
@@ -131,7 +130,7 @@ namespace CqlSharp
 
 
         /// <summary>
-        ///   converts the array into a unsigned short value (big-endian)
+        /// converts the array into a unsigned short value (big-endian)
         /// </summary>
         /// <param name="bytes"> The bytes. </param>
         /// <param name="offset"> The offset. </param>
@@ -143,7 +142,7 @@ namespace CqlSharp
         }
 
         /// <summary>
-        ///  Writes the long value to the provided array from the given offset onwards
+        /// Writes the long value to the provided array from the given offset onwards
         /// </summary>
         /// <param name="value">The value.</param>
         /// <param name="array">The array.</param>
@@ -155,7 +154,7 @@ namespace CqlSharp
         }
 
         /// <summary>
-        ///   converts the array to a Guid value
+        /// converts the array to a Guid value
         /// </summary>
         /// <param name="bytes"> The bytes. </param>
         /// <param name="offset"> The offset. </param>
@@ -175,7 +174,7 @@ namespace CqlSharp
         }
 
         /// <summary>
-        ///  Writes the long value to the provided array from the given offset onwards
+        /// Writes the long value to the provided array from the given offset onwards
         /// </summary>
         /// <param name="value">The value.</param>
         /// <param name="array">The array.</param>
@@ -183,7 +182,7 @@ namespace CqlSharp
         public static void ToBytes(this Guid value, byte[] array, int offset = 0)
         {
             byte[] rawData = value.ToByteArray();
-            if (BitConverter.IsLittleEndian)
+            if(BitConverter.IsLittleEndian)
             {
                 array[offset + 0] = rawData[3];
                 array[offset + 1] = rawData[2];
@@ -196,15 +195,13 @@ namespace CqlSharp
                 Buffer.BlockCopy(rawData, 8, array, offset + 8, 8);
             }
             else
-            {
                 Buffer.BlockCopy(rawData, 0, array, offset, 16);
-            }
         }
 
         /// <summary>
         /// Hex string lookup table.
         /// </summary>
-        private static readonly string[] HexStringTable = new string[]
+        private static readonly string[] HexStringTable =
         {
             "00", "01", "02", "03", "04", "05", "06", "07", "08", "09", "0a", "0b", "0c", "0d", "0e", "0f",
             "10", "11", "12", "13", "14", "15", "16", "17", "18", "19", "1a", "1b", "1c", "1d", "1e", "1f",
@@ -230,17 +227,18 @@ namespace CqlSharp
         /// <param name="value">The array of bytes.</param>
         /// <param name="prefix">string value to prefix hex string with (e.g. 0x)</param>
         /// <returns>A hex string representation of the array of bytes.</returns>
-        /// <remarks>From: http://blogs.msdn.com/b/blambert/archive/2009/02/22/blambert-codesnip-fast-byte-array-to-hex-string-conversion.aspx </remarks>
+        /// <remarks>
+        /// From:
+        /// http://blogs.msdn.com/b/blambert/archive/2009/02/22/blambert-codesnip-fast-byte-array-to-hex-string-conversion.aspx
+        /// </remarks>
         public static string ToHex(this byte[] value, string prefix = "")
         {
             var stringBuilder = new StringBuilder();
             stringBuilder.Append(prefix);
-            if (value != null)
+            if(value != null)
             {
-                foreach (byte b in value)
-                {
+                foreach(byte b in value)
                     stringBuilder.Append(HexStringTable[b]);
-                }
             }
 
             return stringBuilder.ToString();
@@ -252,16 +250,17 @@ namespace CqlSharp
         /// <param name="value">The array of bytes.</param>
         /// <param name="prefix">string value to prefix hex string with (e.g. 0x)</param>
         /// <returns>A hex string representation of the array of bytes.</returns>
-        /// <remarks>From: http://blogs.msdn.com/b/blambert/archive/2009/02/22/blambert-codesnip-fast-byte-array-to-hex-string-conversion.aspx </remarks>
+        /// <remarks>
+        /// From:
+        /// http://blogs.msdn.com/b/blambert/archive/2009/02/22/blambert-codesnip-fast-byte-array-to-hex-string-conversion.aspx
+        /// </remarks>
         public static string EncodeAsHex(this string value, string prefix = "")
         {
             var stringBuilder = new StringBuilder(prefix);
-            if (value != null)
+            if(value != null)
             {
-                foreach (char b in value)
-                {
+                foreach(char b in value)
                     stringBuilder.Append(HexStringTable[b]);
-                }
             }
 
             return stringBuilder.ToString();
@@ -276,12 +275,15 @@ namespace CqlSharp
         /// <exception cref="CqlException">Error parsing hexadecimal string. A hex string must have an even number of digits.</exception>
         public static string DecodeHex(this string hex)
         {
-            if (hex.Length % 2 != 0)
-                throw new CqlException("Error parsing hexadecimal string. A hex string must have an even number of digits.");
+            if(hex.Length%2 != 0)
+            {
+                throw new CqlException(
+                    "Error parsing hexadecimal string. A hex string must have an even number of digits.");
+            }
 
             StringBuilder sb = new StringBuilder();
 
-            for (int i = 0; i < hex.Length; i = i + 2)
+            for(int i = 0; i < hex.Length; i = i + 2)
             {
                 char c = (char)((GetHexVal(hex[i]) << 4) | GetHexVal(hex[i + 1]));
                 sb.Append(c);
@@ -292,7 +294,7 @@ namespace CqlSharp
 
         private static int GetHexVal(char hex)
         {
-            int val = (int)hex;
+            int val = hex;
             //For uppercase A-F letters:
             //return val - (val < 58 ? 48 : 55);
             //For lowercase a-f letters:
@@ -302,7 +304,7 @@ namespace CqlSharp
         }
 
         /// <summary>
-        ///   Determines whether the specified type is anonymous.
+        /// Determines whether the specified type is anonymous.
         /// </summary>
         /// <param name="type"> The type. </param>
         /// <returns> <c>true</c> if the specified type is anonymous; otherwise, <c>false</c> . </returns>

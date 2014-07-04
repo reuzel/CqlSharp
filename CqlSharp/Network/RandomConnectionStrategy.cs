@@ -1,5 +1,5 @@
 // CqlSharp - CqlSharp
-// Copyright (c) 2013 Joost Reuzel
+// Copyright (c) 2014 Joost Reuzel
 //   
 // Licensed under the Apache License, Version 2.0 (the "License");
 // you may not use this file except in compliance with the License.
@@ -20,7 +20,7 @@ using CqlSharp.Network.Partition;
 namespace CqlSharp.Network
 {
     /// <summary>
-    ///   Connection selection strategy that randomizes the connections over the nodes in the cluster
+    /// Connection selection strategy that randomizes the connections over the nodes in the cluster
     /// </summary>
     internal class RandomConnectionStrategy : IConnectionStrategy
     {
@@ -30,7 +30,7 @@ namespace CqlSharp.Network
         private int _connectionCount;
 
         /// <summary>
-        ///   Initializes the strategies with the specified nodes and cluster configuration
+        /// Initializes the strategies with the specified nodes and cluster configuration
         /// </summary>
         /// <param name="nodes"> The nodes. </param>
         /// <param name="config"> The config. </param>
@@ -44,7 +44,7 @@ namespace CqlSharp.Network
         #region IConnectionStrategy Members
 
         /// <summary>
-        ///   Gets or creates connection to the cluster.
+        /// Gets or creates connection to the cluster.
         /// </summary>
         /// <param name="scope"> The scope. </param>
         /// <param name="partitionKey"> The partition key. </param>
@@ -52,7 +52,7 @@ namespace CqlSharp.Network
         public Connection GetOrCreateConnection(ConnectionScope scope, PartitionKey partitionKey)
         {
             //provide connections on command level only
-            if (scope == ConnectionScope.Connection)
+            if(scope == ConnectionScope.Connection)
                 return null;
 
             int count = _nodes.Count;
@@ -61,31 +61,31 @@ namespace CqlSharp.Network
             Connection connection = null;
 
             //try to get an unused connection from a random node
-            for (int i = 0; i < count; i++)
+            for(int i = 0; i < count; i++)
             {
                 Node randomNode = _nodes[(offset + i)%count];
 
                 //skip if node is down
-                if (!randomNode.IsUp) continue;
+                if(!randomNode.IsUp) continue;
 
                 //try get a connection from it
                 connection = randomNode.GetConnection();
 
                 //connection is not used to the max, ok to use
-                if (connection != null && connection.Load < _config.NewConnectionTreshold)
+                if(connection != null && connection.Load < _config.NewConnectionTreshold)
                     break;
 
                 //get a new connection to the node if possible
-                if (_config.MaxConnections <= 0 || _connectionCount < _config.MaxConnections)
+                if(_config.MaxConnections <= 0 || _connectionCount < _config.MaxConnections)
                 {
                     //try to get a new connection from this random node
                     Connection newConnection = randomNode.CreateConnection();
 
-                    if (newConnection != null)
+                    if(newConnection != null)
                     {
                         Interlocked.Increment(ref _connectionCount);
                         newConnection.OnConnectionChange +=
-                            (c, ev) => { if (ev.Connected == false) Interlocked.Decrement(ref _connectionCount); };
+                            (c, ev) => { if(ev.Connected == false) Interlocked.Decrement(ref _connectionCount); };
 
                         connection = newConnection;
                         break;
@@ -98,7 +98,7 @@ namespace CqlSharp.Network
 
 
         /// <summary>
-        ///   Invoked when a connection is no longer in use by the application
+        /// Invoked when a connection is no longer in use by the application
         /// </summary>
         /// <param name="connection"> The connection no longer used. </param>
         /// <param name="scope"> The scope. </param>

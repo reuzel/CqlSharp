@@ -18,13 +18,13 @@ using System;
 namespace CqlSharp.Serialization
 {
     /// <summary>
-    ///   Indicates wether the given column is indexed.
+    /// Indicates wether the given column is indexed.
     /// </summary>
     [AttributeUsage(AttributeTargets.Property | AttributeTargets.Field)]
     public class CqlIndexAttribute : Attribute
     {
         /// <summary>
-        ///   Gets or sets the name of the index.
+        /// Gets or sets the name of the index.
         /// </summary>
         /// <value> The name. </value>
         public string Name { get; set; }

@@ -1,5 +1,5 @@
 // CqlSharp - CqlSharp
-// Copyright (c) 2013 Joost Reuzel
+// Copyright (c) 2014 Joost Reuzel
 //   
 // Licensed under the Apache License, Version 2.0 (the "License");
 // you may not use this file except in compliance with the License.
@@ -52,7 +52,7 @@ namespace CqlSharp.Protocol
             FrameReader reader = Reader;
 
             CqlResultType = (CqlResultType)await reader.ReadIntAsync().ConfigureAwait(false);
-            switch (CqlResultType)
+            switch(CqlResultType)
             {
                 case CqlResultType.Void:
                     break;
@@ -77,7 +77,7 @@ namespace CqlSharp.Protocol
                     QueryMetaData = await ReadMetaDataAsync().ConfigureAwait(false);
 
                     //read result metadata if not version 1 
-                    if ((Version & FrameVersion.ProtocolVersionMask) != FrameVersion.ProtocolVersion1)
+                    if((Version & FrameVersion.ProtocolVersionMask) != FrameVersion.ProtocolVersion1)
                         ResultMetaData = await ReadMetaDataAsync().ConfigureAwait(false);
 
                     break;
@@ -89,18 +89,20 @@ namespace CqlSharp.Protocol
 
         public async Task<byte[][]> ReadNextDataRowAsync()
         {
-            if (_count == 0)
+            if(_count == 0)
                 return null;
 
             var valueBytes = new byte[ResultMetaData.Count][];
-            for (int i = 0; i < ResultMetaData.Count; i++)
+            for(int i = 0; i < ResultMetaData.Count; i++)
+            {
                 valueBytes[i] = await Reader.ReadBytesAsync().ConfigureAwait(false);
+            }
 
             //reduce the amount of available rows
             _count--;
 
             //dispose reader when it is no longer needed
-            if (_count == 0)
+            if(_count == 0)
                 Reader.Dispose();
 
             //_readLock.Release();
@@ -129,27 +131,25 @@ namespace CqlSharp.Protocol
             int colCount = await reader.ReadIntAsync().ConfigureAwait(false);
 
             //get paging state if present
-            if (flags.HasFlag(MetadataFlags.HasMorePages))
-            {
+            if(flags.HasFlag(MetadataFlags.HasMorePages))
                 metaData.PagingState = await reader.ReadBytesAsync().ConfigureAwait(false);
-            }
 
             //stop processing if no metadata flag is set
-            if (flags.HasFlag(MetadataFlags.NoMetaData))
+            if(flags.HasFlag(MetadataFlags.NoMetaData))
                 return metaData;
 
             //get the global keyspace,table if present
             bool globalTablesSpec = flags.HasFlag(MetadataFlags.GlobalTablesSpec);
             string keyspace = null;
             string table = null;
-            if (globalTablesSpec)
+            if(globalTablesSpec)
             {
                 keyspace = await reader.ReadStringAsync().ConfigureAwait(false);
                 table = await reader.ReadStringAsync().ConfigureAwait(false);
             }
 
             //go and start processing all the columns
-            for (int colIdx = 0; colIdx < colCount; colIdx++)
+            for(int colIdx = 0; colIdx < colCount; colIdx++)
             {
                 //read name
                 string colKeyspace = globalTablesSpec ? keyspace : await reader.ReadStringAsync().ConfigureAwait(false);
@@ -176,7 +176,7 @@ namespace CqlSharp.Protocol
             //read typeCode
             var colType = (CqlTypeCode)await reader.ReadShortAsync().ConfigureAwait(false);
             CqlType type;
-            switch (colType)
+            switch(colType)
             {
                 case CqlTypeCode.Custom:
                     var colCustom = await reader.ReadStringAsync().ConfigureAwait(false);

@@ -1,5 +1,5 @@
 // CqlSharp - CqlSharp
-// Copyright (c) 2013 Joost Reuzel
+// Copyright (c) 2014 Joost Reuzel
 //   
 // Licensed under the Apache License, Version 2.0 (the "License");
 // you may not use this file except in compliance with the License.
@@ -20,37 +20,31 @@ namespace CqlSharp.Network.nSnappy
         public static byte[] Encode(int value)
         {
             const int moreData = 128;
-            var uvalue = unchecked((uint) value);
+            var uvalue = unchecked((uint)value);
 
-            if (uvalue < 0x80)
-            {
-                return new[] {(byte) uvalue};
-            }
+            if(uvalue < 0x80)
+                return new[] {(byte)uvalue};
 
-            if (uvalue < 0x4000)
-            {
-                return new[] {(byte) (uvalue | moreData), (byte) (uvalue >> 7)};
-            }
+            if(uvalue < 0x4000)
+                return new[] {(byte)(uvalue | moreData), (byte)(uvalue >> 7)};
 
-            if (uvalue < 0x200000)
-            {
-                return new[] {(byte) (uvalue | moreData), (byte) ((uvalue >> 7) | moreData), (byte) (uvalue >> 14)};
-            }
+            if(uvalue < 0x200000)
+                return new[] {(byte)(uvalue | moreData), (byte)((uvalue >> 7) | moreData), (byte)(uvalue >> 14)};
 
-            if (uvalue < 0x10000000)
+            if(uvalue < 0x10000000)
             {
                 return new[]
-                           {
-                               (byte) (uvalue | moreData), (byte) ((uvalue >> 7) | moreData),
-                               (byte) ((uvalue >> 14) | moreData), (byte) (uvalue >> 21)
-                           };
+                {
+                    (byte)(uvalue | moreData), (byte)((uvalue >> 7) | moreData),
+                    (byte)((uvalue >> 14) | moreData), (byte)(uvalue >> 21)
+                };
             }
 
             return new[]
-                       {
-                           (byte) (uvalue | moreData), (byte) ((uvalue >> 7) | moreData),
-                           (byte) ((uvalue >> 14) | moreData), (byte) ((uvalue >> 21) | moreData), (byte) (uvalue >> 28)
-                       };
+            {
+                (byte)(uvalue | moreData), (byte)((uvalue >> 7) | moreData),
+                (byte)((uvalue >> 14) | moreData), (byte)((uvalue >> 21) | moreData), (byte)(uvalue >> 28)
+            };
         }
 
         public static int Decode(byte[] data, int maxEncodedBytes)
@@ -58,18 +52,18 @@ namespace CqlSharp.Network.nSnappy
             var index = 0;
             var value = 0U;
 
-            while (index < maxEncodedBytes)
+            while(index < maxEncodedBytes)
             {
                 var b = data[index];
                 value |= (b & 0x7fU) << index*7;
 
-                if (b < 0x80)
+                if(b < 0x80)
                     break;
 
                 index++;
             }
 
-            return unchecked((int) value);
+            return unchecked((int)value);
         }
     }
 }

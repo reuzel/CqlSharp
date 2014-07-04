@@ -16,11 +16,8 @@
 using System;
 using System.Collections.Generic;
 using System.Data;
-using System.Diagnostics;
 using System.IO;
 using System.Linq;
-using System.Reflection;
-using System.Reflection.Emit;
 using System.Text;
 using CqlSharp.Annotations;
 using CqlSharp.Protocol;
@@ -44,7 +41,8 @@ namespace CqlSharp.Serialization.Marshal
         /// <param name="name">The name.</param>
         /// <param name="fieldNames">The field names.</param>
         /// <param name="types">The field types.</param>
-        public UserDefinedType([NotNull] string keyspace, [NotNull] string name, [NotNull] IEnumerable<string> fieldNames,
+        public UserDefinedType([NotNull] string keyspace, [NotNull] string name,
+                               [NotNull] IEnumerable<string> fieldNames,
                                [NotNull] IEnumerable<CqlType> types)
         {
             if(keyspace == null) throw new ArgumentNullException("keyspace");
@@ -146,28 +144,33 @@ namespace CqlSharp.Serialization.Marshal
         /// byte array containing the serialized value of the source object
         /// </returns>
         /// <remarks>
-        /// This method is overridden to prevent unnessecary creation and casting of UserDefined objects 
+        /// This method is overridden to prevent unnessecary creation and casting of UserDefined objects
         /// </remarks>
         public override byte[] Serialize<TSource>(TSource source)
         {
             // ReSharper disable once CompareNonConstrainedGenericWithNull
             if(source == null)
                 return null;
-            
+
             var accessor = ObjectAccessor<TSource>.Instance;
 
-            if (accessor.Columns.Count > _fieldList.Count)
-                throw new CqlException(string.Format("Type {0} is not compatible with CqlType {1}", typeof(TSource), this));
+            if(accessor.Columns.Count > _fieldList.Count)
+            {
+                throw new CqlException(string.Format("Type {0} is not compatible with CqlType {1}", typeof(TSource),
+                                                     this));
+            }
 
-             //write all the components
+            //write all the components
             using(var stream = new MemoryStream())
             {
                 for(int i = 0; i < accessor.Columns.Count; i++)
                 {
                     var column = accessor.Columns[i];
                     if(column.CqlType != _fieldList[i].Value)
+                    {
                         throw new CqlException(string.Format("Type {0} is not compatible with CqlType {1}",
                                                              typeof(TSource), this));
+                    }
 
                     var rawValue = column.SerializeFrom(source, _fieldList[i].Value);
                     stream.WriteByteArray(rawValue);
@@ -182,7 +185,6 @@ namespace CqlSharp.Serialization.Marshal
             return Serialize<T>(value);
         }
 
-        
 
         /// <summary>
         /// Deserializes the specified data to object of the given target type.
@@ -191,7 +193,7 @@ namespace CqlSharp.Serialization.Marshal
         /// <param name="data">The data to deserialize.</param>
         /// <returns>an object of the given type</returns>
         /// <remarks>
-        /// This method is overridden to prevent unnessecary creation and casting of UserDefined objects 
+        /// This method is overridden to prevent unnessecary creation and casting of UserDefined objects
         /// </remarks>
         public override TTarget Deserialize<TTarget>(byte[] data)
         {
@@ -201,7 +203,7 @@ namespace CqlSharp.Serialization.Marshal
             IObjectAccessor accessor;
             object result;
 
-            if (typeof(TTarget) == typeof(object))
+            if(typeof(TTarget) == typeof(object))
             {
                 accessor = ObjectAccessor<T>.Instance;
                 result = Activator.CreateInstance<T>();
@@ -212,18 +214,15 @@ namespace CqlSharp.Serialization.Marshal
                 result = Activator.CreateInstance<TTarget>();
             }
 
-            using (var stream = new MemoryStream(data))
+            using(var stream = new MemoryStream(data))
             {
-                
-                foreach (var field in _fieldList)
+                foreach(var field in _fieldList)
                 {
                     byte[] rawValue = stream.ReadByteArray();
 
                     ICqlColumnInfo column;
-                    if (accessor.ColumnsByName.TryGetValue(field.Key, out column))
-                    {
+                    if(accessor.ColumnsByName.TryGetValue(field.Key, out column))
                         column.DeserializeTo(result, rawValue, field.Value);
-                    }
                 }
 
                 return (TTarget)result;
@@ -278,7 +277,5 @@ namespace CqlSharp.Serialization.Marshal
         {
             return DbType.Object;
         }
-
-        
     }
 }

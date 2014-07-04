@@ -13,12 +13,10 @@
 // See the License for the specific language governing permissions and
 // limitations under the License.
 
-using System;
-
 namespace CqlSharp.Serialization
 {
     /// <summary>
-    ///   Annotates a class to have it map to a specific table and optionally keyspace
+    /// Annotates a class to have it map to a specific table and optionally keyspace
     /// </summary>
     public class CqlTableAttribute : CqlEntityAttribute
     {

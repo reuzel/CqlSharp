@@ -1,5 +1,5 @@
 ﻿// CqlSharp - CqlSharp
-// Copyright (c) 2013 Joost Reuzel
+// Copyright (c) 2014 Joost Reuzel
 //   
 // Licensed under the Apache License, Version 2.0 (the "License");
 // you may not use this file except in compliance with the License.
@@ -19,19 +19,21 @@ using System.Diagnostics;
 namespace CqlSharp.Logging
 {
     /// <summary>
-    ///   Logger factory for logging to Debug output window
+    /// Logger factory for logging to Debug output window
     /// </summary>
     internal class DebugLoggerFactory : LoggerFactory<DebugLogger>
     {
         #region Implementation of ILoggerFactory
 
-        public DebugLoggerFactory() : base("Debug") { }
+        public DebugLoggerFactory() : base("Debug")
+        {
+        }
 
         #endregion
     }
 
     /// <summary>
-    ///   Logger that logs to debug output
+    /// Logger that logs to debug output
     /// </summary>
     internal class DebugLogger : ILogger
     {

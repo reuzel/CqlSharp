@@ -1,5 +1,5 @@
 // CqlSharp - CqlSharp
-// Copyright (c) 2013 Joost Reuzel
+// Copyright (c) 2014 Joost Reuzel
 //   
 // Licensed under the Apache License, Version 2.0 (the "License");
 // you may not use this file except in compliance with the License.
@@ -49,39 +49,39 @@ namespace CqlSharp.Protocol
         protected override async Task InitializeAsync()
         {
             FrameReader stream = Reader;
-            var code = (ErrorCode) await stream.ReadIntAsync().ConfigureAwait(false);
+            var code = (ErrorCode)await stream.ReadIntAsync().ConfigureAwait(false);
             string msg = await stream.ReadStringAsync().ConfigureAwait(false);
 
-            switch (code)
+            switch(code)
             {
                 case ErrorCode.Unavailable:
-                    {
-                        var cl = (CqlConsistency) await stream.ReadShortAsync().ConfigureAwait(false);
-                        int required = await stream.ReadIntAsync().ConfigureAwait(false);
-                        int alive = await stream.ReadIntAsync().ConfigureAwait(false);
-                        Exception = new UnavailableException(msg, cl, required, alive, TracingId);
-                        break;
-                    }
+                {
+                    var cl = (CqlConsistency)await stream.ReadShortAsync().ConfigureAwait(false);
+                    int required = await stream.ReadIntAsync().ConfigureAwait(false);
+                    int alive = await stream.ReadIntAsync().ConfigureAwait(false);
+                    Exception = new UnavailableException(msg, cl, required, alive, TracingId);
+                    break;
+                }
 
                 case ErrorCode.WriteTimeout:
-                    {
-                        var cl = (CqlConsistency) await stream.ReadShortAsync().ConfigureAwait(false);
-                        int received = await stream.ReadIntAsync().ConfigureAwait(false);
-                        int blockFor = await stream.ReadIntAsync().ConfigureAwait(false);
-                        string writeType = await stream.ReadStringAsync().ConfigureAwait(false);
-                        Exception = new WriteTimeOutException(msg, cl, received, blockFor, writeType, TracingId);
-                        break;
-                    }
+                {
+                    var cl = (CqlConsistency)await stream.ReadShortAsync().ConfigureAwait(false);
+                    int received = await stream.ReadIntAsync().ConfigureAwait(false);
+                    int blockFor = await stream.ReadIntAsync().ConfigureAwait(false);
+                    string writeType = await stream.ReadStringAsync().ConfigureAwait(false);
+                    Exception = new WriteTimeOutException(msg, cl, received, blockFor, writeType, TracingId);
+                    break;
+                }
 
                 case ErrorCode.ReadTimeout:
-                    {
-                        var cl = (CqlConsistency) await stream.ReadShortAsync().ConfigureAwait(false);
-                        int received = await stream.ReadIntAsync().ConfigureAwait(false);
-                        int blockFor = await stream.ReadIntAsync().ConfigureAwait(false);
-                        bool dataPresent = 0 != await stream.ReadByteAsync().ConfigureAwait(false);
-                        Exception = new ReadTimeOutException(msg, cl, received, blockFor, dataPresent, TracingId);
-                        break;
-                    }
+                {
+                    var cl = (CqlConsistency)await stream.ReadShortAsync().ConfigureAwait(false);
+                    int received = await stream.ReadIntAsync().ConfigureAwait(false);
+                    int blockFor = await stream.ReadIntAsync().ConfigureAwait(false);
+                    bool dataPresent = 0 != await stream.ReadByteAsync().ConfigureAwait(false);
+                    Exception = new ReadTimeOutException(msg, cl, received, blockFor, dataPresent, TracingId);
+                    break;
+                }
 
                 case ErrorCode.Syntax:
                     Exception = new SyntaxException(msg, TracingId);

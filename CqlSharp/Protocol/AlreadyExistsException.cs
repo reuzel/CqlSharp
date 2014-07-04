@@ -18,13 +18,13 @@ using System;
 namespace CqlSharp.Protocol
 {
     /// <summary>
-    ///   thrown when the creation of an existing table or keyspace is attempted
+    /// thrown when the creation of an existing table or keyspace is attempted
     /// </summary>
     [Serializable]
     public class AlreadyExistsException : ProtocolException
     {
         /// <summary>
-        ///   Initializes a new instance of the <see cref="AlreadyExistsException" /> class.
+        /// Initializes a new instance of the <see cref="AlreadyExistsException" /> class.
         /// </summary>
         /// <param name="message"> The message. </param>
         /// <param name="keyspace"> The keyspace. </param>
@@ -38,13 +38,13 @@ namespace CqlSharp.Protocol
         }
 
         /// <summary>
-        ///   Gets the keyspace.
+        /// Gets the keyspace.
         /// </summary>
         /// <value> The keyspace. </value>
         public string Keyspace { get; private set; }
 
         /// <summary>
-        ///   Gets the table.
+        /// Gets the table.
         /// </summary>
         /// <value> The table. </value>
         public string Table { get; private set; }

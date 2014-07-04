@@ -13,12 +13,12 @@
 // See the License for the specific language governing permissions and
 // limitations under the License.
 
-using CqlSharp.Serialization;
-using Microsoft.VisualStudio.TestTools.UnitTesting;
 using System;
 using System.Collections.Generic;
 using System.Linq;
 using System.Reflection;
+using CqlSharp.Serialization;
+using Microsoft.VisualStudio.TestTools.UnitTesting;
 
 #pragma warning disable 0168
 #pragma warning disable 0169
@@ -48,7 +48,7 @@ namespace CqlSharp.Test
 
             var members = typeof(A).GetProperties().Union((IEnumerable<MemberInfo>)typeof(A).GetFields());
 
-            foreach (var member in members)
+            foreach(var member in members)
             {
                 var info = accessor.ColumnsByMember[member];
                 Assert.AreEqual(member.Name.ToLower(), info.Name);
@@ -59,7 +59,7 @@ namespace CqlSharp.Test
                 Assert.IsNull(info.IndexName);
                 Assert.AreEqual(member, info.MemberInfo);
 
-                switch (info.Name)
+                switch(info.Name)
                 {
                     case "id":
                         Assert.AreEqual(CqlTypeCode.Int, info.CqlType.CqlTypeCode);
@@ -157,7 +157,6 @@ namespace CqlSharp.Test
 
             Assert.AreEqual(1, accessor.ClusteringKeys.Count);
             Assert.AreEqual(info3, accessor.ClusteringKeys[0]);
-
         }
 
         #region Nested typeCode: A
@@ -189,9 +188,7 @@ namespace CqlSharp.Test
         [CqlTable("bTable", Keyspace = "bKeyspace")]
         private class B
         {
-            [CqlKey]
-            [CqlColumn("guid", CqlTypeCode.Timeuuid)]
-            public Guid Id;
+            [CqlKey] [CqlColumn("guid", CqlTypeCode.Timeuuid)] public Guid Id;
 
             [CqlIndex(Name = "bTableIndex")]
             [CqlColumn("index")]
@@ -207,17 +204,11 @@ namespace CqlSharp.Test
 
         private class C
         {
-            [CqlKey(IsPartitionKey = true)]
-            [CqlColumn(Order = 1)]
-            public string Id2;
+            [CqlKey(IsPartitionKey = true)] [CqlColumn(Order = 1)] public string Id2;
 
-            [CqlKey]
-            [CqlColumn(Order = 0)]
-            public Guid Id;
+            [CqlKey] [CqlColumn(Order = 0)] public Guid Id;
 
-            [CqlKey(IsPartitionKey = false)]
-            [CqlColumn(Order = 2)]
-            public string Id3;
+            [CqlKey(IsPartitionKey = false)] [CqlColumn(Order = 2)] public string Id3;
         }
 
         #endregion

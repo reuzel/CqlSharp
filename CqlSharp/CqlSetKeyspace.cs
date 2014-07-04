@@ -1,5 +1,5 @@
 // CqlSharp - CqlSharp
-// Copyright (c) 2013 Joost Reuzel
+// Copyright (c) 2014 Joost Reuzel
 //   
 // Licensed under the Apache License, Version 2.0 (the "License");
 // you may not use this file except in compliance with the License.
@@ -18,12 +18,12 @@ using System;
 namespace CqlSharp
 {
     /// <summary>
-    ///   Represents a result of a Cql use query
+    /// Represents a result of a Cql use query
     /// </summary>
     public class CqlSetKeyspace : ICqlQueryResult
     {
         /// <summary>
-        /// Initializes a new instance of the <see cref="CqlSetKeyspace"/> class.
+        /// Initializes a new instance of the <see cref="CqlSetKeyspace" /> class.
         /// </summary>
         /// <param name="keyspace">The keyspace.</param>
         /// <param name="tracingId">The tracing unique identifier.</param>
@@ -34,7 +34,7 @@ namespace CqlSharp
         }
 
         /// <summary>
-        ///   Gets the keyspace now in use.
+        /// Gets the keyspace now in use.
         /// </summary>
         /// <value> The keyspace. </value>
         public string Keyspace { get; private set; }
@@ -42,7 +42,7 @@ namespace CqlSharp
         #region ICqlQueryResult Members
 
         /// <summary>
-        ///   Gets the type of the result.
+        /// Gets the type of the result.
         /// </summary>
         /// <value> The type of the result. </value>
         public CqlResultType ResultType
@@ -51,7 +51,7 @@ namespace CqlSharp
         }
 
         /// <summary>
-        ///   Gets the tracing id.
+        /// Gets the tracing id.
         /// </summary>
         /// <value> The tracing id. </value>
         public Guid? TracingId { get; private set; }

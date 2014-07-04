@@ -1,5 +1,5 @@
 ﻿// CqlSharp - CqlSharp
-// Copyright (c) 2013 Joost Reuzel
+// Copyright (c) 2014 Joost Reuzel
 //   
 // Licensed under the Apache License, Version 2.0 (the "License");
 // you may not use this file except in compliance with the License.
@@ -22,7 +22,7 @@ namespace CqlSharp.Logging
         #region Implementation of ILoggerFactory
 
         /// <summary>
-        ///   Gets or sets the name for this logger implementation. E.g. Null, Debug, Log4Net
+        /// Gets or sets the name for this logger implementation. E.g. Null, Debug, Log4Net
         /// </summary>
         /// <value> The name </value>
         public string Name
@@ -31,7 +31,7 @@ namespace CqlSharp.Logging
         }
 
         /// <summary>
-        ///   Creates a logger implementation.
+        /// Creates a logger implementation.
         /// </summary>
         /// <param name="name"> The name. </param>
         /// <returns> </returns>
@@ -44,7 +44,7 @@ namespace CqlSharp.Logging
     }
 
     /// <summary>
-    ///   Logger implementation that does nothing
+    /// Logger implementation that does nothing
     /// </summary>
     internal class NullLogger : ILogger
     {

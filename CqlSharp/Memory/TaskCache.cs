@@ -1,5 +1,5 @@
 ﻿// CqlSharp - CqlSharp
-// Copyright (c) 2013 Joost Reuzel
+// Copyright (c) 2014 Joost Reuzel
 //   
 // Licensed under the Apache License, Version 2.0 (the "License");
 // you may not use this file except in compliance with the License.
@@ -20,7 +20,7 @@ using System.Threading.Tasks;
 namespace CqlSharp.Memory
 {
     /// <summary>
-    ///   Supporting class containing cached Tasks, removing the need for the creation of many...
+    /// Supporting class containing cached Tasks, removing the need for the creation of many...
     /// </summary>
     internal static class TaskCache
     {
@@ -37,22 +37,28 @@ namespace CqlSharp.Memory
         static TaskCache()
         {
             ByteTaskCache = new Task<byte>[256];
-            for (int i = 0; i < 256; i++)
-                ByteTaskCache[i] = Task.FromResult((byte) (i - Byte.MinValue));
+            for(int i = 0; i < 256; i++)
+            {
+                ByteTaskCache[i] = Task.FromResult((byte)(i - Byte.MinValue));
+            }
 
             ShortTaskCache = new Task<ushort>[CacheSize];
-            for (ushort i = 0; i < CacheSize; i++)
+            for(ushort i = 0; i < CacheSize; i++)
+            {
                 ShortTaskCache[i] = Task.FromResult(i);
+            }
 
             IntTaskCache = new Task<int>[CacheSize + 1];
-            for (int i = -1; i < CacheSize; i++)
+            for(int i = -1; i < CacheSize; i++)
+            {
                 IntTaskCache[i + 1] = Task.FromResult(i);
+            }
 
             CompletedTask = Task.FromResult(true);
         }
 
         /// <summary>
-        ///   returns a completed task with the given value as result
+        /// returns a completed task with the given value as result
         /// </summary>
         public static Task<byte> AsTask(this byte value)
         {
@@ -62,12 +68,12 @@ namespace CqlSharp.Memory
         }
 
         /// <summary>
-        ///   returns a completed task with the given value as result
+        /// returns a completed task with the given value as result
         /// </summary>
         public static Task<int> AsTask(this int value)
         {
             Task<int> result;
-            if (value >= -1 && value < CacheSize)
+            if(value >= -1 && value < CacheSize)
                 result = IntTaskCache[value + 1];
             else
                 result = Task.FromResult(value);
@@ -78,7 +84,7 @@ namespace CqlSharp.Memory
         }
 
         /// <summary>
-        ///   returns a completed task with the given value as result
+        /// returns a completed task with the given value as result
         /// </summary>
         public static Task<ushort> AsTask(this ushort value)
         {

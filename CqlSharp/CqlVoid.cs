@@ -1,5 +1,5 @@
 ﻿// CqlSharp - CqlSharp
-// Copyright (c) 2013 Joost Reuzel
+// Copyright (c) 2014 Joost Reuzel
 //   
 // Licensed under the Apache License, Version 2.0 (the "License");
 // you may not use this file except in compliance with the License.
@@ -18,12 +18,12 @@ using System;
 namespace CqlSharp
 {
     /// <summary>
-    ///   Represents the result of a query that does not have actual result values
+    /// Represents the result of a query that does not have actual result values
     /// </summary>
     public class CqlVoid : ICqlQueryResult
     {
         /// <summary>
-        /// Initializes a new instance of the <see cref="CqlVoid"/> class.
+        /// Initializes a new instance of the <see cref="CqlVoid" /> class.
         /// </summary>
         /// <param name="tracingId">The tracing unique identifier.</param>
         internal CqlVoid(Guid? tracingId)

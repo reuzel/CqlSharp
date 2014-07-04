@@ -1,5 +1,5 @@
 ﻿// CqlSharp - CqlSharp
-// Copyright (c) 2013 Joost Reuzel
+// Copyright (c) 2014 Joost Reuzel
 //   
 // Licensed under the Apache License, Version 2.0 (the "License");
 // you may not use this file except in compliance with the License.
@@ -18,23 +18,29 @@ using System.Data.Common;
 namespace CqlSharp
 {
     /// <summary>
-    ///   Provider factory than return the CqlSharp ADO object instances
+    /// Provider factory than return the CqlSharp ADO object instances
     /// </summary>
     internal class CqlProviderFactory : DbProviderFactory
     {
         /// <summary>
-        ///   Specifies whether the specific <see cref="T:System.Data.Common.DbProviderFactory" /> supports the <see
-        ///    cref="T:System.Data.Common.DbDataSourceEnumerator" /> class.
+        /// Specifies whether the specific <see cref="T:System.Data.Common.DbProviderFactory" /> supports the
+        /// <see
+        ///     cref="T:System.Data.Common.DbDataSourceEnumerator" />
+        /// class.
         /// </summary>
-        /// <returns> true if the instance of the <see cref="T:System.Data.Common.DbProviderFactory" /> supports the <see
-        ///    cref="T:System.Data.Common.DbDataSourceEnumerator" /> class; otherwise false. </returns>
+        /// <returns>
+        /// true if the instance of the <see cref="T:System.Data.Common.DbProviderFactory" /> supports the
+        /// <see
+        ///     cref="T:System.Data.Common.DbDataSourceEnumerator" />
+        /// class; otherwise false.
+        /// </returns>
         public override bool CanCreateDataSourceEnumerator
         {
             get { return false; }
         }
 
         /// <summary>
-        ///   Returns a new instance of the provider's class that implements the <see cref="T:System.Data.Common.DbCommand" /> class.
+        /// Returns a new instance of the provider's class that implements the <see cref="T:System.Data.Common.DbCommand" /> class.
         /// </summary>
         /// <returns> A new instance of <see cref="T:System.Data.Common.DbCommand" /> . </returns>
         public override DbCommand CreateCommand()
@@ -43,7 +49,8 @@ namespace CqlSharp
         }
 
         /// <summary>
-        ///   Returns a new instance of the provider's class that implements the <see cref="T:System.Data.Common.DbConnection" /> class.
+        /// Returns a new instance of the provider's class that implements the <see cref="T:System.Data.Common.DbConnection" />
+        /// class.
         /// </summary>
         /// <returns> A new instance of <see cref="T:CqlSharp.CqlConnection" /> . </returns>
         public override DbConnection CreateConnection()
@@ -52,8 +59,10 @@ namespace CqlSharp
         }
 
         /// <summary>
-        ///   Returns a new instance of the provider's class that implements the <see
-        ///    cref="T:System.Data.Common.DbConnectionStringBuilder" /> class.
+        /// Returns a new instance of the provider's class that implements the
+        /// <see
+        ///     cref="T:System.Data.Common.DbConnectionStringBuilder" />
+        /// class.
         /// </summary>
         /// <returns> A new instance of <see cref="T:CqlSharp.CqlConnectionStringBuilder" /> . </returns>
         public override DbConnectionStringBuilder CreateConnectionStringBuilder()
@@ -62,7 +71,8 @@ namespace CqlSharp
         }
 
         /// <summary>
-        ///   Returns a new instance of the provider's class that implements the <see cref="T:System.Data.Common.DbDataAdapter" /> class.
+        /// Returns a new instance of the provider's class that implements the <see cref="T:System.Data.Common.DbDataAdapter" />
+        /// class.
         /// </summary>
         /// <returns> A new instance of <see cref="T:CqlSharp.CqlDataAdapter" /> . </returns>
         public override DbDataAdapter CreateDataAdapter()
@@ -71,7 +81,8 @@ namespace CqlSharp
         }
 
         /// <summary>
-        ///   Returns a new instance of the provider's class that implements the <see cref="T:System.Data.Common.DbParameter" /> class.
+        /// Returns a new instance of the provider's class that implements the <see cref="T:System.Data.Common.DbParameter" />
+        /// class.
         /// </summary>
         /// <returns> A new instance of <see cref="T:CqlSharp.CqlParameter" /> . </returns>
         public override DbParameter CreateParameter()

@@ -1,5 +1,5 @@
 // CqlSharp - CqlSharp
-// Copyright (c) 2013 Joost Reuzel
+// Copyright (c) 2014 Joost Reuzel
 //   
 // Licensed under the Apache License, Version 2.0 (the "License");
 // you may not use this file except in compliance with the License.
@@ -39,14 +39,14 @@ namespace CqlSharp.Network.Partition
         {
             var other = obj as ByteArrayToken;
 
-            if (other == null)
+            if(other == null)
                 throw new ArgumentException("object not an ByteArrayToken, or null", "obj");
 
-            for (int i = 0; i < _value.Length && i < other._value.Length; i++)
+            for(int i = 0; i < _value.Length && i < other._value.Length; i++)
             {
                 int a = (_value[i] & 0xff);
                 int b = (other._value[i] & 0xff);
-                if (a != b)
+                if(a != b)
                     return a - b;
             }
             return 0;
@@ -56,13 +56,13 @@ namespace CqlSharp.Network.Partition
 
         public override bool Equals(object obj)
         {
-            if (this == obj)
+            if(this == obj)
                 return true;
 
-            if (obj == null || !(obj is ByteArrayToken))
+            if(obj == null || !(obj is ByteArrayToken))
                 return false;
 
-            return _value.SequenceEqual(((ByteArrayToken) obj)._value);
+            return _value.SequenceEqual(((ByteArrayToken)obj)._value);
         }
 
         public override int GetHashCode()
@@ -70,7 +70,7 @@ namespace CqlSharp.Network.Partition
             unchecked
             {
                 var result = 0;
-                for (int i = 0; i < _value.Length; i++)
+                for(int i = 0; i < _value.Length; i++)
                 {
                     byte b = _value[i];
                     result = (result*31) ^ b;

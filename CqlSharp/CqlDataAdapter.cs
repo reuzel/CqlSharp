@@ -1,5 +1,5 @@
 ﻿// CqlSharp - CqlSharp
-// Copyright (c) 2013 Joost Reuzel
+// Copyright (c) 2014 Joost Reuzel
 //   
 // Licensed under the Apache License, Version 2.0 (the "License");
 // you may not use this file except in compliance with the License.
@@ -36,10 +36,14 @@ namespace CqlSharp
         private CqlCommand _updateCommand;
 
         /// <summary>
-        ///   Gets or sets a command used to select records in the data source.
+        /// Gets or sets a command used to select records in the data source.
         /// </summary>
-        /// <returns> A <see cref="T:System.Data.IDbCommand" /> that is used during <see
-        ///    cref="M:System.Data.IDataAdapter.Update(System.Data.DataSet)" /> to select records from data source for placement in the data set. </returns>
+        /// <returns>
+        /// A <see cref="T:System.Data.IDbCommand" /> that is used during
+        /// <see
+        ///     cref="M:System.Data.IDataAdapter.Update(System.Data.DataSet)" />
+        /// to select records from data source for placement in the data set.
+        /// </returns>
         public new CqlCommand SelectCommand
         {
             get { return _selectCommand; }
@@ -47,10 +51,14 @@ namespace CqlSharp
         }
 
         /// <summary>
-        ///   Gets or sets a command used to insert new records into the data source.
+        /// Gets or sets a command used to insert new records into the data source.
         /// </summary>
-        /// <returns> A <see cref="T:System.Data.IDbCommand" /> used during <see
-        ///    cref="M:System.Data.IDataAdapter.Update(System.Data.DataSet)" /> to insert records in the data source for new rows in the data set. </returns>
+        /// <returns>
+        /// A <see cref="T:System.Data.IDbCommand" /> used during
+        /// <see
+        ///     cref="M:System.Data.IDataAdapter.Update(System.Data.DataSet)" />
+        /// to insert records in the data source for new rows in the data set.
+        /// </returns>
         public new CqlCommand InsertCommand
         {
             get { return _insertCommand; }
@@ -58,10 +66,14 @@ namespace CqlSharp
         }
 
         /// <summary>
-        ///   Gets or sets a command used to update records in the data source.
+        /// Gets or sets a command used to update records in the data source.
         /// </summary>
-        /// <returns> A <see cref="T:System.Data.IDbCommand" /> used during <see
-        ///    cref="M:System.Data.IDataAdapter.Update(System.Data.DataSet)" /> to update records in the data source for modified rows in the data set. </returns>
+        /// <returns>
+        /// A <see cref="T:System.Data.IDbCommand" /> used during
+        /// <see
+        ///     cref="M:System.Data.IDataAdapter.Update(System.Data.DataSet)" />
+        /// to update records in the data source for modified rows in the data set.
+        /// </returns>
         public new CqlCommand UpdateCommand
         {
             get { return _updateCommand; }
@@ -69,10 +81,14 @@ namespace CqlSharp
         }
 
         /// <summary>
-        ///   Gets or sets a command for deleting records from the data set.
+        /// Gets or sets a command for deleting records from the data set.
         /// </summary>
-        /// <returns> An <see cref="T:System.Data.IDbCommand" /> used during <see
-        ///    cref="M:System.Data.IDataAdapter.Update(System.Data.DataSet)" /> to delete records in the data source for deleted rows in the data set. </returns>
+        /// <returns>
+        /// An <see cref="T:System.Data.IDbCommand" /> used during
+        /// <see
+        ///     cref="M:System.Data.IDataAdapter.Update(System.Data.DataSet)" />
+        /// to delete records in the data source for deleted rows in the data set.
+        /// </returns>
         public new CqlCommand DeleteCommand
         {
             get { return _deleteCommand; }
@@ -82,47 +98,63 @@ namespace CqlSharp
         #region IDbDataAdapter Members
 
         /// <summary>
-        ///   Gets or sets a command used to select records in the data source.
+        /// Gets or sets a command used to select records in the data source.
         /// </summary>
-        /// <returns> A <see cref="T:System.Data.IDbCommand" /> that is used during <see
-        ///    cref="M:System.Data.IDataAdapter.Update(System.Data.DataSet)" /> to select records from data source for placement in the data set. </returns>
+        /// <returns>
+        /// A <see cref="T:System.Data.IDbCommand" /> that is used during
+        /// <see
+        ///     cref="M:System.Data.IDataAdapter.Update(System.Data.DataSet)" />
+        /// to select records from data source for placement in the data set.
+        /// </returns>
         IDbCommand IDbDataAdapter.SelectCommand
         {
             get { return _selectCommand; }
-            set { _selectCommand = (CqlCommand) value; }
+            set { _selectCommand = (CqlCommand)value; }
         }
 
         /// <summary>
-        ///   Gets or sets a command used to insert new records into the data source.
+        /// Gets or sets a command used to insert new records into the data source.
         /// </summary>
-        /// <returns> A <see cref="T:System.Data.IDbCommand" /> used during <see
-        ///    cref="M:System.Data.IDataAdapter.Update(System.Data.DataSet)" /> to insert records in the data source for new rows in the data set. </returns>
+        /// <returns>
+        /// A <see cref="T:System.Data.IDbCommand" /> used during
+        /// <see
+        ///     cref="M:System.Data.IDataAdapter.Update(System.Data.DataSet)" />
+        /// to insert records in the data source for new rows in the data set.
+        /// </returns>
         IDbCommand IDbDataAdapter.InsertCommand
         {
             get { return _insertCommand; }
-            set { _insertCommand = (CqlCommand) value; }
+            set { _insertCommand = (CqlCommand)value; }
         }
 
         /// <summary>
-        ///   Gets or sets a command used to update records in the data source.
+        /// Gets or sets a command used to update records in the data source.
         /// </summary>
-        /// <returns> A <see cref="T:System.Data.IDbCommand" /> used during <see
-        ///    cref="M:System.Data.IDataAdapter.Update(System.Data.DataSet)" /> to update records in the data source for modified rows in the data set. </returns>
+        /// <returns>
+        /// A <see cref="T:System.Data.IDbCommand" /> used during
+        /// <see
+        ///     cref="M:System.Data.IDataAdapter.Update(System.Data.DataSet)" />
+        /// to update records in the data source for modified rows in the data set.
+        /// </returns>
         IDbCommand IDbDataAdapter.UpdateCommand
         {
             get { return _updateCommand; }
-            set { _updateCommand = (CqlCommand) value; }
+            set { _updateCommand = (CqlCommand)value; }
         }
 
         /// <summary>
-        ///   Gets or sets a command for deleting records from the data set.
+        /// Gets or sets a command for deleting records from the data set.
         /// </summary>
-        /// <returns> An <see cref="T:System.Data.IDbCommand" /> used during <see
-        ///    cref="M:System.Data.IDataAdapter.Update(System.Data.DataSet)" /> to delete records in the data source for deleted rows in the data set. </returns>
+        /// <returns>
+        /// An <see cref="T:System.Data.IDbCommand" /> used during
+        /// <see
+        ///     cref="M:System.Data.IDataAdapter.Update(System.Data.DataSet)" />
+        /// to delete records in the data source for deleted rows in the data set.
+        /// </returns>
         IDbCommand IDbDataAdapter.DeleteCommand
         {
             get { return _deleteCommand; }
-            set { _deleteCommand = (CqlCommand) value; }
+            set { _deleteCommand = (CqlCommand)value; }
         }
 
         #endregion
@@ -132,11 +164,15 @@ namespace CqlSharp
          */
 
         /// <summary>
-        ///   Initializes a new instance of the <see cref="T:System.Data.Common.RowUpdatedEventArgs" /> class.
+        /// Initializes a new instance of the <see cref="T:System.Data.Common.RowUpdatedEventArgs" /> class.
         /// </summary>
         /// <param name="dataRow"> The <see cref="T:System.Data.DataRow" /> used to update the data source. </param>
-        /// <param name="command"> The <see cref="T:System.Data.IDbCommand" /> executed during the <see
-        ///    cref="M:System.Data.IDataAdapter.Update(System.Data.DataSet)" /> . </param>
+        /// <param name="command">
+        /// The <see cref="T:System.Data.IDbCommand" /> executed during the
+        /// <see
+        ///     cref="M:System.Data.IDataAdapter.Update(System.Data.DataSet)" />
+        /// .
+        /// </param>
         /// <param name="statementType"> Whether the command is an UPDATE, INSERT, DELETE, or SELECT statement. </param>
         /// <param name="tableMapping"> A <see cref="T:System.Data.Common.DataTableMapping" /> object. </param>
         /// <returns> A new instance of the <see cref="T:System.Data.Common.RowUpdatedEventArgs" /> class. </returns>
@@ -148,11 +184,15 @@ namespace CqlSharp
         }
 
         /// <summary>
-        ///   Initializes a new instance of the <see cref="T:System.Data.Common.RowUpdatingEventArgs" /> class.
+        /// Initializes a new instance of the <see cref="T:System.Data.Common.RowUpdatingEventArgs" /> class.
         /// </summary>
         /// <param name="dataRow"> The <see cref="T:System.Data.DataRow" /> that updates the data source. </param>
-        /// <param name="command"> The <see cref="T:System.Data.IDbCommand" /> to execute during the <see
-        ///    cref="M:System.Data.IDataAdapter.Update(System.Data.DataSet)" /> . </param>
+        /// <param name="command">
+        /// The <see cref="T:System.Data.IDbCommand" /> to execute during the
+        /// <see
+        ///     cref="M:System.Data.IDataAdapter.Update(System.Data.DataSet)" />
+        /// .
+        /// </param>
         /// <param name="statementType"> Whether the command is an UPDATE, INSERT, DELETE, or SELECT statement. </param>
         /// <param name="tableMapping"> A <see cref="T:System.Data.Common.DataTableMapping" /> object. </param>
         /// <returns> A new instance of the <see cref="T:System.Data.Common.RowUpdatingEventArgs" /> class. </returns>
@@ -164,33 +204,29 @@ namespace CqlSharp
         }
 
         /// <summary>
-        ///   Raises the RowUpdating event of a .NET Framework data provider.
+        /// Raises the RowUpdating event of a .NET Framework data provider.
         /// </summary>
         /// <param name="value"> An <see cref="T:System.Data.Common.RowUpdatingEventArgs" /> that contains the event data. </param>
         protected override void OnRowUpdating(RowUpdatingEventArgs value)
         {
-            var handler = (CqlRowUpdatingEventHandler) Events[EventRowUpdating];
-            if ((null != handler) && (value is CqlRowUpdatingEventArgs))
-            {
-                handler(this, (CqlRowUpdatingEventArgs) value);
-            }
+            var handler = (CqlRowUpdatingEventHandler)Events[EventRowUpdating];
+            if((null != handler) && (value is CqlRowUpdatingEventArgs))
+                handler(this, (CqlRowUpdatingEventArgs)value);
         }
 
         /// <summary>
-        ///   Raises the RowUpdated event of a .NET Framework data provider.
+        /// Raises the RowUpdated event of a .NET Framework data provider.
         /// </summary>
         /// <param name="value"> A <see cref="T:System.Data.Common.RowUpdatedEventArgs" /> that contains the event data. </param>
         protected override void OnRowUpdated(RowUpdatedEventArgs value)
         {
-            var handler = (CqlRowUpdatedEventHandler) Events[EventRowUpdated];
-            if ((null != handler) && (value is CqlRowUpdatedEventArgs))
-            {
-                handler(this, (CqlRowUpdatedEventArgs) value);
-            }
+            var handler = (CqlRowUpdatedEventHandler)Events[EventRowUpdated];
+            if((null != handler) && (value is CqlRowUpdatedEventArgs))
+                handler(this, (CqlRowUpdatedEventArgs)value);
         }
 
         /// <summary>
-        ///   Occurs when [row updating].
+        /// Occurs when [row updating].
         /// </summary>
         public event CqlRowUpdatingEventHandler RowUpdating
         {
@@ -199,7 +235,7 @@ namespace CqlSharp
         }
 
         /// <summary>
-        ///   Occurs when [row updated].
+        /// Occurs when [row updated].
         /// </summary>
         public event CqlRowUpdatedEventHandler RowUpdated
         {
@@ -217,7 +253,7 @@ namespace CqlSharp
     public class CqlRowUpdatingEventArgs : RowUpdatingEventArgs
     {
         /// <summary>
-        ///   Initializes a new instance of the <see cref="CqlRowUpdatingEventArgs" /> class.
+        /// Initializes a new instance of the <see cref="CqlRowUpdatingEventArgs" /> class.
         /// </summary>
         /// <param name="row"> The row. </param>
         /// <param name="command"> The command. </param>
@@ -230,14 +266,20 @@ namespace CqlSharp
         }
 
         /// <summary>
-        ///   Gets the <see cref="T:System.Data.IDbCommand" /> to execute during the <see
-        ///    cref="M:System.Data.Common.DbDataAdapter.Update(System.Data.DataSet)" /> operation.
+        /// Gets the <see cref="T:System.Data.IDbCommand" /> to execute during the
+        /// <see
+        ///     cref="M:System.Data.Common.DbDataAdapter.Update(System.Data.DataSet)" />
+        /// operation.
         /// </summary>
-        /// <returns> The <see cref="T:System.Data.IDbCommand" /> to execute during the <see
-        ///    cref="M:System.Data.Common.DbDataAdapter.Update(System.Data.DataSet)" /> . </returns>
+        /// <returns>
+        /// The <see cref="T:System.Data.IDbCommand" /> to execute during the
+        /// <see
+        ///     cref="M:System.Data.Common.DbDataAdapter.Update(System.Data.DataSet)" />
+        /// .
+        /// </returns>
         public new CqlCommand Command
         {
-            get { return (CqlCommand) base.Command; }
+            get { return (CqlCommand)base.Command; }
             set { base.Command = value; }
         }
     }
@@ -247,7 +289,7 @@ namespace CqlSharp
     public class CqlRowUpdatedEventArgs : RowUpdatedEventArgs
     {
         /// <summary>
-        ///   Initializes a new instance of the <see cref="CqlRowUpdatedEventArgs" /> class.
+        /// Initializes a new instance of the <see cref="CqlRowUpdatedEventArgs" /> class.
         /// </summary>
         /// <param name="row"> The row. </param>
         /// <param name="command"> The command. </param>
@@ -260,14 +302,20 @@ namespace CqlSharp
         }
 
         /// <summary>
-        ///   Gets the <see cref="T:System.Data.IDbCommand" /> executed when <see
-        ///    cref="M:System.Data.Common.DbDataAdapter.Update(System.Data.DataSet)" /> is called.
+        /// Gets the <see cref="T:System.Data.IDbCommand" /> executed when
+        /// <see
+        ///     cref="M:System.Data.Common.DbDataAdapter.Update(System.Data.DataSet)" />
+        /// is called.
         /// </summary>
-        /// <returns> The <see cref="T:System.Data.IDbCommand" /> executed when <see
-        ///    cref="M:System.Data.Common.DbDataAdapter.Update(System.Data.DataSet)" /> is called. </returns>
+        /// <returns>
+        /// The <see cref="T:System.Data.IDbCommand" /> executed when
+        /// <see
+        ///     cref="M:System.Data.Common.DbDataAdapter.Update(System.Data.DataSet)" />
+        /// is called.
+        /// </returns>
         public new CqlCommand Command
         {
-            get { return (CqlCommand) base.Command; }
+            get { return (CqlCommand)base.Command; }
         }
     }
 }

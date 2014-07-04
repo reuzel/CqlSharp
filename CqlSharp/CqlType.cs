@@ -32,8 +32,6 @@ namespace CqlSharp
     /// </summary>
     public abstract class CqlType : IEquatable<CqlType>
     {
- 
-
         #region Native types
 
         public static readonly CqlType Ascii = AsciiType.Instance;
@@ -172,7 +170,7 @@ namespace CqlSharp
                     //check for nullable types
                     if(genericType == typeof(Nullable<>))
                         return CreateType(newType.GetGenericArguments()[0]);
-                    
+
                     var interfaces =
                         newType.GetInterfaces()
                                .Where(i => i.IsGenericType)
@@ -182,7 +180,7 @@ namespace CqlSharp
                     //check for map types
                     if(interfaces.Any(i => i == typeof(IDictionary<,>)))
                         return new MapTypeFactory().CreateType(newType);
-                    
+
                     //check for set types
                     if(interfaces.Any(i => i == typeof(ISet<>)))
                         return new SetTypeFactory().CreateType(newType);
@@ -200,9 +198,7 @@ namespace CqlSharp
                 var userTypeAttribute =
                     Attribute.GetCustomAttribute(newType, typeof(CqlUserTypeAttribute)) as CqlUserTypeAttribute;
                 if(userTypeAttribute != null)
-                {
                     return new UserDefinedTypeFactory().CreateType(newType);
-                }
 
                 //check for custom types
                 var customAttribute =
@@ -270,7 +266,10 @@ namespace CqlSharp
                 var parameter = Expression.Parameter(typeof(object));
                 var instance = Expression.Parameter(typeof(CqlType));
                 var call = Expression.Call(instance, "Serialize", new[] {type}, Expression.Convert(parameter, type));
-                var lambda = Expression.Lambda<Func<CqlType, object, byte[]>>(call, string.Format("CqlType.Serialize<{0}>",type.Name), new[] {instance, parameter});
+                var lambda = Expression.Lambda<Func<CqlType, object, byte[]>>(call,
+                                                                              string.Format("CqlType.Serialize<{0}>",
+                                                                                            type.Name),
+                                                                              new[] {instance, parameter});
                 return lambda.Compile();
             });
 

@@ -18,7 +18,7 @@ using System;
 namespace CqlSharp.Serialization
 {
     /// <summary>
-    ///   Annotates a field or property to have it ignored in any CQL-object mapping.
+    /// Annotates a field or property to have it ignored in any CQL-object mapping.
     /// </summary>
     [AttributeUsage(AttributeTargets.Property | AttributeTargets.Field)]
     public class CqlIgnoreAttribute : Attribute

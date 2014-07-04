@@ -40,9 +40,11 @@ namespace CqlSharp.Test
             const string createUserType =
                 @"CREATE type TestUDT.user (name text, password blob, address address);";
 
-            const string createTableCql = @"create table TestUDT.Members (id int primary key, user user, comment tuple<text,text>);";
+            const string createTableCql =
+                @"create table TestUDT.Members (id int primary key, user user, comment tuple<text,text>);";
 
-            const string createTable2Cql = @"create table TestUDT.Groups (id int primary key, members set<tuple<int, user>>);";
+            const string createTable2Cql =
+                @"create table TestUDT.Groups (id int primary key, members set<tuple<int, user>>);";
 
             using(var connection = new CqlConnection(ConnectionString))
             {
@@ -117,7 +119,7 @@ namespace CqlSharp.Test
         {
             var address = new Address {Street = "MyWay", Number = 1};
             var user = new User {Name = "Joost", Password = new byte[] {1, 2, 3}, Address = address};
-            var member = new Member {Id = 1, User = user, Comment = Tuple.Create("my title","phew")};
+            var member = new Member {Id = 1, User = user, Comment = Tuple.Create("my title", "phew")};
 
             using(var connection = new CqlConnection(ConnectionString))
             {
@@ -172,11 +174,11 @@ namespace CqlSharp.Test
                     if(reader.Read())
                     {
                         var actual = reader.Current;
-                        
+
                         Assert.IsNotNull(actual);
                         Assert.AreEqual(group.Id, actual.Id);
                         Assert.IsNotNull(group.Members);
-                        Assert.IsInstanceOfType(group.Members, typeof(HashSet<Tuple<int,User>>));
+                        Assert.IsInstanceOfType(group.Members, typeof(HashSet<Tuple<int, User>>));
                         Assert.AreEqual(1, group.Members.Count);
                         Assert.AreEqual("Joost", group.Members.First().Item2.Name);
                     }
@@ -187,11 +189,11 @@ namespace CqlSharp.Test
         [TestMethod]
         public void SelectAnonymousUDT()
         {
-            var address = new Address { Street = "MyWay", Number = 1 };
-            var user = new User { Name = "Joost", Password = new byte[] { 1, 2, 3 }, Address = address };
-            var member = new Member { Id = 1, User = user, Comment = Tuple.Create("my title", "phew") };
+            var address = new Address {Street = "MyWay", Number = 1};
+            var user = new User {Name = "Joost", Password = new byte[] {1, 2, 3}, Address = address};
+            var member = new Member {Id = 1, User = user, Comment = Tuple.Create("my title", "phew")};
 
-            using (var connection = new CqlConnection(ConnectionString))
+            using(var connection = new CqlConnection(ConnectionString))
             {
                 connection.Open();
 
@@ -202,10 +204,10 @@ namespace CqlSharp.Test
                 command.ExecuteNonQuery();
 
                 var select = new CqlCommand(connection, "select id, user, comment from testudt.members;");
-                using (var reader = select.ExecuteReader())
+                using(var reader = select.ExecuteReader())
                 {
                     Assert.AreEqual(1, reader.Count);
-                    if (reader.Read())
+                    if(reader.Read())
                     {
                         dynamic actualUser = reader.GetUserDefinedType(1);
 
@@ -221,11 +223,11 @@ namespace CqlSharp.Test
         [TestMethod]
         public void SelectUDTAndTuplesViaNonGenericReader()
         {
-            var address = new Address { Street = "MyWay", Number = 1 };
-            var user = new User { Name = "Joost", Password = new byte[] { 1, 2, 3 }, Address = address };
-            var member = new Member { Id = 1, User = user, Comment = Tuple.Create("my title", "phew") };
+            var address = new Address {Street = "MyWay", Number = 1};
+            var user = new User {Name = "Joost", Password = new byte[] {1, 2, 3}, Address = address};
+            var member = new Member {Id = 1, User = user, Comment = Tuple.Create("my title", "phew")};
 
-            using (var connection = new CqlConnection(ConnectionString))
+            using(var connection = new CqlConnection(ConnectionString))
             {
                 connection.Open();
 
@@ -236,10 +238,10 @@ namespace CqlSharp.Test
                 command.ExecuteNonQuery();
 
                 var select = new CqlCommand(connection, "select id, user, comment from testudt.members;");
-                using (var reader = select.ExecuteReader())
+                using(var reader = select.ExecuteReader())
                 {
                     Assert.AreEqual(1, reader.Count);
-                    if (reader.Read())
+                    if(reader.Read())
                     {
                         var actualUser = reader.GetUserDefinedType<User>(1);
 
@@ -247,7 +249,7 @@ namespace CqlSharp.Test
                         Assert.AreEqual(member.User.Name, actualUser.Name);
                         Assert.IsNotNull(actualUser.Address);
                         Assert.AreEqual(member.User.Address.Street, actualUser.Address.Street);
-                        
+
                         var comment = reader.GetTuple<string, string>(2);
                         Assert.IsNotNull(comment);
                         Assert.AreEqual(member.Comment, comment);
@@ -259,7 +261,7 @@ namespace CqlSharp.Test
         [TestMethod]
         public void SerializeTupleAndUDTOutNullTest()
         {
-            using (var connection = new CqlConnection(ConnectionString))
+            using(var connection = new CqlConnection(ConnectionString))
             {
                 connection.Open();
 
@@ -267,14 +269,14 @@ namespace CqlSharp.Test
                 command.ExecuteNonQuery();
 
                 var select = new CqlCommand(connection, "select * from testudt.members;");
-                using (var reader = select.ExecuteReader<Member>())
+                using(var reader = select.ExecuteReader<Member>())
                 {
                     Assert.AreEqual(1, reader.Count);
-                    if (reader.Read())
+                    if(reader.Read())
                     {
                         Assert.IsNull(reader.GetUserDefinedType(1));
                         Assert.IsNull(reader.GetTuple<string, string>(2));
-                        
+
                         var actual = reader.Current;
                         Assert.IsNotNull(actual);
                         Assert.AreEqual(1, actual.Id);

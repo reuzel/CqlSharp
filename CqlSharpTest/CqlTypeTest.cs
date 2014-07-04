@@ -170,7 +170,6 @@ namespace CqlSharp.Test
 
             Assert.AreEqual(t.Item1, result.Item1);
             Assert.AreEqual(t.Item2, result.Item2);
-
         }
 
         [TestMethod]
@@ -187,7 +186,6 @@ namespace CqlSharp.Test
             Assert.AreEqual(t.Item1, result.Item1);
             Assert.AreEqual(t.Item2, result.Item2);
         }
-
 
         #region Nested typeCode: C
 

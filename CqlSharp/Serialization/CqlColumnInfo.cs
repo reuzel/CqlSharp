@@ -13,9 +13,6 @@
 // See the License for the specific language governing permissions and
 // limitations under the License.
 
-
-// ReSharper disable CompareNonConstrainedGenericWithNull
-
 using System;
 using System.Linq.Expressions;
 using System.Reflection;
@@ -172,12 +169,12 @@ namespace CqlSharp.Serialization
                     var source = Expression.Parameter(typeof(TTable));
                     var member = Expression.MakeMemberAccess(source, MemberInfo);
 
-                    _readFunction = Expression.Lambda<Func<TTable, TMember>>(member, 
+                    _readFunction = Expression.Lambda<Func<TTable, TMember>>(member,
                                                                              string.Format(
-                                                                                    "CqlColumnInfo.Read({0}.{1})",
-                                                                                    source.Type.Name, member.Member.Name), 
+                                                                                 "CqlColumnInfo.Read({0}.{1})",
+                                                                                 source.Type.Name, member.Member.Name),
                                                                              new[] {source})
-                                                                             .Compile();
+                                              .Compile();
                 }
 
                 return _readFunction;
@@ -203,8 +200,6 @@ namespace CqlSharp.Serialization
                 var memberValue = Converter.ChangeType<TValue, TMember>(value);
                 WriteFunction(target, memberValue);
             }
-
-
         }
 
 
@@ -231,8 +226,8 @@ namespace CqlSharp.Serialization
                                                                                 string.Format(
                                                                                     "CqlColumnInfo.Write({0}.{1})",
                                                                                     target.Type.Name, member.Member.Name),
-                                                                                new[] { target,value})
-                                                                                .Compile();
+                                                                                new[] {target, value})
+                                               .Compile();
                 }
 
                 return _writeFunction;

@@ -16,8 +16,6 @@
 using System;
 using System.Collections.Generic;
 using System.Data;
-using System.Data.SqlTypes;
-using System.Dynamic;
 using System.IO;
 using System.Linq;
 using System.Linq.Expressions;
@@ -32,8 +30,8 @@ namespace CqlSharp.Serialization.Marshal
     /// </summary>
     public class TupleType<T> : CqlType<T>
     {
-        private static readonly Func<Stream, CqlType[], T> Deserializer; 
-        
+        private static readonly Func<Stream, CqlType[], T> Deserializer;
+
         private readonly CqlType[] _types;
 
         static TupleType()
@@ -44,14 +42,14 @@ namespace CqlSharp.Serialization.Marshal
 
             var data = Expression.Parameter(typeof(Stream));
             var types = Expression.Parameter(typeof(CqlType[]));
-            
+
             //iterate over all items and convert the values
             var expressions = new Expression[typeArguments.Length];
-            for (int i = 0; i < typeArguments.Length; i++)
+            for(int i = 0; i < typeArguments.Length; i++)
             {
                 var bytes = Expression.Call(typeof(StreamExtensions), "ReadByteArray", null, data);
                 var cqlType = Expression.ArrayIndex(types, Expression.Constant(i));
-                expressions[i] = Expression.Call(cqlType, "Deserialize", new[] { typeArguments[i] }, bytes);
+                expressions[i] = Expression.Call(cqlType, "Deserialize", new[] {typeArguments[i]}, bytes);
             }
 
             //create the new tupe
@@ -63,8 +61,8 @@ namespace CqlSharp.Serialization.Marshal
             Deserializer = Expression.Lambda<Func<Stream, CqlType[], T>>(newTuple, data, types).Compile();
         }
 
-            /// <summary>
-        /// Initializes a new instance of the <see cref="TupleType{T}"/> class.
+        /// <summary>
+        /// Initializes a new instance of the <see cref="TupleType{T}" /> class.
         /// </summary>
         [UsedImplicitly]
         public TupleType()
@@ -75,9 +73,9 @@ namespace CqlSharp.Serialization.Marshal
                          .Select(CreateType)
                          .ToArray();
         }
-        
+
         /// <summary>
-        /// Initializes a new instance of the <see cref="TupleType{T}"/> class.
+        /// Initializes a new instance of the <see cref="TupleType{T}" /> class.
         /// </summary>
         /// <param name="subTypes">The sub types.</param>
         public TupleType(IEnumerable<CqlType> subTypes)
@@ -87,7 +85,11 @@ namespace CqlSharp.Serialization.Marshal
             _types = subTypes as CqlType[] ?? subTypes.ToArray();
 
             if(_types.Length != type.GetGenericArguments().Length)
-                throw new ArgumentException(string.Format("Number of CqlTypes is incorrect. Should be {0} for a TupleType for {1}", type.GetGenericArguments().Length, type.Name));
+            {
+                throw new ArgumentException(
+                    string.Format("Number of CqlTypes is incorrect. Should be {0} for a TupleType for {1}",
+                                  type.GetGenericArguments().Length, type.Name));
+            }
         }
 
         /// <summary>
@@ -98,9 +100,9 @@ namespace CqlSharp.Serialization.Marshal
         private static Type ValidateTypeArgument()
         {
             var type = typeof(T);
-            if (!type.IsGenericType || !TypeExtensions.TupleTypes.Contains(type.GetGenericTypeDefinition()))
+            if(!type.IsGenericType || !TypeExtensions.TupleTypes.Contains(type.GetGenericTypeDefinition()))
                 throw new InvalidOperationException("Tuple type may only be constructed with System.Tuple subtypes");
-            
+
             return type;
         }
 
@@ -152,15 +154,14 @@ namespace CqlSharp.Serialization.Marshal
             var accessor = ObjectAccessor<T>.Instance;
             using(var stream = new MemoryStream())
             {
-                for (int i = 0; i < _types.Length; i++)
+                for(int i = 0; i < _types.Length; i++)
                 {
                     ICqlColumnInfo<T> member;
-                    if(accessor.ColumnsByName.TryGetValue("item" + (i+1), out member))
+                    if(accessor.ColumnsByName.TryGetValue("item" + (i + 1), out member))
                     {
                         byte[] itemData = member.SerializeFrom(value, _types[i]);
                         stream.WriteByteArray(itemData);
                     }
-                    
                 }
                 return stream.ToArray();
             }

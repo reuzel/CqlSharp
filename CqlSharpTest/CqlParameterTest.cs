@@ -1,5 +1,5 @@
 ﻿// CqlSharp - CqlSharp.Test
-// Copyright (c) 2013 Joost Reuzel
+// Copyright (c) 2014 Joost Reuzel
 //   
 // Licensed under the Apache License, Version 2.0 (the "License");
 // you may not use this file except in compliance with the License.
@@ -13,10 +13,10 @@
 // See the License for the specific language governing permissions and
 // limitations under the License.
 
+using System.Collections.Generic;
 using CqlSharp.Serialization;
 using CqlSharp.Serialization.Marshal;
 using Microsoft.VisualStudio.TestTools.UnitTesting;
-using System.Collections.Generic;
 
 namespace CqlSharp.Test
 {
@@ -39,7 +39,7 @@ namespace CqlSharp.Test
         [TestMethod]
         public void DeriveTypeFromMapValue()
         {
-            var param = new CqlParameter("say.hello.world.me", new Dictionary<string, int> { { "hi", 1 }, { "there", 2 } });
+            var param = new CqlParameter("say.hello.world.me", new Dictionary<string, int> {{"hi", 1}, {"there", 2}});
 
             Assert.AreEqual("say", param.Keyspace);
             Assert.AreEqual("hello", param.Table);
@@ -58,7 +58,7 @@ namespace CqlSharp.Test
             collection.Add("dummy.test.value", CqlType.Text);
             collection.Add("dummy.test.ignored", CqlType.Blob);
 
-            var a = new A { Id = 1, Ignored = new byte[] { 1, 2 }, Value = "Hello!" };
+            var a = new A {Id = 1, Ignored = new byte[] {1, 2}, Value = "Hello!"};
 
             collection.Set(a);
 
@@ -75,7 +75,7 @@ namespace CqlSharp.Test
             collection.Add("value", CqlType.Text);
             collection.Add("ignored", CqlType.Blob);
 
-            var a = new A { Id = 1, Ignored = new byte[] { 1, 2 }, Value = "Hello!" };
+            var a = new A {Id = 1, Ignored = new byte[] {1, 2}, Value = "Hello!"};
 
             collection.Set(a);
 
@@ -92,7 +92,7 @@ namespace CqlSharp.Test
             collection.Add("Value", CqlType.Text);
             collection.Add("Ignored", CqlType.Blob);
 
-            var a = new AUpperCase { Id = 1, Ignored = new byte[] { 1, 2 }, Value = "Hello!" };
+            var a = new AUpperCase {Id = 1, Ignored = new byte[] {1, 2}, Value = "Hello!"};
 
             collection.Set(a);
 
@@ -113,8 +113,8 @@ namespace CqlSharp.Test
             collection.Add("test2.value2", CqlType.Blob);
             collection.Fixate();
 
-            var a = new A { Id = 1, Ignored = new byte[] { 1, 2 }, Value = "Hello!" };
-            var b = new B { Id = 2, Value2 = new byte[] { 3, 4 }, Value = "World!" };
+            var a = new A {Id = 1, Ignored = new byte[] {1, 2}, Value = "Hello!"};
+            var b = new B {Id = 2, Value2 = new byte[] {3, 4}, Value = "World!"};
 
             collection.Set(a);
             collection.Set(b);
@@ -131,15 +131,15 @@ namespace CqlSharp.Test
         public void SetParametersFromAnonymousObject()
         {
             var collection = new CqlParameterCollection
-                                 {
-                                     {"test.id", CqlType.Int},
-                                     {"test.value", CqlType.Text},
-                                     {"test.value2", CqlType.Blob},
-                                     {"test.map", CqlType.CreateType(CqlTypeCode.Map, CqlType.Text, CqlType.Boolean)}
-                                 };
+            {
+                {"test.id", CqlType.Int},
+                {"test.value", CqlType.Text},
+                {"test.value2", CqlType.Blob},
+                {"test.map", CqlType.CreateType(CqlTypeCode.Map, CqlType.Text, CqlType.Boolean)}
+            };
             collection.Fixate();
 
-            var a = new { Id = 1, value2 = new byte[] { 1, 2 }, Value = "Hello!" };
+            var a = new {Id = 1, value2 = new byte[] {1, 2}, Value = "Hello!"};
 
             collection.Set(a);
 

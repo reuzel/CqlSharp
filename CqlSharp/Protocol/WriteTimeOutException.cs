@@ -18,7 +18,7 @@ using System;
 namespace CqlSharp.Protocol
 {
     /// <summary>
-    ///   Timeout exception during a write request.
+    /// Timeout exception during a write request.
     /// </summary>
     [Serializable]
     public class WriteTimeOutException : TimeOutException
@@ -34,31 +34,35 @@ namespace CqlSharp.Protocol
         /// Describes the type of the write that timeouted.
         /// </summary>
         /// <value>
-        /// The type of the write. The value of that string can be one of: <list type="bullet">
-        /// <listheader>
-        /// <term>type</term>
-        /// <description>description</description>
-        /// </listheader>
-        /// <item>
-        /// <term>SIMPLE</term>
-        /// <description>the write was a non-batched non-counter write.</description>
-        /// </item>
-        /// <item>
-        /// <term>BATCH</term>
-        /// <description>the write was a (logged) batch write. If this type is received, it means the batch log has been successfully written (otherwise a  "BATCH_LOG" type would have been send instead).</description>
-        /// </item>
-        /// <item>
-        /// <term>UNLOGGED_BATCH</term>
-        /// <description>the write was an unlogged batch. Not batch log write has been attempted.</description>
-        /// </item>
-        /// <item>
-        /// <term>COUNTER</term>
-        /// <description>the write was a counter write (batched or not).</description>
-        /// </item>
-        /// <item>
-        /// <term>BATCH_LOG</term>
-        /// <description>the timeout occured during the write to the batch log when a (logged) batch write was requested.</description>
-        /// </item>
+        /// The type of the write. The value of that string can be one of:
+        /// <list type="bullet">
+        ///     <listheader>
+        ///         <term>type</term>
+        ///         <description>description</description>
+        ///     </listheader>
+        ///     <item>
+        ///         <term>SIMPLE</term>
+        ///         <description>the write was a non-batched non-counter write.</description>
+        ///     </item>
+        ///     <item>
+        ///         <term>BATCH</term>
+        ///         <description>
+        ///         the write was a (logged) batch write. If this type is received, it means the batch log has been
+        ///         successfully written (otherwise a  "BATCH_LOG" type would have been send instead).
+        ///         </description>
+        ///     </item>
+        ///     <item>
+        ///         <term>UNLOGGED_BATCH</term>
+        ///         <description>the write was an unlogged batch. Not batch log write has been attempted.</description>
+        ///     </item>
+        ///     <item>
+        ///         <term>COUNTER</term>
+        ///         <description>the write was a counter write (batched or not).</description>
+        ///     </item>
+        ///     <item>
+        ///         <term>BATCH_LOG</term>
+        ///         <description>the timeout occured during the write to the batch log when a (logged) batch write was requested.</description>
+        ///     </item>
         /// </list>
         /// </value>
         public string WriteType { get; private set; }

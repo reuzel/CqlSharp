@@ -1,5 +1,5 @@
 // CqlSharp - CqlSharp
-// Copyright (c) 2013 Joost Reuzel
+// Copyright (c) 2014 Joost Reuzel
 //   
 // Licensed under the Apache License, Version 2.0 (the "License");
 // you may not use this file except in compliance with the License.
@@ -20,28 +20,28 @@ using System.Threading;
 namespace CqlSharp.Protocol
 {
     /// <summary>
-    ///   Represents a set of columns descriptions used to describe a select query result, or prepared query input
+    /// Represents a set of columns descriptions used to describe a select query result, or prepared query input
     /// </summary>
     internal class MetaData : IList<Column>
     {
         /// <summary>
-        ///   The columns
+        /// The columns
         /// </summary>
         private List<Column> _columns = new List<Column>();
 
         /// <summary>
-        ///   The columns by name. Lazy loaded
+        /// The columns by name. Lazy loaded
         /// </summary>
         private Dictionary<string, Column> _columnsByName;
 
         /// <summary>
-        ///   Gets or sets the state of the paging.
+        /// Gets or sets the state of the paging.
         /// </summary>
         /// <value> The state of the paging. </value>
         public byte[] PagingState { get; set; }
 
         /// <summary>
-        ///   Gets or sets a value indicating whether any columns are specified in this meta Data
+        /// Gets or sets a value indicating whether any columns are specified in this meta Data
         /// </summary>
         /// <value> <c>true</c> if [no meta data]; otherwise, <c>false</c> . </value>
         public bool NoMetaData
@@ -50,7 +50,7 @@ namespace CqlSharp.Protocol
         }
 
         /// <summary>
-        ///   Gets a value indicating whether there are more rows in this query than has been returned.
+        /// Gets a value indicating whether there are more rows in this query than has been returned.
         /// </summary>
         /// <value> <c>true</c> if [has more rows]; otherwise, <c>false</c> . </value>
         public bool HasMoreRows
@@ -59,12 +59,12 @@ namespace CqlSharp.Protocol
         }
 
         /// <summary>
-        ///   Gets or sets the <see cref="Column" /> with the specified name. The column name is either
-        ///   the {name}, {table}.{name}, or {keyspace}.{table}.{name}.
+        /// Gets or sets the <see cref="Column" /> with the specified name. The column name is either
+        /// the {name}, {table}.{name}, or {keyspace}.{table}.{name}.
         /// </summary>
         /// <remarks>
-        ///   if the name of the column occurs more often, it is undefined which column is returned.
-        ///   In such cases, prepend the column name with the table and/or keyspace name to disambiguate.
+        /// if the name of the column occurs more often, it is undefined which column is returned.
+        /// In such cases, prepend the column name with the table and/or keyspace name to disambiguate.
         /// </remarks>
         /// <value> The <see cref="Column" /> . </value>
         /// <param name="name"> The name of the column </param>
@@ -82,7 +82,7 @@ namespace CqlSharp.Protocol
                 RebuildNames();
 
                 Column c;
-                if (_columnsByName.TryGetValue(name, out c))
+                if(_columnsByName.TryGetValue(name, out c))
                 {
                     //existing value found, replace column at given index
                     _columns[c.Index] = value;
@@ -111,8 +111,10 @@ namespace CqlSharp.Protocol
             _columns.Insert(index, item);
 
             //update indices
-            for (int i = index; i < _columns.Count; i++)
+            for(int i = index; i < _columns.Count; i++)
+            {
                 _columns[i].Index = i;
+            }
 
             //reset name map
             _columnsByName = null;
@@ -123,15 +125,17 @@ namespace CqlSharp.Protocol
             _columns.RemoveAt(index);
 
             //update indices
-            for (int i = index; i < _columns.Count; i++)
+            for(int i = index; i < _columns.Count; i++)
+            {
                 _columns[i].Index = i;
+            }
 
             //reset name map
             _columnsByName = null;
         }
 
         /// <summary>
-        ///   Gets or sets the <see cref="Column" /> at the specified index.
+        /// Gets or sets the <see cref="Column" /> at the specified index.
         /// </summary>
         /// <value> The <see cref="Column" /> . </value>
         /// <param name="index"> The index. </param>
@@ -183,7 +187,7 @@ namespace CqlSharp.Protocol
 
         public bool Remove(Column item)
         {
-            if (_columns.Remove(item))
+            if(_columns.Remove(item))
             {
                 _columnsByName = null;
                 return true;
@@ -205,21 +209,21 @@ namespace CqlSharp.Protocol
         #endregion
 
         /// <summary>
-        ///   Rebuilds the dictionary with column name to column mappig
+        /// Rebuilds the dictionary with column name to column mappig
         /// </summary>
         private void RebuildNames()
         {
-            if (_columnsByName != null)
+            if(_columnsByName != null)
                 return;
 
             var columnsByName = new Dictionary<string, Column>();
 
-            foreach (Column column in _columns)
+            foreach(Column column in _columns)
             {
                 columnsByName[column.Name] = column;
-                if (column.Table != null)
+                if(column.Table != null)
                     columnsByName[column.TableAndName] = column;
-                if (column.Keyspace != null)
+                if(column.Keyspace != null)
                     columnsByName[column.KeySpaceTableAndName] = column;
             }
 
@@ -227,7 +231,7 @@ namespace CqlSharp.Protocol
         }
 
         /// <summary>
-        ///   Determines whether the ResultMetaData holds a column with the given name
+        /// Determines whether the ResultMetaData holds a column with the given name
         /// </summary>
         /// <param name="name"> The name. </param>
         /// <returns> </returns>
@@ -238,7 +242,7 @@ namespace CqlSharp.Protocol
         }
 
         /// <summary>
-        ///   Tries to get the column by name value.
+        /// Tries to get the column by name value.
         /// </summary>
         /// <param name="name"> The name. </param>
         /// <param name="column"> The column. </param>
@@ -250,12 +254,12 @@ namespace CqlSharp.Protocol
         }
 
         /// <summary>
-        ///   Copies the columns from an other MetaData instance
+        /// Copies the columns from an other MetaData instance
         /// </summary>
         /// <param name="metaData"> The meta data. </param>
         internal void CopyColumnsFrom(MetaData metaData)
         {
-            if (metaData != null)
+            if(metaData != null)
                 _columns = metaData._columns;
         }
     }

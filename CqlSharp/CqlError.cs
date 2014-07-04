@@ -18,12 +18,12 @@ using System;
 namespace CqlSharp
 {
     /// <summary>
-    ///   Represents the error result of a query.
+    /// Represents the error result of a query.
     /// </summary>
     public class CqlError : ICqlQueryResult
     {
         /// <summary>
-        /// Initializes a new instance of the <see cref="CqlError"/> class.
+        /// Initializes a new instance of the <see cref="CqlError" /> class.
         /// </summary>
         /// <param name="exception">The exception.</param>
         internal CqlError(Exception exception)
@@ -32,7 +32,7 @@ namespace CqlSharp
         }
 
         /// <summary>
-        /// Initializes a new instance of the <see cref="CqlError"/> class.
+        /// Initializes a new instance of the <see cref="CqlError" /> class.
         /// </summary>
         /// <param name="exception">The exception.</param>
         /// <param name="tracingId">The tracing unique identifier.</param>
@@ -43,14 +43,14 @@ namespace CqlSharp
         }
 
         /// <summary>
-        ///   Gets the exception that has resulted in this CqlError state
+        /// Gets the exception that has resulted in this CqlError state
         /// </summary>
         public Exception Exception { get; private set; }
 
         #region ICqlQueryResult Members
 
         /// <summary>
-        ///   Gets the type of the result.
+        /// Gets the type of the result.
         /// </summary>
         /// <value> The type of the result. </value>
         public CqlResultType ResultType
@@ -59,7 +59,7 @@ namespace CqlSharp
         }
 
         /// <summary>
-        ///   Gets the tracing id, if present
+        /// Gets the tracing id, if present
         /// </summary>
         /// <value> The tracing id, if present </value>
         public Guid? TracingId { get; private set; }

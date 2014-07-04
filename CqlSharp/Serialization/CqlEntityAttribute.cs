@@ -18,13 +18,13 @@ using System;
 namespace CqlSharp.Serialization
 {
     /// <summary>
-    ///   Annotates a class to have it map to a specific name and optionally keyspace
+    /// Annotates a class to have it map to a specific name and optionally keyspace
     /// </summary>
     [AttributeUsage(AttributeTargets.Class)]
     public class CqlEntityAttribute : Attribute
     {
         /// <summary>
-        /// Initializes a new instance of the <see cref="CqlEntityAttribute"/> class.
+        /// Initializes a new instance of the <see cref="CqlEntityAttribute" /> class.
         /// </summary>
         /// <param name="name">The name.</param>
         public CqlEntityAttribute(string name)
@@ -33,7 +33,7 @@ namespace CqlSharp.Serialization
         }
 
         /// <summary>
-        /// Initializes a new instance of the <see cref="CqlEntityAttribute"/> class.
+        /// Initializes a new instance of the <see cref="CqlEntityAttribute" /> class.
         /// </summary>
         /// <param name="keySpace">The key space.</param>
         /// <param name="name">The name.</param>

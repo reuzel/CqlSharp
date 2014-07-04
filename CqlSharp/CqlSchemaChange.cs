@@ -1,5 +1,5 @@
 // CqlSharp - CqlSharp
-// Copyright (c) 2013 Joost Reuzel
+// Copyright (c) 2014 Joost Reuzel
 //   
 // Licensed under the Apache License, Version 2.0 (the "License");
 // you may not use this file except in compliance with the License.
@@ -18,12 +18,12 @@ using System;
 namespace CqlSharp
 {
     /// <summary>
-    ///   Represents a result of a Cql ResultMetaData changing query (create/alter/drop/etc.)
+    /// Represents a result of a Cql ResultMetaData changing query (create/alter/drop/etc.)
     /// </summary>
     public class CqlSchemaChange : ICqlQueryResult
     {
         /// <summary>
-        /// Initializes a new instance of the <see cref="CqlSchemaChange"/> class.
+        /// Initializes a new instance of the <see cref="CqlSchemaChange" /> class.
         /// </summary>
         /// <param name="keyspace">The keyspace.</param>
         /// <param name="table">The table.</param>
@@ -38,19 +38,19 @@ namespace CqlSharp
         }
 
         /// <summary>
-        ///   Gets the keyspace.
+        /// Gets the keyspace.
         /// </summary>
         /// <value> The keyspace. </value>
         public string Keyspace { get; private set; }
 
         /// <summary>
-        ///   Gets the table impacted.
+        /// Gets the table impacted.
         /// </summary>
         /// <value> The table. </value>
         public string Table { get; private set; }
 
         /// <summary>
-        ///   Gets the type of change.
+        /// Gets the type of change.
         /// </summary>
         /// <value> The change. </value>
         public string Change { get; private set; }
@@ -58,7 +58,7 @@ namespace CqlSharp
         #region ICqlQueryResult Members
 
         /// <summary>
-        ///   Gets the type of the result.
+        /// Gets the type of the result.
         /// </summary>
         /// <value> The type of the result. </value>
         public CqlResultType ResultType
@@ -67,7 +67,7 @@ namespace CqlSharp
         }
 
         /// <summary>
-        ///   Gets the tracing id.
+        /// Gets the tracing id.
         /// </summary>
         /// <value> The tracing id. </value>
         public Guid? TracingId { get; private set; }

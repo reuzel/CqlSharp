@@ -73,7 +73,7 @@ namespace CqlSharp
             : this((CqlConnection)connection, cql, level)
         {
         }
-        
+
         /// <summary>
         /// Initializes a new instance of the <see cref="CqlCommand" /> class.
         /// </summary>

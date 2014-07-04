@@ -22,14 +22,14 @@ using System.Linq;
 using System.Reflection;
 using System.Reflection.Emit;
 using System.Text;
-using CqlSharp.Protocol;
 
 namespace CqlSharp.Serialization.Marshal
 {
     internal class UserDefinedTypeFactory : ITypeFactory
     {
-        private static readonly ConcurrentDictionary<string, Type> UserDefinedTypes = new ConcurrentDictionary<string, Type>();
-        
+        private static readonly ConcurrentDictionary<string, Type> UserDefinedTypes =
+            new ConcurrentDictionary<string, Type>();
+
         public string TypeName
         {
             get { return "org.apache.cassandra.db.marshal.UserType"; }
@@ -57,9 +57,7 @@ namespace CqlSharp.Serialization.Marshal
             while(parser.SkipBlankAndComma())
             {
                 if(parser.Peek() == ')')
-                {
                     return CreateTypeInternal(keyspace, name, fieldNames, fieldTypes, null);
-                }
 
                 string fieldName = parser.ReadNextIdentifier().DecodeHex();
 
@@ -95,7 +93,8 @@ namespace CqlSharp.Serialization.Marshal
                 type);
         }
 
-        private CqlType CreateTypeInternal(string keyspace, string name, List<string> fieldNames, List<CqlType> fieldTypes, Type reflectedType)
+        private CqlType CreateTypeInternal(string keyspace, string name, List<string> fieldNames,
+                                           List<CqlType> fieldTypes, Type reflectedType)
         {
             Type udt = reflectedType;
             if(udt == null)
@@ -128,16 +127,15 @@ namespace CqlSharp.Serialization.Marshal
 
         private Type EmitNewType(string keyspace, string name, List<string> names, List<CqlType> types)
         {
-
             string random = Guid.NewGuid().ToByteArray().ToHex();
 
-            string module = string.Format("CqlSharp.UserDefined.{0}.{1}", 
-                                          random, 
+            string module = string.Format("CqlSharp.UserDefined.{0}.{1}",
+                                          random,
                                           SanitizeName(keyspace));
-            
+
             // Get the current application domain for the current thread.
             AppDomain myCurrentDomain = AppDomain.CurrentDomain;
-            var myAssemblyName = new AssemblyName { Name = module };
+            var myAssemblyName = new AssemblyName {Name = module};
 
             // Define a dynamic assembly in the current application domain, and make sure it can be resolved
             var myAssemblyBuilder = myCurrentDomain.DefineDynamicAssembly(myAssemblyName, AssemblyBuilderAccess.Run);
@@ -151,12 +149,15 @@ namespace CqlSharp.Serialization.Marshal
 
             // Define a dynamic module in this assembly.
             var myModuleBuilder = myAssemblyBuilder.DefineDynamicModule(module);
-            
+
             // Define a runtime class with specified name and attributes.
-            TypeBuilder myTypeBuilder = myModuleBuilder.DefineType(module+"."+SanitizeName(name), TypeAttributes.Public | TypeAttributes.Class | TypeAttributes.AutoLayout | TypeAttributes.AutoClass, typeof(object));
-            
+            TypeBuilder myTypeBuilder = myModuleBuilder.DefineType(module + "." + SanitizeName(name),
+                                                                   TypeAttributes.Public | TypeAttributes.Class |
+                                                                   TypeAttributes.AutoLayout | TypeAttributes.AutoClass,
+                                                                   typeof(object));
+
             //define fields
-            for (int i = 0; i < names.Count; i++)
+            for(int i = 0; i < names.Count; i++)
             {
                 string fieldname = names[i];
                 CqlType type = types[i];
@@ -165,27 +166,28 @@ namespace CqlSharp.Serialization.Marshal
                 var field = myTypeBuilder.DefineField(SanitizeName(fieldname), type.Type, FieldAttributes.Public);
 
                 //define CqlColumnAttribute
-                var columnAttrParams = new[] { typeof(string) };
+                var columnAttrParams = new[] {typeof(string)};
                 var columnAttrConstructor = typeof(CqlColumnAttribute).GetConstructor(columnAttrParams);
                 Debug.Assert(columnAttrConstructor != null, "Can't find CqlColumnAttribute Constructor");
                 var columnOrderProperty = typeof(CqlColumnAttribute).GetProperty("Order");
-                var columnAttr = new CustomAttributeBuilder(columnAttrConstructor, new object[] { fieldname }, new[] { columnOrderProperty }, new object[] { i });
+                var columnAttr = new CustomAttributeBuilder(columnAttrConstructor, new object[] {fieldname},
+                                                            new[] {columnOrderProperty}, new object[] {i});
                 field.SetCustomAttribute(columnAttr);
             }
 
             //set CqlUserType attribute
-            var typeAttrParams = new[] { typeof(string), typeof(string) };
+            var typeAttrParams = new[] {typeof(string), typeof(string)};
             var typeAttrConstructor = typeof(CqlUserTypeAttribute).GetConstructor(typeAttrParams);
             Debug.Assert(typeAttrConstructor != null, "Can't find CqlUserTypeAttribute Constructor");
-            var attr = new CustomAttributeBuilder(typeAttrConstructor, new object[] { keyspace, name });
+            var attr = new CustomAttributeBuilder(typeAttrConstructor, new object[] {keyspace, name});
             myTypeBuilder.SetCustomAttribute(attr);
 
             //set CqlTypeConverter attribute
-            var converterAttrParams = new[] { typeof(Type) };
+            var converterAttrParams = new[] {typeof(Type)};
             var converterAttrConstructor = typeof(CqlTypeConverterAttribute).GetConstructor(converterAttrParams);
             Debug.Assert(converterAttrConstructor != null, "Can't find CqlTypeConverterAttribute Constructor");
-            var converterType = typeof(GenericConverter<>).MakeGenericType(myTypeBuilder);
-            var converterAttr = new CustomAttributeBuilder(converterAttrConstructor, new object[] { converterType });
+            var converterType = typeof(CqlEntityConverter<>).MakeGenericType(myTypeBuilder);
+            var converterAttr = new CustomAttributeBuilder(converterAttrConstructor, new object[] {converterType});
             myTypeBuilder.SetCustomAttribute(converterAttr);
 
             //done, return the type
@@ -198,59 +200,6 @@ namespace CqlSharp.Serialization.Marshal
             string capatilized = CultureInfo.CurrentCulture.TextInfo.ToTitleCase(nameWithSpaces);
             string nameWithNoSpaces = capatilized.Replace(" ", "");
             return nameWithNoSpaces;
-        }
-    }
-
-    /// <summary>
-    /// Converts Types by copying values based on column names
-    /// </summary>
-    /// <typeparam name="T"></typeparam>
-    public class GenericConverter<T> : ITypeConverter<T>
-    {
-        /// <summary>
-        /// Converts the source object to an object of the the given target type.
-        /// </summary>
-        /// <typeparam name="TTarget">The type of the target.</typeparam>
-        /// <param name="source">The source.</param>
-        /// <returns>an object of the the given target type</returns>
-        public TTarget ConvertTo<TTarget>(T source)
-        {
-            return CopyValues<T, TTarget>(source);
-        }
-
-        /// <summary>
-        /// Converts an object of the given source type to an instance of this converters type
-        /// </summary>
-        /// <typeparam name="TSource">The type of the source.</typeparam>
-        /// <param name="source">The source.</param>
-        /// <returns></returns>
-        public T ConvertFrom<TSource>(TSource source)
-        {
-            return CopyValues<TSource, T>(source);
-        }
-
-        /// <summary>
-        /// Copies the values from two types based CqlColumn annotations.
-        /// </summary>
-        /// <typeparam name="TSource">The type of the source.</typeparam>
-        /// <typeparam name="TTarget">The type of the target.</typeparam>
-        /// <param name="source">The source.</param>
-        /// <returns></returns>
-        private static TTarget CopyValues<TSource, TTarget>(TSource source)
-        {
-            var sourceAccessor = ObjectAccessor<TSource>.Instance;
-            var targetAccessor = ObjectAccessor<TTarget>.Instance;
-
-            var result = Activator.CreateInstance<TTarget>();
-
-            foreach (var column in sourceAccessor.Columns)
-            {
-                ICqlColumnInfo<TTarget> targetColumn;
-                if (targetAccessor.ColumnsByName.TryGetValue(column.Name, out targetColumn))
-                    column.CopyValue(source, result, targetColumn);
-            }
-
-            return result;
         }
     }
 }

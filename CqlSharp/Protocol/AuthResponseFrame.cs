@@ -1,5 +1,5 @@
 ﻿// CqlSharp - CqlSharp
-// Copyright (c) 2013 Joost Reuzel
+// Copyright (c) 2014 Joost Reuzel
 //   
 // Licensed under the Apache License, Version 2.0 (the "License");
 // you may not use this file except in compliance with the License.
@@ -22,7 +22,7 @@ namespace CqlSharp.Protocol
     internal class AuthResponseFrame : Frame
     {
         /// <summary>
-        ///   Initializes a new instance of the <see cref="AuthResponseFrame" /> class.
+        /// Initializes a new instance of the <see cref="AuthResponseFrame" /> class.
         /// </summary>
         /// <param name="saslResponse"> The sasl response. </param>
         public AuthResponseFrame(byte[] saslResponse)

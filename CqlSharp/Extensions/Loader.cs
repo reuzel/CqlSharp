@@ -1,5 +1,5 @@
 ﻿// CqlSharp - CqlSharp
-// Copyright (c) 2013 Joost Reuzel
+// Copyright (c) 2014 Joost Reuzel
 //   
 // Licensed under the Apache License, Version 2.0 (the "License");
 // you may not use this file except in compliance with the License.
@@ -13,15 +13,15 @@
 // See the License for the specific language governing permissions and
 // limitations under the License.
 
-using CqlSharp.Authentication;
-using CqlSharp.Logging;
-using CqlSharp.Serialization.Marshal;
 using System.Collections.Generic;
 using System.ComponentModel.Composition;
 using System.ComponentModel.Composition.Hosting;
 using System.ComponentModel.Composition.Registration;
 using System.IO;
 using System.Reflection;
+using CqlSharp.Authentication;
+using CqlSharp.Logging;
+using CqlSharp.Serialization.Marshal;
 
 namespace CqlSharp.Extensions
 {
@@ -39,14 +39,12 @@ namespace CqlSharp.Extensions
         {
             get
             {
-                if (_loader == null)
+                if(_loader == null)
                 {
-                    lock (SyncLock)
+                    lock(SyncLock)
                     {
-                        if (_loader == null)
-                        {
+                        if(_loader == null)
                             _loader = new Loader();
-                        }
                     }
                 }
                 return _loader;
@@ -60,7 +58,7 @@ namespace CqlSharp.Extensions
         public List<ITypeFactory> TypeFactories { get; set; }
 
         /// <summary>
-        ///   Loads the logger factories.
+        /// Loads the logger factories.
         /// </summary>
         private void LoadFactories()
         {
@@ -104,7 +102,7 @@ namespace CqlSharp.Extensions
             catalog.Catalogs.Add(new DirectoryCatalog(path, conventions));
 
             //or in bin directory (asp.net)
-            if (Directory.Exists(path + "\\bin"))
+            if(Directory.Exists(path + "\\bin"))
                 catalog.Catalogs.Add(new DirectoryCatalog(path + "\\bin", conventions));
 
             //create container
@@ -119,41 +117,41 @@ namespace CqlSharp.Extensions
             {
                 //in case of any loading errors, load only the loggers and authenticators, and serializers that we implement
                 LoggerFactories = new List<ILoggerFactory>
-                                      {
-                                          new NullLoggerFactory(),
-                                          new ConsoleLoggerFactory(),
-                                          new DebugLoggerFactory(),
-                                          new TraceLoggerFactory()
-                                      };
+                {
+                    new NullLoggerFactory(),
+                    new ConsoleLoggerFactory(),
+                    new DebugLoggerFactory(),
+                    new TraceLoggerFactory()
+                };
 
                 AuthenticationFactories = new List<IAuthenticatorFactory>
-                                              {
-                                                  new PasswordAuthenticatorFactory()
-                                              };
+                {
+                    new PasswordAuthenticatorFactory()
+                };
 
                 TypeFactories = new List<ITypeFactory>
-                                      {
-                                          new AsciiTypeFactory(),
-                                          new BooleanTypeFactory(),
-                                          new BytesTypeFactory(),
-                                          new CounterColumnTypeFactory(),
-                                          new DateTypeFactory(),
-                                          new DecimalTypeFactory(),
-                                          new DoubleTypeFactory(),
-                                          new FloatTypeFactory(),
-                                          new InetAddressTypeFactory(),
-                                          new Int32TypeFactory(),
-                                          new IntegerTypeFactory(),
-                                          new LexicalUUIDTypeFactory(),
-                                          new ListTypeFactory(),
-                                          new LongTypeFactory(),
-                                          new MapTypeFactory(),
-                                          new SetTypeFactory(),
-                                          new TimestampTypeFactory(),
-                                          new TimeUUIDTypeFactory(),
-                                          new UTF8TypeFactory(),
-                                          new UUIDTypeFactory()
-                                      };
+                {
+                    new AsciiTypeFactory(),
+                    new BooleanTypeFactory(),
+                    new BytesTypeFactory(),
+                    new CounterColumnTypeFactory(),
+                    new DateTypeFactory(),
+                    new DecimalTypeFactory(),
+                    new DoubleTypeFactory(),
+                    new FloatTypeFactory(),
+                    new InetAddressTypeFactory(),
+                    new Int32TypeFactory(),
+                    new IntegerTypeFactory(),
+                    new LexicalUUIDTypeFactory(),
+                    new ListTypeFactory(),
+                    new LongTypeFactory(),
+                    new MapTypeFactory(),
+                    new SetTypeFactory(),
+                    new TimestampTypeFactory(),
+                    new TimeUUIDTypeFactory(),
+                    new UTF8TypeFactory(),
+                    new UUIDTypeFactory()
+                };
             }
         }
     }

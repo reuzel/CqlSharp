@@ -54,7 +54,7 @@ namespace CqlSharp.Serialization
         {
             return TypeConverter<TS, TT>.Convert(source);
         }
-        
+
         /// <summary>
         /// Changes the type of the given object to the specific type.
         /// </summary>
@@ -71,7 +71,9 @@ namespace CqlSharp.Serialization
                 var converted = Expression.Convert(src, ts.Item1);
                 var call = Expression.Call(typeof(Converter), "ChangeType", new[] {ts.Item1, ts.Item2}, converted);
                 var result = Expression.Convert(call, typeof(object));
-                var lambda = Expression.Lambda<Func<object, object>>(result,string.Format("ChangeType<{0},{1}>",ts.Item1.Name, ts.Item2.Name), new []{src});
+                var lambda = Expression.Lambda<Func<object, object>>(result,
+                                                                     string.Format("ChangeType<{0},{1}>", ts.Item1.Name,
+                                                                                   ts.Item2.Name), new[] {src});
                 return lambda.Compile();
             });
 
@@ -257,7 +259,7 @@ namespace CqlSharp.Serialization
                 for(int i = 0; i < targetArguments.Length; i++)
                 {
                     var sourceMember = srcType.GetProperty("Item" + (i + 1));
-                    
+
                     var value = Expression.Property(src, sourceMember);
                     expressions[i] = Expression.Call(typeof(Converter),
                                                      "ChangeType",
@@ -266,15 +268,15 @@ namespace CqlSharp.Serialization
                 }
 
                 //create the new tupe
-                var newTuple = Expression.Call(typeof(Tuple), 
-                                               "Create", 
+                var newTuple = Expression.Call(typeof(Tuple),
+                                               "Create",
                                                expressions.Select(e => e.Type).ToArray(),
                                                expressions);
 
                 //return the new tuple
                 return AddNullCheck(srcType, targetType, src, newTuple);
             }
-            
+
 
             private static Expression GetCollectionConversion(Type srcType, Type targetType, ParameterExpression src)
             {
@@ -319,7 +321,7 @@ namespace CqlSharp.Serialization
                 IEnumerable<TSourceElement> source) where TCollection : ICollection<TCollectionElement>, new()
             {
                 var result = new TCollection();
-                foreach (TSourceElement elem in source)
+                foreach(TSourceElement elem in source)
                     result.Add(ChangeType<TSourceElement, TCollectionElement>(elem));
 
                 return result;
@@ -335,26 +337,27 @@ namespace CqlSharp.Serialization
             private static Expression GetDictionaryConversion(Type srcType, Type targetType, ParameterExpression src)
             {
                 var srcDictionary = srcType.GetInterfaces()
-                                        .FirstOrDefault(
-                                            i =>
-                                                i.IsGenericType && i.GetGenericTypeDefinition() == typeof(IDictionary<,>));
+                                           .FirstOrDefault(
+                                               i =>
+                                                   i.IsGenericType &&
+                                                   i.GetGenericTypeDefinition() == typeof(IDictionary<,>));
 
-                if (srcDictionary != null)
+                if(srcDictionary != null)
                 {
                     var targetDictionary = targetType.GetInterfaces()
-                                               .FirstOrDefault(
-                                                   i =>
-                                                       i.IsGenericType &&
-                                                       i.GetGenericTypeDefinition() == typeof(IDictionary<,>));
+                                                     .FirstOrDefault(
+                                                         i =>
+                                                             i.IsGenericType &&
+                                                             i.GetGenericTypeDefinition() == typeof(IDictionary<,>));
 
-                    if (targetDictionary != null)
+                    if(targetDictionary != null)
                     {
                         var call = Expression.Call(typeof(TypeConverter<TSource, TTarget>), "CopyDictionary",
                                                    new[]
                                                    {
                                                        srcType,
                                                        srcDictionary.GetGenericArguments()[0],
-                                                       srcDictionary.GetGenericArguments()[1], 
+                                                       srcDictionary.GetGenericArguments()[1],
                                                        targetType,
                                                        targetDictionary.GetGenericArguments()[0],
                                                        targetDictionary.GetGenericArguments()[1]
@@ -393,7 +396,6 @@ namespace CqlSharp.Serialization
                 return result;
             }
 
-            
 
             /// <summary>
             /// Gets the automatic string conversion.

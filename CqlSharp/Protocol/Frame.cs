@@ -1,5 +1,5 @@
 ﻿// CqlSharp - CqlSharp
-// Copyright (c) 2013 Joost Reuzel
+// Copyright (c) 2014 Joost Reuzel
 //   
 // Licensed under the Apache License, Version 2.0 (the "License");
 // you may not use this file except in compliance with the License.
@@ -13,60 +13,60 @@
 // See the License for the specific language governing permissions and
 // limitations under the License.
 
-using CqlSharp.Memory;
-using CqlSharp.Network.nSnappy;
 using System;
 using System.IO;
 using System.Threading;
 using System.Threading.Tasks;
+using CqlSharp.Memory;
+using CqlSharp.Network.nSnappy;
 
 namespace CqlSharp.Protocol
 {
     /// <summary>
-    ///   A Cassandra protocol data packet
+    /// A Cassandra protocol data packet
     /// </summary>
     internal abstract class Frame : IDisposable
     {
         /// <summary>
-        ///   Stream holding Frame content
+        /// Stream holding Frame content
         /// </summary>
         protected FrameReader Reader;
 
         private int _disposed; //0 not disposed, 1 disposed
 
         /// <summary>
-        ///   Gets or sets the version.
+        /// Gets or sets the version.
         /// </summary>
         /// <value> The version. </value>
         public FrameVersion Version { get; set; }
 
         /// <summary>
-        ///   Gets or sets the flags.
+        /// Gets or sets the flags.
         /// </summary>
         /// <value> The flags. </value>
         public FrameFlags Flags { get; set; }
 
         /// <summary>
-        ///   Gets or sets the stream identifier (request response pair)
+        /// Gets or sets the stream identifier (request response pair)
         /// </summary>
         /// <value> The stream. </value>
         public sbyte Stream { get; set; }
 
         /// <summary>
-        ///   Gets or sets the op code.
+        /// Gets or sets the op code.
         /// </summary>
         /// <value> The op code. </value>
         public FrameOpcode OpCode { get; protected set; }
 
 
         /// <summary>
-        ///   Gets or sets the length.
+        /// Gets or sets the length.
         /// </summary>
         /// <value> The length. </value>
         public int Length { get; protected set; }
 
         /// <summary>
-        ///   Gets or sets the tracing id.
+        /// Gets or sets the tracing id.
         /// </summary>
         /// <value> The tracing id. </value>
         public Guid? TracingId { get; protected set; }
@@ -82,7 +82,7 @@ namespace CqlSharp.Protocol
         #endregion
 
         /// <summary>
-        ///   Gets the frame bytes.
+        /// Gets the frame bytes.
         /// </summary>
         /// <returns> </returns>
         public Stream GetFrameBytes(bool compress, int compressTreshold)
@@ -100,12 +100,12 @@ namespace CqlSharp.Protocol
             WriteData(buffer);
 
             //compress if allowed, and buffer is large enough to compress
-            if (compress && buffer.Length > compressTreshold + 8)
+            if(compress && buffer.Length > compressTreshold + 8)
             {
                 buffer.Position = 8;
 
                 //compress data to temporary stream
-                using (var compressed = new PoolMemoryStream())
+                using(var compressed = new PoolMemoryStream())
                 {
                     //compress the data to the buffer
                     int length = Compressor.Compress(buffer, compressed);
@@ -135,13 +135,13 @@ namespace CqlSharp.Protocol
         }
 
         /// <summary>
-        ///   Writes the data to buffer.
+        /// Writes the data to buffer.
         /// </summary>
         /// <param name="buffer"> The buffer. </param>
         protected abstract void WriteData(Stream buffer);
 
         /// <summary>
-        ///   Reads a packet from a stream.
+        /// Reads a packet from a stream.
         /// </summary>
         /// <param name="stream"> The stream. </param>
         /// <returns> </returns>
@@ -150,15 +150,15 @@ namespace CqlSharp.Protocol
             //read header
             int read = 0;
             var header = new byte[8];
-            while (read < 8)
+            while(read < 8)
                 read += await stream.ReadAsync(header, read, 8 - read).ConfigureAwait(false);
 
             //get length
-            if (BitConverter.IsLittleEndian) Array.Reverse(header, 4, 4);
+            if(BitConverter.IsLittleEndian) Array.Reverse(header, 4, 4);
             int length = BitConverter.ToInt32(header, 4);
 
             Frame frame;
-            switch ((FrameOpcode)header[3])
+            switch((FrameOpcode)header[3])
             {
                 case FrameOpcode.Error:
                     frame = new ErrorFrame();
@@ -196,11 +196,11 @@ namespace CqlSharp.Protocol
             frame.Reader = reader;
 
             //decompress the contents of the frame (implicity loads the entire frame body!)
-            if (frame.Flags.HasFlag(FrameFlags.Compression))
+            if(frame.Flags.HasFlag(FrameFlags.Compression))
                 await reader.DecompressAsync().ConfigureAwait(false);
 
             //read tracing id if set
-            if (frame.Flags.HasFlag(FrameFlags.Tracing))
+            if(frame.Flags.HasFlag(FrameFlags.Tracing))
                 frame.TracingId = await reader.ReadUuidAsync().ConfigureAwait(false);
 
             await frame.InitializeAsync().ConfigureAwait(false);
@@ -209,12 +209,12 @@ namespace CqlSharp.Protocol
         }
 
         /// <summary>
-        ///   Initialize frame contents from the stream
+        /// Initialize frame contents from the stream
         /// </summary>
         protected abstract Task InitializeAsync();
 
         /// <summary>
-        ///   Completes when the frame body is read
+        /// Completes when the frame body is read
         /// </summary>
         /// <returns> </returns>
         public virtual Task WaitOnBodyRead()
@@ -225,9 +225,9 @@ namespace CqlSharp.Protocol
 
         protected virtual void Dispose(bool disposing)
         {
-            if (Interlocked.CompareExchange(ref _disposed, 1, 0) == 0)
+            if(Interlocked.CompareExchange(ref _disposed, 1, 0) == 0)
             {
-                if (disposing)
+                if(disposing)
                 {
                     Reader.Dispose();
                     //Reader = null;

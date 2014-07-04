@@ -18,14 +18,17 @@ using System;
 namespace CqlSharp
 {
     /// <summary>
-    ///   Represents the result of a query that does not have actual result values
+    /// Represents the result of a query that does not have actual result values
     /// </summary>
     public class CqlPrepared : ICqlQueryResult
     {
         /// <summary>
-        ///   Initializes a new instance of the <see cref="CqlPrepared" /> class.
+        /// Initializes a new instance of the <see cref="CqlPrepared" /> class.
         /// </summary>
-        /// <param name="fromCache"> if set to <c>true</c> the query was prepared from a cache, without a roundtrip to the Cassandra cluster. </param>
+        /// <param name="fromCache">
+        /// if set to <c>true</c> the query was prepared from a cache, without a roundtrip to the
+        /// Cassandra cluster.
+        /// </param>
         /// <param name="tracingId"> The tracing unique identifier. </param>
         internal CqlPrepared(bool fromCache, Guid? tracingId)
         {
@@ -37,7 +40,8 @@ namespace CqlSharp
         /// Gets a value indicating whether the query was prepared from a cache, without a roundtrip to the Cassandra cluster..
         /// </summary>
         /// <value>
-        ///   <c>true</c> if the query was prepared from a cache, without a roundtrip to the Cassandra cluster.; otherwise, <c>false</c>.
+        /// <c>true</c> if the query was prepared from a cache, without a roundtrip to the Cassandra cluster.; otherwise,
+        /// <c>false</c>.
         /// </value>
         public bool FromCache { get; private set; }
 

@@ -1,5 +1,5 @@
 ﻿// CqlSharp - CqlTest
-// Copyright (c) 2013 Joost Reuzel
+// Copyright (c) 2014 Joost Reuzel
 //   
 // Licensed under the Apache License, Version 2.0 (the "License");
 // you may not use this file except in compliance with the License.
@@ -13,23 +13,23 @@
 // See the License for the specific language governing permissions and
 // limitations under the License.
 
-using CqlSharp;
-using CqlSharp.Protocol;
 using System;
 using System.Collections.Generic;
 using System.Threading.Tasks;
+using CqlSharp;
+using CqlSharp.Protocol;
 
 namespace CqlTest
 {
     internal class CartManager
     {
         /// <summary>
-        ///   Prepares the db async.
+        /// Prepares the db async.
         /// </summary>
         /// <returns> </returns>
         public async Task PrepareDbAsync()
         {
-            using (var connection = new CqlConnection("cartDB"))
+            using(var connection = new CqlConnection("cartDB"))
             {
                 await connection.OpenAsync();
 
@@ -37,16 +37,16 @@ namespace CqlTest
                 {
                     var shopExistCommand = new CqlCommand(connection,
                                                           "select * from system.schema_keyspaces where keyspace_name='shop';");
-                    using (var reader = shopExistCommand.ExecuteReader())
+                    using(var reader = shopExistCommand.ExecuteReader())
                     {
-                        if (reader.HasRows)
+                        if(reader.HasRows)
                         {
                             var dropKs = new CqlCommand(connection, @"DROP KEYSPACE Shop;");
                             await dropKs.ExecuteNonQueryAsync();
                         }
                     }
                 }
-                catch (AlreadyExistsException)
+                catch(AlreadyExistsException)
                 {
                     //ignore
                 }
@@ -67,21 +67,21 @@ namespace CqlTest
                     var createIndex = new CqlCommand(connection, @"create index on Shop.Carts(GroupId)");
                     await createIndex.ExecuteNonQueryAsync();
                 }
-                catch (AlreadyExistsException)
+                catch(AlreadyExistsException)
                 {
                 }
             }
         }
 
         /// <summary>
-        ///   Creates the cart async.
+        /// Creates the cart async.
         /// </summary>
         /// <returns> </returns>
         public async Task<Cart> AddCartAsync(string groupId)
         {
-            var c = new Cart { Id = Guid.NewGuid(), GroupId = groupId };
+            var c = new Cart {Id = Guid.NewGuid(), GroupId = groupId};
 
-            using (var connection = new CqlConnection("cartDB"))
+            using(var connection = new CqlConnection("cartDB"))
             {
                 await connection.OpenAsync();
 
@@ -94,13 +94,13 @@ namespace CqlTest
         }
 
         /// <summary>
-        ///   Updates the cart async.
+        /// Updates the cart async.
         /// </summary>
         /// <param name="c"> The c. </param>
         /// <returns> </returns>
         public async Task UpdateCartAsync(Cart c)
         {
-            using (var connection = new CqlConnection("cartDB"))
+            using(var connection = new CqlConnection("cartDB"))
             {
                 await connection.OpenAsync();
 
@@ -112,13 +112,13 @@ namespace CqlTest
         }
 
         /// <summary>
-        ///   Queries the cart async.
+        /// Queries the cart async.
         /// </summary>
         /// <param name="guid"> The GUID. </param>
         /// <returns> </returns>
         public async Task<Dictionary<string, int>> GetItemsAsync(Guid guid)
         {
-            using (var connection = new CqlConnection("cartDB"))
+            using(var connection = new CqlConnection("cartDB"))
             {
                 await connection.OpenAsync();
 
@@ -126,7 +126,7 @@ namespace CqlTest
                 await command.PrepareAsync();
                 command.UseBuffering = true;
                 command.Parameters["id"].Value = guid;
-                using (var reader = await command.ExecuteReaderAsync())
+                using(var reader = await command.ExecuteReaderAsync())
                 {
                     return await reader.ReadAsync() ? reader["items"] as Dictionary<string, int> : null;
                 }
@@ -135,14 +135,14 @@ namespace CqlTest
 
 
         /// <summary>
-        ///   Adds the items async.
+        /// Adds the items async.
         /// </summary>
         /// <param name="guid"> The GUID. </param>
         /// <param name="items"> The items. </param>
         /// <returns> </returns>
         public async Task AddItemsAsync(Guid guid, Dictionary<string, int> items)
         {
-            using (var connection = new CqlConnection("cartDB"))
+            using(var connection = new CqlConnection("cartDB"))
             {
                 await connection.OpenAsync();
 
@@ -156,13 +156,13 @@ namespace CqlTest
 
 
         /// <summary>
-        ///   Finds the carts by group id async.
+        /// Finds the carts by group id async.
         /// </summary>
         /// <param name="groupId"> The group id. </param>
         /// <returns> </returns>
         public async Task<List<Cart>> FindCartsByGroupIdAsync(string groupId)
         {
-            using (var connection = new CqlConnection("cartDB"))
+            using(var connection = new CqlConnection("cartDB"))
             {
                 await connection.OpenAsync();
 
@@ -170,13 +170,11 @@ namespace CqlTest
                 await command.PrepareAsync();
                 command.UseBuffering = true;
                 command.Parameters["groupid"].Value = groupId;
-                using (var reader = await command.ExecuteReaderAsync<Cart>())
+                using(var reader = await command.ExecuteReaderAsync<Cart>())
                 {
                     var carts = new List<Cart>();
-                    while (await reader.ReadAsync())
-                    {
+                    while(await reader.ReadAsync())
                         carts.Add(reader.Current);
-                    }
                     return carts;
                 }
             }

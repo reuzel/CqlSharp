@@ -1,5 +1,5 @@
 // CqlSharp - CqlSharp
-// Copyright (c) 2013 Joost Reuzel
+// Copyright (c) 2014 Joost Reuzel
 //   
 // Licensed under the Apache License, Version 2.0 (the "License");
 // you may not use this file except in compliance with the License.
@@ -24,7 +24,7 @@ namespace CqlSharp.Protocol
     public class ReadTimeOutException : TimeOutException
     {
         internal ReadTimeOutException(string message, CqlConsistency cqlConsistency, int received, int blockFor,
-                                    bool dataPresent, Guid? tracingId)
+                                      bool dataPresent, Guid? tracingId)
             : base(Protocol.ErrorCode.ReadTimeout, message, cqlConsistency, received, blockFor, tracingId)
         {
             DataPresent = dataPresent;

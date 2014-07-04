@@ -1,5 +1,5 @@
 // CqlSharp - CqlSharp
-// Copyright (c) 2013 Joost Reuzel
+// Copyright (c) 2014 Joost Reuzel
 //   
 // Licensed under the Apache License, Version 2.0 (the "License");
 // you may not use this file except in compliance with the License.
@@ -18,7 +18,7 @@ using CqlSharp.Network.Partition;
 namespace CqlSharp.Network
 {
     /// <summary>
-    ///   Determines for what a connection is requested: a single Command, a Connection (set of commands), or infrastructure.
+    /// Determines for what a connection is requested: a single Command, a Connection (set of commands), or infrastructure.
     /// </summary>
     internal enum ConnectionScope
     {
@@ -28,27 +28,30 @@ namespace CqlSharp.Network
     }
 
     /// <summary>
-    ///   Interface towards algorithm that selects or creates connections towards the Cassandra cluster
+    /// Interface towards algorithm that selects or creates connections towards the Cassandra cluster
     /// </summary>
     internal interface IConnectionStrategy
     {
         /// <summary>
-        ///   Gets a value indicating whether [provide exclusive connections].
+        /// Gets a value indicating whether [provide exclusive connections].
         /// </summary>
         /// <value> <c>true</c> if [provide exclusive connections]; otherwise, <c>false</c> . </value>
         bool ProvidesExclusiveConnections { get; }
 
         /// <summary>
-        ///   Gets or creates connection to the cluster.
+        /// Gets or creates connection to the cluster.
         /// </summary>
         /// <param name="scope"> The scope. </param>
         /// <param name="partitionKey"> The partition key. </param>
         /// <returns> </returns>
-        /// <exception cref="CqlException">Can not connect to any node of the cluster! All connectivity to the cluster seems to be lost</exception>
+        /// <exception cref="CqlException">
+        /// Can not connect to any node of the cluster! All connectivity to the cluster seems to be
+        /// lost
+        /// </exception>
         Connection GetOrCreateConnection(ConnectionScope scope, PartitionKey partitionKey);
 
         /// <summary>
-        ///   Invoked when a connection is no longer in use by the application
+        /// Invoked when a connection is no longer in use by the application
         /// </summary>
         /// <param name="connection"> The connection no longer used. </param>
         /// <param name="scope"> The scope. </param>

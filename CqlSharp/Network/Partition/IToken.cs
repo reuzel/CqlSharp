@@ -1,5 +1,5 @@
 ﻿// CqlSharp - CqlSharp
-// Copyright (c) 2013 Joost Reuzel
+// Copyright (c) 2014 Joost Reuzel
 //   
 // Licensed under the Apache License, Version 2.0 (the "License");
 // you may not use this file except in compliance with the License.
@@ -18,18 +18,18 @@ using System;
 namespace CqlSharp.Network.Partition
 {
     /// <summary>
-    ///   Token as used to route a query to a node based on partition key column values.
+    /// Token as used to route a query to a node based on partition key column values.
     /// </summary>
     internal interface IToken : IComparable
     {
         /// <summary>
-        ///   Parses the specified token STR.
+        /// Parses the specified token STR.
         /// </summary>
         /// <param name="tokenStr"> The token STR. </param>
         void Parse(string tokenStr);
 
         /// <summary>
-        ///   Parses the specified partition key.
+        /// Parses the specified partition key.
         /// </summary>
         /// <param name="partitionKey"> The partition key. </param>
         void Parse(byte[] partitionKey);

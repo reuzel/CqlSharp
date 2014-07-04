@@ -1,5 +1,5 @@
 // CqlSharp - CqlSharp
-// Copyright (c) 2013 Joost Reuzel
+// Copyright (c) 2014 Joost Reuzel
 //   
 // Licensed under the Apache License, Version 2.0 (the "License");
 // you may not use this file except in compliance with the License.
@@ -69,7 +69,7 @@ namespace CqlSharp.Network.nSnappy
 
         public static Pointer operator +(Pointer pointer, uint value)
         {
-            return new Pointer(pointer._buffer, (int) (pointer._position + value), pointer._name);
+            return new Pointer(pointer._buffer, (int)(pointer._position + value), pointer._name);
         }
 
         public static Pointer operator -(Pointer pointer, int value)
@@ -85,7 +85,7 @@ namespace CqlSharp.Network.nSnappy
         public void Copy64(Pointer source, int offset = 0)
         {
             offset += _position;
-            for (var i = 0; i < 8; i++)
+            for(var i = 0; i < 8; i++)
             {
                 _buffer[offset + i] = source[i];
             }
@@ -93,8 +93,8 @@ namespace CqlSharp.Network.nSnappy
 
         public void WriteUInt16(int value)
         {
-            _buffer[_position] = (byte) (value & 0xff);
-            _buffer[_position + 1] = (byte) (value >> 8 & 0xff);
+            _buffer[_position] = (byte)(value & 0xff);
+            _buffer[_position + 1] = (byte)(value >> 8 & 0xff);
         }
 
         public uint ToUInt32(int offset = 0)
@@ -113,15 +113,15 @@ namespace CqlSharp.Network.nSnappy
         {
             var name = _name ?? "<???>";
             return _position == 0
-                       ? string.Format("{0}[{1}]", name, _buffer.Length)
-                       : string.Format("{0}[{1}]+{2}", name, _buffer.Length, _position);
+                ? string.Format("{0}[{1}]", name, _buffer.Length)
+                : string.Format("{0}[{1}]+{2}", name, _buffer.Length, _position);
         }
 
         public override bool Equals(object obj)
         {
-            if (ReferenceEquals(null, obj)) return false;
-            if (obj.GetType() != typeof (Pointer)) return false;
-            return Equals((Pointer) obj);
+            if(ReferenceEquals(null, obj)) return false;
+            if(obj.GetType() != typeof(Pointer)) return false;
+            return Equals((Pointer)obj);
         }
 
         public override int GetHashCode()

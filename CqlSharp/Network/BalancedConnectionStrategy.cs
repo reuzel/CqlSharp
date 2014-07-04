@@ -1,5 +1,5 @@
 // CqlSharp - CqlSharp
-// Copyright (c) 2013 Joost Reuzel
+// Copyright (c) 2014 Joost Reuzel
 //   
 // Licensed under the Apache License, Version 2.0 (the "License");
 // you may not use this file except in compliance with the License.
@@ -13,18 +13,18 @@
 // See the License for the specific language governing permissions and
 // limitations under the License.
 
-using CqlSharp.Network.Partition;
 using System.Linq;
 using System.Threading;
+using CqlSharp.Network.Partition;
 
 namespace CqlSharp.Network
 {
     /// <summary>
-    ///   This implementation attempts to balance the connections over the cluster based on load. First it will
-    ///   try to reuse an existing connection. If no connections exist, or if all connection loads are larger than
-    ///   the newConnectionTreshold, a new connection is created at a node with an as low as possible load. If that fails
-    ///   (e.g. because the max amount of connections per node is reached), an attempt is made to select the least used
-    ///   connection from the least used node.
+    /// This implementation attempts to balance the connections over the cluster based on load. First it will
+    /// try to reuse an existing connection. If no connections exist, or if all connection loads are larger than
+    /// the newConnectionTreshold, a new connection is created at a node with an as low as possible load. If that fails
+    /// (e.g. because the max amount of connections per node is reached), an attempt is made to select the least used
+    /// connection from the least used node.
     /// </summary>
     internal class BalancedConnectionStrategy : IConnectionStrategy
     {
@@ -33,7 +33,7 @@ namespace CqlSharp.Network
         private int _connectionCount;
 
         /// <summary>
-        ///   Initializes the strategy with the specified nodes and cluster configuration
+        /// Initializes the strategy with the specified nodes and cluster configuration
         /// </summary>
         /// <param name="nodes"> The nodes. </param>
         /// <param name="config"> The config. </param>
@@ -47,7 +47,7 @@ namespace CqlSharp.Network
         #region IConnectionStrategy Members
 
         /// <summary>
-        ///   Gets or creates connection to the cluster.
+        /// Gets or creates connection to the cluster.
         /// </summary>
         /// <param name="scope"> </param>
         /// <param name="partitionKey"> </param>
@@ -55,7 +55,7 @@ namespace CqlSharp.Network
         public Connection GetOrCreateConnection(ConnectionScope scope, PartitionKey partitionKey)
         {
             //provide connections on command level only
-            if (scope == ConnectionScope.Connection)
+            if(scope == ConnectionScope.Connection)
                 return null;
 
             //Sort the nodes by load (used first)
@@ -64,26 +64,26 @@ namespace CqlSharp.Network
                     n => n.ConnectionCount > 0 ? n.Load : _config.NewConnectionTreshold - 1);
 
             //no node found! weird...
-            if (leastUsedNode == null)
+            if(leastUsedNode == null)
                 return null;
 
             //try get a connection from it
             Connection connection = leastUsedNode.GetConnection();
 
             //smallest connection from smallest node
-            if (connection != null && connection.Load < _config.NewConnectionTreshold)
+            if(connection != null && connection.Load < _config.NewConnectionTreshold)
                 return connection;
 
-            if (_config.MaxConnections <= 0 || _connectionCount < _config.MaxConnections)
+            if(_config.MaxConnections <= 0 || _connectionCount < _config.MaxConnections)
             {
                 //try to get a new connection from this smallest node
                 Connection newConnection = leastUsedNode.CreateConnection();
 
-                if (newConnection != null)
+                if(newConnection != null)
                 {
                     Interlocked.Increment(ref _connectionCount);
                     newConnection.OnConnectionChange +=
-                        (c, ev) => { if (ev.Connected == false) Interlocked.Decrement(ref _connectionCount); };
+                        (c, ev) => { if(ev.Connected == false) Interlocked.Decrement(ref _connectionCount); };
 
                     return newConnection;
                 }
@@ -94,7 +94,7 @@ namespace CqlSharp.Network
 
 
         /// <summary>
-        ///   Invoked when a connection is no longer in use by the application
+        /// Invoked when a connection is no longer in use by the application
         /// </summary>
         /// <param name="connection"> The connection no longer used. </param>
         public void ReturnConnection(Connection connection, ConnectionScope scope)
@@ -103,7 +103,7 @@ namespace CqlSharp.Network
         }
 
         /// <summary>
-        ///   Gets a value indicating whether [provide exclusive connections].
+        /// Gets a value indicating whether [provide exclusive connections].
         /// </summary>
         /// <value> <c>true</c> if [provide exclusive connections]; otherwise, <c>false</c> . </value>
         public bool ProvidesExclusiveConnections

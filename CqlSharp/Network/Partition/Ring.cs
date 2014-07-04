@@ -1,5 +1,5 @@
 // CqlSharp - CqlSharp
-// Copyright (c) 2013 Joost Reuzel
+// Copyright (c) 2014 Joost Reuzel
 //   
 // Licensed under the Apache License, Version 2.0 (the "License");
 // you may not use this file except in compliance with the License.
@@ -16,14 +16,15 @@
 using System;
 using System.Collections;
 using System.Collections.Generic;
-using System.Threading;
 using System.Linq;
+using System.Threading;
 using CqlSharp.Logging;
+using CqlSharp.Protocol;
 
 namespace CqlSharp.Network.Partition
 {
     /// <summary>
-    ///   Ring of nodes, along with their token values
+    /// Ring of nodes, along with their token values
     /// </summary>
     internal class Ring : IList<Node>
     {
@@ -35,7 +36,7 @@ namespace CqlSharp.Network.Partition
         private Dictionary<IToken, List<Node>> _tokenMap;
 
         /// <summary>
-        ///   Initializes a new instance of the <see cref="Ring" /> class.
+        /// Initializes a new instance of the <see cref="Ring" /> class.
         /// </summary>
         /// <param name="nodes"> The nodes. </param>
         /// <param name="partitioner"> </param>
@@ -50,23 +51,26 @@ namespace CqlSharp.Network.Partition
         #region IList<Node> Members
 
         /// <summary>
-        ///   Returns an enumerator that iterates through the collection.
+        /// Returns an enumerator that iterates through the collection.
         /// </summary>
-        /// <returns> A <see cref="T:System.Collections.Generic.IEnumerator`1" /> that can be used to iterate through the collection. </returns>
+        /// <returns>
+        /// A <see cref="T:System.Collections.Generic.IEnumerator`1" /> that can be used to iterate through the
+        /// collection.
+        /// </returns>
         /// <filterpriority>1</filterpriority>
         public IEnumerator<Node> GetEnumerator()
         {
             int count = _nodeCount;
 
-            for (int i = 0; i < count; i++)
+            for(int i = 0; i < count; i++)
             {
                 Node node = null;
                 _nodeLock.EnterReadLock();
-                if (i < _nodes.Count)
+                if(i < _nodes.Count)
                     node = _nodes[i];
                 _nodeLock.ExitReadLock();
 
-                if (node != null)
+                if(node != null)
                     yield return node;
                 else
                     yield break;
@@ -74,7 +78,7 @@ namespace CqlSharp.Network.Partition
         }
 
         /// <summary>
-        ///   Returns an enumerator that iterates through a collection.
+        /// Returns an enumerator that iterates through a collection.
         /// </summary>
         /// <returns> An <see cref="T:System.Collections.IEnumerator" /> object that can be used to iterate through the collection. </returns>
         /// <filterpriority>2</filterpriority>
@@ -82,30 +86,31 @@ namespace CqlSharp.Network.Partition
         {
             return GetEnumerator();
         }
-                
+
         /// <summary>
         /// Adds a range of nodes
         /// </summary>
         /// <param name="items"></param>
         public void AddRange(IEnumerable<Node> items)
         {
-            
         }
-        
+
         /// <summary>
-        ///   Adds an item to the <see cref="T:System.Collections.Generic.ICollection`1" />.
+        /// Adds an item to the <see cref="T:System.Collections.Generic.ICollection`1" />.
         /// </summary>
         /// <param name="item"> The object to add to the <see cref="T:System.Collections.Generic.ICollection`1" /> . </param>
-        /// <exception cref="T:System.NotSupportedException">The
-        ///   <see cref="T:System.Collections.Generic.ICollection`1" />
-        ///   is read-only.</exception>
+        /// <exception cref="T:System.NotSupportedException">
+        /// The
+        /// <see cref="T:System.Collections.Generic.ICollection`1" />
+        /// is read-only.
+        /// </exception>
         public void Add(Node item)
         {
             _nodeLock.EnterWriteLock();
 
             try
             {
-                if (!_nodes.Contains(item))
+                if(!_nodes.Contains(item))
                 {
                     _nodes.Add(item);
                     _nodeCount++;
@@ -119,11 +124,13 @@ namespace CqlSharp.Network.Partition
         }
 
         /// <summary>
-        ///   Removes all items from the <see cref="T:System.Collections.Generic.ICollection`1" />.
+        /// Removes all items from the <see cref="T:System.Collections.Generic.ICollection`1" />.
         /// </summary>
-        /// <exception cref="T:System.NotSupportedException">The
-        ///   <see cref="T:System.Collections.Generic.ICollection`1" />
-        ///   is read-only.</exception>
+        /// <exception cref="T:System.NotSupportedException">
+        /// The
+        /// <see cref="T:System.Collections.Generic.ICollection`1" />
+        /// is read-only.
+        /// </exception>
         public void Clear()
         {
             _nodeLock.EnterWriteLock();
@@ -142,9 +149,12 @@ namespace CqlSharp.Network.Partition
         }
 
         /// <summary>
-        ///   Determines whether the <see cref="T:System.Collections.Generic.ICollection`1" /> contains a specific value.
+        /// Determines whether the <see cref="T:System.Collections.Generic.ICollection`1" /> contains a specific value.
         /// </summary>
-        /// <returns> true if <paramref name="item" /> is found in the <see cref="T:System.Collections.Generic.ICollection`1" /> ; otherwise, false. </returns>
+        /// <returns>
+        /// true if <paramref name="item" /> is found in the <see cref="T:System.Collections.Generic.ICollection`1" /> ;
+        /// otherwise, false.
+        /// </returns>
         /// <param name="item"> The object to locate in the <see cref="T:System.Collections.Generic.ICollection`1" /> . </param>
         public bool Contains(Node item)
         {
@@ -161,25 +171,36 @@ namespace CqlSharp.Network.Partition
         }
 
         /// <summary>
-        ///   Copies the elements of the <see cref="T:System.Collections.Generic.ICollection`1" /> to an <see cref="T:System.Array" />, starting at a particular <see
-        ///    cref="T:System.Array" /> index.
+        /// Copies the elements of the <see cref="T:System.Collections.Generic.ICollection`1" /> to an
+        /// <see cref="T:System.Array" />, starting at a particular
+        /// <see
+        ///     cref="T:System.Array" />
+        /// index.
         /// </summary>
-        /// <param name="array"> The one-dimensional <see cref="T:System.Array" /> that is the destination of the elements copied from <see
-        ///    cref="T:System.Collections.Generic.ICollection`1" /> . The <see cref="T:System.Array" /> must have zero-based indexing. </param>
+        /// <param name="array">
+        /// The one-dimensional <see cref="T:System.Array" /> that is the destination of the elements copied from
+        /// <see
+        ///     cref="T:System.Collections.Generic.ICollection`1" />
+        /// . The <see cref="T:System.Array" /> must have zero-based indexing.
+        /// </param>
         /// <param name="arrayIndex"> The zero-based index in <paramref name="array" /> at which copying begins. </param>
         /// <exception cref="T:System.ArgumentNullException">
-        ///   <paramref name="array" />
-        ///   is null.</exception>
+        /// <paramref name="array" />
+        /// is null.
+        /// </exception>
         /// <exception cref="T:System.ArgumentOutOfRangeException">
-        ///   <paramref name="arrayIndex" />
-        ///   is less than 0.</exception>
-        /// <exception cref="T:System.ArgumentException">The number of elements in the source
-        ///   <see cref="T:System.Collections.Generic.ICollection`1" />
-        ///   is greater than the available space from
-        ///   <paramref name="arrayIndex" />
-        ///   to the end of the destination
-        ///   <paramref name="array" />
-        ///   .</exception>
+        /// <paramref name="arrayIndex" />
+        /// is less than 0.
+        /// </exception>
+        /// <exception cref="T:System.ArgumentException">
+        /// The number of elements in the source
+        /// <see cref="T:System.Collections.Generic.ICollection`1" />
+        /// is greater than the available space from
+        /// <paramref name="arrayIndex" />
+        /// to the end of the destination
+        /// <paramref name="array" />
+        /// .
+        /// </exception>
         public void CopyTo(Node[] array, int arrayIndex)
         {
             _nodeLock.EnterReadLock();
@@ -195,22 +216,30 @@ namespace CqlSharp.Network.Partition
         }
 
         /// <summary>
-        ///   Removes the first occurrence of a specific object from the <see cref="T:System.Collections.Generic.ICollection`1" />.
+        /// Removes the first occurrence of a specific object from the <see cref="T:System.Collections.Generic.ICollection`1" />.
         /// </summary>
-        /// <returns> true if <paramref name="item" /> was successfully removed from the <see
-        ///    cref="T:System.Collections.Generic.ICollection`1" /> ; otherwise, false. This method also returns false if <paramref
-        ///    name="item" /> is not found in the original <see cref="T:System.Collections.Generic.ICollection`1" /> . </returns>
+        /// <returns>
+        /// true if <paramref name="item" /> was successfully removed from the
+        /// <see
+        ///     cref="T:System.Collections.Generic.ICollection`1" />
+        /// ; otherwise, false. This method also returns false if
+        /// <paramref
+        ///     name="item" />
+        /// is not found in the original <see cref="T:System.Collections.Generic.ICollection`1" /> .
+        /// </returns>
         /// <param name="item"> The object to remove from the <see cref="T:System.Collections.Generic.ICollection`1" /> . </param>
-        /// <exception cref="T:System.NotSupportedException">The
-        ///   <see cref="T:System.Collections.Generic.ICollection`1" />
-        ///   is read-only.</exception>
+        /// <exception cref="T:System.NotSupportedException">
+        /// The
+        /// <see cref="T:System.Collections.Generic.ICollection`1" />
+        /// is read-only.
+        /// </exception>
         public bool Remove(Node item)
         {
             _nodeLock.EnterWriteLock();
 
             try
             {
-                if (_nodes.Remove(item))
+                if(_nodes.Remove(item))
                 {
                     _nodeCount--;
                     RebuildMap();
@@ -226,7 +255,7 @@ namespace CqlSharp.Network.Partition
         }
 
         /// <summary>
-        ///   Gets the number of elements contained in the <see cref="T:System.Collections.Generic.ICollection`1" />.
+        /// Gets the number of elements contained in the <see cref="T:System.Collections.Generic.ICollection`1" />.
         /// </summary>
         /// <returns> The number of elements contained in the <see cref="T:System.Collections.Generic.ICollection`1" /> . </returns>
         public int Count
@@ -235,7 +264,7 @@ namespace CqlSharp.Network.Partition
         }
 
         /// <summary>
-        ///   Gets a value indicating whether the <see cref="T:System.Collections.Generic.ICollection`1" /> is read-only.
+        /// Gets a value indicating whether the <see cref="T:System.Collections.Generic.ICollection`1" /> is read-only.
         /// </summary>
         /// <returns> true if the <see cref="T:System.Collections.Generic.ICollection`1" /> is read-only; otherwise, false. </returns>
         public bool IsReadOnly
@@ -244,7 +273,7 @@ namespace CqlSharp.Network.Partition
         }
 
         /// <summary>
-        ///   Determines the index of a specific item in the <see cref="T:System.Collections.Generic.IList`1" />.
+        /// Determines the index of a specific item in the <see cref="T:System.Collections.Generic.IList`1" />.
         /// </summary>
         /// <returns> The index of <paramref name="item" /> if found in the list; otherwise, -1. </returns>
         /// <param name="item"> The object to locate in the <see cref="T:System.Collections.Generic.IList`1" /> . </param>
@@ -263,18 +292,21 @@ namespace CqlSharp.Network.Partition
         }
 
         /// <summary>
-        ///   Inserts an item to the <see cref="T:System.Collections.Generic.IList`1" /> at the specified index.
+        /// Inserts an item to the <see cref="T:System.Collections.Generic.IList`1" /> at the specified index.
         /// </summary>
         /// <param name="index"> The zero-based index at which <paramref name="item" /> should be inserted. </param>
         /// <param name="item"> The object to insert into the <see cref="T:System.Collections.Generic.IList`1" /> . </param>
         /// <exception cref="T:System.ArgumentOutOfRangeException">
-        ///   <paramref name="index" />
-        ///   is not a valid index in the
-        ///   <see cref="T:System.Collections.Generic.IList`1" />
-        ///   .</exception>
-        /// <exception cref="T:System.NotSupportedException">The
-        ///   <see cref="T:System.Collections.Generic.IList`1" />
-        ///   is read-only.</exception>
+        /// <paramref name="index" />
+        /// is not a valid index in the
+        /// <see cref="T:System.Collections.Generic.IList`1" />
+        /// .
+        /// </exception>
+        /// <exception cref="T:System.NotSupportedException">
+        /// The
+        /// <see cref="T:System.Collections.Generic.IList`1" />
+        /// is read-only.
+        /// </exception>
         public void Insert(int index, Node item)
         {
             _nodeLock.EnterWriteLock();
@@ -292,17 +324,20 @@ namespace CqlSharp.Network.Partition
         }
 
         /// <summary>
-        ///   Removes the <see cref="T:System.Collections.Generic.IList`1" /> item at the specified index.
+        /// Removes the <see cref="T:System.Collections.Generic.IList`1" /> item at the specified index.
         /// </summary>
         /// <param name="index"> The zero-based index of the item to remove. </param>
         /// <exception cref="T:System.ArgumentOutOfRangeException">
-        ///   <paramref name="index" />
-        ///   is not a valid index in the
-        ///   <see cref="T:System.Collections.Generic.IList`1" />
-        ///   .</exception>
-        /// <exception cref="T:System.NotSupportedException">The
-        ///   <see cref="T:System.Collections.Generic.IList`1" />
-        ///   is read-only.</exception>
+        /// <paramref name="index" />
+        /// is not a valid index in the
+        /// <see cref="T:System.Collections.Generic.IList`1" />
+        /// .
+        /// </exception>
+        /// <exception cref="T:System.NotSupportedException">
+        /// The
+        /// <see cref="T:System.Collections.Generic.IList`1" />
+        /// is read-only.
+        /// </exception>
         public void RemoveAt(int index)
         {
             _nodeLock.EnterWriteLock();
@@ -320,18 +355,21 @@ namespace CqlSharp.Network.Partition
         }
 
         /// <summary>
-        ///   Gets or sets the element at the specified index.
+        /// Gets or sets the element at the specified index.
         /// </summary>
         /// <returns> The element at the specified index. </returns>
         /// <param name="index"> The zero-based index of the element to get or set. </param>
         /// <exception cref="T:System.ArgumentOutOfRangeException">
-        ///   <paramref name="index" />
-        ///   is not a valid index in the
-        ///   <see cref="T:System.Collections.Generic.IList`1" />
-        ///   .</exception>
-        /// <exception cref="T:System.NotSupportedException">The property is set and the
-        ///   <see cref="T:System.Collections.Generic.IList`1" />
-        ///   is read-only.</exception>
+        /// <paramref name="index" />
+        /// is not a valid index in the
+        /// <see cref="T:System.Collections.Generic.IList`1" />
+        /// .
+        /// </exception>
+        /// <exception cref="T:System.NotSupportedException">
+        /// The property is set and the
+        /// <see cref="T:System.Collections.Generic.IList`1" />
+        /// is read-only.
+        /// </exception>
         public Node this[int index]
         {
             get
@@ -366,19 +404,19 @@ namespace CqlSharp.Network.Partition
         #endregion
 
         /// <summary>
-        ///   Creates a token
+        /// Creates a token
         /// </summary>
         /// <returns> </returns>
         private IToken CreateToken()
         {
             IToken token;
-            if (_partitioner.EndsWith("Murmur3Partitioner", StringComparison.InvariantCultureIgnoreCase))
+            if(_partitioner.EndsWith("Murmur3Partitioner", StringComparison.InvariantCultureIgnoreCase))
                 token = new MurmurToken();
 
-            else if (_partitioner.EndsWith("RandomPartitioner", StringComparison.InvariantCultureIgnoreCase))
+            else if(_partitioner.EndsWith("RandomPartitioner", StringComparison.InvariantCultureIgnoreCase))
                 token = new MD5Token();
 
-            else if (_partitioner.EndsWith("OrderedPartitioner", StringComparison.InvariantCultureIgnoreCase))
+            else if(_partitioner.EndsWith("OrderedPartitioner", StringComparison.InvariantCultureIgnoreCase))
                 token = new ByteArrayToken();
 
             else
@@ -388,30 +426,28 @@ namespace CqlSharp.Network.Partition
         }
 
         /// <summary>
-        ///   Rebuilds the token to node map
+        /// Rebuilds the token to node map
         /// </summary>
         private void RebuildMap()
         {
             _tokens.Clear();
             _tokenMap = new Dictionary<IToken, List<Node>>();
 
-            foreach (var node in _nodes)
+            foreach(var node in _nodes)
             {
-                foreach (var tokenString in node.Tokens)
+                foreach(var tokenString in node.Tokens)
                 {
                     IToken token = CreateToken();
 
                     //unknown partitioner
-                    if (token == null)
+                    if(token == null)
                         return;
 
                     token.Parse(tokenString);
                     _tokens.Add(token);
 
-                    if (!_tokenMap.ContainsKey(token))
-                    {
+                    if(!_tokenMap.ContainsKey(token))
                         _tokenMap.Add(token, new List<Node>());
-                    }
 
                     _tokenMap[token].Add(node);
                 }
@@ -421,7 +457,7 @@ namespace CqlSharp.Network.Partition
         }
 
         /// <summary>
-        ///   Gets the responsible nodes.
+        /// Gets the responsible nodes.
         /// </summary>
         /// <param name="key"> The partition key </param>
         /// <returns> </returns>
@@ -435,7 +471,7 @@ namespace CqlSharp.Network.Partition
                 IToken token = CreateToken();
 
                 //unknown partitioner
-                if (token == null)
+                if(token == null)
                     return null;
 
                 //parse the key into a token value
@@ -443,14 +479,14 @@ namespace CqlSharp.Network.Partition
 
                 // Find the primary replica
                 int i = _tokens.BinarySearch(token);
-                if (i < 0)
+                if(i < 0)
                 {
                     //not found, searh resulted in -(first index larger than token)
                     //get first smaller than token
                     i = ~i - 1;
 
                     //correct any boundary mistakes
-                    if (i >= _tokens.Count || i < 0)
+                    if(i >= _tokens.Count || i < 0)
                         i = 0;
                 }
 
@@ -466,16 +502,16 @@ namespace CqlSharp.Network.Partition
         internal void Update(List<Node> found, string partitioner, Logger logger)
         {
             _nodeLock.EnterWriteLock();
-            
+
             try
             {
                 _partitioner = partitioner;
 
-                foreach (var node in found)
+                foreach(var node in found)
                 {
                     var index = _nodes.IndexOf(node);
 
-                    if(index<0)
+                    if(index < 0)
                     {
                         //the node is new, add it
                         logger.LogInfo("{0} was added to the cluster", node);
@@ -489,15 +525,15 @@ namespace CqlSharp.Network.Partition
                         oldNode.DataCenter = node.DataCenter;
                         oldNode.Rack = node.Rack;
                         oldNode.Tokens = node.Tokens;
-                        oldNode.FrameVersion = Protocol.FrameVersion.ProtocolVersion2;
+                        oldNode.FrameVersion = FrameVersion.ProtocolVersion2;
                     }
                 }
 
                 //remove nodes not found
-                foreach (var node in _nodes.Except(found))
+                foreach(var node in _nodes.Except(found))
                 {
                     logger.LogInfo("{0} was removed from the cluster", node);
-                    
+
                     //remove from list
                     _nodes.Remove(node);
                     _nodeCount--;

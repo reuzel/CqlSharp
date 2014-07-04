@@ -1,5 +1,5 @@
 ﻿// CqlSharp - CqlTest
-// Copyright (c) 2013 Joost Reuzel
+// Copyright (c) 2014 Joost Reuzel
 //   
 // Licensed under the Apache License, Version 2.0 (the "License");
 // you may not use this file except in compliance with the License.
@@ -13,7 +13,6 @@
 // See the License for the specific language governing permissions and
 // limitations under the License.
 
-using CqlSharp;
 using System;
 using System.Collections.Concurrent;
 using System.Collections.Generic;
@@ -25,7 +24,7 @@ using System.Threading.Tasks;
 namespace CqlTest
 {
     /// <summary>
-    ///   Utility program that executes a set of tests. Usefull for profiling purposes...
+    /// Utility program that executes a set of tests. Usefull for profiling purposes...
     /// </summary>
     internal class Program
     {
@@ -44,12 +43,12 @@ namespace CqlTest
             int groupId = 0;
             int nr = Interlocked.Increment(ref _count);
 
-            while (nr <= _queries)
+            while(nr <= _queries)
             {
                 long start = _stopwatch.ElapsedMilliseconds;
                 await _manager.AddCartAsync(_groups[groupId]);
                 long stop = _stopwatch.ElapsedMilliseconds;
-                lock (list) list.AddLast(stop - start);
+                lock(list) list.AddLast(stop - start);
                 groupId = (groupId + 1)%_groups.Length;
                 nr = Interlocked.Increment(ref _count);
             }
@@ -62,7 +61,7 @@ namespace CqlTest
             int groupId = 0;
             int cartIndex = 0;
             int nr = Interlocked.Increment(ref _count);
-            while (nr <= _queries)
+            while(nr <= _queries)
             {
                 Cart cart = carts[cartIndex];
                 cart.GroupId = _groups[groupId];
@@ -74,7 +73,7 @@ namespace CqlTest
 
                 long stop = _stopwatch.ElapsedMilliseconds;
 
-                lock (list) list.AddLast(stop - start);
+                lock(list) list.AddLast(stop - start);
 
                 groupId = (groupId + 1)%_groups.Length;
                 cartIndex = (cartIndex + 1)%carts.Length;
@@ -88,7 +87,7 @@ namespace CqlTest
 
             int cartIndex = 0;
             int nr = Interlocked.Increment(ref _count);
-            while (nr <= _queries)
+            while(nr <= _queries)
             {
                 Cart cart = carts[cartIndex];
                 var items = new Dictionary<string, int> {{"item1_" + nr, nr}, {"item2_" + nr, nr}};
@@ -99,7 +98,7 @@ namespace CqlTest
 
                 long stop = _stopwatch.ElapsedMilliseconds;
 
-                lock (list) list.AddLast(stop - start);
+                lock(list) list.AddLast(stop - start);
 
                 cartIndex = (cartIndex + 1)%carts.Length;
                 nr = Interlocked.Increment(ref _count);
@@ -112,7 +111,7 @@ namespace CqlTest
 
             int cartIndex = 0;
             int nr = Interlocked.Increment(ref _count);
-            while (nr <= _queries)
+            while(nr <= _queries)
             {
                 Cart cart = carts[cartIndex];
 
@@ -122,7 +121,7 @@ namespace CqlTest
 
                 long stop = _stopwatch.ElapsedMilliseconds;
 
-                lock (list) list.AddLast(stop - start);
+                lock(list) list.AddLast(stop - start);
 
                 cartIndex = (cartIndex + 1)%carts.Length;
                 nr = Interlocked.Increment(ref _count);
@@ -135,13 +134,13 @@ namespace CqlTest
 
             int groupId = 0;
             int nr = Interlocked.Increment(ref _count);
-            while (nr <= _queries)
+            while(nr <= _queries)
             {
                 long start = _stopwatch.ElapsedMilliseconds;
                 await _manager.FindCartsByGroupIdAsync(_groups[groupId]);
                 long stop = _stopwatch.ElapsedMilliseconds;
 
-                lock (list) list.AddLast(stop - start);
+                lock(list) list.AddLast(stop - start);
 
                 groupId = (groupId + 1)%_groups.Length;
                 nr = Interlocked.Increment(ref _count);
@@ -163,7 +162,7 @@ namespace CqlTest
             _manager.PrepareDbAsync().Wait();
             var cartTasks = new Task<Cart>[prepared];
             int groupId = 0;
-            for (int i = 0; i < prepared; i++)
+            for(int i = 0; i < prepared; i++)
             {
                 cartTasks[i] = _manager.AddCartAsync(_groups[groupId]);
                 groupId = (groupId + 1)%_groups.Length;
@@ -178,7 +177,7 @@ namespace CqlTest
             _stopwatch.Start();
             var doTasks = new LinkedList<Task>();
 
-            for (int i = 0; i < threads; i++)
+            for(int i = 0; i < threads; i++)
             {
                 doTasks.AddLast(DoAddCarts());
                 doTasks.AddLast(DoAddItems(carts));
@@ -193,7 +192,7 @@ namespace CqlTest
 
             //print results
             Console.WriteLine("Total tasks run: {0} in {1} ({2} req/s)", queries, _stopwatch.Elapsed,
-                              DoubleString((double) queries/_stopwatch.ElapsedMilliseconds*1000));
+                              DoubleString((double)queries/_stopwatch.ElapsedMilliseconds*1000));
 
 #if debug
             Console.WriteLine(MemoryPool.Instance);
@@ -202,10 +201,8 @@ namespace CqlTest
             WriteRow("", "Calls", "Avg", "Median", "Min", "Max");
             WriteStatistics("Total", _times.SelectMany(vls => vls.Value));
             Console.WriteLine(new string('-', 60));
-            foreach (var call in _times)
-            {
+            foreach(var call in _times)
                 WriteStatistics(call.Key, call.Value);
-            }
 
             _manager.Shutdown();
         }
@@ -226,14 +223,10 @@ namespace CqlTest
             Array.Sort(array);
 
             long median;
-            if (array.Length%2 == 1)
-            {
+            if(array.Length%2 == 1)
                 median = array[array.Length/2 + 1];
-            }
             else
-            {
                 median = (array[array.Length/2] + array[array.Length/2 + 1])/2;
-            }
 
             WriteRow(name, array.Length, DoubleString(array.Average()), DoubleString(median), DoubleString(array[0]),
                      DoubleString(array[array.Length - 1]));
@@ -264,10 +257,8 @@ namespace CqlTest
         {
             var array = values.ToArray();
             Array.Sort(array);
-            if (array.Length%2 == 1)
-            {
+            if(array.Length%2 == 1)
                 return array[array.Length/2 + 1];
-            }
 
             return (array[array.Length/2] + array[array.Length/2 + 1])/2;
         }

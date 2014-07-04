@@ -1,5 +1,5 @@
 // CqlSharp - CqlSharp
-// Copyright (c) 2013 Joost Reuzel
+// Copyright (c) 2014 Joost Reuzel
 //   
 // Licensed under the Apache License, Version 2.0 (the "License");
 // you may not use this file except in compliance with the License.
@@ -13,11 +13,10 @@
 // See the License for the specific language governing permissions and
 // limitations under the License.
 
-
 namespace CqlSharp.Protocol
 {
     /// <summary>
-    ///   A description of a single Cql column. Used to describe input to a Cql prepared query, or result of a select query.
+    /// A description of a single Cql column. Used to describe input to a Cql prepared query, or result of a select query.
     /// </summary>
     internal class Column
     {
@@ -33,7 +32,7 @@ namespace CqlSharp.Protocol
         }
 
         /// <summary>
-        ///   Initializes a new instance of the <see cref="Column" /> class.
+        /// Initializes a new instance of the <see cref="Column" /> class.
         /// </summary>
         /// <param name="index"> The index. </param>
         /// <param name="keyspace"> The keyspace. </param>
@@ -84,17 +83,13 @@ namespace CqlSharp.Protocol
             }
         }
 
-        public CqlType Type
-        {
-            get;
-            set;
-        }
+        public CqlType Type { get; set; }
 
         public string KeySpaceTableAndName
         {
             get
             {
-                if (_ksTableName == null)
+                if(_ksTableName == null)
                 {
                     _ksTableName = (Keyspace != null ? Keyspace + "." : string.Empty) +
                                    (Table != null ? Table + "." : string.Empty) +
@@ -109,13 +104,11 @@ namespace CqlSharp.Protocol
         {
             get
             {
-                if (_tableName == null)
+                if(_tableName == null)
                     _tableName = (Table != null ? Table + "." : "") + Name;
 
                 return _tableName;
             }
         }
-
-
     }
 }

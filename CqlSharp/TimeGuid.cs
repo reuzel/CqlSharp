@@ -1,5 +1,5 @@
 ﻿// CqlSharp - CqlSharp
-// Copyright (c) 2013 Joost Reuzel
+// Copyright (c) 2014 Joost Reuzel
 //   
 // Licensed under the Apache License, Version 2.0 (the "License");
 // you may not use this file except in compliance with the License.
@@ -18,15 +18,14 @@ using System;
 namespace CqlSharp
 {
     /// <summary>
-    ///   Helper class to generate Time based GUIDs.
+    /// Helper class to generate Time based GUIDs.
     /// </summary>
     /// <remarks>
-    /// The TimeGuid generation does not completely follow the RFC4122 recommendations, to allow 
+    /// The TimeGuid generation does not completely follow the RFC4122 recommendations, to allow
     /// for more Guids to be created per 100ns time frame. The used algorithm will increment the
     /// clockId when a uuid is requested with the same timestamp as the previous. When the clockId
     /// runs out (it has 2^14 possible values), the provided timestamp is incremented by 1, and the
-    /// clockId is reset. 
-    /// 
+    /// clockId is reset.
     /// When the clock is set backwards, a high chance of collision is there when guids are generated
     /// at high speeds. To prevent collisions, not the clockId is incremented (as recommended in
     /// RFC4122), but a new nodeId is generated.
@@ -38,7 +37,7 @@ namespace CqlSharp
         /// <summary>
         /// The default Time Guid (nodeId, time and sequence all set to 0, but having the version number set to timeguid)
         /// </summary>
-        public static readonly Guid Default = GenerateTimeBasedGuid(0, 0, new byte[] { 0, 0, 0, 0, 0, 0 });
+        public static readonly Guid Default = GenerateTimeBasedGuid(0, 0, new byte[] {0, 0, 0, 0, 0, 0});
 
         // multiplex version info
         private const int VersionByte = 7;
@@ -63,13 +62,13 @@ namespace CqlSharp
         private static int _timeSequenceNumber;
 
         /// <summary>
-        /// Initializes the <see cref="TimeGuid"/> class.
+        /// Initializes the <see cref="TimeGuid" /> class.
         /// </summary>
         static TimeGuid()
         {
             _nodeId = CreateNodeId();
-            ClockSequenceSeed = Random.Next() % MaxClockId;
-            _clockSequenceNumber = (ClockSequenceSeed + 1) % MaxClockId;
+            ClockSequenceSeed = Random.Next()%MaxClockId;
+            _clockSequenceNumber = (ClockSequenceSeed + 1)%MaxClockId;
         }
 
         /// <summary>
@@ -122,11 +121,14 @@ namespace CqlSharp
         /// Generates a time based unique identifier.
         /// </summary>
         /// <param name="dateTime">The date time.</param>
-        /// <param name="node">The node. Must either be null or a 6 byte array. When set to null (recommended), a random node id will be provided</param>
+        /// <param name="node">
+        /// The node. Must either be null or a 6 byte array. When set to null (recommended), a random node id
+        /// will be provided
+        /// </param>
         /// <returns></returns>
         public static Guid GenerateTimeBasedGuid(this DateTime dateTime, byte[] node = null)
         {
-            if (node != null && node.Length != 6)
+            if(node != null && node.Length != 6)
                 throw new ArgumentException("Node must either be null or a byte[] of length 6", "node");
 
             //get the 100ns since calendar start
@@ -136,14 +138,14 @@ namespace CqlSharp
             int sequence;
             byte[] nodeId;
 
-            lock (SyncLock)
+            lock(SyncLock)
             {
                 //generate a new nodeId when clock is set backward (to avoid collisions with earlier created uuids)
-                if (time < _lastTime)
+                if(time < _lastTime)
                     _nodeId = CreateNodeId();
 
                 //if time changed, reset sequence numbers
-                if (time != _lastTime)
+                if(time != _lastTime)
                 {
                     _clockSequenceNumber = ClockSequenceSeed;
                     _timeSequenceNumber = 0;
@@ -151,11 +153,11 @@ namespace CqlSharp
                 else
                 {
                     //increment time if we are out of clockIds
-                    if (_clockSequenceNumber == ClockSequenceSeed)
+                    if(_clockSequenceNumber == ClockSequenceSeed)
                         _timeSequenceNumber = _timeSequenceNumber + 1;
 
                     //increment clockId
-                    _clockSequenceNumber = (_clockSequenceNumber + 1) % MaxClockId;
+                    _clockSequenceNumber = (_clockSequenceNumber + 1)%MaxClockId;
                 }
 
                 //cache this time
@@ -185,7 +187,8 @@ namespace CqlSharp
             var seqLow = (byte)(sequence & 0xFF);
             var seqHiAndReserved = (byte)(((sequence & 0x3F00) >> 8) | 0x80);
 
-            var guid = new Guid(timeLow, timeMid, timeHiAndVersion, seqHiAndReserved, seqLow, nodeId[0], nodeId[1], nodeId[2],
+            var guid = new Guid(timeLow, timeMid, timeHiAndVersion, seqHiAndReserved, seqLow, nodeId[0], nodeId[1],
+                                nodeId[2],
                                 nodeId[3], nodeId[4], nodeId[5]);
 
             return guid;

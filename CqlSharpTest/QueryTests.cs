@@ -1,5 +1,5 @@
 ﻿// CqlSharp - CqlSharp.Test
-// Copyright (c) 2013 Joost Reuzel
+// Copyright (c) 2014 Joost Reuzel
 //   
 // Licensed under the Apache License, Version 2.0 (the "License");
 // you may not use this file except in compliance with the License.
@@ -13,15 +13,15 @@
 // See the License for the specific language governing permissions and
 // limitations under the License.
 
-using CqlSharp.Protocol;
-using CqlSharp.Serialization;
-using CqlSharp.Tracing;
-using Microsoft.VisualStudio.TestTools.UnitTesting;
 using System;
 using System.Data;
 using System.Linq;
 using System.Threading;
 using System.Threading.Tasks;
+using CqlSharp.Protocol;
+using CqlSharp.Serialization;
+using CqlSharp.Tracing;
+using Microsoft.VisualStudio.TestTools.UnitTesting;
 
 // ReSharper disable UseObjectOrCollectionInitializer
 
@@ -41,7 +41,7 @@ namespace CqlSharp.Test
             const string createTableCql = @"create table Test.BasicFlow (id int primary key, value text, ignored text);";
 
 
-            using (var connection = new CqlConnection(ConnectionString))
+            using(var connection = new CqlConnection(ConnectionString))
             {
                 connection.SetConnectionTimeout(0);
                 connection.Open();
@@ -51,7 +51,7 @@ namespace CqlSharp.Test
                     var createKs = new CqlCommand(connection, createKsCql);
                     createKs.ExecuteNonQuery();
                 }
-                catch (AlreadyExistsException)
+                catch(AlreadyExistsException)
                 {
                     //ignore
                 }
@@ -61,7 +61,7 @@ namespace CqlSharp.Test
                     var createTable = new CqlCommand(connection, createTableCql);
                     createTable.ExecuteNonQuery();
                 }
-                catch (AlreadyExistsException)
+                catch(AlreadyExistsException)
                 {
                 }
             }
@@ -72,7 +72,7 @@ namespace CqlSharp.Test
         {
             const string dropCql = @"drop keyspace Test;";
 
-            using (var connection = new CqlConnection(ConnectionString))
+            using(var connection = new CqlConnection(ConnectionString))
             {
                 connection.Open();
 
@@ -81,7 +81,7 @@ namespace CqlSharp.Test
                     var drop = new CqlCommand(connection, dropCql);
                     drop.ExecuteNonQuery();
                 }
-                catch (InvalidException)
+                catch(InvalidException)
                 {
                     //ignore
                 }
@@ -95,7 +95,7 @@ namespace CqlSharp.Test
         {
             const string truncateTableCql = @"truncate Test.BasicFlow;";
 
-            using (var connection = new CqlConnection(ConnectionString))
+            using(var connection = new CqlConnection(ConnectionString))
             {
                 connection.Open();
                 var truncTable = new CqlCommand(connection, truncateTableCql);
@@ -112,7 +112,7 @@ namespace CqlSharp.Test
             const string retrieveCql = @"select * from Test.BasicFlow;";
 
             //Act
-            using (var connection = new CqlConnection(ConnectionString))
+            using(var connection = new CqlConnection(ConnectionString))
             {
                 await connection.OpenAsync();
 
@@ -120,19 +120,19 @@ namespace CqlSharp.Test
                 var cmd = new CqlCommand(connection, insertCql, CqlConsistency.One);
                 await cmd.PrepareAsync();
 
-                var b = new BasicFlowData { Id = 123, Data = "Hallo", Ignored = "none" };
+                var b = new BasicFlowData {Id = 123, Data = "Hallo", Ignored = "none"};
                 cmd.PartitionKey.Set(b);
                 cmd.Parameters.Set(b);
 
                 await cmd.ExecuteNonQueryAsync();
 
                 //select data
-                var selectCmd = new CqlCommand(connection, retrieveCql, CqlConsistency.One) { EnableTracing = true };
+                var selectCmd = new CqlCommand(connection, retrieveCql, CqlConsistency.One) {EnableTracing = true};
                 await selectCmd.PrepareAsync();
 
                 CqlDataReader<BasicFlowData> reader = await selectCmd.ExecuteReaderAsync<BasicFlowData>();
                 Assert.AreEqual(1, reader.Count);
-                if (await reader.ReadAsync())
+                if(await reader.ReadAsync())
                 {
                     BasicFlowData row = reader.Current;
                     Assert.AreEqual(123, row.Id);
@@ -140,16 +140,14 @@ namespace CqlSharp.Test
                     Assert.IsNull(row.Ignored);
                 }
                 else
-                {
                     Assert.Fail("Read should have succeeded");
-                }
             }
         }
 
         [TestMethod]
         // ReSharper disable InconsistentNaming
         public void Issue19_PrepareAndSelectCountStar()
-        // ReSharper restore InconsistentNaming
+            // ReSharper restore InconsistentNaming
         {
             //Assume
             const string insertCql = @"select count(*) from system.schema_keyspaces;";
@@ -157,13 +155,13 @@ namespace CqlSharp.Test
             long count;
 
             //Act
-            using (var connection = new CqlConnection(ConnectionString))
+            using(var connection = new CqlConnection(ConnectionString))
             {
                 connection.Open();
 
                 //known issue in Cassandra 2.0.0 and 2.0.1. Prepare returns wrong results for count(*) queries
                 Assert.IsNotNull(connection.ServerVersion);
-                if (connection.ServerVersion.Equals("2.0.0") || connection.ServerVersion.Equals("2.0.1"))
+                if(connection.ServerVersion.Equals("2.0.0") || connection.ServerVersion.Equals("2.0.1"))
                     return;
 
                 //insert data
@@ -184,7 +182,7 @@ namespace CqlSharp.Test
             const string retrieveCql = @"select value from Test.BasicFlow where id=1001;";
 
             //Act
-            using (var connection = new CqlConnection(ConnectionString))
+            using(var connection = new CqlConnection(ConnectionString))
             {
                 await connection.OpenAsync();
 
@@ -207,7 +205,7 @@ namespace CqlSharp.Test
             const string retrieveCql = @"select value from Test.BasicFlow where id=10001;";
 
             //Act
-            using (var connection = new CqlConnection(ConnectionString))
+            using(var connection = new CqlConnection(ConnectionString))
             {
                 await connection.OpenAsync();
 
@@ -228,7 +226,7 @@ namespace CqlSharp.Test
             const string retrieveCql = @"select value from Test.BasicFlow where id=2001;";
 
             //Act
-            using (var connection = new CqlConnection(ConnectionString))
+            using(var connection = new CqlConnection(ConnectionString))
             {
                 await connection.OpenAsync();
 
@@ -252,7 +250,7 @@ namespace CqlSharp.Test
             const string retrieveCql = @"select * from Test.BasicFlow;";
 
             //Act
-            using (var connection = new CqlConnection(ConnectionString))
+            using(var connection = new CqlConnection(ConnectionString))
             {
                 await connection.OpenAsync();
 
@@ -266,16 +264,14 @@ namespace CqlSharp.Test
 
                 CqlDataReader reader = await selectCmd.ExecuteReaderAsync();
                 Assert.AreEqual(1, reader.Count);
-                if (await reader.ReadAsync())
+                if(await reader.ReadAsync())
                 {
                     Assert.AreEqual(789, reader["id"]);
                     Assert.AreEqual("Hallo 789", reader["value"]);
                     Assert.AreEqual(DBNull.Value, reader["ignored"]);
                 }
                 else
-                {
                     Assert.Fail("Read should have succeeded");
-                }
             }
         }
 
@@ -287,7 +283,7 @@ namespace CqlSharp.Test
             const string retrieveCql = @"select * from Test.BasicFlow;";
 
             //Act
-            using (var connection = new CqlConnection(ConnectionString))
+            using(var connection = new CqlConnection(ConnectionString))
             {
                 await connection.OpenAsync();
 
@@ -306,16 +302,14 @@ namespace CqlSharp.Test
 
                 CqlDataReader reader = await selectCmd.ExecuteReaderAsync();
                 Assert.AreEqual(1, reader.Count);
-                if (await reader.ReadAsync())
+                if(await reader.ReadAsync())
                 {
                     Assert.AreEqual(1234, reader["id"]);
                     Assert.AreEqual("Hallo 1234", reader["value"]);
                     Assert.AreEqual(DBNull.Value, reader["ignored"]);
                 }
                 else
-                {
                     Assert.Fail("Read should have succeeded");
-                }
             }
         }
 
@@ -323,16 +317,17 @@ namespace CqlSharp.Test
         public async Task BatchPreparedWithNamedParameters()
         {
             //Assume
-            const string insertCql = @"begin batch insert into Test.BasicFlow (id,value) values (:id1,:value1); insert into Test.BasicFlow (id,value) values (:id2,:value2); apply batch;";
+            const string insertCql =
+                @"begin batch insert into Test.BasicFlow (id,value) values (:id1,:value1); insert into Test.BasicFlow (id,value) values (:id2,:value2); apply batch;";
             const string retrieveCql = @"select * from Test.BasicFlow;";
 
             //Act
-            using (var connection = new CqlConnection(ConnectionString))
+            using(var connection = new CqlConnection(ConnectionString))
             {
                 await connection.OpenAsync();
 
                 //skip if cqlversion too low
-                if (string.CompareOrdinal(connection.CqlVersion, "3.1.1") < 0)
+                if(string.CompareOrdinal(connection.CqlVersion, "3.1.1") < 0)
                     return;
 
                 //insert data
@@ -352,17 +347,15 @@ namespace CqlSharp.Test
                 Assert.AreEqual(2, reader.Count);
 
                 var results = new bool[2];
-                for (int i = 0; i < 2; i++)
+                for(int i = 0; i < 2; i++)
                 {
-                    if (await reader.ReadAsync())
+                    if(await reader.ReadAsync())
                     {
                         results[(int)reader["id"]] = true;
                         Assert.AreEqual("Hello " + reader["id"], reader["value"]);
                     }
                     else
-                    {
                         Assert.Fail("Read should have succeeded");
-                    }
                 }
 
                 Assert.IsTrue(results.All(p => p));
@@ -377,7 +370,7 @@ namespace CqlSharp.Test
             const string retrieveCql = @"select * from BasicFlow;";
 
             //Act
-            using (var connection = new CqlConnection(ConnectionString))
+            using(var connection = new CqlConnection(ConnectionString))
             {
                 Assert.AreEqual("", connection.Database);
 
@@ -397,16 +390,14 @@ namespace CqlSharp.Test
                 CqlDataReader reader = await selectCmd.ExecuteReaderAsync();
 
                 Assert.AreEqual(1, reader.Count);
-                if (await reader.ReadAsync())
+                if(await reader.ReadAsync())
                 {
                     Assert.AreEqual(901, reader["id"]);
                     Assert.AreEqual("Hallo 901", reader["value"]);
                     Assert.AreEqual(DBNull.Value, reader["ignored"]);
                 }
                 else
-                {
                     Assert.Fail("Read should have succeeded");
-                }
             }
         }
 
@@ -420,12 +411,12 @@ namespace CqlSharp.Test
             const string retrieveCql = @"select * from Test.BasicFlow;";
 
             //Act
-            using (var connection = new CqlConnection(ConnectionString))
+            using(var connection = new CqlConnection(ConnectionString))
             {
                 await connection.OpenAsync();
 
                 //skip when server version is below 2.0.0
-                if (String.Compare(connection.ServerVersion, "2.0.0", StringComparison.Ordinal) < 0)
+                if(String.Compare(connection.ServerVersion, "2.0.0", StringComparison.Ordinal) < 0)
                     return;
 
                 //insert data
@@ -451,16 +442,14 @@ namespace CqlSharp.Test
 
                 CqlDataReader reader = await selectCmd.ExecuteReaderAsync();
                 Assert.AreEqual(1, reader.Count);
-                if (await reader.ReadAsync())
+                if(await reader.ReadAsync())
                 {
                     Assert.AreEqual(901, reader["id"]);
                     Assert.AreEqual("Hallo 901", reader["value"]);
                     Assert.AreEqual(DBNull.Value, reader["ignored"]);
                 }
                 else
-                {
                     Assert.Fail("Read should have succeeded");
-                }
             }
         }
 
@@ -473,7 +462,7 @@ namespace CqlSharp.Test
             const string retrieveCql = @"select * from Test.BasicFlow;";
 
             //Act
-            using (var connection = new CqlConnection(ConnectionString))
+            using(var connection = new CqlConnection(ConnectionString))
             {
                 await connection.OpenAsync();
 
@@ -481,7 +470,7 @@ namespace CqlSharp.Test
                 var cmd = new CqlCommand(connection, insertCql, CqlConsistency.One);
                 await cmd.PrepareAsync();
 
-                for (int i = 0; i < 100; i++)
+                for(int i = 0; i < 100; i++)
                 {
                     cmd.Parameters[0].Value = i;
                     cmd.Parameters[1].Value = "Hello " + i;
@@ -496,22 +485,20 @@ namespace CqlSharp.Test
 
                 //no paging when version < 2.0.0 is used...
                 var expectedCount = String.Compare(connection.ServerVersion, "2.0.0", StringComparison.Ordinal) < 0
-                                        ? 100
-                                        : 10;
+                    ? 100
+                    : 10;
                 Assert.AreEqual(expectedCount, reader.Count);
 
                 var results = new bool[100];
-                for (int i = 0; i < 100; i++)
+                for(int i = 0; i < 100; i++)
                 {
-                    if (await reader.ReadAsync())
+                    if(await reader.ReadAsync())
                     {
                         results[(int)reader["id"]] = true;
                         Assert.AreEqual("Hello " + reader["id"], reader["value"]);
                     }
                     else
-                    {
                         Assert.Fail("Read should have succeeded");
-                    }
                 }
                 Assert.IsFalse(reader.Read());
                 Assert.IsTrue(results.All(p => p));
@@ -526,7 +513,7 @@ namespace CqlSharp.Test
             const string retrieveCql = @"select * from Test.BasicFlow;";
 
             //Act
-            using (var connection = new CqlConnection(ConnectionString))
+            using(var connection = new CqlConnection(ConnectionString))
             {
                 connection.Open();
 
@@ -534,7 +521,7 @@ namespace CqlSharp.Test
                 var cmd = new CqlCommand(connection, insertCql, CqlConsistency.One);
                 cmd.Prepare();
 
-                for (int i = 0; i < 100; i++)
+                for(int i = 0; i < 100; i++)
                 {
                     cmd.Parameters[0].Value = i;
                     cmd.Parameters[1].Value = "Hello " + i;
@@ -545,27 +532,25 @@ namespace CqlSharp.Test
                 var selectCmd = new CqlCommand(connection, retrieveCql, CqlConsistency.One);
                 selectCmd.PageSize = 10;
 
-                using (var reader = selectCmd.ExecuteReader())
+                using(var reader = selectCmd.ExecuteReader())
                 {
                     //no paging when version < 2.0.0 is used...
                     var expectedCount = String.Compare(connection.ServerVersion, "2.0.0", StringComparison.Ordinal) < 0
-                                            ? 100
-                                            : 10;
+                        ? 100
+                        : 10;
 
                     Assert.AreEqual(expectedCount, reader.Count);
 
                     var results = new bool[100];
-                    for (int i = 0; i < 100; i++)
+                    for(int i = 0; i < 100; i++)
                     {
-                        if (reader.Read())
+                        if(reader.Read())
                         {
                             results[(int)reader["id"]] = true;
                             Assert.AreEqual("Hello " + reader["id"], reader["value"]);
                         }
                         else
-                        {
                             Assert.Fail("Read should have succeeded");
-                        }
                     }
                     Assert.IsFalse(reader.Read());
                     Assert.IsTrue(results.All(p => p));
@@ -580,7 +565,7 @@ namespace CqlSharp.Test
             const string insertCql = @"insert into Test.BasicFlow (id,value) values (2, 'Hallo 2');";
 
             //Act
-            using (var connection = new CqlConnection(ConnectionString))
+            using(var connection = new CqlConnection(ConnectionString))
             {
                 await connection.OpenAsync();
 
@@ -605,7 +590,7 @@ namespace CqlSharp.Test
             const string insertCql = @"insert into Test.BasicFlow (id,value) values (2, ?);";
 
             //Act
-            using (var connection = new CqlConnection(ConnectionString))
+            using(var connection = new CqlConnection(ConnectionString))
             {
                 await connection.OpenAsync();
 
@@ -643,7 +628,7 @@ namespace CqlSharp.Test
             const string insertCql = @"insert into Test.BasicFlow (id,value) values (567,'Hallo 567');";
 
             //Act
-            using (var connection = new CqlConnection(ConnectionString))
+            using(var connection = new CqlConnection(ConnectionString))
             {
                 await connection.OpenAsync();
 
@@ -670,7 +655,7 @@ namespace CqlSharp.Test
             const string insertCql = @"insert into Test.BasicFlow (id,value) values (542,'Hallo 542');";
 
             //Act
-            using (var connection = new CqlConnection(ConnectionString))
+            using(var connection = new CqlConnection(ConnectionString))
             {
                 await connection.OpenAsync();
 
@@ -696,7 +681,7 @@ namespace CqlSharp.Test
             const string insertCql = @"insert into Test.UnknownTable (id,value) values (1,'Hallo 1');";
 
             //Act
-            using (var connection = new CqlConnection(ConnectionString))
+            using(var connection = new CqlConnection(ConnectionString))
             {
                 await connection.OpenAsync();
 
@@ -709,11 +694,12 @@ namespace CqlSharp.Test
                     await cmd.ExecuteNonQueryAsync();
                     Assert.Fail("Should have thrown exception!");
                 }
-                catch (ProtocolException pex)
+                catch(ProtocolException pex)
                 {
                     Assert.IsInstanceOfType(pex, typeof(InvalidException));
                     Assert.IsInstanceOfType(cmd.LastQueryResult, typeof(CqlError));
-                    Assert.AreEqual(((CqlError)cmd.LastQueryResult).Exception, pex, "CqlError does not contain thrown exception");
+                    Assert.AreEqual(((CqlError)cmd.LastQueryResult).Exception, pex,
+                                    "CqlError does not contain thrown exception");
                     Assert.AreEqual(pex.TracingId, cmd.LastQueryResult.TracingId);
                 }
             }
@@ -734,7 +720,7 @@ namespace CqlSharp.Test
             const string retrieveCql = @"select * from Test.BasicFlow;";
 
             //Act
-            using (var connection = new CqlConnection(ConnectionString))
+            using(var connection = new CqlConnection(ConnectionString))
             {
                 await connection.OpenAsync();
 
@@ -750,13 +736,11 @@ namespace CqlSharp.Test
                     //execute
                     await cmd.ExecuteNonQueryAsync();
                 }
-                catch (InvalidException)
+                catch(InvalidException)
                 {
                     Assert.IsNotNull(connection.ServerVersion);
-                    if (String.Compare(connection.ServerVersion, "2.0.0", StringComparison.Ordinal) < 0)
-                    {
+                    if(String.Compare(connection.ServerVersion, "2.0.0", StringComparison.Ordinal) < 0)
                         return;
-                    }
 
                     throw;
                 }
@@ -766,7 +750,7 @@ namespace CqlSharp.Test
 
                 CqlDataReader<BasicFlowData> reader = await selectCmd.ExecuteReaderAsync<BasicFlowData>();
                 Assert.AreEqual(1, reader.Count);
-                if (await reader.ReadAsync())
+                if(await reader.ReadAsync())
                 {
                     BasicFlowData row = reader.Current;
                     Assert.AreEqual(123, row.Id);
@@ -774,9 +758,7 @@ namespace CqlSharp.Test
                     Assert.IsNull(row.Ignored);
                 }
                 else
-                {
                     Assert.Fail("Read should have succeeded");
-                }
             }
         }
 
@@ -789,7 +771,7 @@ namespace CqlSharp.Test
 
             //Act
 
-            using (IDbConnection connection = new CqlConnection(ConnectionString))
+            using(IDbConnection connection = new CqlConnection(ConnectionString))
             {
                 connection.Open();
 
@@ -804,7 +786,10 @@ namespace CqlSharp.Test
 
                 cmd.ExecuteNonQuery();
 
-                IDbCommand selectCmd = new CqlCommand(connection, retrieveCql, CqlConsistency.One) { EnableTracing = true };
+                IDbCommand selectCmd = new CqlCommand(connection, retrieveCql, CqlConsistency.One)
+                {
+                    EnableTracing = true
+                };
                 IDataReader reader = selectCmd.ExecuteReader();
 
                 DataTable schema = reader.GetSchemaTable();
@@ -812,7 +797,7 @@ namespace CqlSharp.Test
                 Assert.IsTrue(
                     schema.Rows.Cast<DataRow>().Any(row => row[CqlSchemaTableColumnNames.ColumnName].Equals("ignored")));
 
-                if (reader.Read())
+                if(reader.Read())
                 {
                     int id = reader.GetInt32(0);
                     string value = reader.GetString(1);
@@ -821,9 +806,7 @@ namespace CqlSharp.Test
                     Assert.AreEqual("Hallo 456", value);
                 }
                 else
-                {
                     Assert.Fail("Read should have succeeded");
-                }
             }
         }
 
@@ -846,7 +829,7 @@ namespace CqlSharp.Test
             const string retrieveCql = @"select id,value,ignored from Test.BasicFlow;";
 
             //Act
-            using (var connection = new CqlConnection(ConnectionString))
+            using(var connection = new CqlConnection(ConnectionString))
             {
                 await connection.OpenAsync();
                 var transaction = connection.BeginTransaction();
@@ -858,7 +841,7 @@ namespace CqlSharp.Test
 
                 await cmd.PrepareAsync();
 
-                for (int i = 0; i < 10; i++)
+                for(int i = 0; i < 10; i++)
                 {
                     cmd.Parameters[0].Value = i;
                     cmd.Parameters[1].Value = "Hello " + i;
@@ -870,7 +853,7 @@ namespace CqlSharp.Test
                 cmd2.Parameters.Add("id", CqlType.Int);
                 cmd2.Parameters.Add("value", CqlType.Text);
 
-                for (int i = 10; i < 20; i++)
+                for(int i = 10; i < 20; i++)
                 {
                     cmd2.Parameters[0].Value = i;
                     cmd2.Parameters[1].Value = "Hello " + i;
@@ -881,10 +864,11 @@ namespace CqlSharp.Test
                 {
                     await transaction.CommitAsync();
                 }
-                catch (ProtocolException pex)
+                catch(ProtocolException pex)
                 {
                     //skip when server version is below 2.0.0
-                    if (pex.Code == ErrorCode.Protocol && String.Compare(connection.ServerVersion, "2.0.0", StringComparison.Ordinal) < 0)
+                    if(pex.Code == ErrorCode.Protocol &&
+                       String.Compare(connection.ServerVersion, "2.0.0", StringComparison.Ordinal) < 0)
                         return;
 
                     throw;
@@ -896,23 +880,20 @@ namespace CqlSharp.Test
                 Assert.AreEqual(20, reader.Count);
 
                 var results = new bool[20];
-                for (int i = 0; i < 20; i++)
+                for(int i = 0; i < 20; i++)
                 {
-                    if (await reader.ReadAsync())
+                    if(await reader.ReadAsync())
                     {
                         results[(int)reader["id"]] = true;
                         Assert.AreEqual("Hello " + reader["id"], reader["value"]);
                     }
                     else
-                    {
                         Assert.Fail("Read should have succeeded");
-                    }
                 }
 
                 Assert.IsTrue(results.All(p => p));
 
                 Assert.IsNotNull(transaction.LastBatchResult);
-
             }
         }
 
@@ -920,12 +901,12 @@ namespace CqlSharp.Test
         public async Task TransactionEmptyDoesNothing()
         {
             //Act
-            using (var connection = new CqlConnection(ConnectionString))
+            using(var connection = new CqlConnection(ConnectionString))
             {
                 await connection.OpenAsync();
 
                 //create transaction
-                using (var transaction = connection.BeginTransaction())
+                using(var transaction = connection.BeginTransaction())
                 {
                     //no-op, no methods added
 
@@ -941,12 +922,12 @@ namespace CqlSharp.Test
             const string retrieveCql = @"select id from Test.BasicFlow where id=4321;";
 
             //Act
-            using (var connection = new CqlConnection(ConnectionString))
+            using(var connection = new CqlConnection(ConnectionString))
             {
                 await connection.OpenAsync();
 
                 //create transaction
-                using (var transaction = connection.BeginTransaction())
+                using(var transaction = connection.BeginTransaction())
                 {
                     //insert data
                     var cmd = new CqlCommand(connection, insertCql, CqlConsistency.One);
@@ -956,7 +937,7 @@ namespace CqlSharp.Test
 
                 //check if data exists
                 var selectCmd = new CqlCommand(connection, retrieveCql, CqlConsistency.One);
-                using (CqlDataReader reader = await selectCmd.ExecuteReaderAsync())
+                using(CqlDataReader reader = await selectCmd.ExecuteReaderAsync())
                 {
                     //check if any rows are returned
                     Assert.IsFalse(reader.HasRows);
@@ -971,12 +952,12 @@ namespace CqlSharp.Test
             const string retrieveCql = @"select id from Test.BasicFlow where id=9876;";
 
             //Act
-            using (var connection = new CqlConnection(ConnectionString))
+            using(var connection = new CqlConnection(ConnectionString))
             {
                 await connection.OpenAsync();
 
                 //create transaction
-                using (var transaction = connection.BeginTransaction())
+                using(var transaction = connection.BeginTransaction())
                 {
                     //insert data
                     var cmd = new CqlCommand(connection, insertCql, CqlConsistency.One);
@@ -988,7 +969,7 @@ namespace CqlSharp.Test
 
                 //check if data exists
                 var selectCmd = new CqlCommand(connection, retrieveCql, CqlConsistency.One);
-                using (CqlDataReader reader = await selectCmd.ExecuteReaderAsync())
+                using(CqlDataReader reader = await selectCmd.ExecuteReaderAsync())
                 {
                     //check if any rows are returned
                     Assert.IsFalse(reader.HasRows);
@@ -1003,12 +984,12 @@ namespace CqlSharp.Test
             const string insertCql = @"insert into Test.BasicFlow (id,value) values (5000, 'Transaction 5000');";
 
             //Act
-            using (var connection = new CqlConnection(ConnectionString))
+            using(var connection = new CqlConnection(ConnectionString))
             {
                 connection.Open();
 
                 //skip if server version too low
-                if (string.CompareOrdinal(connection.ServerVersion, "2.0.0") < 0)
+                if(string.CompareOrdinal(connection.ServerVersion, "2.0.0") < 0)
                     throw new ObjectDisposedException("dummy"); //as expected for this test
 
                 //create transaction
@@ -1038,12 +1019,12 @@ namespace CqlSharp.Test
             const string insertCql2 = @"insert into Test.BasicFlow (id,value) values (6001, 'Transaction 6001');";
 
             //Act
-            using (var connection = new CqlConnection(ConnectionString))
+            using(var connection = new CqlConnection(ConnectionString))
             {
                 connection.Open();
 
                 //skip if server version too low
-                if (string.CompareOrdinal(connection.ServerVersion, "2.0.0") < 0)
+                if(string.CompareOrdinal(connection.ServerVersion, "2.0.0") < 0)
                     throw new ObjectDisposedException("dummy"); //as expected for this test
 
                 //create transaction
@@ -1074,18 +1055,17 @@ namespace CqlSharp.Test
             const string insertCql = @"insert into Test.BasicFlow (id,value) values (8000, 'Transaction 8000');";
 
             //Act
-            using (var connection = new CqlConnection(ConnectionString))
+            using(var connection = new CqlConnection(ConnectionString))
             {
                 connection.Open();
 
                 //skip if server version too low
-                if (string.CompareOrdinal(connection.ServerVersion, "2.0.0") < 0)
+                if(string.CompareOrdinal(connection.ServerVersion, "2.0.0") < 0)
                     throw new InvalidOperationException("as expected by test");
 
                 //create transaction
-                using (var transaction = connection.BeginTransaction())
+                using(var transaction = connection.BeginTransaction())
                 {
-
                     //insert data
                     var cmd = new CqlCommand(connection, insertCql, CqlConsistency.One);
                     cmd.Transaction = transaction;
@@ -1107,14 +1087,13 @@ namespace CqlSharp.Test
             const string insertCql = @"insert into Test.BasicFlow (id,value) values (8000, 'Transaction 8000');";
 
             //Act
-            using (var connection = new CqlConnection(ConnectionString))
+            using(var connection = new CqlConnection(ConnectionString))
             {
                 connection.Open();
 
                 //create transaction
-                using (var transaction = connection.BeginTransaction())
+                using(var transaction = connection.BeginTransaction())
                 {
-
                     //insert data
                     var cmd = new CqlCommand(connection, insertCql, CqlConsistency.One);
                     cmd.Transaction = transaction;
@@ -1136,12 +1115,12 @@ namespace CqlSharp.Test
             const string insertCql2 = @"insert into Test.BasicFlow (id,value) values (2001, 'Transaction 2001');";
 
             //Act
-            using (var connection = new CqlConnection(ConnectionString))
+            using(var connection = new CqlConnection(ConnectionString))
             {
                 connection.Open();
 
                 //skip if server version too low
-                if (string.CompareOrdinal(connection.ServerVersion, "2.0.0") < 0)
+                if(string.CompareOrdinal(connection.ServerVersion, "2.0.0") < 0)
                     return;
 
                 //create transaction
@@ -1176,12 +1155,12 @@ namespace CqlSharp.Test
             const string insertCql2 = @"insert into Test.BasicFlow (id,value) values (7001, 'Transaction 7001');";
 
             //Act
-            using (var connection = new CqlConnection(ConnectionString))
+            using(var connection = new CqlConnection(ConnectionString))
             {
                 connection.Open();
 
                 //skip if server version too low
-                if (string.CompareOrdinal(connection.ServerVersion, "2.0.0") < 0)
+                if(string.CompareOrdinal(connection.ServerVersion, "2.0.0") < 0)
                     return;
 
                 //create transaction
@@ -1211,8 +1190,6 @@ namespace CqlSharp.Test
                 transaction.Dispose();
             }
         }
-
-
     }
 
     #region Nested type: BasicFlowData
@@ -1220,9 +1197,7 @@ namespace CqlSharp.Test
     [CqlTable("basicflow", Keyspace = "test")]
     public class BasicFlowData
     {
-        [CqlKey]
-        [CqlColumn("id", CqlTypeCode.Int)]
-        public int Id;
+        [CqlKey] [CqlColumn("id", CqlTypeCode.Int)] public int Id;
 
         [CqlColumn("value")]
         public string Data { get; set; }

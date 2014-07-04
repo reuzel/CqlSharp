@@ -1,5 +1,5 @@
 // CqlSharp - CqlSharp
-// Copyright (c) 2013 Joost Reuzel
+// Copyright (c) 2014 Joost Reuzel
 //   
 // Licensed under the Apache License, Version 2.0 (the "License");
 // you may not use this file except in compliance with the License.
@@ -38,7 +38,7 @@ namespace CqlSharp.Network.Partition
         {
             var other = obj as MurmurToken;
 
-            if (other == null)
+            if(other == null)
                 throw new ArgumentException("object not an MurmurToken, or null", "obj");
 
             long otherValue = other._value;
@@ -49,17 +49,17 @@ namespace CqlSharp.Network.Partition
 
         public override bool Equals(object obj)
         {
-            if (this == obj)
+            if(this == obj)
                 return true;
-            if (obj == null || !(obj is MurmurToken))
+            if(obj == null || !(obj is MurmurToken))
                 return false;
 
-            return _value == ((MurmurToken) obj)._value;
+            return _value == ((MurmurToken)obj)._value;
         }
 
         public override int GetHashCode()
         {
-            return (int) (_value ^ ((long) ((ulong) _value >> 32)));
+            return (int)(_value ^ ((long)((ulong)_value >> 32)));
         }
     }
 }

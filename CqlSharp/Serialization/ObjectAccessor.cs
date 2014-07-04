@@ -13,24 +13,23 @@
 // See the License for the specific language governing permissions and
 // limitations under the License.
 
-using CqlSharp.Network.Partition;
 using System;
 using System.Collections.Generic;
 using System.Collections.ObjectModel;
 using System.Linq;
-using System.Linq.Expressions;
 using System.Reflection;
+using CqlSharp.Network.Partition;
 
 namespace CqlSharp.Serialization
 {
     /// <summary>
-    ///   Provides access to object fields and properties based on columnn descriptions.
+    /// Provides access to object fields and properties based on columnn descriptions.
     /// </summary>
     /// <typeparam name="T"> </typeparam>
     public class ObjectAccessor<T> : IObjectAccessor
     {
         /// <summary>
-        ///   Singleton instance
+        /// Singleton instance
         /// </summary>
         public static readonly ObjectAccessor<T> Instance = new ObjectAccessor<T>();
 
@@ -52,13 +51,13 @@ namespace CqlSharp.Serialization
         private readonly ReadOnlyCollection<ICqlColumnInfo> _partitionKeysNG;
 
         /// <summary>
-        ///   Prevents a default instance of the <see cref="ObjectAccessor{T}" /> class from being created.
+        /// Prevents a default instance of the <see cref="ObjectAccessor{T}" /> class from being created.
         /// </summary>
         private ObjectAccessor()
         {
             //get table and keyspace name
             SetEntityProperties();
-            
+
             //get columns
             var columns = GetColumns();
             SetKeyInfo(columns);
@@ -67,25 +66,30 @@ namespace CqlSharp.Serialization
 
             //fill index by name
             var columnsByName = new Dictionary<string, ICqlColumnInfo<T>>();
-            foreach (var column in _columns)
+            foreach(var column in _columns)
             {
                 var name = column.Name;
                 columnsByName[name] = column;
-                if (IsNameSet)
+                if(IsNameSet)
                 {
                     columnsByName[Name + "." + name] = column;
-                    if (IsKeySpaceSet)
+                    if(IsKeySpaceSet)
                         columnsByName[Keyspace + "." + Name + "." + name] = column;
                 }
             }
             _columnsByName = new ReadOnlyDictionary<string, ICqlColumnInfo<T>>(columnsByName);
-            _columnsByNameNG = new ReadOnlyDictionary<string, ICqlColumnInfo>(columnsByName.ToDictionary(kvp => kvp.Key, kvp => (ICqlColumnInfo)kvp.Value));
+            _columnsByNameNG =
+                new ReadOnlyDictionary<string, ICqlColumnInfo>(columnsByName.ToDictionary(kvp => kvp.Key,
+                                                                                          kvp =>
+                                                                                              (ICqlColumnInfo)kvp.Value));
 
             //fill index by member
             _columnsByMember =
                 new ReadOnlyDictionary<MemberInfo, ICqlColumnInfo<T>>(_columns.ToDictionary(column => column.MemberInfo));
             _columnsByMemberNG =
-                new ReadOnlyDictionary<MemberInfo, ICqlColumnInfo>(_columns.ToDictionary(column => column.MemberInfo, column => (ICqlColumnInfo)column));
+                new ReadOnlyDictionary<MemberInfo, ICqlColumnInfo>(_columns.ToDictionary(column => column.MemberInfo,
+                                                                                         column =>
+                                                                                             (ICqlColumnInfo)column));
 
             //Key subsets
             var partitionKeys = _columns.Where(column => column.IsPartitionKey).ToArray();
@@ -101,38 +105,36 @@ namespace CqlSharp.Serialization
             var normalColumns = _columns.Where(column => !column.IsClusteringKey && !column.IsPartitionKey).ToArray();
             _normalColumns = new ReadOnlyCollection<ICqlColumnInfo<T>>(normalColumns);
             _normalColumnsNG = new ReadOnlyCollection<ICqlColumnInfo>(normalColumns);
-
         }
 
-      
 
         /// <summary>
-        ///   Gets a value indicating whether [is key space set].
+        /// Gets a value indicating whether [is key space set].
         /// </summary>
         /// <value> <c>true</c> if [is key space set]; otherwise, <c>false</c> . </value>
         public bool IsKeySpaceSet { get; private set; }
 
         /// <summary>
-        ///   Gets the keyspace.
+        /// Gets the keyspace.
         /// </summary>
         /// <value> The keyspace. </value>
         public string Keyspace { get; private set; }
 
         /// <summary>
-        ///   Gets a value indicating whether [is table set].
+        /// Gets a value indicating whether [is table set].
         /// </summary>
         /// <value> <c>true</c> if [is table set]; otherwise, <c>false</c> . </value>
         public bool IsNameSet { get; private set; }
 
         /// <summary>
-        ///   Gets the table name.
+        /// Gets the table name.
         /// </summary>
         /// <value> The table. </value>
         public string Name { get; private set; }
 
 
         /// <summary>
-        ///   Gets the typeCode this accessor can handle
+        /// Gets the typeCode this accessor can handle
         /// </summary>
         /// <value> The typeCode. </value>
         public Type Type
@@ -141,7 +143,7 @@ namespace CqlSharp.Serialization
         }
 
         /// <summary>
-        ///   Gets the partition keys.
+        /// Gets the partition keys.
         /// </summary>
         /// <value> The partition keys. </value>
         public ReadOnlyCollection<ICqlColumnInfo<T>> PartitionKeys
@@ -150,7 +152,7 @@ namespace CqlSharp.Serialization
         }
 
         /// <summary>
-        ///   Gets the clustering keys.
+        /// Gets the clustering keys.
         /// </summary>
         /// <value> The clustering keys. </value>
         public ReadOnlyCollection<ICqlColumnInfo<T>> ClusteringKeys
@@ -159,7 +161,7 @@ namespace CqlSharp.Serialization
         }
 
         /// <summary>
-        ///   Gets the normal (non-key) columns.
+        /// Gets the normal (non-key) columns.
         /// </summary>
         /// <value> The normal columns. </value>
         public ReadOnlyCollection<ICqlColumnInfo<T>> NormalColumns
@@ -168,7 +170,7 @@ namespace CqlSharp.Serialization
         }
 
         /// <summary>
-        ///   Gets all the columns.
+        /// Gets all the columns.
         /// </summary>
         /// <value> The columns. </value>
         public ReadOnlyCollection<ICqlColumnInfo<T>> Columns
@@ -177,7 +179,7 @@ namespace CqlSharp.Serialization
         }
 
         /// <summary>
-        ///   Gets the columns by field or property member.
+        /// Gets the columns by field or property member.
         /// </summary>
         /// <value> The columns by member. </value>
         public ReadOnlyDictionary<MemberInfo, ICqlColumnInfo<T>> ColumnsByMember
@@ -186,8 +188,8 @@ namespace CqlSharp.Serialization
         }
 
         /// <summary>
-        ///   Gets the columns by column name. When the Table or Keyspace is known the dictionary
-        ///   will contain entries where the column name is combined with the Table or Keyspace names.
+        /// Gets the columns by column name. When the Table or Keyspace is known the dictionary
+        /// will contain entries where the column name is combined with the Table or Keyspace names.
         /// </summary>
         /// <value> The columns by member. </value>
         public ReadOnlyDictionary<string, ICqlColumnInfo<T>> ColumnsByName
@@ -196,7 +198,7 @@ namespace CqlSharp.Serialization
         }
 
         /// <summary>
-        ///   Sets the entity properties.
+        /// Sets the entity properties.
         /// </summary>
         private void SetEntityProperties()
         {
@@ -207,16 +209,16 @@ namespace CqlSharp.Serialization
             //set default name to class name if class is not anonymous
             _type = typeof(T);
             IsNameSet = !_type.IsAnonymous();
-            if (IsNameSet)
+            if(IsNameSet)
                 Name = _type.Name.ToLower();
 
             //check for CqlEntity attribute
             var entityAttribute = Attribute.GetCustomAttribute(_type, typeof(CqlEntityAttribute)) as CqlEntityAttribute;
-            if (entityAttribute != null)
+            if(entityAttribute != null)
             {
                 //overwrite keyspace if any
                 IsKeySpaceSet = entityAttribute.Keyspace != null;
-                if (IsKeySpaceSet)
+                if(IsKeySpaceSet)
                     Keyspace = entityAttribute.Keyspace;
 
                 //set default name
@@ -234,9 +236,9 @@ namespace CqlSharp.Serialization
             var columns = new List<ICqlColumnInfo<T>>();
 
             //go over all properties
-            foreach (PropertyInfo prop in _type.GetProperties())
+            foreach(PropertyInfo prop in _type.GetProperties())
             {
-                if (ShouldIgnoreMember(prop))
+                if(ShouldIgnoreMember(prop))
                     continue;
 
                 //create the column info object
@@ -246,9 +248,9 @@ namespace CqlSharp.Serialization
             }
 
             //go over all fields
-            foreach (FieldInfo field in _type.GetFields())
+            foreach(FieldInfo field in _type.GetFields())
             {
-                if (ShouldIgnoreMember(field))
+                if(ShouldIgnoreMember(field))
                     continue;
 
                 //create the column info object
@@ -264,7 +266,7 @@ namespace CqlSharp.Serialization
         }
 
         /// <summary>
-        ///   Checks wether the member must be ignored
+        /// Checks wether the member must be ignored
         /// </summary>
         /// <param name="member"> The member. </param>
         /// <returns> </returns>
@@ -287,32 +289,35 @@ namespace CqlSharp.Serialization
         private static ICqlColumnInfo<T> CreateColumnInfo(MemberInfo prop, Type type)
         {
             var columnType = typeof(CqlColumnInfo<,>).MakeGenericType(typeof(T), type);
-            var column = (ICqlColumnInfo<T>) Activator.CreateInstance(columnType, prop);
+            var column = (ICqlColumnInfo<T>)Activator.CreateInstance(columnType, prop);
             return column;
         }
 
 
         /// <summary>
-        ///   Sets the key information.
+        /// Sets the key information.
         /// </summary>
         private static void SetKeyInfo(IEnumerable<ICqlColumnInfo<T>> columns)
         {
             bool isFirstKey = true;
             bool processingPartitionKeys = true;
 
-            foreach (IKeyMember column in columns)
+            foreach(IKeyMember column in columns)
             {
                 //check for column attribute
                 var keyAttribute =
                     Attribute.GetCustomAttribute(column.MemberInfo, typeof(CqlKeyAttribute)) as CqlKeyAttribute;
 
-                if (keyAttribute != null)
+                if(keyAttribute != null)
                 {
                     column.IsPartitionKey = isFirstKey || keyAttribute.IsPartitionKey;
                     column.IsClusteringKey = !column.IsPartitionKey;
 
-                    if (!processingPartitionKeys && column.IsPartitionKey)
-                        throw new CqlException("Partition keys are not allowed after the first clustering keys. Make sure the column order is correct");
+                    if(!processingPartitionKeys && column.IsPartitionKey)
+                    {
+                        throw new CqlException(
+                            "Partition keys are not allowed after the first clustering keys. Make sure the column order is correct");
+                    }
 
                     isFirstKey = false;
                     processingPartitionKeys = column.IsPartitionKey;
@@ -324,9 +329,9 @@ namespace CqlSharp.Serialization
                 }
             }
         }
-               
+
         /// <summary>
-        ///   Tries to get a value from the source, based on the column description
+        /// Tries to get a value from the source, based on the column description
         /// </summary>
         /// <param name="columnName"> Name of the column. </param>
         /// <param name="source"> The source. </param>
@@ -335,16 +340,16 @@ namespace CqlSharp.Serialization
         /// <exception cref="System.ArgumentNullException">columnName or source are null</exception>
         public bool TryGetValue<TValue>(string columnName, T source, out TValue value)
         {
-            if (columnName == null)
+            if(columnName == null)
                 throw new ArgumentNullException("columnName");
 
             // ReSharper disable CompareNonConstrainedGenericWithNull
-            if (source == null)
+            if(source == null)
                 // ReSharper restore CompareNonConstrainedGenericWithNull
                 throw new ArgumentNullException("source");
 
             ICqlColumnInfo<T> column;
-            if (_columnsByName.TryGetValue(columnName, out column))
+            if(_columnsByName.TryGetValue(columnName, out column))
             {
                 value = column.Read<TValue>(source);
                 return true;
@@ -355,7 +360,7 @@ namespace CqlSharp.Serialization
         }
 
         /// <summary>
-        ///   Tries to set a property or field of the specified object, based on the column description
+        /// Tries to set a property or field of the specified object, based on the column description
         /// </summary>
         /// <param name="columnName"> Name of the column. </param>
         /// <param name="target"> The target. </param>
@@ -364,17 +369,17 @@ namespace CqlSharp.Serialization
         /// <exception cref="System.ArgumentNullException">columnName or target are null</exception>
         public bool TrySetValue<TValue>(string columnName, T target, TValue value)
         {
-            if (columnName == null)
+            if(columnName == null)
                 throw new ArgumentNullException("columnName");
 
             // ReSharper disable CompareNonConstrainedGenericWithNull
-            if (target == null)
+            if(target == null)
                 // ReSharper restore CompareNonConstrainedGenericWithNull
                 throw new ArgumentNullException("target");
 
 
             ICqlColumnInfo<T> column;
-            if (_columnsByName.TryGetValue(columnName, out column))
+            if(_columnsByName.TryGetValue(columnName, out column))
             {
                 column.Write(target, value);
                 return true;
@@ -384,7 +389,7 @@ namespace CqlSharp.Serialization
         }
 
         /// <summary>
-        ///   Sets the partition key based on the data found in a table entry.
+        /// Sets the partition key based on the data found in a table entry.
         /// </summary>
         /// <param name="key"> The key. </param>
         /// <param name="value"> The value. </param>
@@ -392,10 +397,10 @@ namespace CqlSharp.Serialization
         public void SetPartitionKey(PartitionKey key, T value)
         {
             int length = _partitionKeys.Count;
-            if (length > 0)
+            if(length > 0)
             {
                 var values = new object[length];
-                for (int i = 0; i < length; i++)
+                for(int i = 0; i < length; i++)
                 {
                     values[i] = _partitionKeys[i].Read<object>(value);
                 }
