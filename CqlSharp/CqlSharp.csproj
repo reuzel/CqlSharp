@@ -238,7 +238,6 @@
     <Compile Include="Tracing\TracingEvent.cs" />
     <Compile Include="Tracing\TracingSession.cs" />
     <Compile Include="TypeExtensions.cs" />
-    <Compile Include="UserDefined.cs" />
   </ItemGroup>
   <ItemGroup>
     <None Include="BuildPackage.cmd" />
