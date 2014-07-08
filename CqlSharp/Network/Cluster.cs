@@ -445,7 +445,7 @@ namespace CqlSharp.Network
                               "select cluster_name, cql_version, release_version, partitioner, data_center, rack, tokens from system.local",
                               logger, token).ConfigureAwait(false))
             {
-                if (!await result.ReadAsync().ConfigureAwait(false))
+                if (!await result.ReadAsync(token).ConfigureAwait(false))
                     throw new CqlException("Could not detect the cluster partitioner");
                 _name = result.GetString(0);
                 _cqlVersion = result.GetString(1);
@@ -471,7 +471,7 @@ namespace CqlSharp.Network
                         ConfigureAwait(false))
             {
                 //iterate over the peers
-                while (await result.ReadAsync().ConfigureAwait(false))
+                while (await result.ReadAsync(token).ConfigureAwait(false))
                 {
                     var newNode = GetNodeFromDataReader(result, logger);
 
@@ -493,8 +493,8 @@ namespace CqlSharp.Network
                     try
                     {
                         logger.LogInfo("Cluster info incomplete scheduling new retrieval in 1 minute");
-                        await Task.Delay(TimeSpan.FromMinutes(1));
-                        await GetClusterInfoAsync(null, logger, CancellationToken.None);
+                        await Task.Delay(TimeSpan.FromMinutes(1)).ConfigureAwait(false);
+                        await GetClusterInfoAsync(null, logger, CancellationToken.None).ConfigureAwait(false);
                     }
                     catch(Exception ex)
                     {
@@ -616,8 +616,8 @@ namespace CqlSharp.Network
                     var node = connection.Node;
 
                     //refetch the cluster configuration
-                    await Task.Delay(5000); //delay as Add is typically send a bit too early (and therefore no tokens are distributed)
-                    await GetClusterInfoAsync(node, logger, CancellationToken.None);
+                    await Task.Delay(5000).ConfigureAwait(false);  //delay as Add is typically send a bit too early (and therefore no tokens are distributed)
+                    await GetClusterInfoAsync(node, logger, CancellationToken.None).ConfigureAwait(false);
                 }
                 else if (args.Change.Equals(ClusterChange.Up))
                 {
@@ -627,7 +627,7 @@ namespace CqlSharp.Network
                     {
                         using (logger.ThreadBinding())
                         {
-                            await Task.Delay(5000); //delay as Up is typically send a bit too early
+                            await Task.Delay(5000).ConfigureAwait(false); //delay as Up is typically send a bit too early
                             upNode.Reactivate();
                         }
                     }
