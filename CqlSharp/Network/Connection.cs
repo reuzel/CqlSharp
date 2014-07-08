@@ -36,6 +36,13 @@ namespace CqlSharp.Network
     /// </summary>
     internal class Connection
     {
+        private static class ConnectionState
+        {
+            public const int Created = 0;
+            public const int Connected = 1;
+            public const int Closed = 2;
+        }
+
         private readonly Queue<sbyte> _availableQueryIds;
         private readonly CqlConnectionStringBuilder _config;
         private readonly SemaphoreSlim _frameSubmitLock;
@@ -85,7 +92,7 @@ namespace CqlSharp.Network
             //setup state
             _activeRequests = 0;
             _load = 0;
-            _connectionState = 0;
+            _connectionState = ConnectionState.Created;
             _lastActivity = DateTime.UtcNow.Ticks;
 
             Logger.Current.LogVerbose("{0} created", this);
@@ -129,8 +136,8 @@ namespace CqlSharp.Network
         {
             get
             {
-                return _connectionState == 2 ||
-                       (AllowCleanup && _connectionState == 1 && _activeRequests == 0 &&
+                return _connectionState == ConnectionState.Closed ||
+                       (AllowCleanup && _connectionState == ConnectionState.Connected && _activeRequests == 0 &&
                         (DateTime.UtcNow.Ticks - Interlocked.Read(ref _lastActivity)) > _maxIdleTicks);
             }
         }
@@ -150,7 +157,7 @@ namespace CqlSharp.Network
         /// <value> <c>true</c> if this instance is connected; otherwise, <c>false</c> . </value>
         public bool IsConnected
         {
-            get { return _connectionState == 0 || _connectionState == 1; }
+            get { return _connectionState == ConnectionState.Created || _connectionState == ConnectionState.Connected; }
         }
 
         /// <summary>
@@ -215,7 +222,8 @@ namespace CqlSharp.Network
         /// <param name="error"> The error being the reason for the connection disposal </param>
         protected void Dispose(bool disposing, Exception error = null)
         {
-            if (Interlocked.Exchange(ref _connectionState, 2) != 2)
+            int previousState = Interlocked.Exchange(ref _connectionState, ConnectionState.Closed);
+            if (previousState != ConnectionState.Closed)
             {
                 if (disposing)
                 {
@@ -235,7 +243,10 @@ namespace CqlSharp.Network
                         _client = null;
                     }
 
-                    Logger.Current.LogInfo("{0} closed", this);
+                    Logger.Current.LogInfo(
+                        previousState == ConnectionState.Connected
+                            ? "{0} closed."
+                            : "{0} could not be succesfully established.", this);
 
                     if (OnConnectionChange != null)
                         OnConnectionChange(this, new ConnectionChangeEvent { Exception = error, Connected = false });
@@ -259,7 +270,7 @@ namespace CqlSharp.Network
         ///   Opens the connection. The actual open sequence will be executed at most once.
         /// </summary>
         /// <returns> Task that represents the open procedure for this connection </returns>
-        private Task OpenAsync(Logger logger)
+        internal Task OpenAsync(Logger logger)
         {
             if (_connectTask == null)
             {
@@ -280,7 +291,7 @@ namespace CqlSharp.Network
         /// </summary>
         private async Task OpenAsyncInternal(Logger logger)
         {
-            if (_connectionState == 2)
+            if (_connectionState == ConnectionState.Closed)
                 throw new ObjectDisposedException("Connection disposed before opening!");
 
             try
@@ -293,7 +304,7 @@ namespace CqlSharp.Network
                     _readStream = _client.GetStream();
 
                     //switch state to connected if not done so, from now on Idle timer comes into play...
-                    Interlocked.CompareExchange(ref _connectionState, 1, 0);
+                    Interlocked.CompareExchange(ref _connectionState, ConnectionState.Connected, ConnectionState.Created);
 
                     logger.LogVerbose("TCP connection for {0} is opened", this);
 
@@ -319,7 +330,7 @@ namespace CqlSharp.Network
 
                             //move into disposed state, to allow cleanup of resources, and prevent dispose
                             //to run after the coming induced connection errors
-                            Interlocked.Exchange(ref _connectionState, 2);
+                            Interlocked.Exchange(ref _connectionState, ConnectionState.Closed);
 
                             //close the client
                             _client.Close();
@@ -328,7 +339,7 @@ namespace CqlSharp.Network
                             _readLoopCompleted.Wait();
 
                             //back to disconnected
-                            Interlocked.Exchange(ref _connectionState, 0);
+                            Interlocked.Exchange(ref _connectionState, ConnectionState.Created);
 
                             continue;
                         }
@@ -604,15 +615,17 @@ namespace CqlSharp.Network
                 if (task != await Task.WhenAny(task, cancelTask.Task).ConfigureAwait(false))
                 {
                     //ignore/log any exception of the handled task
+                    // ReSharper disable once UnusedVariable
                     var logError = task.ContinueWith((sendTask, log) =>
                                                          {
-                                                             if (sendTask.Exception != null)
-                                                             {
-                                                                 var logger1 = (Logger)log;
-                                                                 logger1.LogWarning(
-                                                                     "Cancelled query threw exception: {0}",
-                                                                     sendTask.Exception.InnerException);
-                                                             }
+                                                             if(sendTask.Exception == null) 
+                                                                 return;
+
+                                                             var logger1 = (Logger)log;
+                                                             logger1.LogWarning(
+                                                                 "Cancelled query threw exception: {0}",
+                                                                 sendTask.Exception.InnerException);
+
                                                          }, logger,
                                                      TaskContinuationOptions.OnlyOnFaulted |
                                                      TaskContinuationOptions.ExecuteSynchronously);
@@ -778,7 +791,7 @@ namespace CqlSharp.Network
                         throw;
                 }
             }
-            catch (ObjectDisposedException odex)
+            catch (ObjectDisposedException)
             {
                 throw new IOException("Connection closed while processing request");
             }
@@ -805,7 +818,7 @@ namespace CqlSharp.Network
             _readLoopCompleted.Reset();
 
             //while connected do
-            while (_connectionState == 1)
+            while (_connectionState == ConnectionState.Connected)
             {
                 try
                 {
@@ -826,6 +839,7 @@ namespace CqlSharp.Network
                         logger.LogVerbose("Event frame received on {0}", this);
 
                         //run the event logic in its own task, making sure it does not delay further reading
+                        // ReSharper disable once UnusedVariable
                         Task eventTask = Task.Run(() => ProcessEvent(eventFrame));
                         continue;
                     }
@@ -850,6 +864,7 @@ namespace CqlSharp.Network
                     //completions may be continued synchronously, potentially
                     //leading to deadlocks when the continuation sends another request
                     //on this connection.
+                    // ReSharper disable once UnusedVariable
                     Task continueOpenRequestTask = Task.Run(() => openRequest.TrySetResult(frame));
 
                     logger.LogVerbose("Waiting for frame content to be read from {0}", this);

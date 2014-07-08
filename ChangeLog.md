@@ -1,3 +1,8 @@
+## Version 0.38.0 - Improved aliveness checking of Cassandra nodes
+* fixed bug that hampered exponential backoff
+* succesfull connection to a node must be made before it is marked as up again, keeping it out-of-scope of connection strategies.
+* fixing issue where multiple node UP notifications are received in a short time
+
 ## Version 0.37.0 - TraceLogger and Fixes on cluster reconfiguration
 * Fix crash when nodes are added to a running system (and have no tokens gossiped). CqlSharp now reloads configurations every minute until all tokens are found.
 * Fix missing logger binding when using exclusive connection strategy

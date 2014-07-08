@@ -616,6 +616,7 @@ namespace CqlSharp.Network
                     var node = connection.Node;
 
                     //refetch the cluster configuration
+                    await Task.Delay(5000); //delay as Add is typically send a bit too early (and therefore no tokens are distributed)
                     await GetClusterInfoAsync(node, logger, CancellationToken.None);
                 }
                 else if (args.Change.Equals(ClusterChange.Up))
@@ -626,6 +627,7 @@ namespace CqlSharp.Network
                     {
                         using (logger.ThreadBinding())
                         {
+                            await Task.Delay(5000); //delay as Up is typically send a bit too early
                             upNode.Reactivate();
                         }
                     }
