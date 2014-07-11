@@ -506,6 +506,12 @@ namespace CqlSharp.Network
                 //we're down
                 _status = HostState.Down;
 
+                //clear all prepared id state, when first reconnect fails as we can assume the node really went down.
+                //In case state is not cleared here, preparedQueryIds will be cleared with first prepared query that 
+                //fails with unprepared error
+                if(_failureCount==1)
+                    PreparedQueryIds.Clear();
+
                 //calculate the time, before retry
                 int due = Math.Min(Cluster.Config.MaxDownTime,
                                    (int)Math.Pow(2, _failureCount)*Cluster.Config.MinDownTime);

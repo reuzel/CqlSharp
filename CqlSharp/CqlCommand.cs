@@ -1038,6 +1038,13 @@ namespace CqlSharp
 
                     switch (pex.Code)
                     {
+                        case ErrorCode.Unprepared:
+                            //preperation code is unknown! Perhaps server restarted without us knowing.
+                            //Flush all preparedIds, and retry
+                            logger.LogWarning("Query preparation id was invalid. Perhaps {0} has been rebooted. Clearing all preparation data of {0}.", connection.Node);
+                            connection.Node.PreparedQueryIds.Clear();
+                            continue;
+
                         case ErrorCode.IsBootstrapping:
                         case ErrorCode.Overloaded:
                             //IO or node status related error, go for rerun
