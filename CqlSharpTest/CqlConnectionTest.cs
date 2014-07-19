@@ -139,7 +139,7 @@ namespace CqlSharp.Test
             using(
                 var connection =
                     new CqlConnection(
-                        "servers=localhost;username=cassandra;password=cassandra;MaxConnectionIdleTime=1200;Logger=Debug;LogLevel=Verbose")
+                        "servers=localhost;username=cassandra;password=cassandra;MaxConnectionIdleTime=1200;Logger=Debug;LogLevel=Verbose;DiscoveryScope=Cluster")
                 )
             {
                 await connection.OpenAsync();

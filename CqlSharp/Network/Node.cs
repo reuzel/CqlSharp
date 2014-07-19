@@ -390,7 +390,7 @@ namespace CqlSharp.Network
                     {
                         if(connection.IsIdle)
                         {
-                            logger.LogInfo("Closing {0} as it is idle", this);
+                            logger.LogInfo("Closing {0} as it is idle", connection);
                             connection.Dispose();
                             _connections.Remove(connection);
                         }
@@ -426,7 +426,7 @@ namespace CqlSharp.Network
             {
                 if(evt.Connected)
                 {
-                    if(!IsUp) Logger.Current.LogInfo("Node {0} is back online", Address);
+                    if(!IsUp) Logger.Current.LogInfo("{0} is back online", this);
 
                     _status = HostState.Up;
                     _failureCount = 0;

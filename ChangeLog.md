@@ -10,6 +10,7 @@
 * Removed a lot of boxing/unboxing of primitive types during serialization/deserialization
 * Implemented DbDataReader.GetFieldValue{T}(int i)
 * Supports User Defined Types. Annotate your class with CqlUserType and CqlColumn to have it correctly mapped to a Cassandra User Defined Type
+* Guesses protocol version from release_version shortening connection setup times for older clusters
 
 ## Version 0.38.0 - Fixes and Improved Aliveness Checking of Cassandra Nodes
 * Fixed bug that hampered exponential backoff

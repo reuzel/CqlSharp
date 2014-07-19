@@ -19,7 +19,6 @@ using System.Collections.Generic;
 using System.Linq;
 using System.Threading;
 using CqlSharp.Logging;
-using CqlSharp.Protocol;
 
 namespace CqlSharp.Network.Partition
 {
@@ -525,7 +524,7 @@ namespace CqlSharp.Network.Partition
                         oldNode.DataCenter = node.DataCenter;
                         oldNode.Rack = node.Rack;
                         oldNode.Tokens = node.Tokens;
-                        oldNode.ProtocolVersion = 2;
+                        oldNode.ProtocolVersion = node.ProtocolVersion;
                     }
                 }
 
