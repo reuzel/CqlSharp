@@ -13,12 +13,12 @@
 // See the License for the specific language governing permissions and
 // limitations under the License.
 
+using System;
 using System.Collections.Generic;
 using System.ComponentModel.Composition;
 using System.ComponentModel.Composition.Hosting;
 using System.ComponentModel.Composition.Registration;
 using System.IO;
-using System.Reflection;
 using CqlSharp.Authentication;
 using CqlSharp.Logging;
 
@@ -87,12 +87,14 @@ namespace CqlSharp.Extensions
             var catalog = new AggregateCatalog();
 
             //go and search for ILoggerFactories in executing directory
-            string path = Directory.GetParent(Assembly.GetExecutingAssembly().Location).ToString();
+            string path = AppDomain.CurrentDomain.BaseDirectory;
             catalog.Catalogs.Add(new DirectoryCatalog(path, conventions));
 
+            string subPath = AppDomain.CurrentDomain.RelativeSearchPath;
+
             //or in bin directory (asp.net)
-            if (Directory.Exists(path + "\\bin"))
-                catalog.Catalogs.Add(new DirectoryCatalog(path + "\\bin", conventions));
+            if (!string.IsNullOrEmpty(subPath) && Directory.Exists(subPath))
+                catalog.Catalogs.Add(new DirectoryCatalog(subPath, conventions));
 
             //create container
             var container = new CompositionContainer(catalog, CompositionOptions.Default);
