@@ -77,7 +77,7 @@ namespace CqlSharp.Protocol
                     QueryMetaData = await ReadMetaDataAsync().ConfigureAwait(false);
 
                     //read result metadata if not version 1 
-                    if((Version & FrameVersion.ProtocolVersionMask) != FrameVersion.ProtocolVersion1)
+                    if(ProtocolVersion > 1)
                         ResultMetaData = await ReadMetaDataAsync().ConfigureAwait(false);
 
                     break;

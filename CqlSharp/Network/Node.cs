@@ -112,7 +112,7 @@ namespace CqlSharp.Network
             _status = HostState.Up; //assume up
             Tokens = new HashSet<string>();
             _counter = 0;
-            FrameVersion = FrameVersion.ProtocolVersion2;
+            ProtocolVersion = 2;
         }
 
         /// <summary>
@@ -176,7 +176,7 @@ namespace CqlSharp.Network
         /// Gets the frame (protocol) version supported by this node
         /// </summary>
         /// <value> The frame version. </value>
-        internal FrameVersion FrameVersion { get; set; }
+        internal byte ProtocolVersion { get; set; }
 
         /// <summary>
         /// Gets the prepared query ids.

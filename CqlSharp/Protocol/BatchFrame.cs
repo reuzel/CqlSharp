@@ -30,7 +30,7 @@ namespace CqlSharp.Protocol
         /// </summary>
         public BatchFrame(CqlBatchType batchType, CqlConsistency consistency)
         {
-            Version = FrameVersion.Request;
+            IsRequest = true;
             Flags = FrameFlags.None;
             Stream = 0;
             OpCode = FrameOpcode.Batch;
@@ -64,7 +64,7 @@ namespace CqlSharp.Protocol
         /// <param name="buffer"> The buffer. </param>
         protected override void WriteData(Stream buffer)
         {
-            if((Version & FrameVersion.ProtocolVersionMask) == FrameVersion.ProtocolVersion1)
+            if(ProtocolVersion == 1)
             {
                 throw new ProtocolException(ErrorCode.Protocol,
                                             "Batch frames are supported from Cassandra Version 2.0.0 and up.", null);

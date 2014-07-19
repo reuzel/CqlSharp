@@ -316,7 +316,7 @@ namespace CqlSharp.Network
 
                     try
                     {
-                        logger.LogVerbose("Attempting to connect using {0}", Node.FrameVersion);
+                        logger.LogVerbose("Attempting to connect using protocol version {0}", Node.ProtocolVersion);
 
                         await NegotiateConnectionOptionsAsync(logger).ConfigureAwait(false);
                         break;
@@ -324,12 +324,12 @@ namespace CqlSharp.Network
                     catch(ProtocolException)
                     {
                         //attempt to connect using lower protocol version if possible
-                        if((Node.FrameVersion & FrameVersion.ProtocolVersionMask) == FrameVersion.ProtocolVersion2)
+                        if(Node.ProtocolVersion > 1)
                         {
-                            logger.LogVerbose("Failed connecting using {0}, retrying...", Node.FrameVersion);
+                            logger.LogVerbose("Failed connecting using protocol version {0}, retrying...", Node.ProtocolVersion);
 
                             //lower protocol version
-                            Node.FrameVersion = FrameVersion.ProtocolVersion1;
+                            Node.ProtocolVersion--;
 
                             //move into disposed state, to allow cleanup of resources, and prevent dispose
                             //to run after the coming induced connection errors
@@ -361,7 +361,7 @@ namespace CqlSharp.Network
                         OnConnectionChange(this, new ConnectionChangeEvent {Connected = true});
                 }
 
-                logger.LogInfo("{0} is opened using Cql {1}", this, Node.FrameVersion.ToString());
+                logger.LogInfo("{0} is opened using Cql Protocol v{1}", this, Node.ProtocolVersion);
             }
             catch(Exception ex)
             {
@@ -492,7 +492,7 @@ namespace CqlSharp.Network
             //dispose AuthenticateFrame
             auth.Dispose();
 
-            if((auth.Version & FrameVersion.ProtocolVersionMask) == FrameVersion.ProtocolVersion2)
+            if(auth.ProtocolVersion == 2)
             {
                 //protocol version2: use SASL AuthResponse to authenticate
 
@@ -696,7 +696,7 @@ namespace CqlSharp.Network
                     frame.Stream = id;
 
                     //set protocol version in use
-                    frame.Version = Node.FrameVersion;
+                    frame.ProtocolVersion = Node.ProtocolVersion;
 
                     //serialize frame outside lock
                     Stream frameBytes = frame.GetFrameBytes(_allowCompression && !isConnecting,

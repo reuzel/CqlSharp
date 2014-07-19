@@ -95,9 +95,8 @@ namespace CqlSharp.Protocol
                 //signal EOS when window reached
                 if(_unreadFromStream <= 0)
                 {
-#pragma warning disable 168
+                    // ReSharper disable once UnusedVariable
                     var completeTask = Task.Run(() => _waitUntilAllFrameDataRead.TrySetResult(true));
-#pragma warning restore 168
                 }
 
                 //return actual read count

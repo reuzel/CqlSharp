@@ -525,7 +525,7 @@ namespace CqlSharp.Network.Partition
                         oldNode.DataCenter = node.DataCenter;
                         oldNode.Rack = node.Rack;
                         oldNode.Tokens = node.Tokens;
-                        oldNode.FrameVersion = FrameVersion.ProtocolVersion2;
+                        oldNode.ProtocolVersion = 2;
                     }
                 }
 

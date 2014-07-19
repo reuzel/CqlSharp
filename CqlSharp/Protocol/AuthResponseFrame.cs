@@ -27,7 +27,7 @@ namespace CqlSharp.Protocol
         /// <param name="saslResponse"> The sasl response. </param>
         public AuthResponseFrame(byte[] saslResponse)
         {
-            Version = FrameVersion.Request;
+            IsRequest = true;
             Flags = FrameFlags.None;
             Stream = 0;
             OpCode = FrameOpcode.AuthResponse;

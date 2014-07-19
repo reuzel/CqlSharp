@@ -26,7 +26,7 @@ namespace CqlSharp.Protocol
             Parameters = parameters;
             SkipMetaData = true;
 
-            Version = FrameVersion.Request;
+            IsRequest = true;
             Flags = FrameFlags.None;
             Stream = 0;
             OpCode = FrameOpcode.Execute;
@@ -38,7 +38,7 @@ namespace CqlSharp.Protocol
         {
             buffer.WriteShortByteArray(QueryId);
 
-            if((Version & FrameVersion.ProtocolVersionMask) == FrameVersion.ProtocolVersion1)
+            if(ProtocolVersion == 1)
             {
                 if(Parameters == null)
                     buffer.WriteShort(0);

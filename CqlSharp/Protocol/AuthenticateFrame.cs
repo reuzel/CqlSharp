@@ -19,6 +19,9 @@ using System.Threading.Tasks;
 
 namespace CqlSharp.Protocol
 {
+    /// <summary>
+    /// Authenticate frame
+    /// </summary>
     internal class AuthenticateFrame : Frame
     {
         public string Authenticator { get; private set; }

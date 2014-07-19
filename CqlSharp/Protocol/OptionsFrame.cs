@@ -23,7 +23,7 @@ namespace CqlSharp.Protocol
     {
         public OptionsFrame()
         {
-            Version = FrameVersion.Request;
+            IsRequest = true;
             Flags = FrameFlags.None;
             Stream = 0;
             OpCode = FrameOpcode.Options;

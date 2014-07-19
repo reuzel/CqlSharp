@@ -170,7 +170,6 @@
     <Compile Include="Protocol\FrameFlags.cs" />
     <Compile Include="Protocol\FrameOpcode.cs" />
     <Compile Include="Protocol\FrameReader.cs" />
-    <Compile Include="Protocol\FrameVersion.cs" />
     <Compile Include="Protocol\MetadataFlags.cs" />
     <Compile Include="Protocol\StreamExtensions.cs" />
     <Compile Include="Serialization\Converter.cs" />

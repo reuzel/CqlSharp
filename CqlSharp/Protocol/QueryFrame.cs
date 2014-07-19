@@ -30,7 +30,7 @@ namespace CqlSharp.Protocol
             Cql = cql;
             CqlConsistency = cqlConsistency;
 
-            Version = FrameVersion.Request;
+            IsRequest = true;
             Flags = FrameFlags.None;
             Stream = 0;
             OpCode = FrameOpcode.Query;
@@ -48,7 +48,7 @@ namespace CqlSharp.Protocol
         {
             buffer.WriteLongString(Cql);
 
-            if((Version & FrameVersion.ProtocolVersionMask) == FrameVersion.ProtocolVersion1)
+            if(ProtocolVersion == 1)
                 buffer.WriteConsistency(CqlConsistency);
             else
                 WriteQueryParameters(buffer);

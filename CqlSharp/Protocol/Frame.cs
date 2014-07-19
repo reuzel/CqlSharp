@@ -35,10 +35,18 @@ namespace CqlSharp.Protocol
         private int _disposed; //0 not disposed, 1 disposed
 
         /// <summary>
-        /// Gets or sets the version.
+        /// Gets or sets the protocol version.
         /// </summary>
         /// <value> The version. </value>
-        public FrameVersion Version { get; set; }
+        public byte ProtocolVersion { get; set; }
+
+        /// <summary>
+        /// Gets or sets a value indicating whether this instance is a request frame.
+        /// </summary>
+        /// <value>
+        /// <c>true</c> if this instance is request; otherwise, <c>false</c>.
+        /// </value>
+        public bool IsRequest { get; set; }
 
         /// <summary>
         /// Gets or sets the flags.
@@ -88,7 +96,9 @@ namespace CqlSharp.Protocol
         public Stream GetFrameBytes(bool compress, int compressTreshold)
         {
             var buffer = new PoolMemoryStream();
-            buffer.WriteByte((byte)Version);
+
+            int versionByte = (ProtocolVersion & 0x7f) | (IsRequest ? 0 : 0x80);
+            buffer.WriteByte((byte)versionByte);
             buffer.WriteByte((byte)Flags);
             buffer.WriteByte(unchecked((byte)Stream));
             buffer.WriteByte((byte)OpCode);
@@ -169,6 +179,9 @@ namespace CqlSharp.Protocol
                 case FrameOpcode.Authenticate:
                     frame = new AuthenticateFrame();
                     break;
+                case FrameOpcode.AuthChallenge:
+                    frame = new AuthChallengeFrame();
+                    break;
                 case FrameOpcode.AuthSuccess:
                     frame = new AuthSuccessFrame();
                     break;
@@ -185,7 +198,8 @@ namespace CqlSharp.Protocol
                     throw new ProtocolException(0, string.Format("Unexpected OpCode {0:X} received.", header[3]));
             }
 
-            frame.Version = (FrameVersion)header[0];
+            frame.ProtocolVersion = (byte)(header[0] & 0x7f);
+            frame.IsRequest = (header[0] & 0x80) == 0;
             frame.Flags = (FrameFlags)header[1];
             frame.Stream = unchecked((sbyte)header[2]);
             frame.OpCode = (FrameOpcode)header[3];

@@ -25,7 +25,7 @@ namespace CqlSharp.Protocol
         {
             Cql = cql;
 
-            Version = FrameVersion.Request;
+            IsRequest = true;
             Flags = FrameFlags.None;
             Stream = 0;
             OpCode = FrameOpcode.Prepare;

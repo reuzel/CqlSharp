@@ -26,7 +26,7 @@ namespace CqlSharp.Protocol
         {
             EventTypes = eventTypes;
 
-            Version = FrameVersion.Request;
+            IsRequest = true;
             Flags = FrameFlags.None;
             Stream = 0;
             OpCode = FrameOpcode.Register;
