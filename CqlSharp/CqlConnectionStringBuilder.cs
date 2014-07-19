@@ -53,7 +53,7 @@ namespace CqlSharp
                       {Keyword.NewConnectionTreshold, 10},
                       {Keyword.MaxConcurrentQueries, -1},
                       {Keyword.MaxConnectionIdleTime, 10},
-                      {Keyword.MaxQueryRetries, 3},
+                      {Keyword.MaxQueryRetries, 2},
                       {Keyword.LoggerFactory, "Null"},
                       {Keyword.LogLevel, LogLevel.Info},
                       {Keyword.UseBuffering, true},
