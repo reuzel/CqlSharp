@@ -112,7 +112,7 @@ namespace CqlSharp
         {
             get { return _batchCommand.CommandTimeout; }
             set { _batchCommand.CommandTimeout = value; }
-        }
+            }
 
         /// <summary>
         /// Specifies the <see cref="T:System.Data.Common.DbConnection" /> object associated with the transaction.
@@ -131,7 +131,7 @@ namespace CqlSharp
         {
             get { return _batchCommand.Connection; }
             set { _batchCommand.Connection = value; }
-        }
+            }
 
         /// <summary>
         /// Specifies the <see cref="T:System.Data.IsolationLevel" /> for this transaction.
@@ -174,7 +174,7 @@ namespace CqlSharp
         {
             get { return _batchCommand.Consistency; }
             set { _batchCommand.Consistency = value; }
-        }
+            }
 
         /// <summary>
         /// Indication of the load this query generates (e.g. the number of statements in the batch). Used by connection stratagies
@@ -268,7 +268,7 @@ namespace CqlSharp
             }
             else
                 throw new InvalidOperationException("Commit error: Connection is closed or disposed");
-        }
+            }
 
 
         /// <summary>
@@ -303,9 +303,9 @@ namespace CqlSharp
         /// <returns> </returns>
         private async Task CommitAsyncInternal(CancellationToken cancellationToken)
         {
-            if(_commands.Count > 0)
-                await _batchCommand.ExecuteBatchAsync(cancellationToken);
-
+            if (_commands.Count > 0)
+                await _batchCommand.ExecuteBatchAsync(cancellationToken).ConfigureAwait(false);
+            
             _state = TransactionState.Committed;
         }
 

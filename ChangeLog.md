@@ -11,6 +11,14 @@
 * Implemented DbDataReader.GetFieldValue{T}(int i)
 * Supports User Defined Types. Annotate your class with CqlUserType and CqlColumn to have it correctly mapped to a Cassandra User Defined Type
 
+## Version 0.38.0 - Fixes and Improved Aliveness Checking of Cassandra Nodes
+* Fixed bug that hampered exponential backoff
+* Succesfull connection to a node must be made before it is marked as up again, keeping it out-of-scope of connection strategies until proven up.
+* Fixing issue where multiple node UP notifications are received in a short time
+* Clearing prepared query ids, forcing queries to be reprepared when node is marked down
+* Making sure that at least a single query attempt is done when MaxRetryCount setting is set to 0
+* MEF fix: now using correct directories for loading extensions
+
 ## Version 0.37.0 - TraceLogger and Fixes on cluster reconfiguration
 * Fix crash when nodes are added to a running system (and have no tokens gossiped). CqlSharp now reloads configurations every minute until all tokens are found.
 * Fix missing logger binding when using exclusive connection strategy

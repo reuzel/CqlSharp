@@ -64,7 +64,7 @@ namespace CqlSharp
         }
 
         /// <summary>
-        /// Initializes a new instance of the <see cref="CqlCommand" /> class.
+        /// Initializes a new instance of the <see cref="CqlCommand" /> class. Uses a default consistency level One
         /// </summary>
         /// <param name="connection">The connection.</param>
         /// <param name="cql">The CQL text.</param>
@@ -73,7 +73,7 @@ namespace CqlSharp
             : this((CqlConnection)connection, cql, level)
         {
         }
-
+        
         /// <summary>
         /// Initializes a new instance of the <see cref="CqlCommand" /> class.
         /// </summary>
@@ -698,12 +698,12 @@ namespace CqlSharp
             object result;
 
             using(var reader = await ExecuteReaderAsync(token).ConfigureAwait(false))
-            {
+                {
                 if(await reader.ReadAsync(token).ConfigureAwait(false))
                     result = reader[0] ?? DBNull.Value;
                 else
                     result = null;
-            }
+                }
 
             return result;
         }
@@ -1000,7 +1000,8 @@ namespace CqlSharp
             Func<Connection, Logger, CancellationToken, Task<ResultFrame>> executeFunc, Logger logger,
             CancellationToken token)
         {
-            int attempts = _connection.Config.MaxQueryRetries;
+            //attempts are one plus number of retries
+            int attempts = 1 + _connection.Config.MaxQueryRetries;
 
             //keep trying until faulted
             for(int attempt = 0; attempt < attempts; attempt++)
@@ -1058,6 +1059,15 @@ namespace CqlSharp
 
                     switch(pex.Code)
                     {
+                        case ErrorCode.Unprepared:
+                            //preperation code is unknown! Perhaps server restarted without us knowing.
+                            //Flush all preparedIds, and retry
+                            logger.LogWarning(
+                                "Query preparation id was invalid. Perhaps {0} has been rebooted. Clearing all preparation data of {0}.",
+                                connection.Node);
+                            connection.Node.PreparedQueryIds.Clear();
+                            continue;
+
                         case ErrorCode.IsBootstrapping:
                         case ErrorCode.Overloaded:
                             //IO or node status related error, go for rerun
