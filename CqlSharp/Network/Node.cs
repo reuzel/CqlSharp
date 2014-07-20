@@ -22,7 +22,6 @@ using System.Net;
 using System.Threading;
 using System.Threading.Tasks;
 using CqlSharp.Logging;
-using CqlSharp.Network.Partition;
 using CqlSharp.Protocol;
 
 namespace CqlSharp.Network
@@ -252,9 +251,8 @@ namespace CqlSharp.Network
         /// <summary>
         /// Gets an existing connection, or creates one if treshold is reached.
         /// </summary>
-        /// <param name="partitionKey"> ignored </param>
         /// <returns> </returns>
-        public Connection GetOrCreateConnection(PartitionKey partitionKey)
+        public Connection GetOrCreateConnection()
         {
             if(_disposed)
                 throw new ObjectDisposedException(ToString());

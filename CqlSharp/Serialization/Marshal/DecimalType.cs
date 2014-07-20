@@ -33,12 +33,23 @@ namespace CqlSharp.Serialization.Marshal
             builder.Append("org.apache.cassandra.db.marshal.DecimalType");
         }
 
+        /// <summary>
+        /// Gets the maximum size in bytes of values of this type.
+        /// </summary>
+        /// <value>
+        /// The maximum size in bytes.
+        /// </value>
+        public override int Size
+        {
+            get { return 16; }
+        }
+
         public override DbType ToDbType()
         {
             return DbType.Decimal;
         }
 
-        public override byte[] Serialize(decimal value)
+        public override byte[] Serialize(decimal value, byte protocolVersion)
         {
             //get binary representation of the decimal
             int[] bits = decimal.GetBits(value);
@@ -74,7 +85,7 @@ namespace CqlSharp.Serialization.Marshal
             return rawData;
         }
 
-        public override decimal Deserialize(byte[] data)
+        public override decimal Deserialize(byte[] data, byte protocolVersion)
         {
             //extract scale
             int scale = data.ToInt();

@@ -178,6 +178,17 @@ namespace CqlSharp.Network
         public bool AllowCleanup { get; set; }
 
         /// <summary>
+        /// Gets the protocol version.
+        /// </summary>
+        /// <value>
+        /// The protocol version.
+        /// </value>
+        public byte ProtocolVersion 
+        {
+            get { return _node.ProtocolVersion; }
+        }
+
+        /// <summary>
         /// Occurs when [on connection change].
         /// </summary>
         public event EventHandler<ConnectionChangeEvent> OnConnectionChange;

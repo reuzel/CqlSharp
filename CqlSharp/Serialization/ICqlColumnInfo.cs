@@ -25,8 +25,9 @@ namespace CqlSharp.Serialization
         /// </summary>
         /// <param name="source">The source.</param>
         /// <param name="type">The type.</param>
+        /// <param name="protocolVersion"></param>
         /// <returns></returns>
-        byte[] SerializeFrom(TTable source, CqlType type);
+        byte[] SerializeFrom(TTable source, CqlType type, byte protocolVersion);
 
         /// <summary>
         /// Deserializes the provided data using the given type and assigns it to the column member of the given target.
@@ -34,7 +35,8 @@ namespace CqlSharp.Serialization
         /// <param name="target">The target.</param>
         /// <param name="data">The data.</param>
         /// <param name="type">The type of the data.</param>
-        void DeserializeTo(TTable target, byte[] data, CqlType type);
+        /// <param name="protocolVersion"></param>
+        void DeserializeTo(TTable target, byte[] data, CqlType type, byte protocolVersion);
 
         /// <summary>
         /// Writes a value to the member belonging to this column on the specified target.
@@ -149,8 +151,9 @@ namespace CqlSharp.Serialization
         /// </summary>
         /// <param name="source">The source.</param>
         /// <param name="type">The type.</param>
+        /// <param name="protocolVersion"></param>
         /// <returns></returns>
-        byte[] SerializeFrom(object source, CqlType type);
+        byte[] SerializeFrom(object source, CqlType type, byte protocolVersion);
 
         /// <summary>
         /// Deserializes the provided data using the given type and assigns it to the column member of the given target.
@@ -158,6 +161,7 @@ namespace CqlSharp.Serialization
         /// <param name="target">The target.</param>
         /// <param name="data">The data.</param>
         /// <param name="type">The type of the data.</param>
-        void DeserializeTo(object target, byte[] data, CqlType type);
+        /// <param name="protocolVersion"></param>
+        void DeserializeTo(object target, byte[] data, CqlType type, byte protocolVersion);
     }
 }

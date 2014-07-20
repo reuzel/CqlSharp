@@ -59,7 +59,7 @@ namespace CqlSharp.Network
 
                 foreach(Node node in nodes)
                 {
-                    Connection connection = node.GetOrCreateConnection(partitionKey);
+                    Connection connection = node.GetOrCreateConnection();
                     if(connection != null)
                         return connection;
                 }

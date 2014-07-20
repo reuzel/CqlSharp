@@ -45,12 +45,23 @@ namespace CqlSharp.Serialization.Marshal
             return DbType.String;
         }
 
-        public override byte[] Serialize(string value)
+        /// <summary>
+        /// Gets the maximum size in bytes of values of this type.
+        /// </summary>
+        /// <value>
+        /// The maximum size in bytes.
+        /// </value>
+        public override int Size
+        {
+            get { return 2000000000; }
+        }
+
+        public override byte[] Serialize(string value, byte protocolVersion)
         {
             return Encoding.UTF8.GetBytes(value);
         }
 
-        public override string Deserialize(byte[] data)
+        public override string Deserialize(byte[] data, byte protocolVersion)
         {
             return Encoding.UTF8.GetString(data);
         }

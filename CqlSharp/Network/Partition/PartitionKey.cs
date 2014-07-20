@@ -16,6 +16,7 @@
 using System;
 using System.IO;
 using System.Linq;
+using CqlSharp.Annotations;
 using CqlSharp.Protocol;
 using CqlSharp.Serialization;
 
@@ -27,41 +28,20 @@ namespace CqlSharp.Network.Partition
     public class PartitionKey
     {
         /// <summary>
-        /// The none
+        /// An empty, unset partitionkey
         /// </summary>
-        public static readonly PartitionKey None = default(PartitionKey);
+        public readonly static PartitionKey None = new PartitionKey();
 
-        /// <summary>
-        /// The actual partition key value
-        /// </summary>
-        private byte[] _key;
-
-        /// <summary>
-        /// Gets the partition key value
-        /// </summary>
-        /// <value> The key. </value>
-        internal byte[] Key
-        {
-            get { return _key == null ? null : (byte[])_key.Clone(); }
-        }
-
+        private CqlType[] _keyTypes;
+        private object[] _keyValues;
+       
         /// <summary>
         /// Gets a value indicating whether a value is set for this PartitionKey
         /// </summary>
         /// <value> <c>true</c> if this instance is set; otherwise, <c>false</c> . </value>
         public bool IsSet
         {
-            get { return _key != null; }
-        }
-
-        /// <summary>
-        /// Copies this instance.
-        /// </summary>
-        /// <returns> </returns>
-        internal PartitionKey Copy()
-        {
-            byte[] key = Key;
-            return new PartitionKey {_key = key};
+            get { return _keyTypes == null; }
         }
 
         /// <summary>
@@ -69,12 +49,13 @@ namespace CqlSharp.Network.Partition
         /// </summary>
         /// <param name="type"> The typeCode in which the value is represented in Cassandra. </param>
         /// <param name="value"> The value of the partition key column. </param>
-        public void Set(CqlType type, Object value)
+        public void Set([NotNull] CqlType type, [NotNull] Object value)
         {
-            if(value == null)
-                throw new ArgumentNullException("value");
+            if(type == null) throw new ArgumentNullException("type");
+            if(value == null) throw new ArgumentNullException("value");
 
-            _key = type.Serialize(value);
+            _keyTypes = new[] {type};
+            _keyValues = new[] {value};
         }
 
         /// <summary>
@@ -95,25 +76,11 @@ namespace CqlSharp.Network.Partition
 
 
             if(types.Length != values.Length)
-                throw new ArgumentException("typeCodes and values are not of equal length");
+                throw new ArgumentException("types and value collections are not of equal length");
 
-            var rawValues = new byte[types.Length][];
-            for(int i = 0; i < types.Length; i++)
-            {
-                rawValues[i] = types[i].Serialize(values[i]);
-            }
+            _keyTypes = types;
+            _keyValues = values;
 
-            int length = types.Length*3 + rawValues.Sum(val => val.Length);
-            using(var stream = new MemoryStream(length))
-            {
-                foreach(var rawValue in rawValues)
-                {
-                    stream.WriteShortByteArray(rawValue);
-                    stream.WriteByte(0);
-                }
-
-                _key = stream.ToArray();
-            }
         }
 
         /// <summary>
@@ -128,28 +95,34 @@ namespace CqlSharp.Network.Partition
             accessor.SetPartitionKey(this, data);
         }
 
+        internal byte[] Serialize()
+        {
+            var rawValues = new byte[_keyTypes.Length][];
+            for (int i = 0; i < _keyTypes.Length; i++)
+            {
+                rawValues[i] = _keyTypes[i].Serialize(_keyValues[i], 1); //should work from protocol version 1 and upwards
+            }
+
+            int length = _keyTypes.Length * 3 + rawValues.Sum(val => val.Length);
+            using (var stream = new MemoryStream(length))
+            {
+                foreach (var rawValue in rawValues)
+                {
+                    stream.WriteShortByteArray(rawValue);
+                    stream.WriteByte(0);
+                }
+
+                return stream.ToArray();
+            }
+        }
+
         /// <summary>
         /// Clears this instance.
         /// </summary>
         public void Clear()
         {
-            _key = null;
-        }
-
-        public bool Equals(PartitionKey other)
-        {
-            return _key.SequenceEqual(other._key);
-        }
-
-        public override bool Equals(object obj)
-        {
-            if(ReferenceEquals(null, obj)) return false;
-            return obj is PartitionKey && Equals((PartitionKey)obj);
-        }
-
-        public override int GetHashCode()
-        {
-            return (_key != null ? _key.GetHashCode() : 0);
+            _keyTypes = null;
+            _keyValues = null;
         }
     }
 }

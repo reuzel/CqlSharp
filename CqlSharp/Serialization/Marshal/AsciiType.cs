@@ -69,6 +69,17 @@ namespace CqlSharp.Serialization.Marshal
         }
 
         /// <summary>
+        /// Gets the maximum size in bytes of values of this type.
+        /// </summary>
+        /// <value>
+        /// The maximum size in bytes.
+        /// </value>
+        public override int Size
+        {
+            get { return 2000000000; }
+        }
+
+        /// <summary>
         /// gets the corresponding the DbType
         /// </summary>
         /// <returns></returns>
@@ -81,8 +92,9 @@ namespace CqlSharp.Serialization.Marshal
         /// Serializes the specified value.
         /// </summary>
         /// <param name="value">The value.</param>
+        /// <param name="protocolVersion"></param>
         /// <returns></returns>
-        public override byte[] Serialize(string value)
+        public override byte[] Serialize(string value, byte protocolVersion)
         {
             return Encoding.ASCII.GetBytes(value);
         }
@@ -91,8 +103,9 @@ namespace CqlSharp.Serialization.Marshal
         /// Deserializes the specified data.
         /// </summary>
         /// <param name="data">The data.</param>
+        /// <param name="protocolVersion"></param>
         /// <returns></returns>
-        public override string Deserialize(byte[] data)
+        public override string Deserialize(byte[] data, byte protocolVersion)
         {
             return Encoding.ASCII.GetString(data);
         }

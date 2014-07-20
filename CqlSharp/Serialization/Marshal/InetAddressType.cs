@@ -38,12 +38,23 @@ namespace CqlSharp.Serialization.Marshal
             return DbType.Object;
         }
 
-        public override byte[] Serialize(IPAddress value)
+        /// <summary>
+        /// Gets the maximum size in bytes of values of this type.
+        /// </summary>
+        /// <value>
+        /// The maximum size in bytes.
+        /// </value>
+        public override int Size
+        {
+            get { return 16; }
+        }
+
+        public override byte[] Serialize(IPAddress value, byte protocolVersion)
         {
             return value.GetAddressBytes();
         }
 
-        public override IPAddress Deserialize(byte[] data)
+        public override IPAddress Deserialize(byte[] data, byte protocolVersion)
         {
             return new IPAddress(data);
         }

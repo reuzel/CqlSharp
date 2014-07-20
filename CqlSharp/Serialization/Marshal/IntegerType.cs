@@ -39,14 +39,25 @@ namespace CqlSharp.Serialization.Marshal
             return DbType.VarNumeric;
         }
 
-        public override byte[] Serialize(BigInteger value)
+        /// <summary>
+        /// Gets the maximum size in bytes of values of this type.
+        /// </summary>
+        /// <value>
+        /// The maximum size in bytes.
+        /// </value>
+        public override int Size
+        {
+            get { return 4; }
+        }
+
+        public override byte[] Serialize(BigInteger value, byte protocolVersion)
         {
             var data = value.ToByteArray();
             Array.Reverse(data); //to big endian
             return data;
         }
 
-        public override BigInteger Deserialize(byte[] data)
+        public override BigInteger Deserialize(byte[] data, byte protocolVersion)
         {
             //to little endian
             Array.Reverse(data);

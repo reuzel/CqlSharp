@@ -32,17 +32,28 @@ namespace CqlSharp.Serialization.Marshal
             builder.Append("org.apache.cassandra.db.marshal.BytesType");
         }
 
+        /// <summary>
+        /// Gets the maximum size in bytes of values of this type.
+        /// </summary>
+        /// <value>
+        /// The maximum size in bytes.
+        /// </value>
+        public override int Size
+        {
+            get { return 2000000000; }
+        }
+
         public override DbType ToDbType()
         {
             return DbType.Binary;
         }
 
-        public override byte[] Serialize(byte[] value)
+        public override byte[] Serialize(byte[] value, byte protocolVersion)
         {
             return value;
         }
 
-        public override byte[] Deserialize(byte[] data)
+        public override byte[] Deserialize(byte[] data, byte protocolVersion)
         {
             return data;
         }

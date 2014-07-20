@@ -32,17 +32,28 @@ namespace CqlSharp.Serialization.Marshal
             builder.Append("org.apache.cassandra.db.marshal.BooleanType");
         }
 
+        /// <summary>
+        /// Gets the maximum size in bytes of values of this type.
+        /// </summary>
+        /// <value>
+        /// The maximum size in bytes.
+        /// </value>
+        public override int Size
+        {
+            get { return 1; }
+        }
+
         public override DbType ToDbType()
         {
             return DbType.Boolean;
         }
 
-        public override byte[] Serialize(bool value)
+        public override byte[] Serialize(bool value, byte protocolVersion)
         {
             return new[] {value ? (byte)1 : (byte)0};
         }
 
-        public override bool Deserialize(byte[] data)
+        public override bool Deserialize(byte[] data, byte protocolVersion)
         {
             return data[0] > 0;
         }

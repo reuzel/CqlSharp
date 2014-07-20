@@ -38,14 +38,24 @@ namespace CqlSharp.Serialization.Marshal
             return DbType.Double;
         }
 
-        public override byte[] Serialize(double value)
+        /// <summary>
+        /// Gets the maximum size in bytes of values of this type.
+        /// </summary>
+        /// <value>
+        /// The maximum size in bytes.
+        /// </value>
+        public override int Size
+        {
+            get { return 8; }
+        }
+        public override byte[] Serialize(double value, byte protocolVersion)
         {
             var data = BitConverter.GetBytes(value);
             if(BitConverter.IsLittleEndian) Array.Reverse(data);
             return data;
         }
 
-        public override double Deserialize(byte[] data)
+        public override double Deserialize(byte[] data, byte protocolVersion)
         {
             if(BitConverter.IsLittleEndian) Array.Reverse(data);
             return BitConverter.ToDouble(data, 0);

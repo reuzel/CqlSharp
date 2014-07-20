@@ -61,23 +61,34 @@ namespace CqlSharp.Serialization.Marshal
             return DbType.Object;
         }
 
-        public override byte[] Serialize(Dictionary<TKey, TValue> map)
+        /// <summary>
+        /// Gets the maximum size in bytes of values of this type.
+        /// </summary>
+        /// <value>
+        /// The maximum size in bytes.
+        /// </value>
+        public override int Size
+        {
+            get { return 2000000000; }
+        }
+
+        public override byte[] Serialize(Dictionary<TKey, TValue> map, byte protocolVersion)
         {
             using(var ms = new MemoryStream())
             {
                 ms.WriteShort((ushort)map.Count);
                 foreach(var de in map)
                 {
-                    byte[] rawDataKey = _keyType.Serialize(de.Key);
+                    byte[] rawDataKey = _keyType.Serialize(de.Key, protocolVersion);
                     ms.WriteShortByteArray(rawDataKey);
-                    byte[] rawDataValue = _valueType.Serialize(de.Value);
+                    byte[] rawDataValue = _valueType.Serialize(de.Value, protocolVersion);
                     ms.WriteShortByteArray(rawDataValue);
                 }
                 return ms.ToArray();
             }
         }
 
-        public override Dictionary<TKey, TValue> Deserialize(byte[] data)
+        public override Dictionary<TKey, TValue> Deserialize(byte[] data, byte protocolVersion)
         {
             using(var ms = new MemoryStream(data))
             {
@@ -87,8 +98,8 @@ namespace CqlSharp.Serialization.Marshal
                 {
                     byte[] elemRawKey = ms.ReadShortByteArray();
                     byte[] elemRawValue = ms.ReadShortByteArray();
-                    TKey key = _keyType.Deserialize(elemRawKey);
-                    TValue value = _valueType.Deserialize(elemRawValue);
+                    TKey key = _keyType.Deserialize(elemRawKey, protocolVersion);
+                    TValue value = _valueType.Deserialize(elemRawValue, protocolVersion);
                     map.Add(key, value);
                 }
                 return map;

@@ -32,19 +32,30 @@ namespace CqlSharp.Serialization.Marshal
             builder.Append("org.apache.cassandra.db.marshal.CounterColumnType");
         }
 
+        /// <summary>
+        /// Gets the maximum size in bytes of values of this type.
+        /// </summary>
+        /// <value>
+        /// The maximum size in bytes.
+        /// </value>
+        public override int Size
+        {
+            get { return 8; }
+        }
+
         public override DbType ToDbType()
         {
             return DbType.Int64;
         }
 
-        public override byte[] Serialize(long value)
+        public override byte[] Serialize(long value, byte protocolVersion)
         {
             var data = new byte[8];
             value.ToBytes(data);
             return data;
         }
 
-        public override long Deserialize(byte[] data)
+        public override long Deserialize(byte[] data, byte protocolVersion)
         {
             return data.ToLong();
         }

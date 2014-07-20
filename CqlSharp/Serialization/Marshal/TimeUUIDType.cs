@@ -38,15 +38,25 @@ namespace CqlSharp.Serialization.Marshal
             return DbType.Guid;
         }
 
+        /// <summary>
+        /// Gets the maximum size in bytes of values of this type.
+        /// </summary>
+        /// <value>
+        /// The maximum size in bytes.
+        /// </value>
+        public override int Size
+        {
+            get { return 16; }
+        }
 
-        public override byte[] Serialize(Guid value)
+        public override byte[] Serialize(Guid value, byte protocolVersion)
         {
             var data = new byte[16];
             value.ToBytes(data);
             return data;
         }
 
-        public override Guid Deserialize(byte[] data)
+        public override Guid Deserialize(byte[] data, byte protocolVersion)
         {
             return data.ToGuid();
         }

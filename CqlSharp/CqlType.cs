@@ -62,7 +62,7 @@ namespace CqlSharp
         /// The type serializers. Cached version of the serializers, giving efficient access to the generic serialize methods from
         /// objects
         /// </summary>
-        private static readonly ConcurrentDictionary<Type, Func<CqlType, object, byte[]>> TypeSerializers;
+        private static readonly ConcurrentDictionary<Type, Func<CqlType, object, byte, byte[]>> TypeSerializers;
 
         /// <summary>
         /// The cached version of the type name
@@ -126,7 +126,7 @@ namespace CqlSharp
                 {DbType.String, Varchar},
             };
 
-            TypeSerializers = new ConcurrentDictionary<Type, Func<CqlType, object, byte[]>>();
+            TypeSerializers = new ConcurrentDictionary<Type, Func<CqlType, object, byte, byte[]>>();
         }
 
         /// <summary>
@@ -254,26 +254,36 @@ namespace CqlSharp
         public abstract Type Type { get; }
 
         /// <summary>
+        /// Gets the maximum size in bytes of values of this type.
+        /// </summary>
+        /// <value>
+        /// The maximum size in bytes.
+        /// </value>
+        public abstract int Size { get;  }
+
+        /// <summary>
         /// Serializes the specified object.
         /// </summary>
         /// <param name="source">The source object to serialize using this type.</param>
+        /// <param name="protocolVersion"></param>
         /// <returns>byte array containing the serialized value of the source object</returns>
         /// <remarks>This method may try to convert the source to a type serializable by this type</remarks>
-        public byte[] Serialize(object source)
+        public byte[] Serialize(object source, byte protocolVersion)
         {
             var serializer = TypeSerializers.GetOrAdd(source.GetType(), type =>
             {
                 var parameter = Expression.Parameter(typeof(object));
+                var version = Expression.Parameter(typeof(byte));
                 var instance = Expression.Parameter(typeof(CqlType));
-                var call = Expression.Call(instance, "Serialize", new[] {type}, Expression.Convert(parameter, type));
-                var lambda = Expression.Lambda<Func<CqlType, object, byte[]>>(call,
+                var call = Expression.Call(instance, "Serialize", new[] {type}, Expression.Convert(parameter, type), version);
+                var lambda = Expression.Lambda<Func<CqlType, object, byte, byte[]>>(call,
                                                                               string.Format("CqlType.Serialize<{0}>",
                                                                                             type.Name),
-                                                                              new[] {instance, parameter});
+                                                                              new[] {instance, parameter, version});
                 return lambda.Compile();
             });
 
-            return serializer(this, source);
+            return serializer(this, source, protocolVersion);
         }
 
         /// <summary>
@@ -281,22 +291,24 @@ namespace CqlSharp
         /// </summary>
         /// <typeparam name="TSource">The type of the source.</typeparam>
         /// <param name="source">The source object to serialize using this type.</param>
+        /// <param name="protocolVersion">protocol version of the underlying connection</param>
         /// <returns>
         /// byte array containing the serialized value of the source object
         /// </returns>
         /// <remarks>
         /// This method may try to convert the source to a type serializable by this type
         /// </remarks>
-        public abstract byte[] Serialize<TSource>(TSource source);
+        public abstract byte[] Serialize<TSource>(TSource source, byte protocolVersion);
 
         /// <summary>
         /// Deserializes the specified data to object of the given target type.
         /// </summary>
         /// <typeparam name="TTarget">The type of the target.</typeparam>
         /// <param name="data">The data to deserialize.</param>
+        /// <param name="protocolVersion">protocol version of the underlying connection</param>
         /// <returns>an object of the given type</returns>
         /// <remarks>The result may be type converted version of the actual deserialized value</remarks>
-        public abstract TTarget Deserialize<TTarget>(byte[] data);
+        public abstract TTarget Deserialize<TTarget>(byte[] data, byte protocolVersion);
 
 
         /// <summary>
@@ -416,26 +428,27 @@ namespace CqlSharp
         {
             get { return typeof(T); }
         }
-
+        
         /// <summary>
         /// Serializes the specified object.
         /// </summary>
         /// <typeparam name="TSource">The type of the source.</typeparam>
         /// <param name="source">The source object to serialize using this type.</param>
+        /// <param name="protocolVersion">protocol version of the underlying connection</param>
         /// <returns>
         /// byte array containing the serialized value of the source object
         /// </returns>
         /// <remarks>
         /// This method may try to convert the source to a type serializable by this type
         /// </remarks>
-        public override byte[] Serialize<TSource>(TSource source)
+        public override byte[] Serialize<TSource>(TSource source, byte protocolVersion)
         {
             // ReSharper disable once CompareNonConstrainedGenericWithNull
             if(source == null)
                 return null;
 
             T value = Converter.ChangeType<TSource, T>(source);
-            return Serialize(value);
+            return Serialize(value, protocolVersion);
         }
 
         /// <summary>
@@ -443,14 +456,15 @@ namespace CqlSharp
         /// </summary>
         /// <typeparam name="TTarget">The type of the target.</typeparam>
         /// <param name="data">The data to deserialize.</param>
+        /// <param name="protocolVersion">protocol version of the underlying connection</param>
         /// <returns>an object of the given type</returns>
         /// <remarks>The result may be type converted version of the actual deserialized value</remarks>
-        public override TTarget Deserialize<TTarget>(byte[] data)
+        public override TTarget Deserialize<TTarget>(byte[] data, byte protocolVersion)
         {
             if(data == null)
                 return default(TTarget);
 
-            T value = Deserialize(data);
+            T value = Deserialize(data, protocolVersion);
             return Converter.ChangeType<T, TTarget>(value);
         }
 
@@ -458,16 +472,18 @@ namespace CqlSharp
         /// Serializes the specified object.
         /// </summary>
         /// <param name="value">The value to serialize using this type.</param>
+        /// <param name="protocolVersion">protocol version of the underlying connection</param>
         /// <returns>
         /// byte array containing the serialized version of the value
         /// </returns>
-        public abstract byte[] Serialize(T value);
+        public abstract byte[] Serialize(T value, byte protocolVersion);
 
         /// <summary>
         /// Deserializes the specified data to object of the type corresponding to this CqlType.
         /// </summary>
         /// <param name="data">The data to deserialize.</param>
+        /// <param name="protocolVersion">protocol version of the underlying connection</param>
         /// <returns>an object of the T</returns>
-        public abstract T Deserialize(byte[] data);
+        public abstract T Deserialize(byte[] data, byte protocolVersion);
     }
 }

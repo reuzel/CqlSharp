@@ -75,6 +75,17 @@ namespace CqlSharp
         }
 
         /// <summary>
+        /// Gets the protocol version used to fetch the data.
+        /// </summary>
+        /// <value>
+        /// The protocol version.
+        /// </value>
+        internal byte ProtocolVersion
+        {
+            get { return _frame.ProtocolVersion; }
+        }
+
+        /// <summary>
         /// Gets a value indicating whether this reader instance has more rows.
         /// </summary>
         /// <value> <c>true</c> if this instance has more rows; otherwise, <c>false</c> . </value>
@@ -106,7 +117,7 @@ namespace CqlSharp
                 if(IsDBNull(index))
                     return DBNull.Value;
 
-                return MetaData[index].Type.Deserialize<object>(CurrentValues[index]);
+                return MetaData[index].Type.Deserialize<object>(CurrentValues[index], ProtocolVersion);
             }
         }
 
@@ -125,7 +136,7 @@ namespace CqlSharp
                 if(IsDBNull(column.Index))
                     return DBNull.Value;
 
-                return column.Type.Deserialize<object>(CurrentValues[column.Index]);
+                return column.Type.Deserialize<object>(CurrentValues[column.Index], ProtocolVersion);
             }
         }
 
@@ -832,7 +843,7 @@ namespace CqlSharp
                 return default(T);
 
             CqlType type = MetaData[ordinal].Type;
-            return type.Deserialize<T>(CurrentValues[ordinal]);
+            return type.Deserialize<T>(CurrentValues[ordinal], ProtocolVersion);
         }
 
         /// <summary>
@@ -933,7 +944,7 @@ namespace CqlSharp
                             if(accessor.ColumnsByName.TryGetValue(name, out member))
                             {
                                 int index = column.Index;
-                                member.DeserializeTo(value, CurrentValues[index], column.Type);
+                                member.DeserializeTo(value, CurrentValues[index], column.Type, ProtocolVersion);
                             }
                         }
                     }

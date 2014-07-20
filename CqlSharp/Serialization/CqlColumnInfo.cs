@@ -240,11 +240,12 @@ namespace CqlSharp.Serialization
         /// </summary>
         /// <param name="source">The source.</param>
         /// <param name="type">The type.</param>
+        /// <param name="protocolVersion">protocol version of the underlying connection</param>
         /// <returns></returns>
-        public byte[] SerializeFrom(TTable source, CqlType type)
+        public byte[] SerializeFrom(TTable source, CqlType type, byte protocolVersion)
         {
             TMember value = ReadFunction(source);
-            return value == null ? null : type.Serialize(value);
+            return value == null ? null : type.Serialize(value, protocolVersion);
         }
 
         /// <summary>
@@ -253,9 +254,10 @@ namespace CqlSharp.Serialization
         /// <param name="target">The target.</param>
         /// <param name="data">The data.</param>
         /// <param name="type">The type of the data.</param>
-        public void DeserializeTo(TTable target, byte[] data, CqlType type)
+        /// <param name="protocolVersion">protocol version of the underlying connection</param>
+        public void DeserializeTo(TTable target, byte[] data, CqlType type, byte protocolVersion)
         {
-            TMember value = data != null ? type.Deserialize<TMember>(data) : default(TMember);
+            TMember value = data != null ? type.Deserialize<TMember>(data, protocolVersion) : default(TMember);
             WriteFunction(target, value);
         }
 
@@ -313,10 +315,11 @@ namespace CqlSharp.Serialization
         /// </summary>
         /// <param name="source">The source.</param>
         /// <param name="type">The type.</param>
+        /// <param name="protocolVersion">protocol version of the underlying connection</param>
         /// <returns></returns>
-        byte[] ICqlColumnInfo.SerializeFrom(object source, CqlType type)
+        byte[] ICqlColumnInfo.SerializeFrom(object source, CqlType type, byte protocolVersion)
         {
-            return SerializeFrom((TTable)source, type);
+            return SerializeFrom((TTable)source, type, protocolVersion);
         }
 
         /// <summary>
@@ -325,9 +328,10 @@ namespace CqlSharp.Serialization
         /// <param name="target">The target.</param>
         /// <param name="data">The data.</param>
         /// <param name="type">The type of the data.</param>
-        void ICqlColumnInfo.DeserializeTo(object target, byte[] data, CqlType type)
+        /// <param name="protocolVersion">protocol version of the underlying connection</param>
+        void ICqlColumnInfo.DeserializeTo(object target, byte[] data, CqlType type, byte protocolVersion)
         {
-            DeserializeTo((TTable)target, data, type);
+            DeserializeTo((TTable)target, data, type, protocolVersion);
         }
     }
 }

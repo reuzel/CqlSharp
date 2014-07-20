@@ -30,7 +30,7 @@ namespace CqlSharp.Serialization.Marshal
     /// </summary>
     public class TupleType<T> : CqlType<T>
     {
-        private static readonly Func<Stream, CqlType[], T> Deserializer;
+        private static readonly Func<Stream, CqlType[], byte, T> Deserializer;
 
         private readonly CqlType[] _types;
 
@@ -42,6 +42,7 @@ namespace CqlSharp.Serialization.Marshal
 
             var data = Expression.Parameter(typeof(Stream));
             var types = Expression.Parameter(typeof(CqlType[]));
+            var protocolVersion = Expression.Parameter(typeof(byte));
 
             //iterate over all items and convert the values
             var expressions = new Expression[typeArguments.Length];
@@ -49,7 +50,7 @@ namespace CqlSharp.Serialization.Marshal
             {
                 var bytes = Expression.Call(typeof(StreamExtensions), "ReadByteArray", null, data);
                 var cqlType = Expression.ArrayIndex(types, Expression.Constant(i));
-                expressions[i] = Expression.Call(cqlType, "Deserialize", new[] {typeArguments[i]}, bytes);
+                expressions[i] = Expression.Call(cqlType, "Deserialize", new[] { typeArguments[i] }, bytes, protocolVersion);
             }
 
             //create the new tupe
@@ -58,7 +59,7 @@ namespace CqlSharp.Serialization.Marshal
                                            expressions.Select(e => e.Type).ToArray(),
                                            expressions);
 
-            Deserializer = Expression.Lambda<Func<Stream, CqlType[], T>>(newTuple, data, types).Compile();
+            Deserializer = Expression.Lambda<Func<Stream, CqlType[], byte, T>>(newTuple, data, types, protocolVersion).Compile();
         }
 
         /// <summary>
@@ -145,11 +146,23 @@ namespace CqlSharp.Serialization.Marshal
         }
 
         /// <summary>
+        /// Gets the maximum size in bytes of values of this type.
+        /// </summary>
+        /// <value>
+        /// The maximum size in bytes.
+        /// </value>
+        public override int Size
+        {
+            get { return 2000000000; }
+        }
+
+        /// <summary>
         /// Serializes the specified value.
         /// </summary>
         /// <param name="value">The value.</param>
+        /// <param name="protocolVersion"></param>
         /// <returns></returns>
-        public override byte[] Serialize(T value)
+        public override byte[] Serialize(T value, byte protocolVersion)
         {
             var accessor = ObjectAccessor<T>.Instance;
             using(var stream = new MemoryStream())
@@ -159,7 +172,7 @@ namespace CqlSharp.Serialization.Marshal
                     ICqlColumnInfo<T> member;
                     if(accessor.ColumnsByName.TryGetValue("item" + (i + 1), out member))
                     {
-                        byte[] itemData = member.SerializeFrom(value, _types[i]);
+                        byte[] itemData = member.SerializeFrom(value, _types[i], protocolVersion);
                         stream.WriteByteArray(itemData);
                     }
                 }
@@ -171,12 +184,13 @@ namespace CqlSharp.Serialization.Marshal
         /// Deserializes the specified data.
         /// </summary>
         /// <param name="data">The data.</param>
+        /// <param name="protocolVersion"></param>
         /// <returns></returns>
-        public override T Deserialize(byte[] data)
+        public override T Deserialize(byte[] data, byte protocolVersion)
         {
             using(var stream = new MemoryStream(data))
             {
-                return Deserializer(stream, _types);
+                return Deserializer(stream, _types, protocolVersion);
             }
         }
     }

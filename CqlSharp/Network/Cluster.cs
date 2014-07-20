@@ -424,7 +424,7 @@ namespace CqlSharp.Network
             {
                 //get a connection
                 if(seed != null && seed.IsUp)
-                    c = seed.GetOrCreateConnection(null);
+                    c = seed.GetOrCreateConnection();
                 else if(_maintenanceConnection != null && _maintenanceConnection.IsConnected)
                 {
                     c = _maintenanceConnection;

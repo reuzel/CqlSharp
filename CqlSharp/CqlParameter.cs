@@ -296,11 +296,7 @@ namespace CqlSharp
         /// </returns>
         public override int Size
         {
-            get
-            {
-                byte[] bytes = Serialize();
-                return bytes == null ? 0 : bytes.Length;
-            }
+            get { return CqlType.Size; }
             set
             {
                 //noop
@@ -361,13 +357,23 @@ namespace CqlSharp
         /// <summary>
         /// Serializes this parameter.
         /// </summary>
+        /// <param name="protocolVersion">protocol version used by the underlying connection</param>
         /// <returns></returns>
-        internal virtual byte[] Serialize()
+        internal virtual byte[] Serialize(byte protocolVersion)
         {
             if(Value == null)
                 return null;
 
-            return CqlType.Serialize(Value);
+            return CqlType.Serialize(Value, protocolVersion);
+        }
+
+        /// <summary>
+        /// Clones this instance.
+        /// </summary>
+        /// <returns></returns>
+        public CqlParameter Clone()
+        {
+            return new CqlParameter(_column) {_isFixed = _isFixed, _isNullable = _isNullable, _value = Value};
         }
     }
 }

@@ -164,9 +164,9 @@ namespace CqlSharp.Test
 
             var cqlType = CqlType.CreateType(t.GetType());
 
-            byte[] data = cqlType.Serialize(t);
+            byte[] data = cqlType.Serialize(t, 2);
 
-            var result = cqlType.Deserialize<Tuple<string, int>>(data);
+            var result = cqlType.Deserialize<Tuple<string, int>>(data, 2);
 
             Assert.AreEqual(t.Item1, result.Item1);
             Assert.AreEqual(t.Item2, result.Item2);
@@ -179,9 +179,9 @@ namespace CqlSharp.Test
 
             var cqlType = CqlType.CreateType(t.GetType());
 
-            byte[] data = cqlType.Serialize(t);
+            byte[] data = cqlType.Serialize(t, 2);
 
-            var result = cqlType.Deserialize<Tuple<string, int>>(data);
+            var result = cqlType.Deserialize<Tuple<string, int>>(data, 2);
 
             Assert.AreEqual(t.Item1, result.Item1);
             Assert.AreEqual(t.Item2, result.Item2);

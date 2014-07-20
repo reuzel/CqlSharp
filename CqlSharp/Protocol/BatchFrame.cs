@@ -87,11 +87,12 @@ namespace CqlSharp.Protocol
 
                 if(command.ParameterValues != null)
                 {
-                    var length = (ushort)command.ParameterValues.Length;
+                    byte[][] paramValues = command.ParameterValues.Serialize(ProtocolVersion);
+                    var length = (ushort)paramValues.Length;
                     buffer.WriteShort(length);
                     for(var i = 0; i < length; i++)
                     {
-                        buffer.WriteByteArray(command.ParameterValues[i]);
+                        buffer.WriteByteArray(paramValues[i]);
                     }
                 }
                 else
@@ -121,7 +122,7 @@ namespace CqlSharp.Protocol
             public bool IsPrepared { get; set; }
             public byte[] QueryId { get; set; }
             public string CqlQuery { get; set; }
-            public byte[][] ParameterValues { get; set; }
+            public CqlParameterCollection ParameterValues { get; set; }
         }
 
         #endregion

@@ -33,19 +33,30 @@ namespace CqlSharp.Serialization.Marshal
             builder.Append("org.apache.cassandra.db.marshal.DateType");
         }
 
+        /// <summary>
+        /// Gets the maximum size in bytes of values of this type.
+        /// </summary>
+        /// <value>
+        /// The maximum size in bytes.
+        /// </value>
+        public override int Size
+        {
+            get { return 8; }
+        }
+
         public override DbType ToDbType()
         {
             return DbType.DateTime;
         }
 
-        public override byte[] Serialize(DateTime value)
+        public override byte[] Serialize(DateTime value, byte protocolVersion)
         {
             var data = new byte[8];
             value.ToBytes(data);
             return data;
         }
 
-        public override DateTime Deserialize(byte[] data)
+        public override DateTime Deserialize(byte[] data, byte protocolVersion)
         {
             return data.ToLong().ToDateTime();
         }

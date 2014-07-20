@@ -58,7 +58,18 @@ namespace CqlSharp.Serialization.Marshal
             return DbType.Object;
         }
 
-        public override byte[] Serialize(List<T> value)
+        /// <summary>
+        /// Gets the maximum size in bytes of values of this type.
+        /// </summary>
+        /// <value>
+        /// The maximum size in bytes.
+        /// </value>
+        public override int Size
+        {
+            get { return 2000000000; }
+        }
+
+        public override byte[] Serialize(List<T> value, byte protocolVersion)
         {
             using(var ms = new MemoryStream())
             {
@@ -67,7 +78,7 @@ namespace CqlSharp.Serialization.Marshal
                 ushort count = 0;
                 foreach(T elem in value)
                 {
-                    byte[] rawDataElem = _valueType.Serialize(elem);
+                    byte[] rawDataElem = _valueType.Serialize(elem, protocolVersion);
                     ms.WriteShortByteArray(rawDataElem);
                     count++;
                 }
@@ -77,7 +88,7 @@ namespace CqlSharp.Serialization.Marshal
             }
         }
 
-        public override List<T> Deserialize(byte[] data)
+        public override List<T> Deserialize(byte[] data, byte protocolVersion)
         {
             using(var ms = new MemoryStream(data))
             {
@@ -86,7 +97,7 @@ namespace CqlSharp.Serialization.Marshal
                 for(int i = 0; i < nbElem; i++)
                 {
                     byte[] elemRawData = ms.ReadShortByteArray();
-                    T elem = _valueType.Deserialize(elemRawData);
+                    T elem = _valueType.Deserialize(elemRawData, protocolVersion);
                     list.Add(elem);
                 }
                 return list;

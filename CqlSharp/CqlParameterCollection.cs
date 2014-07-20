@@ -17,6 +17,8 @@ using System;
 using System.Collections;
 using System.Collections.Generic;
 using System.Data.Common;
+using System.Diagnostics;
+using System.Linq;
 using CqlSharp.Protocol;
 using CqlSharp.Serialization;
 
@@ -27,15 +29,22 @@ namespace CqlSharp
     /// </summary>
     public class CqlParameterCollection : DbParameterCollection
     {
-        private readonly List<CqlParameter> _parameters;
         private readonly object _syncLock = new object();
+        private List<CqlParameter> _parameters;
         private MetaData _metaData;
 
+        /// <summary>
+        /// Initializes a new instance of the <see cref="CqlParameterCollection"/> class.
+        /// </summary>
         public CqlParameterCollection()
         {
             _parameters = new List<CqlParameter>();
         }
 
+        /// <summary>
+        /// Initializes a new instance of the <see cref="CqlParameterCollection"/> class.
+        /// </summary>
+        /// <param name="metaData">The meta data.</param>
         internal CqlParameterCollection(MetaData metaData)
         {
             _metaData = metaData;
@@ -128,8 +137,9 @@ namespace CqlSharp
         /// <summary>
         /// Gets the serialized values of this CqlParameterCollection
         /// </summary>
+        /// <param name="protocolVersion">protocol version used by the underlying connection</param>
         /// <value> The values. </value>
-        internal byte[][] Serialize()
+        internal byte[][] Serialize(byte protocolVersion)
         {
             var values = new byte[Count][];
             for(int i = 0; i < Count; i++)
@@ -140,7 +150,7 @@ namespace CqlSharp
                 if(param.Value == DBNull.Value || param.Value == null)
                     continue;
 
-                values[i] = param.Serialize();
+                values[i] = param.Serialize(protocolVersion);
             }
 
             return values;
@@ -512,6 +522,14 @@ namespace CqlSharp
 
             var c = (ICollection)_parameters;
             c.CopyTo(array, index);
+        }
+
+        public virtual CqlParameterCollection Clone()
+        {
+            var newCollection = new CqlParameterCollection();
+            newCollection._metaData = _metaData;
+            newCollection._parameters = _parameters.Select(p => p.Clone()).ToList();
+            return newCollection;
         }
 
         /// <summary>

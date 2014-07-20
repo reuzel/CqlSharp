@@ -136,17 +136,29 @@ namespace CqlSharp.Serialization.Marshal
         }
 
         /// <summary>
+        /// Gets the maximum size in bytes of values of this type.
+        /// </summary>
+        /// <value>
+        /// The maximum size in bytes.
+        /// </value>
+        public override int Size
+        {
+            get { return 2000000000; }
+        }
+
+        /// <summary>
         /// Serializes the specified object.
         /// </summary>
         /// <typeparam name="TSource">The type of the source.</typeparam>
         /// <param name="source">The source object to serialize using this type.</param>
+        /// <param name="protocolVersion"></param>
         /// <returns>
         /// byte array containing the serialized value of the source object
         /// </returns>
         /// <remarks>
         /// This method is overridden to prevent unnessecary creation and casting of UserDefined objects
         /// </remarks>
-        public override byte[] Serialize<TSource>(TSource source)
+        public override byte[] Serialize<TSource>(TSource source, byte protocolVersion)
         {
             // ReSharper disable once CompareNonConstrainedGenericWithNull
             if(source == null)
@@ -172,7 +184,7 @@ namespace CqlSharp.Serialization.Marshal
                                                              typeof(TSource), this));
                     }
 
-                    var rawValue = column.SerializeFrom(source, _fieldList[i].Value);
+                    var rawValue = column.SerializeFrom(source, _fieldList[i].Value, protocolVersion);
                     stream.WriteByteArray(rawValue);
                 }
 
@@ -180,9 +192,9 @@ namespace CqlSharp.Serialization.Marshal
             }
         }
 
-        public override byte[] Serialize(T value)
+        public override byte[] Serialize(T value, byte protocolVersion)
         {
-            return Serialize<T>(value);
+            return Serialize<T>(value, protocolVersion);
         }
 
 
@@ -191,11 +203,12 @@ namespace CqlSharp.Serialization.Marshal
         /// </summary>
         /// <typeparam name="TTarget">The type of the target.</typeparam>
         /// <param name="data">The data to deserialize.</param>
+        /// <param name="protocolVersion"></param>
         /// <returns>an object of the given type</returns>
         /// <remarks>
         /// This method is overridden to prevent unnessecary creation and casting of UserDefined objects
         /// </remarks>
-        public override TTarget Deserialize<TTarget>(byte[] data)
+        public override TTarget Deserialize<TTarget>(byte[] data, byte protocolVersion)
         {
             if(data == null)
                 return default(TTarget);
@@ -222,7 +235,7 @@ namespace CqlSharp.Serialization.Marshal
 
                     ICqlColumnInfo column;
                     if(accessor.ColumnsByName.TryGetValue(field.Key, out column))
-                        column.DeserializeTo(result, rawValue, field.Value);
+                        column.DeserializeTo(result, rawValue, field.Value, protocolVersion);
                 }
 
                 return (TTarget)result;
@@ -233,10 +246,11 @@ namespace CqlSharp.Serialization.Marshal
         /// Deserializes the specified data to object of the type corresponding to this CqlType.
         /// </summary>
         /// <param name="data">The data to deserialize.</param>
+        /// <param name="protocolVersion"></param>
         /// <returns>a deserialized UserDefined object</returns>
-        public override T Deserialize(byte[] data)
+        public override T Deserialize(byte[] data, byte protocolVersion)
         {
-            return Deserialize<T>(data);
+            return Deserialize<T>(data, protocolVersion);
         }
 
         /// <summary>
