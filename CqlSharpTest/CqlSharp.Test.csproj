@@ -82,6 +82,7 @@
     <Compile Include="TimeUuidTest.cs" />
     <Compile Include="CqlTypeTest.cs" />
     <Compile Include="SerializationTest210.cs" />
+    <Compile Include="TokenTest.cs" />
   </ItemGroup>
   <ItemGroup>
     <ProjectReference Include="..\CqlSharp\CqlSharp.csproj">

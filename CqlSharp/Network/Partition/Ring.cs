@@ -474,7 +474,7 @@ namespace CqlSharp.Network.Partition
                     return null;
 
                 //parse the key into a token value
-                token.Parse(key.Serialize());
+                token.Parse(key.GetValue());
 
                 // Find the primary replica
                 int i = _tokens.BinarySearch(token);

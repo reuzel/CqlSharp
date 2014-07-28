@@ -31,9 +31,8 @@ namespace CqlSharp.Network.Partition
         /// An empty, unset partitionkey
         /// </summary>
         public readonly static PartitionKey None = new PartitionKey();
-
-        private CqlType[] _keyTypes;
-        private object[] _keyValues;
+        
+        private byte[] _key;
        
         /// <summary>
         /// Gets a value indicating whether a value is set for this PartitionKey
@@ -41,7 +40,7 @@ namespace CqlSharp.Network.Partition
         /// <value> <c>true</c> if this instance is set; otherwise, <c>false</c> . </value>
         public bool IsSet
         {
-            get { return _keyTypes == null; }
+            get { return _key != null; }
         }
 
         /// <summary>
@@ -49,13 +48,12 @@ namespace CqlSharp.Network.Partition
         /// </summary>
         /// <param name="type"> The typeCode in which the value is represented in Cassandra. </param>
         /// <param name="value"> The value of the partition key column. </param>
-        public void Set([NotNull] CqlType type, [NotNull] Object value)
+        public void Set<T>([NotNull] CqlType type, [NotNull] T value)
         {
             if(type == null) throw new ArgumentNullException("type");
             if(value == null) throw new ArgumentNullException("value");
 
-            _keyTypes = new[] {type};
-            _keyValues = new[] {value};
+            _key = type.Serialize(value, 1);
         }
 
         /// <summary>
@@ -78,8 +76,29 @@ namespace CqlSharp.Network.Partition
             if(types.Length != values.Length)
                 throw new ArgumentException("types and value collections are not of equal length");
 
-            _keyTypes = types;
-            _keyValues = values;
+            if(types.Length == 1)
+                _key = types[0].Serialize(values[0], 1);
+            else
+            {
+                var rawValues = new byte[types.Length][];
+                for (int i = 0; i < types.Length; i++)
+                {
+                    rawValues[i] = types[i].Serialize(values[i], 1); //should work from protocol version 1 and upwards
+                }
+
+                int length = types.Length * 3 + rawValues.Sum(val => val.Length);
+                using (var stream = new MemoryStream(length))
+                {
+                    foreach (var rawValue in rawValues)
+                    {
+                        stream.WriteShortByteArray(rawValue);
+                        stream.WriteByte(0);
+                    }
+
+                    _key = stream.ToArray();
+                }
+            }
+
 
         }
 
@@ -95,25 +114,13 @@ namespace CqlSharp.Network.Partition
             accessor.SetPartitionKey(this, data);
         }
 
-        internal byte[] Serialize()
+        /// <summary>
+        /// Gets the value of this partitionKey.
+        /// </summary>
+        /// <returns></returns>
+        internal byte[] GetValue()
         {
-            var rawValues = new byte[_keyTypes.Length][];
-            for (int i = 0; i < _keyTypes.Length; i++)
-            {
-                rawValues[i] = _keyTypes[i].Serialize(_keyValues[i], 1); //should work from protocol version 1 and upwards
-            }
-
-            int length = _keyTypes.Length * 3 + rawValues.Sum(val => val.Length);
-            using (var stream = new MemoryStream(length))
-            {
-                foreach (var rawValue in rawValues)
-                {
-                    stream.WriteShortByteArray(rawValue);
-                    stream.WriteByte(0);
-                }
-
-                return stream.ToArray();
-            }
+            return _key;
         }
 
         /// <summary>
@@ -121,8 +128,7 @@ namespace CqlSharp.Network.Partition
         /// </summary>
         public void Clear()
         {
-            _keyTypes = null;
-            _keyValues = null;
+            _key = null;
         }
     }
 }
