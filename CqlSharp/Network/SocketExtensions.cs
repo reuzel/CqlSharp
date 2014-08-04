@@ -30,7 +30,7 @@ namespace CqlSharp.Network
                 //close connection when timeout is invoked
                 using (token.Register((cl) => ((TcpClient)cl).Close(), client))
                 {
-                    await client.ConnectAsync(address, port).ConfigureAwait(false);
+                    await client.ConnectAsync(address, port);
                 }
             }
             catch (Exception ex)

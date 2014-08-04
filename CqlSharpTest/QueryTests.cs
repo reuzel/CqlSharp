@@ -246,6 +246,42 @@ namespace CqlSharp.Test
         }
 
         [TestMethod]
+        public void BasicInsertSelectSynchronous()
+        {
+            //Assume
+            const string insertCql = @"insert into Test.BasicFlow (id,value) values (12367,'Hallo 12367');";
+            const string retrieveCql = @"select * from Test.BasicFlow;";
+
+            //Act
+            using (var connection = new CqlConnection(ConnectionString))
+            {
+                connection.Open();
+
+                //insert data
+                var cmd = new CqlCommand(connection, insertCql, CqlConsistency.One);
+                cmd.ExecuteNonQuery();
+
+                //select data
+                var selectCmd = new CqlCommand(connection, retrieveCql, CqlConsistency.One);
+                selectCmd.CommandTimeout = Timeout.Infinite;
+                selectCmd.Prepare();
+
+                CqlDataReader reader = selectCmd.ExecuteReader();
+                Assert.AreEqual(1, reader.Count);
+                if (reader.Read())
+                {
+                    Assert.AreEqual(12367, reader["id"]);
+                    Assert.AreEqual("Hallo 12367", reader["value"]);
+                    Assert.AreEqual(DBNull.Value, reader["ignored"]);
+                }
+                else
+                {
+                    Assert.Fail("Read should have succeeded");
+                }
+            }
+        }
+
+        [TestMethod]
         public async Task BasicInsertSelect()
         {
             //Assume

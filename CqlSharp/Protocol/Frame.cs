@@ -151,11 +151,10 @@ namespace CqlSharp.Protocol
             int read = 0;
             var header = new byte[8];
             while (read < 8)
-                read += await stream.ReadAsync(header, read, 8 - read).ConfigureAwait(false);
+                read += await stream.ReadAsync(header, read, 8 - read);
 
             //get length
-            if (BitConverter.IsLittleEndian) Array.Reverse(header, 4, 4);
-            int length = BitConverter.ToInt32(header, 4);
+            int length = header.ToInt(4);
 
             Frame frame;
             switch ((FrameOpcode)header[3])
@@ -197,13 +196,13 @@ namespace CqlSharp.Protocol
 
             //decompress the contents of the frame (implicity loads the entire frame body!)
             if (frame.Flags.HasFlag(FrameFlags.Compression))
-                await reader.DecompressAsync().ConfigureAwait(false);
+                await reader.DecompressAsync();
 
             //read tracing id if set
             if (frame.Flags.HasFlag(FrameFlags.Tracing))
-                frame.TracingId = await reader.ReadUuidAsync().ConfigureAwait(false);
+                frame.TracingId = await reader.ReadUuidAsync();
 
-            await frame.InitializeAsync().ConfigureAwait(false);
+            await frame.InitializeAsync();
 
             return frame;
         }

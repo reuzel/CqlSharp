@@ -34,7 +34,7 @@ namespace CqlSharp.Protocol
         protected override async Task InitializeAsync()
         {
             FrameReader reader = Reader;
-            SaslChallenge = await reader.ReadBytesAsync().ConfigureAwait(false);
+            SaslChallenge = await reader.ReadBytesAsync();
         }
     }
 }

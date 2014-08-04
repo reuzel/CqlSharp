@@ -39,6 +39,9 @@
     <ApplicationIcon>Properties\logo.ico</ApplicationIcon>
   </PropertyGroup>
   <ItemGroup>
+    <Reference Include="ParallelExtensionsExtras">
+      <HintPath>..\packages\MSFT.ParallelExtensionsExtras.1.2.0\lib\ParallelExtensionsExtras.dll</HintPath>
+    </Reference>
     <Reference Include="System" />
     <Reference Include="System.ComponentModel.Composition" />
     <Reference Include="System.ComponentModel.Composition.Registration" />
@@ -179,6 +182,8 @@
     <Compile Include="Serialization\CqlIgnoreAttribute.cs" />
     <Compile Include="Serialization\CqlTableAttribute.cs" />
     <Compile Include="Serialization\ObjectAccessor.cs" />
+    <Compile Include="Threading\ActiveThreadScheduler.cs" />
+    <Compile Include="Threading\Scheduler.cs" />
     <Compile Include="TimeGuid.cs" />
     <Compile Include="Tracing\QueryTraceCommand.cs" />
     <Compile Include="Tracing\TracingEvent.cs" />
@@ -187,6 +192,7 @@
   </ItemGroup>
   <ItemGroup>
     <None Include="Network\nSnappy\readme.txt" />
+    <None Include="packages.config" />
     <None Include="Properties\logo.ico" />
   </ItemGroup>
   <ItemGroup>

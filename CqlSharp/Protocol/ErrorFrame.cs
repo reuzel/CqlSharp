@@ -49,36 +49,36 @@ namespace CqlSharp.Protocol
         protected override async Task InitializeAsync()
         {
             FrameReader stream = Reader;
-            var code = (ErrorCode) await stream.ReadIntAsync().ConfigureAwait(false);
-            string msg = await stream.ReadStringAsync().ConfigureAwait(false);
+            var code = (ErrorCode) await stream.ReadIntAsync();
+            string msg = await stream.ReadStringAsync();
 
             switch (code)
             {
                 case ErrorCode.Unavailable:
                     {
-                        var cl = (CqlConsistency) await stream.ReadShortAsync().ConfigureAwait(false);
-                        int required = await stream.ReadIntAsync().ConfigureAwait(false);
-                        int alive = await stream.ReadIntAsync().ConfigureAwait(false);
+                        var cl = (CqlConsistency) await stream.ReadShortAsync();
+                        int required = await stream.ReadIntAsync();
+                        int alive = await stream.ReadIntAsync();
                         Exception = new UnavailableException(msg, cl, required, alive, TracingId);
                         break;
                     }
 
                 case ErrorCode.WriteTimeout:
                     {
-                        var cl = (CqlConsistency) await stream.ReadShortAsync().ConfigureAwait(false);
-                        int received = await stream.ReadIntAsync().ConfigureAwait(false);
-                        int blockFor = await stream.ReadIntAsync().ConfigureAwait(false);
-                        string writeType = await stream.ReadStringAsync().ConfigureAwait(false);
+                        var cl = (CqlConsistency) await stream.ReadShortAsync();
+                        int received = await stream.ReadIntAsync();
+                        int blockFor = await stream.ReadIntAsync();
+                        string writeType = await stream.ReadStringAsync();
                         Exception = new WriteTimeOutException(msg, cl, received, blockFor, writeType, TracingId);
                         break;
                     }
 
                 case ErrorCode.ReadTimeout:
                     {
-                        var cl = (CqlConsistency) await stream.ReadShortAsync().ConfigureAwait(false);
-                        int received = await stream.ReadIntAsync().ConfigureAwait(false);
-                        int blockFor = await stream.ReadIntAsync().ConfigureAwait(false);
-                        bool dataPresent = 0 != await stream.ReadByteAsync().ConfigureAwait(false);
+                        var cl = (CqlConsistency) await stream.ReadShortAsync();
+                        int received = await stream.ReadIntAsync();
+                        int blockFor = await stream.ReadIntAsync();
+                        bool dataPresent = 0 != await stream.ReadByteAsync();
                         Exception = new ReadTimeOutException(msg, cl, received, blockFor, dataPresent, TracingId);
                         break;
                     }
@@ -100,13 +100,13 @@ namespace CqlSharp.Protocol
                     break;
 
                 case ErrorCode.AlreadyExists:
-                    string keyspace = await stream.ReadStringAsync().ConfigureAwait(false);
-                    string table = await stream.ReadStringAsync().ConfigureAwait(false);
+                    string keyspace = await stream.ReadStringAsync();
+                    string table = await stream.ReadStringAsync();
                     Exception = new AlreadyExistsException(msg, keyspace, table, TracingId);
                     break;
 
                 case ErrorCode.Unprepared:
-                    byte[] unknownId = await stream.ReadShortBytesAsync().ConfigureAwait(false);
+                    byte[] unknownId = await stream.ReadShortBytesAsync();
                     Exception = new UnpreparedException(msg, unknownId, TracingId);
                     break;
 

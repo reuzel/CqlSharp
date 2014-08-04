@@ -24,6 +24,7 @@ using System.Threading.Tasks;
 using CqlSharp.Logging;
 using CqlSharp.Network.Partition;
 using CqlSharp.Protocol;
+using CqlSharp.Threading;
 
 namespace CqlSharp.Network
 {
@@ -565,11 +566,11 @@ namespace CqlSharp.Network
                         {
                             var connection = AddConnection();
 
-                            Task.Run(async () =>
+                            Scheduler.RunOnThreadPool(async () =>
                             {
                                 try
                                 {
-                                    await connection.OpenAsync(logger).ConfigureAwait(false);
+                                    await connection.OpenAsync(logger);
                                     using(logger.ThreadBinding())
                                         connection.Dispose();
                                 }
@@ -577,7 +578,7 @@ namespace CqlSharp.Network
                                 {
                                     logger.LogVerbose("Connection attempt failed: a next round of retry is introduced");
                                 }
-                            });
+                            }, true);
                         }
                     }
                 }

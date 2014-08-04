@@ -13,6 +13,7 @@
 // See the License for the specific language governing permissions and
 // limitations under the License.
 
+using CqlSharp.Network;
 using CqlSharp.Protocol;
 using CqlSharp.Serialization;
 using System;
@@ -24,6 +25,7 @@ using System.Net;
 using System.Numerics;
 using System.Threading;
 using System.Threading.Tasks;
+using CqlSharp.Threading;
 
 namespace CqlSharp
 {
@@ -202,26 +204,23 @@ namespace CqlSharp
         /// <returns> </returns>
         public override async Task<bool> ReadAsync(CancellationToken cancellationToken)
         {
-            while (true)
+            while(true)
             {
                 //read next row from frame
-                if (_frame.Count > 0)
+                if(_frame.Count > 0)
                 {
                     cancellationToken.ThrowIfCancellationRequested();
-                    CurrentValues = await _frame.ReadNextDataRowAsync().ConfigureAwait(false);
+                    CurrentValues = await _frame.ReadNextDataRowAsync();
                     return true;
                 }
 
                 //fetch next page frame (if any)
-                if (_frame.ResultMetaData.HasMoreRows)
+                if(_frame.ResultMetaData.HasMoreRows)
                 {
                     //get next page of data
                     cancellationToken.ThrowIfCancellationRequested();
                     _command.PagingState = _frame.ResultMetaData.PagingState;
-                    _frame =
-                        await
-                        _command.ExecuteReaderAsyncInternal(CommandBehavior.Default, cancellationToken).ConfigureAwait(
-                            false);
+                    _frame = await _command.ExecuteReaderAsyncInternal(CommandBehavior.Default, cancellationToken);
                     _command.PagingState = null;
                 }
                 else
@@ -242,7 +241,7 @@ namespace CqlSharp
         /// <returns> true if there are more rows; otherwise, false. </returns>
         public override bool Read()
         {
-            return ReadAsync().Result;
+            return Scheduler.RunSynchronously(ReadAsync);
         }
 
         /// <summary>

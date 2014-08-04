@@ -16,6 +16,7 @@
 using System;
 using System.Data;
 using System.Data.Common;
+using System.Diagnostics;
 using System.Threading;
 using System.Threading.Tasks;
 using CqlSharp.Logging;
@@ -23,6 +24,7 @@ using CqlSharp.Memory;
 using CqlSharp.Network;
 using CqlSharp.Network.Partition;
 using CqlSharp.Protocol;
+using CqlSharp.Threading;
 
 namespace CqlSharp
 {
@@ -393,15 +395,8 @@ namespace CqlSharp
         /// <returns> </returns>
         public override object ExecuteScalar()
         {
-            try
-            {
-                var token = SetupCancellationToken();
-                return ExecuteScalarAsync(token).Result;
-            }
-            catch(AggregateException aex)
-            {
-                throw aex.InnerException;
-            }
+            var token = SetupCancellationToken();
+            return Scheduler.RunSynchronously(() => ExecuteScalarAsync(token));
         }
 
         /// <summary>
@@ -461,15 +456,8 @@ namespace CqlSharp
         /// <returns> </returns>
         public new virtual CqlDataReader ExecuteReader(CommandBehavior behavior)
         {
-            try
-            {
-                var token = SetupCancellationToken();
-                return ExecuteReaderAsync(behavior, token).Result;
-            }
-            catch(AggregateException aex)
-            {
-                throw aex.InnerException;
-            }
+            var token = SetupCancellationToken();
+            return Scheduler.RunSynchronously(() => ExecuteReaderAsync(behavior, token));
         }
 
         /// <summary>
@@ -517,7 +505,7 @@ namespace CqlSharp
         protected override async Task<DbDataReader> ExecuteDbDataReaderAsync(CommandBehavior behavior,
                                                                              CancellationToken cancellationToken)
         {
-            return await ExecuteReaderAsync(behavior, cancellationToken).ConfigureAwait(false);
+            return await ExecuteReaderAsync(behavior, cancellationToken);
         }
 
         /// <summary>
@@ -529,7 +517,7 @@ namespace CqlSharp
         public new virtual async Task<CqlDataReader> ExecuteReaderAsync(CommandBehavior behavior,
                                                                         CancellationToken cancellationToken)
         {
-            var result = await ExecuteReaderAsyncInternal(behavior, cancellationToken).ConfigureAwait(false);
+            var result = await ExecuteReaderAsyncInternal(behavior, cancellationToken);
 
             var reader = new CqlDataReader(this, result,
                                            behavior.HasFlag(CommandBehavior.CloseConnection) ? _connection : null);
@@ -582,7 +570,7 @@ namespace CqlSharp
                                                                           CancellationToken cancellationToken)
             where T : class, new()
         {
-            var result = await ExecuteReaderAsyncInternal(behavior, cancellationToken).ConfigureAwait(false);
+            var result = await ExecuteReaderAsyncInternal(behavior, cancellationToken);
 
             var reader = new CqlDataReader<T>(this, result,
                                               behavior.HasFlag(CommandBehavior.CloseConnection) ? _connection : null);
@@ -614,15 +602,8 @@ namespace CqlSharp
         /// </remarks>
         public virtual CqlDataReader<T> ExecuteReader<T>(CommandBehavior behavior) where T : class, new()
         {
-            try
-            {
-                var token = SetupCancellationToken();
-                return ExecuteReaderAsync<T>(behavior, token).Result;
-            }
-            catch(AggregateException aex)
-            {
-                throw aex.InnerException;
-            }
+            var token = SetupCancellationToken();
+            return Scheduler.RunSynchronously(() => ExecuteReaderAsync<T>(behavior, token));
         }
 
         /// <summary>
@@ -635,6 +616,9 @@ namespace CqlSharp
         internal async Task<ResultFrame> ExecuteReaderAsyncInternal(CommandBehavior behavior,
                                                                     CancellationToken cancellationToken)
         {
+            var st = new Stopwatch();
+            st.Start();
+
             //clear last result
             _queryResult = null;
 
@@ -663,7 +647,7 @@ namespace CqlSharp
                 logger.LogVerbose("Start executing query");
 
                 ResultFrame result =
-                    await RunWithRetry(SendQueryAsync, logger, cancellationToken).ConfigureAwait(false);
+                    await RunWithRetry(SendQueryAsync, logger, cancellationToken);
 
                 if(result.CqlResultType != CqlResultType.Rows)
                 {
@@ -673,7 +657,7 @@ namespace CqlSharp
                     throw ex;
                 }
 
-                logger.LogQuery("Query {0} returned {1} results", Query, result.Count);
+                logger.LogQuery("Query {0} returned {1} results in {2}ms", Query, result.Count, st.ElapsedMilliseconds);
 
                 //copy metadata from prepared query cache if necessary
                 if(_prepared && result.ResultMetaData.NoMetaData)
@@ -697,9 +681,9 @@ namespace CqlSharp
         {
             object result;
 
-            using(var reader = await ExecuteReaderAsync(token).ConfigureAwait(false))
+            using(var reader = await ExecuteReaderAsync(token))
             {
-                if(await reader.ReadAsync(token).ConfigureAwait(false))
+                if(await reader.ReadAsync(token))
                     result = reader[0] ?? DBNull.Value;
                 else
                     result = null;
@@ -714,15 +698,8 @@ namespace CqlSharp
         /// <returns> The number of rows affected. </returns>
         public override int ExecuteNonQuery()
         {
-            try
-            {
-                var token = SetupCancellationToken();
-                return ExecuteNonQueryAsync(token).Result;
-            }
-            catch(AggregateException aex)
-            {
-                throw aex.InnerException;
-            }
+            var token = SetupCancellationToken();
+            return Scheduler.RunSynchronously(() => ExecuteNonQueryAsync(token));
         }
 
         /// <summary>
@@ -756,7 +733,7 @@ namespace CqlSharp
             {
                 logger.LogVerbose("Start executing query");
 
-                ResultFrame result = await RunWithRetry(SendQueryAsync, logger, token).ConfigureAwait(false);
+                ResultFrame result = await RunWithRetry(SendQueryAsync, logger, token);
                 switch(result.CqlResultType)
                 {
                     case CqlResultType.Rows:
@@ -804,16 +781,8 @@ namespace CqlSharp
         /// </summary>
         internal void ExecuteBatch()
         {
-            try
-            {
-                var token = SetupCancellationToken();
-                // ReSharper disable once MethodSupportsCancellation
-                ExecuteBatchAsync(token).Wait();
-            }
-            catch(AggregateException aex)
-            {
-                throw aex.InnerException;
-            }
+            var token = SetupCancellationToken();
+            Scheduler.RunSynchronously(() => ExecuteBatchAsync(token));
         }
 
         /// <summary>
@@ -841,7 +810,7 @@ namespace CqlSharp
 
                 logger.LogVerbose("Start executing batch");
 
-                ResultFrame result = await RunWithRetry(SendBatchAsync, logger, token).ConfigureAwait(false);
+                ResultFrame result = await RunWithRetry(SendBatchAsync, logger, token);
                 switch(result.CqlResultType)
                 {
                     case CqlResultType.Void:
@@ -885,12 +854,7 @@ namespace CqlSharp
                 try
                 {
                     var token = SetupCancellationToken();
-                    // ReSharper disable once MethodSupportsCancellation
-                    PrepareAsyncInternal(token, logger).Wait();
-                }
-                catch(AggregateException aex)
-                {
-                    throw aex.InnerException;
+                    Scheduler.RunSynchronously(() => PrepareAsyncInternal(token, logger));
                 }
                 finally
                 {
@@ -972,7 +936,7 @@ namespace CqlSharp
 
                 logger.LogVerbose("Start executing prepare query");
 
-                ResultFrame result = await RunWithRetry(SendPrepareAsync, logger, token).ConfigureAwait(false);
+                ResultFrame result = await RunWithRetry(SendPrepareAsync, logger, token);
 
                 FinalizePrepare(result, false);
 
@@ -1028,8 +992,7 @@ namespace CqlSharp
 
                         var useFrame = new QueryFrame(useQuery, CqlConsistency.One, null);
                         var result =
-                            await connection.SendRequestAsync(useFrame, logger, 1, false, token).ConfigureAwait(false)
-                                as ResultFrame;
+                            await connection.SendRequestAsync(useFrame, logger, 1, false, token) as ResultFrame;
                         if(result == null || result.CqlResultType != CqlResultType.SetKeyspace)
                         {
                             if(result != null)
@@ -1042,7 +1005,7 @@ namespace CqlSharp
                     }
 
                     //execute
-                    return await executeFunc(connection, logger, token).ConfigureAwait(false);
+                    return await executeFunc(connection, logger, token);
                 }
                 catch(TaskCanceledException)
                 {
@@ -1148,7 +1111,7 @@ namespace CqlSharp
             //send prepare request
             using(
                 Frame response =
-                    await connection.SendRequestAsync(request, logger, 1, false, token).ConfigureAwait(false)
+                    await connection.SendRequestAsync(request, logger, 1, false, token)
                 )
             {
                 var result = response as ResultFrame;
@@ -1181,7 +1144,7 @@ namespace CqlSharp
                 if(!connection.Node.PreparedQueryIds.TryGetValue(Query, out queryId))
                 {
                     ResultFrame prepareResult =
-                        await SendPrepareAsync(connection, logger, token).ConfigureAwait(false);
+                        await SendPrepareAsync(connection, logger, token);
 
                     queryId = prepareResult.PreparedQueryId;
                 }
@@ -1220,7 +1183,7 @@ namespace CqlSharp
                 queryFrame.Flags |= FrameFlags.Tracing;
 
             Frame response =
-                await connection.SendRequestAsync(queryFrame, logger, Load, false, token).ConfigureAwait(false);
+                await connection.SendRequestAsync(queryFrame, logger, Load, false, token);
 
             var result = response as ResultFrame;
             if(result != null)
@@ -1229,7 +1192,7 @@ namespace CqlSharp
                 if(UseBuffering)
                 {
                     logger.LogVerbose("Buffering used, reading all data");
-                    await result.BufferDataAsync().ConfigureAwait(false);
+                    await result.BufferDataAsync();
                 }
 
                 return result;
@@ -1282,7 +1245,7 @@ namespace CqlSharp
                     if(!connection.Node.PreparedQueryIds.TryGetValue(command.CqlQuery, out queryId))
                     {
                         ResultFrame prepareResult =
-                            await SendPrepareAsync(command.CqlQuery, connection, logger, token).ConfigureAwait(false);
+                            await SendPrepareAsync(command.CqlQuery, connection, logger, token);
 
                         queryId = prepareResult.PreparedQueryId;
                     }
@@ -1299,7 +1262,7 @@ namespace CqlSharp
             logger.LogVerbose("Sending batch command using {0}", connection);
 
             Frame response =
-                await connection.SendRequestAsync(batchFrame, logger, Load, false, token).ConfigureAwait(false);
+                await connection.SendRequestAsync(batchFrame, logger, Load, false, token);
 
             var result = response as ResultFrame;
             if(result != null)

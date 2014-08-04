@@ -578,7 +578,7 @@ namespace CqlSharp.Memory
                 if (_disposed) throw new ObjectDisposedException("PoolMemoryStream");
 
                 var writeSize = (int) Math.Min((long) BufferSize - bufferOffset, toCopy);
-                await destination.WriteAsync(_buffers[bufferIndex], bufferOffset, writeSize).ConfigureAwait(false);
+                await destination.WriteAsync(_buffers[bufferIndex], bufferOffset, writeSize);
                 bufferIndex++;
                 bufferOffset = 0;
                 toCopy -= writeSize;

@@ -23,6 +23,7 @@ using System.Data;
 using System.Data.Common;
 using System.Threading;
 using System.Threading.Tasks;
+using CqlSharp.Threading;
 
 namespace CqlSharp
 {
@@ -454,7 +455,7 @@ namespace CqlSharp
                                                    ? new CancellationTokenSource(TimeSpan.FromSeconds(ConnectionTimeout))
                                                    : new CancellationTokenSource();
 
-                OpenAsync(_openCancellationTokenSource.Token).Wait();
+                Scheduler.RunSynchronously(() => OpenAsync(_openCancellationTokenSource.Token));
             }
             catch (AggregateException aex)
             {
@@ -502,12 +503,12 @@ namespace CqlSharp
             var logger = LoggerManager.GetLogger("CqlSharp.CqlConnection.Open");
 
             //make sure the cluster is open for connections
-            await Cluster.OpenAsync(logger, cancellationToken).ConfigureAwait(false);
+            await Cluster.OpenAsync(logger, cancellationToken);
 
             //get a connection
-            using (logger.ThreadBinding())
+            using(logger.ThreadBinding())
                 _connection = Cluster.ConnectionStrategy.GetOrCreateConnection(ConnectionScope.Connection,
-                                                                           PartitionKey.None);
+                                                                                PartitionKey.None);
 
             //set database to its default
             _database = Cluster.Config.Database;

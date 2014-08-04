@@ -30,7 +30,7 @@ namespace CqlSharp.Protocol
 
         protected override async Task InitializeAsync()
         {
-            Authenticator = await Reader.ReadStringAsync().ConfigureAwait(false);
+            Authenticator = await Reader.ReadStringAsync();
         }
     }
 }

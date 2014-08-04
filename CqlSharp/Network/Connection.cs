@@ -27,6 +27,8 @@ using System.Threading;
 using System.Threading.Tasks;
 
 //suppressing warnings about unobserved tasks
+using CqlSharp.Threading;
+
 #pragma warning disable 168
 
 namespace CqlSharp.Network
@@ -42,7 +44,7 @@ namespace CqlSharp.Network
             public const int Connected = 1;
             public const int Closed = 2;
         }
-
+        
         private readonly Queue<sbyte> _availableQueryIds;
         private readonly CqlConnectionStringBuilder _config;
         private readonly SemaphoreSlim _frameSubmitLock;
@@ -278,7 +280,7 @@ namespace CqlSharp.Network
                 {
                     if (_connectTask == null)
                     {
-                        _connectTask = OpenAsyncInternal(logger);
+                        _connectTask = Scheduler.RunOnIOThread(() => OpenAsyncInternal(logger));
                     }
                 }
             }
@@ -291,17 +293,18 @@ namespace CqlSharp.Network
         /// </summary>
         private async Task OpenAsyncInternal(Logger logger)
         {
+
             if (_connectionState == ConnectionState.Closed)
                 throw new ObjectDisposedException("Connection disposed before opening!");
 
             try
             {
-                while (true)
+                while(true)
                 {
                     //connect
-                    await ConnectAsync().ConfigureAwait(false);
+                    await ConnectAsync();
                     _writeStream = _client.GetStream();
-                    _readStream = _client.GetStream();
+                    _readStream = new BufferedStream(_client.GetStream());
 
                     //switch state to connected if not done so, from now on Idle timer comes into play...
                     Interlocked.CompareExchange(ref _connectionState, ConnectionState.Connected, ConnectionState.Created);
@@ -315,13 +318,13 @@ namespace CqlSharp.Network
                     {
                         logger.LogVerbose("Attempting to connect using {0}", Node.FrameVersion);
 
-                        await NegotiateConnectionOptionsAsync(logger).ConfigureAwait(false);
+                        await NegotiateConnectionOptionsAsync(logger);
                         break;
                     }
-                    catch (ProtocolException)
+                    catch(ProtocolException)
                     {
                         //attempt to connect using lower protocol version if possible
-                        if ((Node.FrameVersion & FrameVersion.ProtocolVersionMask) == FrameVersion.ProtocolVersion2)
+                        if((Node.FrameVersion & FrameVersion.ProtocolVersionMask) == FrameVersion.ProtocolVersion2)
                         {
                             logger.LogVerbose("Failed connecting using {0}, retrying...", Node.FrameVersion);
 
@@ -350,24 +353,28 @@ namespace CqlSharp.Network
                 }
 
                 //run the startup message exchange
-                await StartupAsync(logger).ConfigureAwait(false);
+                await StartupAsync(logger);
 
-                using (logger.ThreadBinding())
+                await Scheduler.RunOnThreadPool(() =>
                 {
-                    if (OnConnectionChange != null)
-                        OnConnectionChange(this, new ConnectionChangeEvent { Connected = true });
-                }
+                    using(logger.ThreadBinding())
+                    {
+                        if(OnConnectionChange != null)
+                            OnConnectionChange(this, new ConnectionChangeEvent {Connected = true});
+                    }
+                });
 
                 logger.LogInfo("{0} is opened using Cql {1}", this, Node.FrameVersion.ToString());
             }
-            catch (Exception ex)
+            catch(Exception ex)
             {
-                using (logger.ThreadBinding())
+                using(logger.ThreadBinding())
                 {
                     Dispose(true, ex);
                     throw;
                 }
             }
+           
         }
 
         /// <summary>
@@ -408,8 +415,7 @@ namespace CqlSharp.Network
             var options = new OptionsFrame();
 
             var supported = await
-                            SendRequestAsyncInternal(options, logger, 1, true, CancellationToken.None).ConfigureAwait(
-                                false)
+                            SendRequestAsyncInternal(options, logger, 1, true, CancellationToken.None)
                             as SupportedFrame;
 
             if (supported == null)
@@ -449,13 +455,13 @@ namespace CqlSharp.Network
 
             Frame response =
                 await
-                SendRequestAsyncInternal(startup, logger, 1, true, CancellationToken.None).ConfigureAwait(false);
+                SendRequestAsyncInternal(startup, logger, 1, true, CancellationToken.None);
 
             //authenticate if required
             var auth = response as AuthenticateFrame;
             if (auth != null)
             {
-                await AuthenticateAsync(auth, logger).ConfigureAwait(false);
+                await AuthenticateAsync(auth, logger);
             }
             //no authenticate frame, so ready frame must be received
             else if (!(response is ReadyFrame))
@@ -524,8 +530,7 @@ namespace CqlSharp.Network
                     var cred = new AuthResponseFrame(saslResponse);
                     var authResponse =
                         await
-                        SendRequestAsyncInternal(cred, logger, 1, true, CancellationToken.None).ConfigureAwait(
-                            false);
+                        SendRequestAsyncInternal(cred, logger, 1, true, CancellationToken.None);
 
                     //dispose authResponse (makes sure all is read)
                     authResponse.Dispose();
@@ -562,8 +567,7 @@ namespace CqlSharp.Network
                 var cred = new CredentialsFrame(_config.Username, _config.Password);
                 var authResponse =
                     await
-                    SendRequestAsyncInternal(cred, logger, 1, true, CancellationToken.None).ConfigureAwait(
-                        false);
+                    SendRequestAsyncInternal(cred, logger, 1, true, CancellationToken.None);
 
                 //dispose authResponse (makes sure all is read)
                 authResponse.Dispose();
@@ -589,9 +593,10 @@ namespace CqlSharp.Network
         internal Task<Frame> SendRequestAsync(Frame frame, Logger logger, int load, bool isConnecting,
                                               CancellationToken token)
         {
-            return token.CanBeCanceled
-                       ? SendCancellableRequestAsync(frame, logger, load, isConnecting, token)
-                       : SendRequestAsyncInternal(frame, logger, load, isConnecting, token);
+           return token.CanBeCanceled
+                ? SendCancellableRequestAsync(frame, logger, load, isConnecting, token)
+                : SendRequestAsyncInternal(frame, logger, load, isConnecting, token);
+           
         }
 
         /// <summary>
@@ -612,7 +617,7 @@ namespace CqlSharp.Network
             using (token.Register(s => ((TaskCompletionSource<bool>)s).TrySetResult(true), cancelTask))
             {
                 //wait for either sendTask or cancellation task to complete
-                if (task != await Task.WhenAny(task, cancelTask.Task).ConfigureAwait(false))
+                if (task != await Task.WhenAny(task, cancelTask.Task))
                 {
                     //ignore/log any exception of the handled task
                     // ReSharper disable once UnusedVariable
@@ -627,14 +632,13 @@ namespace CqlSharp.Network
                                                                  sendTask.Exception.InnerException);
 
                                                          }, logger,
-                                                     TaskContinuationOptions.OnlyOnFaulted |
                                                      TaskContinuationOptions.ExecuteSynchronously);
 
                     //get this request cancelled
                     throw new OperationCanceledException(token);
                 }
             }
-            return await task.ConfigureAwait(false);
+            return await task;
         }
 
 
@@ -656,7 +660,7 @@ namespace CqlSharp.Network
             {
                 //make sure we're already connected
                 if (!isConnecting)
-                    await OpenAsync(logger).ConfigureAwait(false);
+                    await OpenAsync(logger);
 
                 //make sure we are connected
                 if (!IsConnected)
@@ -671,7 +675,7 @@ namespace CqlSharp.Network
                 logger.LogVerbose("Waiting for connection lock on {0}...", this);
 
                 //wait until allowed to submit a frame
-                await _frameSubmitLock.WaitAsync(token).ConfigureAwait(false);
+                await _frameSubmitLock.WaitAsync(token);
 
                 //get a task that gets completed when a response is received
                 var waitTask = new TaskCompletionSource<Frame>();
@@ -697,7 +701,7 @@ namespace CqlSharp.Network
                     Stream frameBytes = frame.GetFrameBytes(_allowCompression && !isConnecting,
                                                             _config.CompressionTreshold);
 
-                    await _writeLock.WaitAsync(token).ConfigureAwait(false);
+                    await _writeLock.WaitAsync(token);
                     try
                     {
                         //final check to make sure we're connected
@@ -707,7 +711,7 @@ namespace CqlSharp.Network
                         logger.LogVerbose("Sending {0} Frame with Id {1}, to {2}", frame.OpCode, id, this);
 
                         //write frame to stream, don't use cancelToken to prevent half-written frames
-                        await frameBytes.CopyToAsync(_writeStream).ConfigureAwait(false);
+                        await frameBytes.CopyToAsync(_writeStream);
                     }
                     finally
                     {
@@ -716,7 +720,7 @@ namespace CqlSharp.Network
                     }
 
                     //wait until response is received
-                    Frame response = await waitTask.Task.ConfigureAwait(false);
+                    Frame response = await waitTask.Task;
 
                     logger.LogVerbose("{0} response for frame with Id {1} received from {2}", response.OpCode, id,
                                       Address);
@@ -825,7 +829,7 @@ namespace CqlSharp.Network
                     logger.LogVerbose("Waiting for new frame to arrive on {0}", this);
 
                     //read next frame from stream
-                    Frame frame = await Frame.FromStream(_readStream).ConfigureAwait(false);
+                    Frame frame = await Frame.FromStream(_readStream);
 
                     //check if frame is event
                     if (frame.Stream == -1)
@@ -840,7 +844,7 @@ namespace CqlSharp.Network
 
                         //run the event logic in its own task, making sure it does not delay further reading
                         // ReSharper disable once UnusedVariable
-                        Task eventTask = Task.Run(() => ProcessEvent(eventFrame));
+                        Task eventTask = Scheduler.RunOnThreadPool(() => ProcessEvent(eventFrame), true);
                         continue;
                     }
 
@@ -865,12 +869,12 @@ namespace CqlSharp.Network
                     //leading to deadlocks when the continuation sends another request
                     //on this connection.
                     // ReSharper disable once UnusedVariable
-                    Task continueOpenRequestTask = Task.Run(() => openRequest.TrySetResult(frame));
+                    Task continueOpenRequestTask = Scheduler.RunOnThreadPool(() => openRequest.TrySetResult(frame), true);
 
                     logger.LogVerbose("Waiting for frame content to be read from {0}", this);
 
                     //wait until all frame data is read (especially important for queries and results)
-                    await frame.WaitOnBodyRead().ConfigureAwait(false);
+                    await frame.WaitOnBodyRead();
                 }
                 catch (Exception ex)
                 {
@@ -910,15 +914,17 @@ namespace CqlSharp.Network
         /// <exception cref="CqlException">Could not register for cluster changes!</exception>
         public async Task RegisterForClusterChangesAsync(Logger logger)
         {
-            var registerframe = new RegisterFrame(new List<string> { "TOPOLOGY_CHANGE", "STATUS_CHANGE" });
+           
+            var registerframe = new RegisterFrame(new List<string> {"TOPOLOGY_CHANGE", "STATUS_CHANGE"});
             Frame result =
-                await SendRequestAsync(registerframe, logger, 1, false, CancellationToken.None).ConfigureAwait(false);
+                await SendRequestAsync(registerframe, logger, 1, false, CancellationToken.None);
 
-            if (!(result is ReadyFrame))
+            if(!(result is ReadyFrame))
                 throw new CqlException("Could not register for cluster changes!");
 
             //increase request count to prevent connection to go in Idle state
             Interlocked.Increment(ref _activeRequests);
+           
         }
 
         /// <summary>

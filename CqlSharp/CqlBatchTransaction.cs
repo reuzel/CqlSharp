@@ -341,7 +341,7 @@ namespace CqlSharp
         {
             if (_commands.Count > 0)
             {
-                await _batchCommand.ExecuteBatchAsync(cancellationToken).ConfigureAwait(false);
+                await _batchCommand.ExecuteBatchAsync(cancellationToken);
             }
 
             _state = TransactionState.Committed;
