@@ -1,6 +1,8 @@
 ﻿
 Microsoft Visual Studio Solution File, Format Version 12.00
-# Visual Studio 2012
+# Visual Studio 2013
+VisualStudioVersion = 12.0.30501.0
+MinimumVisualStudioVersion = 10.0.40219.1
 Project("{FAE04EC0-301F-11D3-BF4B-00C04F79EFBC}") = "CqlSharp", "CqlSharp\CqlSharp.csproj", "{45F69FDC-EEF6-43DA-A457-95EE553C68A1}"
 EndProject
 Project("{FAE04EC0-301F-11D3-BF4B-00C04F79EFBC}") = "CqlSharp.Test", "CqlSharpTest\CqlSharp.Test.csproj", "{7F0D1D97-5AC1-4848-9D64-DC88FE63744D}"
@@ -12,6 +14,12 @@ Project("{2150E333-8FDC-42A3-9474-1A3956D46DE8}") = "Solution Items", "Solution 
 		ChangeLog.md = ChangeLog.md
 		README.md = README.md
 	EndProjectSection
+EndProject
+Project("{FAE04EC0-301F-11D3-BF4B-00C04F79EFBC}") = "CqlSharp.Performance.Host", "CqlSharp.Performance.Host\CqlSharp.Performance.Host.csproj", "{CBDE5E8A-04C2-4DF2-8DB0-12A0CA1FCBE6}"
+EndProject
+Project("{FAE04EC0-301F-11D3-BF4B-00C04F79EFBC}") = "CqlSharp.Performance.Web", "CqlSharp.Performance.Web\CqlSharp.Performance.Web.csproj", "{C78885B6-B61C-48CD-8CC2-E12AB6B8C280}"
+EndProject
+Project("{FAE04EC0-301F-11D3-BF4B-00C04F79EFBC}") = "CqlSharp.Performance.Client", "CqlSharp.Performance.Client\CqlSharp.Performance.Client.csproj", "{2D573049-394D-4BEA-90CB-3FACABCC9DFE}"
 EndProject
 Global
 	GlobalSection(SolutionConfigurationPlatforms) = preSolution
@@ -30,6 +38,18 @@ Global
 		{61D745C9-1B9B-40A2-A9A6-A37A58E6B496}.Debug|Any CPU.Build.0 = Debug|Any CPU
 		{61D745C9-1B9B-40A2-A9A6-A37A58E6B496}.Release|Any CPU.ActiveCfg = Release|Any CPU
 		{61D745C9-1B9B-40A2-A9A6-A37A58E6B496}.Release|Any CPU.Build.0 = Release|Any CPU
+		{CBDE5E8A-04C2-4DF2-8DB0-12A0CA1FCBE6}.Debug|Any CPU.ActiveCfg = Debug|Any CPU
+		{CBDE5E8A-04C2-4DF2-8DB0-12A0CA1FCBE6}.Debug|Any CPU.Build.0 = Debug|Any CPU
+		{CBDE5E8A-04C2-4DF2-8DB0-12A0CA1FCBE6}.Release|Any CPU.ActiveCfg = Release|Any CPU
+		{CBDE5E8A-04C2-4DF2-8DB0-12A0CA1FCBE6}.Release|Any CPU.Build.0 = Release|Any CPU
+		{C78885B6-B61C-48CD-8CC2-E12AB6B8C280}.Debug|Any CPU.ActiveCfg = Debug|Any CPU
+		{C78885B6-B61C-48CD-8CC2-E12AB6B8C280}.Debug|Any CPU.Build.0 = Debug|Any CPU
+		{C78885B6-B61C-48CD-8CC2-E12AB6B8C280}.Release|Any CPU.ActiveCfg = Release|Any CPU
+		{C78885B6-B61C-48CD-8CC2-E12AB6B8C280}.Release|Any CPU.Build.0 = Release|Any CPU
+		{2D573049-394D-4BEA-90CB-3FACABCC9DFE}.Debug|Any CPU.ActiveCfg = Debug|Any CPU
+		{2D573049-394D-4BEA-90CB-3FACABCC9DFE}.Debug|Any CPU.Build.0 = Debug|Any CPU
+		{2D573049-394D-4BEA-90CB-3FACABCC9DFE}.Release|Any CPU.ActiveCfg = Release|Any CPU
+		{2D573049-394D-4BEA-90CB-3FACABCC9DFE}.Release|Any CPU.Build.0 = Release|Any CPU
 	EndGlobalSection
 	GlobalSection(SolutionProperties) = preSolution
 		HideSolutionNode = FALSE
