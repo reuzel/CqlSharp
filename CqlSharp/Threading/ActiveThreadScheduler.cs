@@ -10,19 +10,28 @@ namespace CqlSharp.Threading
     /// <summary>
     /// Runs all tasks on the thread used to create the scheduler
     /// </summary>
-    internal class ActiveThreadScheduler : TaskScheduler
+    internal sealed class ActiveThreadScheduler : TaskScheduler
     {
         private readonly Thread _thread;
         private readonly LinkedList<Task> _tasks;
         private bool _completed;
 
-        public ActiveThreadScheduler() : this(Thread.CurrentThread)
+        /// <summary>
+        /// Initializes a new instance of the <see cref="ActiveThreadScheduler"/> class.
+        /// </summary>
+        public ActiveThreadScheduler()
+            : this(Thread.CurrentThread)
         {
         }
 
+        /// <summary>
+        /// Initializes a new instance of the <see cref="ActiveThreadScheduler"/> class.
+        /// </summary>
+        /// <param name="thread">The thread.</param>
+        /// <exception cref="System.ArgumentNullException">thread</exception>
         public ActiveThreadScheduler(Thread thread)
         {
-            if(thread == null) throw new ArgumentNullException("thread");
+            if (thread == null) throw new ArgumentNullException("thread");
 
             _tasks = new LinkedList<Task>();
             _thread = thread;
@@ -35,20 +44,25 @@ namespace CqlSharp.Threading
         /// <param name="task">The <see cref="T:System.Threading.Tasks.Task"/> to be queued.</param><exception cref="T:System.ArgumentNullException">The <paramref name="task"/> argument is null.</exception>
         protected override void QueueTask(Task task)
         {
+            bool inline = false;
+
             lock (_tasks)
             {
-                if (_completed)
+                if(_completed)
                 {
-                    throw new InvalidOperationException(
-                        "BlockingOrderedSet has been completed, and therefore no additions are allowed to be made.");
+                    //thread no longer available, so inline this task with the enqueuing thread.
+                    //May occur when queries are cancelled, which may lead to some parallelism.
+                    inline = true;
                 }
-
-               _tasks.AddLast(task);
-
-               Debug.Assert(_tasks.Count==1, "Queued more than a single task for ActiveThreadScheduler. That is unexpected.");
-
-               Monitor.PulseAll(_tasks);
+                else
+                {
+                    _tasks.AddLast(task);
+                    Monitor.PulseAll(_tasks);
+                }
             }
+
+            if(inline)
+                TryExecuteTask(task);
         }
 
         /// <summary>
@@ -60,12 +74,12 @@ namespace CqlSharp.Threading
         /// <param name="task">The <see cref="T:System.Threading.Tasks.Task"/> to be executed.</param><param name="taskWasPreviouslyQueued">A Boolean denoting whether or not task has previously been queued. If this parameter is True, then the task may have been previously queued (scheduled); if False, then the task is known not to have been queued, and this call is being made in order to execute the task inline without queuing it.</param><exception cref="T:System.ArgumentNullException">The <paramref name="task"/> argument is null.</exception><exception cref="T:System.InvalidOperationException">The <paramref name="task"/> was already executed.</exception>
         protected override bool TryExecuteTaskInline(Task task, bool taskWasPreviouslyQueued)
         {
-            if(Thread.CurrentThread != _thread)
+            if (Thread.CurrentThread != _thread)
                 return false;
 
-            if(taskWasPreviouslyQueued)
+            if (taskWasPreviouslyQueued)
             {
-                if(_tasks.Remove(task))
+                if (_tasks.Remove(task))
                 {
                     return TryExecuteTask(task);
                 }
@@ -85,7 +99,7 @@ namespace CqlSharp.Threading
         /// <exception cref="T:System.NotSupportedException">This scheduler is unable to generate a list of queued tasks at this time.</exception>
         protected override IEnumerable<Task> GetScheduledTasks()
         {
-            lock(_tasks)
+            lock (_tasks)
                 return _tasks.ToArray();
         }
 
@@ -99,9 +113,9 @@ namespace CqlSharp.Threading
                 throw new InvalidOperationException("Execute must be called using the same thread as used to construct this scheduler");
 
             Task task;
-            while(TryTake(out task))
+            while (TryTake(out task))
             {
-                if(!TryExecuteTask(task))
+                if (!TryExecuteTask(task))
                     break;
             }
         }

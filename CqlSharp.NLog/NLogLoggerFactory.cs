@@ -1,4 +1,4 @@
-﻿// CqlSharp - CqlSharp.Performance.Web
+﻿// CqlSharp - CqlSharp.NLog
 // Copyright (c) 2014 Joost Reuzel
 //   
 // Licensed under the Apache License, Version 2.0 (the "License");
@@ -13,24 +13,17 @@
 // See the License for the specific language governing permissions and
 // limitations under the License.
 
-using System.Threading;
-using System.Web.Http;
-using CqlSharp.Performance.Data;
+using CqlSharp.Logging;
 
-namespace CqlSharp.Performance.Web
+namespace CqlSharp.NLog
 {
-    public static class WebApiConfig
+    /// <summary>
+    /// Provides access to the NLog logging infrastructure
+    /// </summary>
+    public class NLogLoggerFactory : LoggerFactory<NLogLogger>
     {
-        public static void Register(HttpConfiguration config)
+        public NLogLoggerFactory() : base("NLog")
         {
-            // Web API configuration and services
-            MeasurementManager.CreateDatabase();
-            //ThreadPool.SetMinThreads(100, 100);
-
-            // Web API routes
-            config.MapHttpAttributeRoutes();
-
-            config.Routes.MapHttpRoute("DefaultApi", "measurement/{controller}/{id}", new {} );
         }
     }
 }

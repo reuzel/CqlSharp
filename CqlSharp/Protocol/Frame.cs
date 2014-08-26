@@ -19,6 +19,7 @@ using System;
 using System.IO;
 using System.Threading;
 using System.Threading.Tasks;
+using CqlSharp.Threading;
 
 namespace CqlSharp.Protocol
 {
@@ -150,8 +151,13 @@ namespace CqlSharp.Protocol
             //read header
             int read = 0;
             var header = new byte[8];
-            while (read < 8)
-                read += await stream.ReadAsync(header, read, 8 - read);
+            while(read < 8)
+            {
+                if(Scheduler.RunningSynchronously)
+                    read += stream.Read(header, read, 8 - read);
+                else
+                    read += await stream.ReadAsync(header, read, 8 - read).AutoConfigureAwait();
+            }
 
             //get length
             int length = header.ToInt(4);
@@ -194,22 +200,34 @@ namespace CqlSharp.Protocol
             var reader = new FrameReader(stream, length);
             frame.Reader = reader;
 
-            //decompress the contents of the frame (implicity loads the entire frame body!)
-            if (frame.Flags.HasFlag(FrameFlags.Compression))
-                await reader.DecompressAsync();
+            //prepare content (decompress, read trace flag)
+            await frame.PrepareFrameContent().AutoConfigureAwait();
 
-            //read tracing id if set
-            if (frame.Flags.HasFlag(FrameFlags.Tracing))
-                frame.TracingId = await reader.ReadUuidAsync();
-
-            await frame.InitializeAsync();
+            //initialize frame content
+            await frame.InitializeAsync().AutoConfigureAwait();
 
             return frame;
         }
 
         /// <summary>
+        /// Prepares the content of the frame.
+        /// </summary>
+        /// <returns></returns>
+        protected virtual async Task PrepareFrameContent()
+        {
+            //decompress the contents of the frame (implicity loads the entire frame body!)
+            if (Flags.HasFlag(FrameFlags.Compression))
+                await Reader.DecompressAsync().AutoConfigureAwait();
+
+            //read tracing id if set
+            if (Flags.HasFlag(FrameFlags.Tracing))
+                TracingId = await Reader.ReadUuidAsync().AutoConfigureAwait();
+        }
+
+        /// <summary>
         ///   Initialize frame contents from the stream
         /// </summary>
+        /// <param name=""></param>
         protected abstract Task InitializeAsync();
 
         /// <summary>

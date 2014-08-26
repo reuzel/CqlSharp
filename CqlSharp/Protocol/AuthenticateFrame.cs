@@ -16,6 +16,7 @@
 using System;
 using System.IO;
 using System.Threading.Tasks;
+using CqlSharp.Threading;
 
 namespace CqlSharp.Protocol
 {
@@ -30,7 +31,7 @@ namespace CqlSharp.Protocol
 
         protected override async Task InitializeAsync()
         {
-            Authenticator = await Reader.ReadStringAsync();
+            Authenticator = await Reader.ReadStringAsync().AutoConfigureAwait();
         }
     }
 }

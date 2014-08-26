@@ -20,6 +20,7 @@ using System.Data;
 using System.Data.Common;
 using System.Threading;
 using System.Threading.Tasks;
+using CqlSharp.Threading;
 
 namespace CqlSharp
 {
@@ -291,17 +292,14 @@ namespace CqlSharp
         {
             CheckIfPending();
 
-            if (Connection.State == ConnectionState.Open)
-            {
-                if (_commands.Count > 0)
-                    _batchCommand.ExecuteBatch();
-
-                _state = TransactionState.Committed;
-            }
-            else
-            {
+            if (Connection.State != ConnectionState.Open)
                 throw new InvalidOperationException("Commit error: Connection is closed or disposed");
-            }
+            
+            if (_commands.Count > 0)
+                _batchCommand.ExecuteBatch();
+
+            _state = TransactionState.Committed;
+            
         }
 
 
@@ -324,12 +322,10 @@ namespace CqlSharp
         {
             CheckIfPending();
 
-            if (Connection.State == ConnectionState.Open)
-            {
-                return CommitAsyncInternal(cancellationToken);
-            }
+            if (Connection.State != ConnectionState.Open)
+                throw new InvalidOperationException("Commit error: Connection is closed or disposed");
 
-            throw new InvalidOperationException("Commit error: Connection is closed or disposed");
+            return CommitAsyncInternal(cancellationToken);
         }
 
         /// <summary>
@@ -341,7 +337,7 @@ namespace CqlSharp
         {
             if (_commands.Count > 0)
             {
-                await _batchCommand.ExecuteBatchAsync(cancellationToken);
+                await _batchCommand.ExecuteBatchAsync(cancellationToken).AutoConfigureAwait();
             }
 
             _state = TransactionState.Committed;

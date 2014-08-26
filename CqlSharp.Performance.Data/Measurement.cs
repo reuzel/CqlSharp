@@ -1,20 +1,16 @@
 ﻿using System;
 using System.Collections.Generic;
 using System.Linq;
-using System.Web;
+using System.Text;
+using System.Threading.Tasks;
 using CqlSharp.Serialization;
 
-namespace CqlSharp.Performance.Web.Models
+namespace CqlSharp.Performance.Data
 {
-    /// <summary>
-    /// Single measurement for a customer
-    /// </summary>
+    [CqlTable("measurements")]
     public class Measurement
     {
-        [CqlKey(IsPartitionKey = true, Order = 0)]
         public int Id { get; set; }
-
-        [CqlKey(IsPartitionKey = true, Order = 1)]
         public string Customer { get; set; }
 
         public Dictionary<string, int> Values { get; set; }

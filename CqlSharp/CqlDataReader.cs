@@ -13,7 +13,6 @@
 // See the License for the specific language governing permissions and
 // limitations under the License.
 
-using CqlSharp.Network;
 using CqlSharp.Protocol;
 using CqlSharp.Serialization;
 using System;
@@ -199,10 +198,28 @@ namespace CqlSharp
         #endregion
 
         /// <summary>
+        ///   Forwards the reader to the next row.
+        /// </summary>
+        /// <returns> true if there are more rows; otherwise, false. </returns>
+        public override bool Read()
+        {
+            return Scheduler.RunSynchronously(() => ReadAsyncInternal(CancellationToken.None));
+        }
+
+        /// <summary>
         ///   Forwards the reader to the next row async.
         /// </summary>
         /// <returns> </returns>
-        public override async Task<bool> ReadAsync(CancellationToken cancellationToken)
+        public override Task<bool> ReadAsync(CancellationToken cancellationToken)
+        {
+            return ReadAsyncInternal(cancellationToken);
+        }
+
+        /// <summary>
+        ///   Forwards the reader to the next row async.
+        /// </summary>
+        /// <returns> </returns>
+        internal async Task<bool> ReadAsyncInternal(CancellationToken cancellationToken)
         {
             while(true)
             {
@@ -210,7 +227,7 @@ namespace CqlSharp
                 if(_frame.Count > 0)
                 {
                     cancellationToken.ThrowIfCancellationRequested();
-                    CurrentValues = await _frame.ReadNextDataRowAsync();
+                    CurrentValues = await _frame.ReadNextDataRowAsync().AutoConfigureAwait();
                     return true;
                 }
 
@@ -220,7 +237,7 @@ namespace CqlSharp
                     //get next page of data
                     cancellationToken.ThrowIfCancellationRequested();
                     _command.PagingState = _frame.ResultMetaData.PagingState;
-                    _frame = await _command.ExecuteReaderAsyncInternal(CommandBehavior.Default, cancellationToken);
+                    _frame = await _command.ExecuteQueryAsyncInternal(CommandBehavior.Default, cancellationToken).AutoConfigureAwait();
                     _command.PagingState = null;
                 }
                 else
@@ -235,14 +252,9 @@ namespace CqlSharp
             return false;
         }
 
-        /// <summary>
-        ///   Forwards the reader to the next row.
-        /// </summary>
-        /// <returns> true if there are more rows; otherwise, false. </returns>
-        public override bool Read()
-        {
-            return Scheduler.RunSynchronously(ReadAsync);
-        }
+
+
+       
 
         /// <summary>
         ///   Closes this instance.
@@ -663,6 +675,8 @@ namespace CqlSharp
         {
             return new DbEnumerator(this, false);
         }
+
+        
     }
 
     /// <summary>

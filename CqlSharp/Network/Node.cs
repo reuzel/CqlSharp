@@ -578,7 +578,7 @@ namespace CqlSharp.Network
                                 {
                                     logger.LogVerbose("Connection attempt failed: a next round of retry is introduced");
                                 }
-                            }, true);
+                            });
                         }
                     }
                 }

@@ -65,17 +65,19 @@
     </Otherwise>
   </Choose>
   <ItemGroup>
+    <Compile Include="ActiveThreadSchedulerTest.cs" />
     <Compile Include="ConnectionStrategyTest.cs" />
     <Compile Include="ConnectionStringTest.cs" />
     <Compile Include="CqlConnectionTest.cs" />
     <Compile Include="CqlParameterTest.cs" />
+    <Compile Include="IOTaskSchedulerTest.cs" />
     <Compile Include="IssueTest.cs" />
     <Compile Include="LoggingTest.cs" />
     <Compile Include="MemoryTest.cs" />
     <Compile Include="QueryTests.cs" />
     <Compile Include="Properties\AssemblyInfo.cs" />
     <Compile Include="SerializationTest.cs" />
-    <Compile Include="SynchronizationContext.cs" />
+    <Compile Include="STASynchronizationContext.cs" />
     <Compile Include="ObjectAccessorTest.cs" />
     <Compile Include="TimeUuidTest.cs" />
   </ItemGroup>

@@ -13,24 +13,34 @@
 // See the License for the specific language governing permissions and
 // limitations under the License.
 
+using System;
+using System.Diagnostics;
 using System.Threading;
+using System.Threading.Tasks;
 using System.Web.Http;
 using CqlSharp.Performance.Data;
+using NLog;
 
-namespace CqlSharp.Performance.Web
+namespace CqlSharp.Performance.Web.Controllers
 {
-    public static class WebApiConfig
+    public class AsyncController : ApiController
     {
-        public static void Register(HttpConfiguration config)
+        private static readonly Logger Log = LogManager.GetLogger("Web.CqlSharp.Async");
+
+        private static int _par = 0;
+        public async Task<Measurement> Get(int id)
         {
-            // Web API configuration and services
-            MeasurementManager.CreateDatabase();
-            //ThreadPool.SetMinThreads(100, 100);
 
-            // Web API routes
-            config.MapHttpAttributeRoutes();
+            Interlocked.Increment(ref _par);
+            var st = new Stopwatch();
+            st.Start();
+            var m = await MeasurementManager.GetMeasurementAsync(id);
+            st.Stop();
+            var par = Interlocked.Decrement(ref _par);
 
-            config.Routes.MapHttpRoute("DefaultApi", "measurement/{controller}/{id}", new {} );
+            Log.Trace("Parallel: {0}, execution time: {1}ms", par, st.ElapsedMilliseconds);
+
+            return m;
         }
     }
 }

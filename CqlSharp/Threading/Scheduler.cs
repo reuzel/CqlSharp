@@ -1,10 +1,7 @@
 ﻿using System;
-using System.Collections.Generic;
-using System.Linq;
-using System.Text;
+using System.Runtime.ExceptionServices;
 using System.Threading;
 using System.Threading.Tasks;
-using System.Threading.Tasks.Schedulers;
 
 namespace CqlSharp.Threading
 {
@@ -14,37 +11,22 @@ namespace CqlSharp.Threading
     internal static class Scheduler
     {
         private static readonly TaskScheduler IOScheduler = new IOTaskScheduler();
-        private static readonly Task CompletedTask = Task.FromResult(false);
 
         public static void RunOnIOThread(Action task)
         {
-            if(TaskScheduler.Current != IOScheduler)
-                Task.Factory.StartNew(task, CancellationToken.None, TaskCreationOptions.DenyChildAttach, IOScheduler);
-            else
-                task();
+            Task.Factory.StartNew(task, CancellationToken.None, TaskCreationOptions.DenyChildAttach, IOScheduler);
         }
 
         public static Task RunOnIOThread(Func<Task> task)
         {
-            if(TaskScheduler.Current != IOScheduler)
-            {
-                return
-                    Task.Factory.StartNew(task, CancellationToken.None, TaskCreationOptions.DenyChildAttach, IOScheduler)
-                        .Unwrap();
-            }
-
-            return task();
+            return Task.Factory.StartNew(task, CancellationToken.None, TaskCreationOptions.DenyChildAttach, IOScheduler)
+                .Unwrap();
         }
 
         public static Task<T> RunOnIOThread<T>(Func<Task<T>> task)
         {
-            if(TaskScheduler.Current != IOScheduler)
-            {
-                return Task.Factory.StartNew(task, CancellationToken.None, TaskCreationOptions.DenyChildAttach, IOScheduler)
-                    .Unwrap();
-            }
-
-            return task();
+            return Task.Factory.StartNew(task, CancellationToken.None, TaskCreationOptions.DenyChildAttach, IOScheduler)
+                       .Unwrap();
         }
 
         /// <summary>
@@ -53,6 +35,10 @@ namespace CqlSharp.Threading
         /// <param name="task">The task.</param>
         public static void RunSynchronously(Func<Task> task)
         {
+            //capture and clear context
+            var currentContext = SynchronizationContext.Current;
+            SynchronizationContext.SetSynchronizationContext(null);
+            
             //create scheduler to run the task on the current thread
             var scheduler = new ActiveThreadScheduler();
 
@@ -68,15 +54,18 @@ namespace CqlSharp.Threading
             //start task execution loop to run all continuations and sub-tasks on the current thread, until main task completes
             scheduler.ExecuteTasks();
 
+            //restore context
+            SynchronizationContext.SetSynchronizationContext(currentContext);
+
             //return result
             try
             {
                 executedTask.Wait();
             }
-            catch (AggregateException aex)
+            catch(AggregateException aex)
             {
-                //return any inner exception. Note that this will kill the call-stack...
-                throw aex.Flatten().InnerException;
+                //return any inner exception.
+                ExceptionDispatchInfo.Capture(aex.Flatten().InnerException).Throw();
             }
 
         }
@@ -89,8 +78,16 @@ namespace CqlSharp.Threading
         /// <returns></returns>
         public static T RunSynchronously<T>(Func<Task<T>> task)
         {
+            //capture and clear context
+            var currentContext = SynchronizationContext.Current;
+            SynchronizationContext.SetSynchronizationContext(null);
+
+            //create scheduler to run the task on the current thread
             var scheduler = new ActiveThreadScheduler();
-            var executedTask = Task.Factory.StartNew(task, CancellationToken.None, TaskCreationOptions.DenyChildAttach, scheduler)
+
+            //schedule the task (on the current thread)
+            var executedTask = Task.Factory.StartNew(task, CancellationToken.None, TaskCreationOptions.DenyChildAttach,
+                                                     scheduler)
                                    .Unwrap()
                                    .ContinueWith(previous =>
                                    {
@@ -98,15 +95,22 @@ namespace CqlSharp.Threading
                                        return previous.Result;
                                    }, TaskContinuationOptions.ExecuteSynchronously);
 
+            //start task execution loop to run all continuations and sub-tasks on the current thread, until main task completes
             scheduler.ExecuteTasks();
 
+            //restore context
+            SynchronizationContext.SetSynchronizationContext(currentContext);
+
+            //return result
             try
             {
                 return executedTask.Result;
             }
-            catch (AggregateException aex)
+            catch(AggregateException aex)
             {
-                throw aex.Flatten().InnerException;
+                //return any inner exception. 
+                ExceptionDispatchInfo.Capture(aex.Flatten().InnerException).Throw();
+                throw;
             }
         }
 
@@ -114,16 +118,37 @@ namespace CqlSharp.Threading
         /// Runs the action on the reguler .NET thread pool. Used to escape the IO pool.
         /// </summary>
         /// <param name="action">The action.</param>
-        /// <param name="forceNewTask">force the creation of a new task</param>
-        /// <returns></returns>
-        public static Task RunOnThreadPool(Action action, bool forceNewTask = false)
+        public static void RunOnThreadPool(Action action)
         {
-            if (forceNewTask || (TaskScheduler.Current != TaskScheduler.Default))
-                return Task.Run(action);
+            Task.Run(action);
+        }
 
-            //already on thread pool, just execute action inline
-            action();
-            return CompletedTask;
+        /// <summary>
+        /// Gets a value indicating whether [running synchronously].
+        /// </summary>
+        /// <value>
+        ///   <c>true</c> if [running synchronously]; otherwise, <c>false</c>.
+        /// </value>
+        public static bool RunningSynchronously
+        {
+            get { return TaskScheduler.Current is ActiveThreadScheduler; }
+        }
+
+        /// <summary>
+        /// Automatically the configures the await depending on the required premise.
+        /// </summary>
+        /// <param name="task">The task.</param>
+        /// <returns></returns>
+        public static AutoConfiguredAwaitable AutoConfigureAwait(this Task task)
+        {
+            return new AutoConfiguredAwaitable(task);
+        }
+
+        public static AutoConfiguredAwaitable<T> AutoConfigureAwait<T>(this Task<T> task)
+        {
+            return new AutoConfiguredAwaitable<T>(task);
         }
     }
+
+   
 }

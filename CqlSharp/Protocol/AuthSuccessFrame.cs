@@ -16,6 +16,7 @@
 using System;
 using System.IO;
 using System.Threading.Tasks;
+using CqlSharp.Threading;
 
 namespace CqlSharp.Protocol
 {
@@ -34,7 +35,7 @@ namespace CqlSharp.Protocol
         protected override async Task InitializeAsync()
         {
             FrameReader reader = Reader;
-            SaslResult = await reader.ReadBytesAsync();
+            SaslResult = await reader.ReadBytesAsync().AutoConfigureAwait();
         }
     }
 }

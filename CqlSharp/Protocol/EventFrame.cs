@@ -17,6 +17,7 @@ using System;
 using System.IO;
 using System.Net;
 using System.Threading.Tasks;
+using CqlSharp.Threading;
 
 namespace CqlSharp.Protocol
 {
@@ -63,21 +64,22 @@ namespace CqlSharp.Protocol
         /// <summary>
         ///   Initialize frame contents from the stream
         /// </summary>
+        /// <param name=""></param>
         protected override async Task InitializeAsync()
         {
-            EventType = await Reader.ReadStringAsync();
+            EventType = await Reader.ReadStringAsync().AutoConfigureAwait();
 
             if (EventType.Equals("TOPOLOGY_CHANGE", StringComparison.InvariantCultureIgnoreCase) ||
                 EventType.Equals("STATUS_CHANGE", StringComparison.InvariantCultureIgnoreCase))
             {
-                Change = await Reader.ReadStringAsync();
-                Node = await Reader.ReadInetAsync();
+                Change = await Reader.ReadStringAsync().AutoConfigureAwait();
+                Node = await Reader.ReadInetAsync().AutoConfigureAwait();
             }
             else if (EventType.Equals("TOPOLOGY_CHANGE", StringComparison.InvariantCultureIgnoreCase))
             {
-                Change = await Reader.ReadStringAsync();
-                KeySpace = await Reader.ReadStringAsync();
-                Table = await Reader.ReadStringAsync();
+                Change = await Reader.ReadStringAsync().AutoConfigureAwait();
+                KeySpace = await Reader.ReadStringAsync().AutoConfigureAwait();
+                Table = await Reader.ReadStringAsync().AutoConfigureAwait();
             }
         }
     }

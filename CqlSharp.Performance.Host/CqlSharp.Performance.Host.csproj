@@ -44,6 +44,9 @@
     <Reference Include="Newtonsoft.Json">
       <HintPath>..\packages\Newtonsoft.Json.4.5.11\lib\net40\Newtonsoft.Json.dll</HintPath>
     </Reference>
+    <Reference Include="NLog">
+      <HintPath>..\packages\NLog.3.1.0.0\lib\net45\NLog.dll</HintPath>
+    </Reference>
     <Reference Include="Owin">
       <HintPath>..\packages\Owin.1.0\lib\net40\Owin.dll</HintPath>
     </Reference>
@@ -74,10 +77,24 @@
     <Compile Include="Startup.cs" />
   </ItemGroup>
   <ItemGroup>
+    <None Include="..\CqlSharp.Performance.Data\connections.config">
+      <Link>connections.config</Link>
+      <CopyToOutputDirectory>Always</CopyToOutputDirectory>
+    </None>
     <None Include="App.config" />
+    <None Include="NLog.config">
+      <CopyToOutputDirectory>Always</CopyToOutputDirectory>
+    </None>
+    <None Include="NLog.xsd">
+      <SubType>Designer</SubType>
+    </None>
     <None Include="packages.config" />
   </ItemGroup>
   <ItemGroup>
+    <ProjectReference Include="..\CqlSharp.NLog\CqlSharp.NLog.csproj">
+      <Project>{eed9f793-6c9e-4b7a-b492-2b8c9b0cb461}</Project>
+      <Name>CqlSharp.NLog</Name>
+    </ProjectReference>
     <ProjectReference Include="..\CqlSharp.Performance.Web\CqlSharp.Performance.Web.csproj">
       <Project>{c78885b6-b61c-48cd-8cc2-e12ab6b8c280}</Project>
       <Name>CqlSharp.Performance.Web</Name>

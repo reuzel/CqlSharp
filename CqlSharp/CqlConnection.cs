@@ -13,6 +13,7 @@
 // See the License for the specific language governing permissions and
 // limitations under the License.
 
+using System.Runtime.ExceptionServices;
 using CqlSharp.Logging;
 using CqlSharp.Network;
 using CqlSharp.Network.Partition;
@@ -128,21 +129,6 @@ namespace CqlSharp
                 }
 
                 return _cluster;
-            }
-        }
-
-        /// <summary>
-        ///   Gets or sets the throttle.
-        /// </summary>
-        /// <value> The throttle. </value>
-        internal SemaphoreSlim Throttle
-        {
-            get
-            {
-                if (State != ConnectionState.Open)
-                    throw new InvalidOperationException("CqlConnection must be open before further use.");
-
-                return Cluster.Throttle;
             }
         }
 
@@ -451,15 +437,14 @@ namespace CqlSharp
         {
             try
             {
+                if (State != ConnectionState.Closed)
+                    throw new InvalidOperationException("Connection must be closed before it is opened");
+                
                 _openCancellationTokenSource = ConnectionTimeout > 0
-                                                   ? new CancellationTokenSource(TimeSpan.FromSeconds(ConnectionTimeout))
-                                                   : new CancellationTokenSource();
+                    ? new CancellationTokenSource(TimeSpan.FromSeconds(ConnectionTimeout))
+                    : new CancellationTokenSource();
 
-                Scheduler.RunSynchronously(() => OpenAsync(_openCancellationTokenSource.Token));
-            }
-            catch (AggregateException aex)
-            {
-                throw aex.InnerException;
+               Scheduler.RunSynchronously(() => OpenAsyncInternal(_openCancellationTokenSource.Token));
             }
             finally
             {
@@ -488,8 +473,7 @@ namespace CqlSharp
             if (State != ConnectionState.Closed)
                 throw new InvalidOperationException("Connection must be closed before it is opened");
 
-            _openTask = OpenAsyncInternal(cancellationToken);
-            return _openTask;
+            return OpenAsyncInternal(cancellationToken);
         }
 
         /// <summary>
@@ -503,7 +487,7 @@ namespace CqlSharp
             var logger = LoggerManager.GetLogger("CqlSharp.CqlConnection.Open");
 
             //make sure the cluster is open for connections
-            await Cluster.OpenAsync(logger, cancellationToken);
+            await Cluster.OpenAsync(logger, cancellationToken).AutoConfigureAwait();
 
             //get a connection
             using(logger.ThreadBinding())

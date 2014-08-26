@@ -16,6 +16,7 @@
 using System;
 using System.IO;
 using System.Threading.Tasks;
+using CqlSharp.Threading;
 
 namespace CqlSharp.Protocol
 {
@@ -45,40 +46,41 @@ namespace CqlSharp.Protocol
         /// <summary>
         /// Initialize frame contents from the stream
         /// </summary>
+        /// <param name=""></param>
         /// <returns></returns>
         protected override async Task InitializeAsync()
         {
             FrameReader stream = Reader;
-            var code = (ErrorCode) await stream.ReadIntAsync();
-            string msg = await stream.ReadStringAsync();
+            var code = (ErrorCode) await stream.ReadIntAsync().AutoConfigureAwait();
+            string msg = await stream.ReadStringAsync().AutoConfigureAwait();
 
             switch (code)
             {
                 case ErrorCode.Unavailable:
                     {
-                        var cl = (CqlConsistency) await stream.ReadShortAsync();
-                        int required = await stream.ReadIntAsync();
-                        int alive = await stream.ReadIntAsync();
+                        var cl = (CqlConsistency)await stream.ReadShortAsync().AutoConfigureAwait();
+                        int required = await stream.ReadIntAsync().AutoConfigureAwait();
+                        int alive = await stream.ReadIntAsync().AutoConfigureAwait(); 
                         Exception = new UnavailableException(msg, cl, required, alive, TracingId);
                         break;
                     }
 
                 case ErrorCode.WriteTimeout:
                     {
-                        var cl = (CqlConsistency) await stream.ReadShortAsync();
-                        int received = await stream.ReadIntAsync();
-                        int blockFor = await stream.ReadIntAsync();
-                        string writeType = await stream.ReadStringAsync();
+                        var cl = (CqlConsistency)await stream.ReadShortAsync().AutoConfigureAwait();
+                        int received = await stream.ReadIntAsync().AutoConfigureAwait();
+                        int blockFor = await stream.ReadIntAsync().AutoConfigureAwait();
+                        string writeType = await stream.ReadStringAsync().AutoConfigureAwait();
                         Exception = new WriteTimeOutException(msg, cl, received, blockFor, writeType, TracingId);
                         break;
                     }
 
                 case ErrorCode.ReadTimeout:
                     {
-                        var cl = (CqlConsistency) await stream.ReadShortAsync();
-                        int received = await stream.ReadIntAsync();
-                        int blockFor = await stream.ReadIntAsync();
-                        bool dataPresent = 0 != await stream.ReadByteAsync();
+                        var cl = (CqlConsistency)await stream.ReadShortAsync().AutoConfigureAwait();
+                        int received = await stream.ReadIntAsync().AutoConfigureAwait();
+                        int blockFor = await stream.ReadIntAsync().AutoConfigureAwait();
+                        bool dataPresent = 0 != await stream.ReadByteAsync().AutoConfigureAwait();
                         Exception = new ReadTimeOutException(msg, cl, received, blockFor, dataPresent, TracingId);
                         break;
                     }
@@ -100,13 +102,13 @@ namespace CqlSharp.Protocol
                     break;
 
                 case ErrorCode.AlreadyExists:
-                    string keyspace = await stream.ReadStringAsync();
-                    string table = await stream.ReadStringAsync();
+                    string keyspace = await stream.ReadStringAsync().AutoConfigureAwait();
+                    string table = await stream.ReadStringAsync().AutoConfigureAwait();
                     Exception = new AlreadyExistsException(msg, keyspace, table, TracingId);
                     break;
 
                 case ErrorCode.Unprepared:
-                    byte[] unknownId = await stream.ReadShortBytesAsync();
+                    byte[] unknownId = await stream.ReadShortBytesAsync().AutoConfigureAwait();
                     Exception = new UnpreparedException(msg, unknownId, TracingId);
                     break;
 

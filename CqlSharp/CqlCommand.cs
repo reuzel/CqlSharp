@@ -396,7 +396,7 @@ namespace CqlSharp
         public override object ExecuteScalar()
         {
             var token = SetupCancellationToken();
-            return Scheduler.RunSynchronously(() => ExecuteScalarAsync(token));
+            return Scheduler.RunSynchronously(() => ExecuteScalarAsyncInternal(token));
         }
 
         /// <summary>
@@ -457,7 +457,7 @@ namespace CqlSharp
         public new virtual CqlDataReader ExecuteReader(CommandBehavior behavior)
         {
             var token = SetupCancellationToken();
-            return Scheduler.RunSynchronously(() => ExecuteReaderAsync(behavior, token));
+            return Scheduler.RunSynchronously(() => ExecuteReaderAsyncInternal(behavior, token));
         }
 
         /// <summary>
@@ -514,10 +514,22 @@ namespace CqlSharp
         /// <param name="behavior"> The behavior. </param>
         /// <param name="cancellationToken"> The cancellation token. </param>
         /// <returns> </returns>
-        public new virtual async Task<CqlDataReader> ExecuteReaderAsync(CommandBehavior behavior,
+        public new virtual Task<CqlDataReader> ExecuteReaderAsync(CommandBehavior behavior,
                                                                         CancellationToken cancellationToken)
         {
-            var result = await ExecuteReaderAsyncInternal(behavior, cancellationToken);
+            return ExecuteReaderAsyncInternal(behavior, cancellationToken);
+        }
+
+        /// <summary>
+        /// Executes the reader asynchronous.
+        /// </summary>
+        /// <param name="behavior"> The behavior. </param>
+        /// <param name="cancellationToken"> The cancellation token. </param>
+        /// <returns> </returns>
+        private async Task<CqlDataReader> ExecuteReaderAsyncInternal(CommandBehavior behavior,
+                                                                        CancellationToken cancellationToken)
+        {
+            var result = await ExecuteQueryAsyncInternal(behavior, cancellationToken).AutoConfigureAwait();
 
             var reader = new CqlDataReader(this, result,
                                            behavior.HasFlag(CommandBehavior.CloseConnection) ? _connection : null);
@@ -566,11 +578,24 @@ namespace CqlSharp
         /// <param name="behavior"> The behavior. </param>
         /// <param name="cancellationToken"> The cancellation token. </param>
         /// <returns> </returns>
-        public virtual async Task<CqlDataReader<T>> ExecuteReaderAsync<T>(CommandBehavior behavior,
+        public virtual Task<CqlDataReader<T>> ExecuteReaderAsync<T>(CommandBehavior behavior,
                                                                           CancellationToken cancellationToken)
             where T : class, new()
         {
-            var result = await ExecuteReaderAsyncInternal(behavior, cancellationToken);
+            return ExecuteReaderAsyncInternal<T>(behavior, cancellationToken);
+        }
+
+        /// <summary>
+        /// Executes the query async.
+        /// </summary>
+        /// <typeparam name="T"> class representing the rows returned </typeparam>
+        /// <param name="behavior"> The behavior. </param>
+        /// <param name="cancellationToken"> The cancellation token. </param>
+        /// <returns> </returns>
+        public virtual async Task<CqlDataReader<T>> ExecuteReaderAsyncInternal<T>(CommandBehavior behavior, CancellationToken cancellationToken)
+            where T : class, new()
+        {
+            var result = await ExecuteQueryAsyncInternal(behavior, cancellationToken).AutoConfigureAwait();
 
             var reader = new CqlDataReader<T>(this, result,
                                               behavior.HasFlag(CommandBehavior.CloseConnection) ? _connection : null);
@@ -602,8 +627,8 @@ namespace CqlSharp
         /// </remarks>
         public virtual CqlDataReader<T> ExecuteReader<T>(CommandBehavior behavior) where T : class, new()
         {
-            var token = SetupCancellationToken();
-            return Scheduler.RunSynchronously(() => ExecuteReaderAsync<T>(behavior, token));
+                var token = SetupCancellationToken();
+                return Scheduler.RunSynchronously(() => ExecuteReaderAsyncInternal<T>(behavior, token));
         }
 
         /// <summary>
@@ -613,7 +638,7 @@ namespace CqlSharp
         /// <param name="cancellationToken"> The cancellation token. </param>
         /// <returns> </returns>
         /// <exception cref="System.ArgumentException">Command behavior not supported;behavior</exception>
-        internal async Task<ResultFrame> ExecuteReaderAsyncInternal(CommandBehavior behavior,
+        internal async Task<ResultFrame> ExecuteQueryAsyncInternal(CommandBehavior behavior,
                                                                     CancellationToken cancellationToken)
         {
             var st = new Stopwatch();
@@ -637,38 +662,25 @@ namespace CqlSharp
 
             var logger = _connection.LoggerManager.GetLogger("CqlSharp.CqlCommand.ExecuteReader");
 
-            logger.LogVerbose("Waiting on Throttle");
+            logger.LogVerbose("Start executing query");
 
-            //wait until allowed
-            _connection.Throttle.Wait(cancellationToken);
-
-            try
+            ResultFrame result = await RunWithRetry(SendQueryAsync, logger, cancellationToken).AutoConfigureAwait();
+            
+            if(result.CqlResultType != CqlResultType.Rows)
             {
-                logger.LogVerbose("Start executing query");
-
-                ResultFrame result =
-                    await RunWithRetry(SendQueryAsync, logger, cancellationToken);
-
-                if(result.CqlResultType != CqlResultType.Rows)
-                {
-                    var ex = new CqlException("Can not create a DataReader for non-select query.");
-                    logger.LogError("Error executing reader: {0}", ex);
-                    _queryResult = new CqlError(ex, result.TracingId);
-                    throw ex;
-                }
-
-                logger.LogQuery("Query {0} returned {1} results in {2}ms", Query, result.Count, st.ElapsedMilliseconds);
-
-                //copy metadata from prepared query cache if necessary
-                if(_prepared && result.ResultMetaData.NoMetaData)
-                    result.ResultMetaData.CopyColumnsFrom(_connection.PreparedQueryCache[Query].ResultMetaData);
-
-                return result;
+                var ex = new CqlException("Can not create a DataReader for non-select query.");
+                logger.LogError("Error executing reader: {0}", ex);
+                _queryResult = new CqlError(ex, result.TracingId);
+                throw ex;
             }
-            finally
-            {
-                _connection.Throttle.Release();
-            }
+
+            logger.LogQuery("Query {0} returned {1} results in {2}ms", Query, result.Count, st.ElapsedMilliseconds);
+
+            //copy metadata from prepared query cache if necessary
+            if(_prepared && result.ResultMetaData.NoMetaData)
+                result.ResultMetaData.CopyColumnsFrom(_connection.PreparedQueryCache[Query].ResultMetaData);
+
+            return result;
         }
 
         /// <summary>
@@ -677,13 +689,24 @@ namespace CqlSharp
         /// <param name="token"> The cancellation token. </param>
         /// <returns> </returns>
         /// <exception cref="CqlException">Execute Scalar Query yield no results</exception>
-        public override async Task<object> ExecuteScalarAsync(CancellationToken token)
+        public override Task<object> ExecuteScalarAsync(CancellationToken token)
+        {
+            return ExecuteScalarAsyncInternal(token);
+        }
+
+        /// <summary>
+        /// Executes the query, and returns the value of the first column of the first row.
+        /// </summary>
+        /// <param name="token"> The cancellation token. </param>
+        /// <returns> </returns>
+        /// <exception cref="CqlException">Execute Scalar Query yield no results</exception>
+        private async Task<object> ExecuteScalarAsyncInternal(CancellationToken token)
         {
             object result;
 
-            using(var reader = await ExecuteReaderAsync(token))
+            using (var reader = await ExecuteReaderAsyncInternal(CommandBehavior.Default, token).AutoConfigureAwait())
             {
-                if(await reader.ReadAsync(token))
+                if (await reader.ReadAsyncInternal(token).AutoConfigureAwait())
                     result = reader[0] ?? DBNull.Value;
                 else
                     result = null;
@@ -699,15 +722,35 @@ namespace CqlSharp
         public override int ExecuteNonQuery()
         {
             var token = SetupCancellationToken();
-            return Scheduler.RunSynchronously(() => ExecuteNonQueryAsync(token));
+            return Scheduler.RunSynchronously(() => ExecuteNonQueryAsyncInternal(token));
+        }
+
+        /// <summary>
+        /// This is the asynchronous version of <see cref="M:System.Data.Common.DbCommand.ExecuteNonQuery" />. Providers should
+        /// override with an appropriate implementation. The cancellation token may optionally be ignored.The default
+        /// implementation invokes the synchronous <see cref="M:System.Data.Common.DbCommand.ExecuteNonQuery" /> method and returns
+        /// a completed task, blocking the calling thread. The default implementation will return a cancelled task if passed an
+        /// already cancelled cancellation token.  Exceptions thrown by
+        /// <see cref="M:System.Data.Common.DbCommand.ExecuteNonQuery" /> will be communicated via the returned Task Exception
+        /// property.Do not invoke other methods and properties of the DbCommand object until the returned Task is complete.
+        /// </summary>
+        /// <returns>
+        /// A task representing the asynchronous operation.
+        /// </returns>
+        /// <param name="cancellationToken">The token to monitor for cancellation requests.</param>
+        /// <exception cref="T:System.Data.Common.DbException">An error occurred while executing the command text.</exception>
+        public override Task<int> ExecuteNonQueryAsync(CancellationToken cancellationToken)
+        {
+            return ExecuteNonQueryAsyncInternal(cancellationToken);
         }
 
         /// <summary>
         /// Executes the non query asynchronous.
         /// </summary>
         /// <param name="token"> The token. </param>
+        /// <param name="useAsync"></param>
         /// <returns> </returns>
-        public override async Task<int> ExecuteNonQueryAsync(CancellationToken token)
+        private async Task<int> ExecuteNonQueryAsyncInternal(CancellationToken token)
         {
             //clear last result
             _queryResult = null;
@@ -724,53 +767,42 @@ namespace CqlSharp
                 return 1;
             }
 
-            logger.LogVerbose("Waiting on Throttle");
+            logger.LogVerbose("Start executing query");
 
-            //wait until allowed
-            _connection.Throttle.Wait(token);
+            ResultFrame result = await RunWithRetry(SendQueryAsync, logger, token).AutoConfigureAwait();
 
-            try
+            switch(result.CqlResultType)
             {
-                logger.LogVerbose("Start executing query");
+                case CqlResultType.Rows:
+                    var reader = new CqlDataReader(this, result, null);
+                    _queryResult = reader;
+                    logger.LogQuery("Query {0} returned {1} results", Query, reader.Count);
+                    return -1;
 
-                ResultFrame result = await RunWithRetry(SendQueryAsync, logger, token);
-                switch(result.CqlResultType)
-                {
-                    case CqlResultType.Rows:
-                        var reader = new CqlDataReader(this, result, null);
-                        _queryResult = reader;
-                        logger.LogQuery("Query {0} returned {1} results", Query, reader.Count);
-                        return -1;
+                case CqlResultType.Void:
+                    logger.LogQuery("Query {0} executed succesfully", Query);
+                    _queryResult = new CqlVoid(result.TracingId);
+                    return 1;
 
-                    case CqlResultType.Void:
-                        logger.LogQuery("Query {0} executed succesfully", Query);
-                        _queryResult = new CqlVoid(result.TracingId);
-                        return 1;
+                case CqlResultType.SchemaChange:
+                    logger.LogQuery("Query {0} resulted in {1}.{2} {3}", Query, result.Keyspace, result.Table,
+                                    result.Change);
 
-                    case CqlResultType.SchemaChange:
-                        logger.LogQuery("Query {0} resulted in {1}.{2} {3}", Query, result.Keyspace, result.Table,
-                                        result.Change);
+                    _queryResult = new CqlSchemaChange(result.Keyspace, result.Table, result.Change,
+                                                       result.TracingId);
 
-                        _queryResult = new CqlSchemaChange(result.Keyspace, result.Table, result.Change,
-                                                           result.TracingId);
+                    return -1;
 
-                        return -1;
+                case CqlResultType.SetKeyspace:
+                    logger.LogQuery("Query {0} resulted in keyspace set to {1}", Query, result.Keyspace);
+                    _queryResult = new CqlSetKeyspace(result.Keyspace, result.TracingId);
 
-                    case CqlResultType.SetKeyspace:
-                        logger.LogQuery("Query {0} resulted in keyspace set to {1}", Query, result.Keyspace);
-                        _queryResult = new CqlSetKeyspace(result.Keyspace, result.TracingId);
+                    return -1;
 
-                        return -1;
-
-                    default:
-                        var ex = new CqlException("Unexpected type of result received: " + result.CqlResultType);
-                        _queryResult = new CqlError(ex, result.TracingId);
-                        throw ex;
-                }
-            }
-            finally
-            {
-                _connection.Throttle.Release();
+                default:
+                    var ex = new CqlException("Unexpected type of result received: " + result.CqlResultType);
+                    _queryResult = new CqlError(ex, result.TracingId);
+                    throw ex;
             }
         }
 
@@ -782,53 +814,55 @@ namespace CqlSharp
         internal void ExecuteBatch()
         {
             var token = SetupCancellationToken();
-            Scheduler.RunSynchronously(() => ExecuteBatchAsync(token));
+            Scheduler.RunSynchronously(() => ExecuteBatchAsyncInternal(token));
+        }
+
+         /// <summary>
+        /// Executes the batch asynchronous.
+        /// </summary>
+        /// <param name="token">The token.</param>
+        /// <returns></returns>
+        /// <exception cref="CqlException">Unexpected type of result received</exception>
+        internal Task ExecuteBatchAsync(CancellationToken token)
+        {
+            return ExecuteBatchAsyncInternal(token);
         }
 
         /// <summary>
         /// Executes the batch asynchronous.
         /// </summary>
         /// <param name="token">The token.</param>
+        /// <param name="useAsync"></param>
         /// <returns></returns>
         /// <exception cref="CqlException">Unexpected type of result received</exception>
-        internal async Task ExecuteBatchAsync(CancellationToken token)
+        private async Task ExecuteBatchAsyncInternal(CancellationToken token)
         {
             //check token first
             token.ThrowIfCancellationRequested();
 
             var logger = _connection.LoggerManager.GetLogger("CqlSharp.CqlBatchTransaction.Commit");
 
-            logger.LogVerbose("Waiting on Throttle");
 
-            //wait until allowed
-            _connection.Throttle.Wait(token);
+            //continue?
+            token.ThrowIfCancellationRequested();
 
-            try
+            logger.LogVerbose("Start executing batch");
+
+            ResultFrame result = await RunWithRetry(SendBatchAsync, logger, token).AutoConfigureAwait();
+
+            switch(result.CqlResultType)
             {
-                //continue?
-                token.ThrowIfCancellationRequested();
+                case CqlResultType.Void:
+                    logger.LogQuery("Bath executed succesfully");
+                    _queryResult = new CqlVoid(result.TracingId);
+                    break;
 
-                logger.LogVerbose("Start executing batch");
-
-                ResultFrame result = await RunWithRetry(SendBatchAsync, logger, token);
-                switch(result.CqlResultType)
-                {
-                    case CqlResultType.Void:
-                        logger.LogQuery("Bath executed succesfully");
-                        _queryResult = new CqlVoid(result.TracingId);
-                        break;
-
-                    default:
-                        var ex =
-                            new CqlException("Unexpected type of result received for a batch operation: " +
-                                             result.CqlResultType);
-                        _queryResult = new CqlError(ex, result.TracingId);
-                        throw ex;
-                }
-            }
-            finally
-            {
-                _connection.Throttle.Release();
+                default:
+                    var ex =
+                        new CqlException("Unexpected type of result received for a batch operation: " +
+                                         result.CqlResultType);
+                    _queryResult = new CqlError(ex, result.TracingId);
+                    throw ex;
             }
         }
 
@@ -921,31 +955,20 @@ namespace CqlSharp
         /// </summary>
         /// <param name="token"> The cancellation token. </param>
         /// <param name="logger"> </param>
+        /// <param name="useAsync"></param>
         /// <returns> </returns>
         private async Task PrepareAsyncInternal(CancellationToken token, Logger logger)
         {
-            logger.LogVerbose("Waiting on Throttle");
+            //continue?
+            token.ThrowIfCancellationRequested();
 
-            //wait until allowed
-            _connection.Throttle.Wait(token);
+            logger.LogVerbose("Start executing prepare query");
 
-            try
-            {
-                //continue?
-                token.ThrowIfCancellationRequested();
+            ResultFrame result = await RunWithRetry(SendPrepareAsync, logger, token).AutoConfigureAwait();
 
-                logger.LogVerbose("Start executing prepare query");
+            FinalizePrepare(result, false);
 
-                ResultFrame result = await RunWithRetry(SendPrepareAsync, logger, token);
-
-                FinalizePrepare(result, false);
-
-                logger.LogQuery("Prepared query {0}", Query);
-            }
-            finally
-            {
-                _connection.Throttle.Release();
-            }
+            logger.LogQuery("Prepared query {0}", Query);
         }
 
         #endregion
@@ -958,6 +981,7 @@ namespace CqlSharp
         /// <param name="executeFunc"> The function to execute. </param>
         /// <param name="logger"> The logger. </param>
         /// <param name="token"> The token. </param>
+        /// <param name="useAsync"></param>
         /// <returns> </returns>
         /// <exception cref="CqlException">Failed to return query result after max amount of attempts</exception>
         private async Task<ResultFrame> RunWithRetry(
@@ -991,8 +1015,10 @@ namespace CqlSharp
                         logger.LogVerbose("Changing Database: {0} using {1}", useQuery, connection);
 
                         var useFrame = new QueryFrame(useQuery, CqlConsistency.One, null);
-                        var result =
-                            await connection.SendRequestAsync(useFrame, logger, 1, false, token) as ResultFrame;
+
+                        var result = await connection.SendRequestAsync(useFrame, logger, 1, false, token)
+                                          .AutoConfigureAwait() as ResultFrame;
+
                         if(result == null || result.CqlResultType != CqlResultType.SetKeyspace)
                         {
                             if(result != null)
@@ -1005,9 +1031,9 @@ namespace CqlSharp
                     }
 
                     //execute
-                    return await executeFunc(connection, logger, token);
+                    return await executeFunc(connection, logger, token).AutoConfigureAwait();
                 }
-                catch(TaskCanceledException)
+                catch(OperationCanceledException)
                 {
                     throw;
                 }
@@ -1072,20 +1098,20 @@ namespace CqlSharp
             throw failed;
         }
 
-
         /// <summary>
         /// Prepares the query async on the given connection.
         /// </summary>
         /// <param name="connection"> The connection. </param>
         /// <param name="logger"> The logger. </param>
         /// <param name="token"> The token. </param>
+        /// <param name="useAsync"></param>
         /// <returns> </returns>
         /// <exception cref="CqlException">Unexpected frame received  + response.OpCode</exception>
-        private Task<ResultFrame> SendPrepareAsync(Connection connection, Logger logger, CancellationToken token)
+        private Task<ResultFrame> SendPrepareAsync(Connection connection, Logger logger,
+                                                   CancellationToken token)
         {
             return SendPrepareAsync(Query, connection, logger, token);
         }
-
 
         /// <summary>
         /// Prepares the query async on the given connection.
@@ -1094,6 +1120,7 @@ namespace CqlSharp
         /// <param name="connection"> The connection. </param>
         /// <param name="logger"> The logger. </param>
         /// <param name="token"> The token. </param>
+        /// <param name="useAsync"></param>
         /// <returns> </returns>
         /// <exception cref="CqlException">Unexpected frame received  + response.OpCode</exception>
         private async Task<ResultFrame> SendPrepareAsync(string query, Connection connection, Logger logger,
@@ -1109,10 +1136,7 @@ namespace CqlSharp
             logger.LogVerbose("Sending prepare {0} using {1}", query, connection);
 
             //send prepare request
-            using(
-                Frame response =
-                    await connection.SendRequestAsync(request, logger, 1, false, token)
-                )
+            using(Frame response = await connection.SendRequestAsync(request, logger, 1, false, token).AutoConfigureAwait())
             {
                 var result = response as ResultFrame;
                 if(result == null)
@@ -1132,6 +1156,7 @@ namespace CqlSharp
         /// <param name="connection"> The connection. </param>
         /// <param name="logger"> The logger. </param>
         /// <param name="token"> The token. </param>
+        /// <param name="useAsync"></param>
         /// <returns> </returns>
         /// <exception cref="CqlException">Unexpected frame received</exception>
         private async Task<ResultFrame> SendQueryAsync(Connection connection, Logger logger,
@@ -1143,9 +1168,8 @@ namespace CqlSharp
                 byte[] queryId;
                 if(!connection.Node.PreparedQueryIds.TryGetValue(Query, out queryId))
                 {
-                    ResultFrame prepareResult =
-                        await SendPrepareAsync(connection, logger, token);
-
+                    ResultFrame prepareResult = await SendPrepareAsync(Query, connection, logger, token).AutoConfigureAwait();
+                    
                     queryId = prepareResult.PreparedQueryId;
                 }
 
@@ -1183,7 +1207,9 @@ namespace CqlSharp
                 queryFrame.Flags |= FrameFlags.Tracing;
 
             Frame response =
-                await connection.SendRequestAsync(queryFrame, logger, Load, false, token);
+                await
+                    connection.SendRequestAsync(queryFrame, logger, Load, false, token)
+                              .AutoConfigureAwait();
 
             var result = response as ResultFrame;
             if(result != null)
@@ -1192,7 +1218,8 @@ namespace CqlSharp
                 if(UseBuffering)
                 {
                     logger.LogVerbose("Buffering used, reading all data");
-                    await result.BufferDataAsync();
+
+                    await result.BufferDataAsync().AutoConfigureAwait();
                 }
 
                 return result;
@@ -1231,6 +1258,7 @@ namespace CqlSharp
         /// <param name="connection"> The connection. </param>
         /// <param name="logger"> The logger. </param>
         /// <param name="token"> The token. </param>
+        /// <param name="useAsync"></param>
         /// <returns> </returns>
         /// <exception cref="CqlException">Unexpected frame received</exception>
         private async Task<ResultFrame> SendBatchAsync(Connection connection, Logger logger,
@@ -1244,8 +1272,8 @@ namespace CqlSharp
                     byte[] queryId;
                     if(!connection.Node.PreparedQueryIds.TryGetValue(command.CqlQuery, out queryId))
                     {
-                        ResultFrame prepareResult =
-                            await SendPrepareAsync(command.CqlQuery, connection, logger, token);
+                        ResultFrame prepareResult = await SendPrepareAsync(command.CqlQuery, connection, logger, token)
+                                    .AutoConfigureAwait();
 
                         queryId = prepareResult.PreparedQueryId;
                     }
@@ -1261,8 +1289,7 @@ namespace CqlSharp
 
             logger.LogVerbose("Sending batch command using {0}", connection);
 
-            Frame response =
-                await connection.SendRequestAsync(batchFrame, logger, Load, false, token);
+            Frame response = await connection.SendRequestAsync(batchFrame, logger, Load, false, token).AutoConfigureAwait();
 
             var result = response as ResultFrame;
             if(result != null)
