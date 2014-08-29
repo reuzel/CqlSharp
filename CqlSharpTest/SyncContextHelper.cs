@@ -15,26 +15,27 @@
 
 using System;
 using System.Diagnostics;
+using System.Dynamic;
 using System.Threading;
+using System.Threading.Tasks;
 using System.Windows.Threading;
 
 namespace CqlSharp.Test
 {
     /// <summary>
     ///   Helper context to mimic constrained synchronization contexts.
-    ///   Obtained from: http://stackoverflow.com/questions/1882417/looking-for-an-example-of-a-custom-synchronizationcontext
+    ///   Based on: http://stackoverflow.com/questions/1882417/looking-for-an-example-of-a-custom-synchronizationcontext
     /// </summary>
-    public class STASynchronizationContext : SynchronizationContext, IDisposable
+    public class SyncContextHelper : IDisposable
     {
         private readonly Dispatcher _dispatcher;
-        private readonly Thread _mainThread;
         private object _dispObj;
 
-        public STASynchronizationContext()
+        private SyncContextHelper()
         {
-            _mainThread = new Thread(MainThread) {Name = "STASynchronizationContextMainThread", IsBackground = false};
-            _mainThread.SetApartmentState(ApartmentState.STA);
-            _mainThread.Start();
+            var mainThread = new Thread(MainThread) {Name = "STASynchronizationContextMainThread", IsBackground = false};
+            mainThread.SetApartmentState(ApartmentState.STA);
+            mainThread.Start();
 
             //wait to get the main thread's dispatcher
             while (Thread.VolatileRead(ref _dispObj) == null)
@@ -55,16 +56,21 @@ namespace CqlSharp.Test
 
         #endregion
 
-        public override void Post(SendOrPostCallback d, object state)
+        public static void Invoke(Action action)
         {
-            _dispatcher.BeginInvoke(d, new[] {state});
+            var helper = new SyncContextHelper();
+            helper._dispatcher.Invoke(action);
+            helper.Dispose();
         }
 
-        public override void Send(SendOrPostCallback d, object state)
+        public static void Invoke(Func<Task> action)
         {
-            _dispatcher.Invoke(d, new[] {state});
+            var helper = new SyncContextHelper();
+            var task = helper._dispatcher.Invoke(action);
+            task.Wait();
+            helper.Dispose();
         }
-
+        
         private void MainThread(object param)
         {
             Thread.VolatileWrite(ref _dispObj, Dispatcher.CurrentDispatcher);
@@ -72,7 +78,7 @@ namespace CqlSharp.Test
             Dispatcher.Run();
         }
 
-        ~STASynchronizationContext()
+        ~SyncContextHelper()
         {
             Dispose();
         }

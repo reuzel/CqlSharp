@@ -16,6 +16,7 @@
 using System;
 using System.Threading;
 using System.Threading.Tasks;
+using System.Windows.Threading;
 using CqlSharp.Threading;
 using Microsoft.VisualStudio.TestTools.UnitTesting;
 
@@ -30,124 +31,112 @@ namespace CqlSharp.Test
         }
 
         [TestMethod]
-        public async Task Yield()
+        public void Yield()
         {
-            var context = new STASynchronizationContext();
-            SynchronizationContext.SetSynchronizationContext(context);
-
-            var scheduler = TaskScheduler.Current;
-
-            await Scheduler.RunOnIOThread(async () =>
+            SyncContextHelper.Invoke(async () =>
             {
-                Assert.IsNull(SynchronizationContext.Current);
-                Assert.IsInstanceOfType(TaskScheduler.Current, typeof(IOTaskScheduler));
+                await Scheduler.RunOnIOThread(async () =>
+                {
+                    Assert.IsNull(SynchronizationContext.Current);
+                    Assert.IsInstanceOfType(TaskScheduler.Current, typeof(IOTaskScheduler));
 
-                await Task.Yield();
+                    await Task.Yield();
 
-                Assert.IsNull(SynchronizationContext.Current);
-                Assert.IsInstanceOfType(TaskScheduler.Current, typeof(IOTaskScheduler));
+                    Assert.IsNull(SynchronizationContext.Current);
+                    Assert.IsInstanceOfType(TaskScheduler.Current, typeof(IOTaskScheduler));
+                });
+
+                Assert.IsInstanceOfType(SynchronizationContext.Current, typeof(DispatcherSynchronizationContext));
             });
 
-            Assert.AreEqual(context, SynchronizationContext.Current);
-            Assert.AreEqual(scheduler, TaskScheduler.Current);
         }
 
 
         [TestMethod]
-        public async Task CompletedTask()
+        public void CompletedTask()
         {
-            var context = new STASynchronizationContext();
-            SynchronizationContext.SetSynchronizationContext(context);
-
-            var scheduler = TaskScheduler.Current;
-
-            await Scheduler.RunOnIOThread(async () =>
+            SyncContextHelper.Invoke(async () =>
             {
-                Assert.IsNull(SynchronizationContext.Current);
-                Assert.IsInstanceOfType(TaskScheduler.Current, typeof(IOTaskScheduler));
+                await Scheduler.RunOnIOThread(async () =>
+                {
+                    Assert.IsNull(SynchronizationContext.Current);
+                    Assert.IsInstanceOfType(TaskScheduler.Current, typeof(IOTaskScheduler));
 
-                await Task.FromResult(true).AutoConfigureAwait();
+                    await Task.FromResult(true).AutoConfigureAwait();
 
-                Assert.IsNull(SynchronizationContext.Current);
-                Assert.IsInstanceOfType(TaskScheduler.Current, typeof(IOTaskScheduler));
+                    Assert.IsNull(SynchronizationContext.Current);
+                    Assert.IsInstanceOfType(TaskScheduler.Current, typeof(IOTaskScheduler));
+                });
+
+                Assert.IsInstanceOfType(SynchronizationContext.Current, typeof(DispatcherSynchronizationContext));
             });
-
-            Assert.AreEqual(context, SynchronizationContext.Current);
-            Assert.AreEqual(scheduler, TaskScheduler.Current);
         }
 
         [TestMethod]
-        public async Task Delay()
+        public void Delay()
         {
-            var context = new STASynchronizationContext();
-            SynchronizationContext.SetSynchronizationContext(context);
-
-            var scheduler = TaskScheduler.Current;
-
-            await Scheduler.RunOnIOThread(async () =>
+            SyncContextHelper.Invoke(async () =>
             {
-                Assert.IsNull(SynchronizationContext.Current);
-                Assert.IsInstanceOfType(TaskScheduler.Current, typeof(IOTaskScheduler));
+                await Scheduler.RunOnIOThread(async () =>
+                {
+                    Assert.IsNull(SynchronizationContext.Current);
+                    Assert.IsInstanceOfType(TaskScheduler.Current, typeof(IOTaskScheduler));
 
-                await Task.Delay(10).AutoConfigureAwait();
+                    await Task.Delay(10).AutoConfigureAwait();
 
-                Assert.IsNull(SynchronizationContext.Current);
-                Assert.IsInstanceOfType(TaskScheduler.Current, typeof(IOTaskScheduler));
+                    Assert.IsNull(SynchronizationContext.Current);
+                    Assert.IsInstanceOfType(TaskScheduler.Current, typeof(IOTaskScheduler));
+                });
+
+                Assert.IsInstanceOfType(SynchronizationContext.Current, typeof(DispatcherSynchronizationContext));
             });
-
-            Assert.AreEqual(context, SynchronizationContext.Current);
-            Assert.AreEqual(scheduler, TaskScheduler.Current);
         }
 
         [TestMethod]
-        public async Task DelayIndirect()
+        public void DelayIndirect()
         {
-            var context = new STASynchronizationContext();
-            SynchronizationContext.SetSynchronizationContext(context);
-
-            var scheduler = TaskScheduler.Current;
-
-            await Scheduler.RunOnIOThread(async () =>
+            SyncContextHelper.Invoke(async () =>
             {
-                Assert.IsNull(SynchronizationContext.Current);
-                Assert.IsInstanceOfType(TaskScheduler.Current, typeof(IOTaskScheduler));
+                await Scheduler.RunOnIOThread(async () =>
+                {
+                    Assert.IsNull(SynchronizationContext.Current);
+                    Assert.IsInstanceOfType(TaskScheduler.Current, typeof(IOTaskScheduler));
 
-                await DummyWork().AutoConfigureAwait();
+                    await DummyWork().AutoConfigureAwait();
 
-                Assert.IsNull(SynchronizationContext.Current);
-                Assert.IsInstanceOfType(TaskScheduler.Current, typeof(IOTaskScheduler));
+                    Assert.IsNull(SynchronizationContext.Current);
+                    Assert.IsInstanceOfType(TaskScheduler.Current, typeof(IOTaskScheduler));
+                });
+
+                Assert.IsInstanceOfType(SynchronizationContext.Current, typeof(DispatcherSynchronizationContext));
             });
-
-            Assert.AreEqual(context, SynchronizationContext.Current);
-            Assert.AreEqual(scheduler, TaskScheduler.Current);
         }
         
 
         [TestMethod]
-        public async Task DelayWithResult()
+        public void DelayWithResult()
         {
-            var context = new STASynchronizationContext();
-            SynchronizationContext.SetSynchronizationContext(context);
+             SyncContextHelper.Invoke(async () =>
+                {
+                    const int value = 100;
+                    int actual = await Scheduler.RunOnIOThread(async () =>
+                    {
+                        Assert.IsNull(SynchronizationContext.Current);
+                        Assert.IsInstanceOfType(TaskScheduler.Current, typeof(IOTaskScheduler));
 
-            var scheduler = TaskScheduler.Current;
+                        await Task.Delay(10).AutoConfigureAwait();
 
-            const int value = 100;
-            int actual = await Scheduler.RunOnIOThread(async () =>
-            {
-                Assert.IsNull(SynchronizationContext.Current);
-                Assert.IsInstanceOfType(TaskScheduler.Current, typeof(IOTaskScheduler));
+                        Assert.IsNull(SynchronizationContext.Current);
+                        Assert.IsInstanceOfType(TaskScheduler.Current, typeof(IOTaskScheduler));
 
-                await Task.Delay(10).AutoConfigureAwait();
+                        return value;
+                    });
 
-                Assert.IsNull(SynchronizationContext.Current);
-                Assert.IsInstanceOfType(TaskScheduler.Current, typeof(IOTaskScheduler));
+                    Assert.AreEqual(value, actual);
 
-                return value;
-            });
-
-            Assert.AreEqual(value, actual);
-            Assert.AreEqual(context, SynchronizationContext.Current);
-            Assert.AreEqual(scheduler, TaskScheduler.Current);
+                    Assert.IsInstanceOfType(SynchronizationContext.Current, typeof(DispatcherSynchronizationContext));
+                });
+            
         }
 
         [TestMethod]

@@ -16,6 +16,7 @@
 using System;
 using System.Threading;
 using System.Threading.Tasks;
+using System.Windows.Threading;
 using CqlSharp.Threading;
 using Microsoft.VisualStudio.TestTools.UnitTesting;
 
@@ -32,40 +33,42 @@ namespace CqlSharp.Test
         [TestMethod]
         public void Yield()
         {
-            var context = new STASynchronizationContext();
-            SynchronizationContext.SetSynchronizationContext(context);
-
-            var threadId = ThreadId();
-            var scheduler = TaskScheduler.Current;
-
-            Scheduler.RunSynchronously(async () =>
+            SyncContextHelper.Invoke(() =>
             {
-                Assert.IsNull(SynchronizationContext.Current);
-                Assert.IsInstanceOfType(TaskScheduler.Current, typeof(ActiveThreadScheduler));
-                Assert.AreEqual(threadId, ThreadId());
 
-                await Task.Yield();
+                var threadId = ThreadId();
+                var scheduler = TaskScheduler.Current;
+                var context = SynchronizationContext.Current;
 
-                Assert.IsNull(SynchronizationContext.Current);
-                Assert.IsInstanceOfType(TaskScheduler.Current, typeof(ActiveThreadScheduler));
+                Scheduler.RunSynchronously(async () =>
+                {
+                    Assert.IsNull(SynchronizationContext.Current);
+                    Assert.IsInstanceOfType(TaskScheduler.Current, typeof(ActiveThreadScheduler));
+                    Assert.AreEqual(threadId, ThreadId());
+
+                    await Task.Yield();
+
+                    Assert.IsNull(SynchronizationContext.Current);
+                    Assert.IsInstanceOfType(TaskScheduler.Current, typeof(ActiveThreadScheduler));
+                    Assert.AreEqual(threadId, ThreadId());
+                });
+
+                Assert.AreEqual(context, SynchronizationContext.Current);
+                Assert.AreEqual(scheduler, TaskScheduler.Current);
                 Assert.AreEqual(threadId, ThreadId());
             });
-
-            Assert.AreEqual(context, SynchronizationContext.Current);
-            Assert.AreEqual(scheduler, TaskScheduler.Current);
-            Assert.AreEqual(threadId, ThreadId());
         }
 
 
         [TestMethod]
         public void CompletedTask()
         {
-            var context = new STASynchronizationContext();
-            context.Send((state) =>
+            SyncContextHelper.Invoke(() =>
             {
 
                 var threadId = ThreadId();
                 var scheduler = TaskScheduler.Current;
+                var context = SynchronizationContext.Current;
 
                 Scheduler.RunSynchronously(async () =>
                 {
@@ -83,18 +86,18 @@ namespace CqlSharp.Test
                 Assert.AreEqual(context, SynchronizationContext.Current);
                 Assert.AreEqual(scheduler, TaskScheduler.Current);
                 Assert.AreEqual(threadId, ThreadId());
-            }, null);
+            });
         }
 
         [TestMethod]
         public void Delay()
         {
-            var context = new STASynchronizationContext();
-            context.Send((state) =>
+            SyncContextHelper.Invoke(() =>
             {
 
                 var threadId = ThreadId();
                 var scheduler = TaskScheduler.Current;
+                var context = SynchronizationContext.Current;
 
                 Scheduler.RunSynchronously(async () =>
                 {
@@ -112,18 +115,18 @@ namespace CqlSharp.Test
                 Assert.AreEqual(context, SynchronizationContext.Current);
                 Assert.AreEqual(scheduler, TaskScheduler.Current);
                 Assert.AreEqual(threadId, ThreadId());
-            }, null);
+            });
         }
 
         [TestMethod]
         public void DelayIndirect()
         {
-            var context = new STASynchronizationContext();
-            context.Send((state) =>
+           SyncContextHelper.Invoke(() =>
             {
 
                 var threadId = ThreadId();
                 var scheduler = TaskScheduler.Current;
+                var context = SynchronizationContext.Current;
 
                 Scheduler.RunSynchronously(async () =>
                 {
@@ -141,32 +144,33 @@ namespace CqlSharp.Test
                 Assert.AreEqual(context, SynchronizationContext.Current);
                 Assert.AreEqual(scheduler, TaskScheduler.Current);
                 Assert.AreEqual(threadId, ThreadId());
-            }, null);
+            });
         }
 
         [TestMethod]
-        public async Task DelayAsync()
+        public void DelayAsync()
         {
-            var context = new STASynchronizationContext();
-            SynchronizationContext.SetSynchronizationContext(context);
+            SyncContextHelper.Invoke(async () =>
+            {
+                var threadId = ThreadId();
+                Assert.IsNotNull(SynchronizationContext.Current);
+                
+                await Task.Delay(10).AutoConfigureAwait();
 
-            var threadId = ThreadId();
-            
-            await Task.Delay(10).AutoConfigureAwait();
-            
-            Assert.AreNotEqual(threadId, ThreadId());
-            Assert.AreNotEqual(SynchronizationContext.Current, context);
+                Assert.AreNotEqual(threadId, ThreadId());
+                Assert.IsNull(SynchronizationContext.Current);
+            });
         }
 
         [TestMethod]
         public void DelayWithResult()
         {
-            var context = new STASynchronizationContext();
-            context.Send((state) =>
+            SyncContextHelper.Invoke(() =>
             {
 
                 var threadId = ThreadId();
                 var scheduler = TaskScheduler.Current;
+                var context = SynchronizationContext.Current;
 
                 const int value = 100;
                 int actual = Scheduler.RunSynchronously(async () =>
@@ -188,15 +192,15 @@ namespace CqlSharp.Test
                 Assert.AreEqual(context, SynchronizationContext.Current);
                 Assert.AreEqual(scheduler, TaskScheduler.Current);
                 Assert.AreEqual(threadId, ThreadId());
-            }, null);
+            });
         }
 
         [TestMethod]
         public void DelayThenException()
         {
-            var context = new STASynchronizationContext();
-            context.Send((state) =>
+            SyncContextHelper.Invoke(() =>
             {
+
                 var threadId = ThreadId();
                 try
                 {
@@ -216,7 +220,7 @@ namespace CqlSharp.Test
                 }
 
                 Assert.Fail("Exception expected");
-            }, null);
+            });
         }
 
         public async Task DummyWork()

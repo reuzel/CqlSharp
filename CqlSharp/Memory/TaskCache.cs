@@ -14,6 +14,7 @@
 // limitations under the License.
 
 using System;
+using System.Collections.Concurrent;
 using System.Diagnostics;
 using System.Threading.Tasks;
 
@@ -33,6 +34,8 @@ namespace CqlSharp.Memory
         private static readonly Task<int>[] IntTaskCache;
 
         public static readonly Task CompletedTask;
+
+        private static readonly ConcurrentDictionary<string, Task<string>> StringCache = new ConcurrentDictionary<string, Task<string>>();
 
         static TaskCache()
         {
@@ -87,6 +90,16 @@ namespace CqlSharp.Memory
             Debug.Assert(value == result.Result, "Short value not properly cached!");
 
             return result;
+        }
+
+        /// <summary>
+        /// Returns a completed task with the given value as result
+        /// </summary>
+        /// <param name="value">The value.</param>
+        /// <returns></returns>
+        public static Task<string> AsTask(this string value)
+        {
+            return StringCache.GetOrAdd(value, Task.FromResult);
         }
     }
 }

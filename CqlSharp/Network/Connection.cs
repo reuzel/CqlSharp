@@ -36,7 +36,7 @@ namespace CqlSharp.Network
     /// <summary>
     ///   A single connection to a Cassandra node.
     /// </summary>
-    internal class Connection
+    internal class Connection : IDisposable
     {
         private static class ConnectionState
         {
@@ -611,13 +611,7 @@ namespace CqlSharp.Network
                                                               CancellationToken token)
         {
 
-            //capture any cancel exception
-            OperationCanceledException ocex = null;
-
-            //run the send request
             var task = SendRequestAsyncInternal(frame, logger, load, isConnecting, token);
-            
-            //create task that completes when cancel token is set
             var cancelTask = new TaskCompletionSource<bool>();
             using (token.Register(s => ((TaskCompletionSource<bool>)s).TrySetResult(true), cancelTask))
             {
@@ -632,16 +626,19 @@ namespace CqlSharp.Network
                             return;
 
                         var logger1 = (Logger)log;
-                        logger1.LogWarning("Cancelled query threw exception: {0}", sendTask.Exception.InnerException);
+                        logger1.LogWarning(
+                            "Cancelled query threw exception: {0}",
+                            sendTask.Exception.InnerException);
 
-                    }, logger, TaskContinuationOptions.ExecuteSynchronously | TaskContinuationOptions.OnlyOnFaulted);
+                    }, logger,
+                                                     TaskContinuationOptions.OnlyOnFaulted |
+                                                     TaskContinuationOptions.ExecuteSynchronously);
 
+                    //get this request cancelled
                     throw new OperationCanceledException(token);
                 }
             }
-           
-            //by now task is completed, return the result
-            return task.Result;
+            return await task.AutoConfigureAwait();
         }
 
 
@@ -735,6 +732,9 @@ namespace CqlSharp.Network
 
                     logger.LogVerbose("{0} response for frame with Id {1} received from {2}", response.OpCode, id,
                                       Address);
+
+                    //initialize frame content
+                    await response.InitializeAsync().AutoConfigureAwait();
 
                     //throw error if result is an error
                     var error = response as ErrorFrame;
@@ -845,6 +845,9 @@ namespace CqlSharp.Network
                     //check if frame is event
                     if (frame.Stream == -1)
                     {
+                        //load frame content
+                        await frame.InitializeAsync().AutoConfigureAwait();
+
                         var eventFrame = frame as EventFrame;
                         if (eventFrame == null)
                             throw new ProtocolException(ErrorCode.Protocol,
@@ -864,12 +867,6 @@ namespace CqlSharp.Network
                     {
                         if (!_openRequests.TryGetValue(frame.Stream, out openRequest))
                         {
-                            if (frame.OpCode == FrameOpcode.Error)
-                            {
-                                var error = (ErrorFrame)frame;
-                                throw error.Exception;
-                            }
-
                             throw new ProtocolException(ErrorCode.Protocol, "Frame with unknown Stream received");
                         }
                     }
@@ -883,7 +880,7 @@ namespace CqlSharp.Network
                     logger.LogVerbose("Waiting for frame content to be read from {0}", this);
 
                     //wait until all frame data is read (especially important for queries and results)
-                    await frame.WaitOnBodyRead();
+                    await frame.WaitOnBodyRead().AutoConfigureAwait();
                 }
                 catch (Exception ex)
                 {

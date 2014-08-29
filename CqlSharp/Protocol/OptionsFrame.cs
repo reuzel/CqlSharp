@@ -34,7 +34,7 @@ namespace CqlSharp.Protocol
         {
         }
 
-        protected override Task InitializeAsync()
+        internal override Task InitializeAsync()
         {
             throw new NotSupportedException();
         }

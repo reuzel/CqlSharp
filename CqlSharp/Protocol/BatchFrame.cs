@@ -105,7 +105,7 @@ namespace CqlSharp.Protocol
         /// <param name=""></param>
         /// <returns> </returns>
         /// <exception cref="System.NotSupportedException"></exception>
-        protected override Task InitializeAsync()
+        internal override Task InitializeAsync()
         {
             throw new NotSupportedException();
         }

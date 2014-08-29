@@ -19,7 +19,7 @@ namespace CqlSharp.Performance.Client
         [Option('s', "sync", DefaultValue = false, HelpText = "Use synchronous API")]
         public bool Sync { get; set; }
 
-        [Option('h', "host", DefaultValue = "localhost", HelpText = "Host/Server name where the API is deployed")]
+        [Option('h', "host", DefaultValue = "http://localhost", HelpText = "Host/Server name where the API is deployed")]
         public string Server { get; set; }
 
 

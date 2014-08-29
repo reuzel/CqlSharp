@@ -18,7 +18,7 @@ namespace CqlSharp.Performance.Client
             if(!CommandLine.Parser.Default.ParseArguments(args, options))
                 return;
 
-            Func<Task> request = options.Sync ? (Func<Task>)DoRequest : DoRequestAsync;
+            Func<string,Task> request = options.Sync ? (Func<string,Task>)DoRequest : DoRequestAsync;
 
             Console.WriteLine("Waiting for server to start...");
             Thread.Sleep(5000);
@@ -26,7 +26,7 @@ namespace CqlSharp.Performance.Client
             ThreadPool.SetMinThreads(options.Concurrent + 10, options.Concurrent + 10);
             
             Console.WriteLine("Sending warmup request");
-            DoRequest().Wait();
+            DoRequest(options.Server).Wait();
             Thread.Sleep(5000);
 
             Console.WriteLine("Starting...");
@@ -34,7 +34,7 @@ namespace CqlSharp.Performance.Client
             var st = new Stopwatch();
             st.Start();
 
-            var times = Run(options.Concurrent, options.Requests, request).Result;
+            var times = Run(options.Concurrent, options.Requests, request, options.Server).Result;
 
             st.Stop();
             times.Sort();
@@ -56,7 +56,7 @@ namespace CqlSharp.Performance.Client
             Console.ReadLine();
         }
         
-        public static async Task<List<long>> Run(int concurrent, int count, Func<Task> call)
+        public static async Task<List<long>> Run(int concurrent, int count, Func<string, Task> call, string server)
         {
             var resultTimes = new List<long>(count);
             var tasks = new List<Task<long>>(concurrent);
@@ -66,7 +66,7 @@ namespace CqlSharp.Performance.Client
             //fill list with tasks
             while(done < concurrent && done < count)
             {
-                tasks.Add(RunSingle(call));
+                tasks.Add(RunSingle(call, server));
                 done++;
             }
             
@@ -80,7 +80,7 @@ namespace CqlSharp.Performance.Client
                 if(done < count)
                 {
                    
-                    tasks.Add(RunSingle(call));
+                    tasks.Add(RunSingle(call, server));
                     done++;
                 }
             }
@@ -88,12 +88,12 @@ namespace CqlSharp.Performance.Client
             return resultTimes;
         }
 
-        private static async Task<long> RunSingle(Func<Task> task)
+        private static async Task<long> RunSingle(Func<string, Task> task, string server)
         {
             var st = new Stopwatch();
             st.Start();
 
-            await task();
+            await task(server);
 
             st.Stop();
             return st.ElapsedMilliseconds;
@@ -106,14 +106,14 @@ namespace CqlSharp.Performance.Client
                return  _random.Next(max);
         }
 
-        public static Task<string> DoRequestAsync()
+        public static Task<string> DoRequestAsync(string server)
         {
-            string url = "http://localhost/measurement/async/" + RandomId(25000);
+            string url = string.Format("{0}/measurement/async/{1}",server, RandomId(25000));
             return DoWebRequest(url);
         }
-        public static Task<string> DoRequest()
+        public static Task<string> DoRequest(string server)
         {
-            string url = "http://localhost/measurement/sync/" + RandomId(25000);
+            string url = string.Format("{0}/measurement/sync/{1}", server, RandomId(25000));
             return DoWebRequest(url);
         }
 

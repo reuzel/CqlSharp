@@ -2,6 +2,7 @@ using System;
 using System.Diagnostics;
 using System.Runtime.CompilerServices;
 using System.Runtime.ExceptionServices;
+using System.Security;
 using System.Threading.Tasks;
 
 namespace CqlSharp.Threading
@@ -39,7 +40,6 @@ namespace CqlSharp.Threading
         {
             try
             {
-                Debug.WriteLine("Calling Task.Wait()");
                 _task.Wait();
             }
             catch(AggregateException aex)
@@ -61,6 +61,7 @@ namespace CqlSharp.Threading
         /// Schedules the continuation action that's invoked when the instance completes.
         /// </summary>
         /// <param name="continuation">The action to invoke when the operation completes.</param><exception cref="T:System.ArgumentNullException">The <paramref name="continuation"/> argument is null (Nothing in Visual Basic).</exception>
+        [SecurityCritical]
         public void UnsafeOnCompleted(Action continuation)
         {
             AutoConfiguredAwaitable.UnsafeOnCompleted(_task, continuation);
@@ -100,7 +101,6 @@ namespace CqlSharp.Threading
         {
             try
             {
-                Debug.WriteLine("Calling Task.Result");
                 return _task.Result;
             }
             catch (AggregateException aex)
@@ -123,6 +123,7 @@ namespace CqlSharp.Threading
         /// Schedules the continuation action that's invoked when the instance completes.
         /// </summary>
         /// <param name="continuation">The action to invoke when the operation completes.</param><exception cref="T:System.ArgumentNullException">The <paramref name="continuation"/> argument is null (Nothing in Visual Basic).</exception>
+        [SecurityCritical]
         public void UnsafeOnCompleted(Action continuation)
         {
             AutoConfiguredAwaitable.UnsafeOnCompleted(_task, continuation);

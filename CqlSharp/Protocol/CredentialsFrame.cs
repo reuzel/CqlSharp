@@ -45,7 +45,7 @@ namespace CqlSharp.Protocol
             buffer.WriteStringMap(credentials);
         }
 
-        protected override Task InitializeAsync()
+        internal override Task InitializeAsync()
         {
             throw new NotSupportedException();
         }

@@ -48,7 +48,7 @@ namespace CqlSharp.Protocol
             throw new NotSupportedException();
         }
 
-        protected override async Task InitializeAsync()
+        internal override async Task InitializeAsync()
         {
             FrameReader reader = Reader;
 

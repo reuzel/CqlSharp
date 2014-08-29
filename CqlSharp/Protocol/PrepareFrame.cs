@@ -39,7 +39,7 @@ namespace CqlSharp.Protocol
             buffer.WriteLongString(Cql);
         }
 
-        protected override Task InitializeAsync()
+        internal override Task InitializeAsync()
         {
             throw new NotSupportedException();
         }

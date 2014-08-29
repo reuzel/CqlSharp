@@ -40,7 +40,7 @@ namespace CqlSharp.Protocol
             buffer.WriteStringList(EventTypes);
         }
 
-        protected override Task InitializeAsync()
+        internal override Task InitializeAsync()
         {
             throw new NotSupportedException();
         }

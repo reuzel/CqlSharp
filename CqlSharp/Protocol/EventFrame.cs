@@ -65,7 +65,7 @@ namespace CqlSharp.Protocol
         ///   Initialize frame contents from the stream
         /// </summary>
         /// <param name=""></param>
-        protected override async Task InitializeAsync()
+        internal override async Task InitializeAsync()
         {
             EventType = await Reader.ReadStringAsync().AutoConfigureAwait();
 

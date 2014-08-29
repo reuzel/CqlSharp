@@ -757,10 +757,9 @@ namespace CqlSharp.Test
         }
 
         [TestMethod]
-        public async Task BasicInsertSelectOnSynchronizationContext()
+        public void BasicInsertSelectOnSynchronizationContext()
         {
-            SynchronizationContext.SetSynchronizationContext(new STASynchronizationContext());
-            await BasicPrepareInsertSelect();
+           SyncContextHelper.Invoke((Func<Task>)BasicPrepareInsertSelect);
         }
 
         [TestMethod]

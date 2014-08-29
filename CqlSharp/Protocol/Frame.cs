@@ -200,35 +200,21 @@ namespace CqlSharp.Protocol
             var reader = new FrameReader(stream, length);
             frame.Reader = reader;
 
-            //prepare content (decompress, read trace flag)
-            await frame.PrepareFrameContent().AutoConfigureAwait();
+            //decompress the contents of the frame (implicity loads the entire frame body!)
+            if (frame.Flags.HasFlag(FrameFlags.Compression))
+                await reader.DecompressAsync().AutoConfigureAwait();
 
-            //initialize frame content
-            await frame.InitializeAsync().AutoConfigureAwait();
+            //read tracing id if set
+            if (frame.Flags.HasFlag(FrameFlags.Tracing))
+                frame.TracingId = await reader.ReadUuidAsync().AutoConfigureAwait();
 
             return frame;
         }
-
-        /// <summary>
-        /// Prepares the content of the frame.
-        /// </summary>
-        /// <returns></returns>
-        protected virtual async Task PrepareFrameContent()
-        {
-            //decompress the contents of the frame (implicity loads the entire frame body!)
-            if (Flags.HasFlag(FrameFlags.Compression))
-                await Reader.DecompressAsync().AutoConfigureAwait();
-
-            //read tracing id if set
-            if (Flags.HasFlag(FrameFlags.Tracing))
-                TracingId = await Reader.ReadUuidAsync().AutoConfigureAwait();
-        }
-
+        
         /// <summary>
         ///   Initialize frame contents from the stream
         /// </summary>
-        /// <param name=""></param>
-        protected abstract Task InitializeAsync();
+        internal abstract Task InitializeAsync();
 
         /// <summary>
         ///   Completes when the frame body is read

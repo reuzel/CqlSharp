@@ -35,6 +35,7 @@ namespace CqlSharp
     {
         private static readonly ConcurrentDictionary<string, Cluster> Clusters;
 
+        private object _syncLock = new object();
         private Cluster _cluster;
         private Connection _connection;
         private string _connectionString;
@@ -481,7 +482,28 @@ namespace CqlSharp
         /// </summary>
         /// <returns> </returns>
         /// <exception cref="System.ObjectDisposedException">CqlConnection</exception>
-        private async Task OpenAsyncInternal(CancellationToken cancellationToken)
+        private Task OpenAsyncInternal(CancellationToken cancellationToken)
+        {
+            //check state. If closed, a new OpenTask can be created;
+            if(State == ConnectionState.Closed)
+            {
+                lock(_syncLock)
+                {
+                    if(State == ConnectionState.Closed)
+                    {
+                        _openTask = OpenAsyncInternal2(cancellationToken);
+                    }
+                }
+            }
+            return _openTask;
+        }
+        
+        /// <summary>
+        ///   Opens the connection.
+        /// </summary>
+        /// <returns> </returns>
+        /// <exception cref="System.ObjectDisposedException">CqlConnection</exception>
+        private async Task OpenAsyncInternal2(CancellationToken cancellationToken)
         {
             //get a logger
             var logger = LoggerManager.GetLogger("CqlSharp.CqlConnection.Open");

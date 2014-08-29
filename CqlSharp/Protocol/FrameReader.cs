@@ -14,6 +14,7 @@
 // limitations under the License.
 
 using System;
+using System.Collections.Concurrent;
 using System.Collections.Generic;
 using System.IO;
 using System.Net;
@@ -450,15 +451,40 @@ namespace CqlSharp.Protocol
             //return parsed string
             return Encoding.UTF8.GetString(_lastReadSegment.Array, _lastReadSegment.Offset, _lastReadSegment.Count);
         }
+        
+        public Task<string> ReadStringAsync()
+        {
+            //read string length
+            Task<ushort> lengthTask = ReadShortAsync();
+            if(lengthTask.IsCompleted)
+            {
+                //synchronously completed (probably as it could be read from the buffer)
+                ushort len = lengthTask.Result;
+                
+                //check for empty string
+                if(0 == len)
+                    return String.Empty.AsTask();
+
+                if(TryGetSegmentFromBuffer(len))
+                {
+                    //yep, enough data available, return a cached version of the string
+                    string str = Encoding.UTF8.GetString(_lastReadSegment.Array, _lastReadSegment.Offset, _lastReadSegment.Count);
+                    return str.AsTask();
+                }
+            }
+
+            //more data needs to be read, take the long way
+            return ReadStringAsync(lengthTask);
+        }
 
         /// <summary>
         ///   Reads the string async.
         /// </summary>
         /// <returns> </returns>
-        public async Task<string> ReadStringAsync()
+        private async Task<string> ReadStringAsync(Task<ushort> lengthTask)
         {
             //read length
-            ushort len = await ReadShortAsync().AutoConfigureAwait();
+            ushort len = await lengthTask.AutoConfigureAwait();
             if (0 == len)
             {
                 return string.Empty;

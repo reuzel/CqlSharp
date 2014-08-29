@@ -48,7 +48,7 @@ namespace CqlSharp.Protocol
         /// </summary>
         /// <param name=""></param>
         /// <returns></returns>
-        protected override async Task InitializeAsync()
+        internal override async Task InitializeAsync()
         {
             FrameReader stream = Reader;
             var code = (ErrorCode) await stream.ReadIntAsync().AutoConfigureAwait();

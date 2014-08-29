@@ -22,7 +22,7 @@ namespace CqlSharp.Performance.Host
     {
         private static void Main(string[] args)
         {
-            const string baseAddress = "http://localhost/";
+            const string baseAddress = "http://localhost/selfhost/";
 
             //Start OWIN host 
             using(WebApp.Start<Startup>(baseAddress))
