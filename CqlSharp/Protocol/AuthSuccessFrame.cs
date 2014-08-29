@@ -32,7 +32,7 @@ namespace CqlSharp.Protocol
             throw new NotSupportedException();
         }
 
-        internal override async Task InitializeAsync()
+        protected override async Task InitializeAsync()
         {
             FrameReader reader = Reader;
             SaslResult = await reader.ReadBytesAsync().AutoConfigureAwait();

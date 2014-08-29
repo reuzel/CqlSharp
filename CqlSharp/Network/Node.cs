@@ -570,7 +570,7 @@ namespace CqlSharp.Network
                             {
                                 try
                                 {
-                                    await connection.OpenAsync(logger);
+                                    await connection.OpenAsync(logger).AutoConfigureAwait();
                                     using(logger.ThreadBinding())
                                         connection.Dispose();
                                 }

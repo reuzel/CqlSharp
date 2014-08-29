@@ -354,7 +354,7 @@ namespace CqlSharp.Network
                     _maintenanceConnection = connection;
 
                     //register for events
-                    await connection.RegisterForClusterChangesAsync(logger);
+                    await connection.RegisterForClusterChangesAsync(logger).AutoConfigureAwait();
 
                     logger.LogInfo("Registered for cluster changes using {0}", connection);
                 }
@@ -375,7 +375,7 @@ namespace CqlSharp.Network
 
             //wait a moment, try again
             logger.LogVerbose("Waiting 2secs before retrying setup maintenance connection");
-            await Task.Delay(2000);
+            await Task.Delay(2000).AutoConfigureAwait();
 
             SetupMaintenanceConnection(logger);
         }
@@ -471,8 +471,8 @@ namespace CqlSharp.Network
                     try
                     {
                         logger.LogInfo("Cluster info incomplete scheduling new retrieval in 1 minute");
-                        await Task.Delay(TimeSpan.FromMinutes(1));
-                        await GetClusterInfoAsync(null, logger, CancellationToken.None);
+                        await Task.Delay(TimeSpan.FromMinutes(1)).AutoConfigureAwait();
+                        await GetClusterInfoAsync(null, logger, CancellationToken.None).AutoConfigureAwait();
                     }
                     catch(Exception ex)
                     {

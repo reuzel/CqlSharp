@@ -29,7 +29,7 @@ namespace CqlSharp.Protocol
             throw new NotSupportedException();
         }
 
-        internal override async Task InitializeAsync()
+        protected override async Task InitializeAsync()
         {
             Authenticator = await Reader.ReadStringAsync().AutoConfigureAwait();
         }

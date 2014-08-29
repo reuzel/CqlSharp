@@ -210,11 +210,41 @@ namespace CqlSharp.Protocol
 
             return frame;
         }
-        
+
+        /// <summary>
+        /// Reads the frame content asynchronous.
+        /// </summary>
+        /// <returns></returns>
+        internal Task ReadFrameContentAsync()
+        {
+            //decompress the contents of the frame (implicity loads the entire frame body!)
+            if(!Flags.HasFlag(FrameFlags.Compression) && !Flags.HasFlag(FrameFlags.Tracing))
+                return InitializeAsync();
+            else
+                return PrepareAndInitializeContentAsync();
+        }
+
+        /// <summary>
+        /// Prepares the reader/content and initializes content asynchronous.
+        /// </summary>
+        /// <returns></returns>
+        private async Task PrepareAndInitializeContentAsync()
+        {
+            //decompress the contents of the frame (implicity loads the entire frame body!)
+            if (Flags.HasFlag(FrameFlags.Compression))
+                await Reader.DecompressAsync().AutoConfigureAwait();
+
+            //read tracing id if set
+            if (Flags.HasFlag(FrameFlags.Tracing))
+                TracingId = await Reader.ReadUuidAsync().AutoConfigureAwait();
+
+            await InitializeAsync().AutoConfigureAwait();
+        }
+
         /// <summary>
         ///   Initialize frame contents from the stream
         /// </summary>
-        internal abstract Task InitializeAsync();
+        protected abstract Task InitializeAsync();
 
         /// <summary>
         ///   Completes when the frame body is read

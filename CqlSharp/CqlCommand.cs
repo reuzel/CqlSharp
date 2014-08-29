@@ -505,7 +505,7 @@ namespace CqlSharp
         protected override async Task<DbDataReader> ExecuteDbDataReaderAsync(CommandBehavior behavior,
                                                                              CancellationToken cancellationToken)
         {
-            return await ExecuteReaderAsync(behavior, cancellationToken);
+            return await ExecuteReaderAsync(behavior, cancellationToken).AutoConfigureAwait();
         }
 
         /// <summary>

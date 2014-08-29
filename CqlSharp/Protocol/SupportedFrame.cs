@@ -30,7 +30,7 @@ namespace CqlSharp.Protocol
             throw new NotSupportedException();
         }
 
-        internal override async Task InitializeAsync()
+        protected override async Task InitializeAsync()
         {
             SupportedOptions = await Reader.ReadStringMultimapAsync().AutoConfigureAwait();
         }

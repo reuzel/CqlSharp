@@ -338,7 +338,7 @@ namespace CqlSharp.Protocol
         /// <returns> </returns>
         private async Task<byte> ReadByteInternalAsync()
         {
-            await ReadSegmentAsync(1);
+            await ReadSegmentAsync(1).AutoConfigureAwait();
             return _lastReadSegment.Array[_lastReadSegment.Offset];
         }
 
@@ -380,7 +380,7 @@ namespace CqlSharp.Protocol
         /// <returns> </returns>
         private async Task<ushort> ReadShortInternalAsync()
         {
-            await ReadSegmentAsync(2);
+            await ReadSegmentAsync(2).AutoConfigureAwait();
 
             ushort value = _lastReadSegment.Array.ToShort(_lastReadSegment.Offset);
 

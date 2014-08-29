@@ -733,8 +733,8 @@ namespace CqlSharp.Network
                     logger.LogVerbose("{0} response for frame with Id {1} received from {2}", response.OpCode, id,
                                       Address);
 
-                    //initialize frame content
-                    await response.InitializeAsync().AutoConfigureAwait();
+                    //read frame content
+                    await response.ReadFrameContentAsync().AutoConfigureAwait();
 
                     //throw error if result is an error
                     var error = response as ErrorFrame;
@@ -846,7 +846,7 @@ namespace CqlSharp.Network
                     if (frame.Stream == -1)
                     {
                         //load frame content
-                        await frame.InitializeAsync().AutoConfigureAwait();
+                        await frame.ReadFrameContentAsync().AutoConfigureAwait();
 
                         var eventFrame = frame as EventFrame;
                         if (eventFrame == null)
