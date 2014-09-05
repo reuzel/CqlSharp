@@ -13,7 +13,6 @@
 // See the License for the specific language governing permissions and
 // limitations under the License.
 
-using System;
 using System.Diagnostics;
 using System.Threading;
 using System.Web.Http;
@@ -29,20 +28,20 @@ namespace CqlSharp.Performance.Web.Controllers
     {
         private static readonly Logger Log = LogManager.GetLogger("Web.CqlSharp.Sync");
 
-        private static int _par = 0;
+        private static int _par;
 
         public Measurement Get(int id)
         {
             Interlocked.Increment(ref _par);
             var st = new Stopwatch();
             st.Start();
-            
+
             var m = MeasurementManager.GetMeasurement(id);
 
             st.Stop();
             var par = Interlocked.Decrement(ref _par);
-            
-            Log.Trace("Parallel: {0}, Execution time: {1}ms", par, st.ElapsedMilliseconds);
+
+            Log.Trace("Parallel: {0}, Execution time: {1}ms", (object)par, (object)st.ElapsedMilliseconds);
 
             return m;
         }

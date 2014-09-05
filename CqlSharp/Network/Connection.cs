@@ -16,6 +16,7 @@
 using CqlSharp.Authentication;
 using CqlSharp.Extensions;
 using CqlSharp.Logging;
+using CqlSharp.Memory;
 using CqlSharp.Protocol;
 using System;
 using System.Collections.Generic;
@@ -305,7 +306,7 @@ namespace CqlSharp.Network
                     await ConnectAsync().AutoConfigureAwait();
 
                     _writeStream = _client.GetStream();
-                    _readStream = new BufferedStream(_client.GetStream(), _config.SocketReceiveBufferSize);
+                    _readStream = _client.GetStream();
 
                     //switch state to connected if not done so, from now on Idle timer comes into play...
                     Interlocked.CompareExchange(ref _connectionState, ConnectionState.Connected, ConnectionState.Created);
@@ -674,11 +675,13 @@ namespace CqlSharp.Network
                 if (!IsConnected)
                     throw new IOException("Not connected");
                 
-
                 logger.LogVerbose("Waiting for connection lock on {0}...", this);
 
                 //wait until frame id is available to submit a frame
-                await _frameSubmitLock.WaitAsync(token).AutoConfigureAwait();
+                if(Scheduler.RunningSynchronously)
+                    _frameSubmitLock.Wait(token);
+                else
+                    await _frameSubmitLock.WaitAsync(token).AutoConfigureAwait();
                 
                 //get a task that gets completed when a response is received
                 var waitTask = new TaskCompletionSource<Frame>();
@@ -700,11 +703,14 @@ namespace CqlSharp.Network
                     frame.Version = Node.FrameVersion;
 
                     //serialize frame outside lock
-                    Stream frameBytes = frame.GetFrameBytes(_allowCompression && !isConnecting,
+                    PoolMemoryStream frameBytes = frame.GetFrameBytes(_allowCompression && !isConnecting,
                                                             _config.CompressionTreshold);
 
                     //wait to get access to stream
-                    await _writeLock.WaitAsync(token).AutoConfigureAwait();
+                    if(Scheduler.RunningSynchronously)
+                        _writeLock.Wait(token);
+                    else
+                        await _writeLock.WaitAsync(token).AutoConfigureAwait();
 
                     try
                     {
@@ -876,7 +882,7 @@ namespace CqlSharp.Network
                     //leading to deadlocks when the continuation sends another request
                     //on this connection.
                     Scheduler.RunOnIOThread(() => openRequest.TrySetResult(frame));
-
+                    
                     logger.LogVerbose("Waiting for frame content to be read from {0}", this);
 
                     //wait until all frame data is read (especially important for queries and results)

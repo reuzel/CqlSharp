@@ -114,7 +114,7 @@ namespace CqlSharp.Performance.Data
         public static Measurement GetMeasurement(int id)
         {
             //return GetMeasurementAsync(id).Result;
-            
+
             using(var connection = new CqlConnection(ConnectionString))
             {
                 connection.Open();

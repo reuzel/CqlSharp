@@ -86,7 +86,7 @@ namespace CqlSharp.Protocol
         ///   Gets the frame bytes.
         /// </summary>
         /// <returns> </returns>
-        public Stream GetFrameBytes(bool compress, int compressTreshold)
+        public PoolMemoryStream GetFrameBytes(bool compress, int compressTreshold)
         {
             var buffer = new PoolMemoryStream();
             buffer.WriteByte((byte)Version);
@@ -199,14 +199,6 @@ namespace CqlSharp.Protocol
             //wrap the stream in a window, that will be completely read when disposed
             var reader = new FrameReader(stream, length);
             frame.Reader = reader;
-
-            //decompress the contents of the frame (implicity loads the entire frame body!)
-            if (frame.Flags.HasFlag(FrameFlags.Compression))
-                await reader.DecompressAsync().AutoConfigureAwait();
-
-            //read tracing id if set
-            if (frame.Flags.HasFlag(FrameFlags.Tracing))
-                frame.TracingId = await reader.ReadUuidAsync().AutoConfigureAwait();
 
             return frame;
         }

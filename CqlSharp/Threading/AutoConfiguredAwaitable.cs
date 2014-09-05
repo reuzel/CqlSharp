@@ -1,4 +1,20 @@
-﻿using System;
+﻿// CqlSharp - CqlSharp
+// Copyright (c) 2014 Joost Reuzel
+//   
+// Licensed under the Apache License, Version 2.0 (the "License");
+// you may not use this file except in compliance with the License.
+// You may obtain a copy of the License at
+//   
+// http://www.apache.org/licenses/LICENSE-2.0
+//  
+// Unless required by applicable law or agreed to in writing, software
+// distributed under the License is distributed on an "AS IS" BASIS,
+// WITHOUT WARRANTIES OR CONDITIONS OF ANY KIND, either express or implied.
+// See the License for the specific language governing permissions and
+// limitations under the License.
+
+using System;
+using System.Security;
 using System.Threading.Tasks;
 
 namespace CqlSharp.Threading
@@ -11,7 +27,7 @@ namespace CqlSharp.Threading
         private readonly AutoConfiguredAwaiter _awaiter;
 
         /// <summary>
-        /// Initializes a new instance of the <see cref="AutoConfiguredAwaitable"/> struct.
+        /// Initializes a new instance of the <see cref="AutoConfiguredAwaitable" /> struct.
         /// </summary>
         /// <param name="task">The task being awaited</param>
         /// <exception cref="System.ArgumentNullException">task</exception>
@@ -21,6 +37,7 @@ namespace CqlSharp.Threading
             _awaiter = new AutoConfiguredAwaiter(task);
         }
 
+        // ReSharper disable once UnusedMethodReturnValue.Global
         public AutoConfiguredAwaiter GetAwaiter()
         {
             return _awaiter;
@@ -30,7 +47,11 @@ namespace CqlSharp.Threading
         /// Schedules the continuation action that's invoked when the instance completes.
         /// </summary>
         /// <param name="task">task to which continuation is to be registered</param>
-        /// <param name="continuation">The action to invoke when the operation completes.</param><exception cref="T:System.ArgumentNullException">The <paramref name="continuation"/> argument is null (Nothing in Visual Basic).</exception>
+        /// <param name="continuation">The action to invoke when the operation completes.</param>
+        /// <exception cref="T:System.ArgumentNullException">
+        /// The <paramref name="continuation" /> argument is null (Nothing in
+        /// Visual Basic).
+        /// </exception>
         internal static void OnCompleted(Task task, Action continuation)
         {
             var captureContext = NeedToConfigure();
@@ -42,7 +63,12 @@ namespace CqlSharp.Threading
         /// Schedules the continuation action that's invoked when the instance completes.
         /// </summary>
         /// <param name="task">task to which continuation is to be registered</param>
-        /// <param name="continuation">The action to invoke when the operation completes.</param><exception cref="T:System.ArgumentNullException">The <paramref name="continuation"/> argument is null (Nothing in Visual Basic).</exception>
+        /// <param name="continuation">The action to invoke when the operation completes.</param>
+        /// <exception cref="T:System.ArgumentNullException">
+        /// The <paramref name="continuation" /> argument is null (Nothing in
+        /// Visual Basic).
+        /// </exception>
+        [SecurityCritical]
         internal static void UnsafeOnCompleted(Task task, Action continuation)
         {
             var captureContext = NeedToConfigure();
@@ -69,7 +95,7 @@ namespace CqlSharp.Threading
         private readonly AutoConfiguredAwaiter<T> _awaiter;
 
         /// <summary>
-        /// Initializes a new instance of the <see cref="AutoConfiguredAwaitable"/> struct.
+        /// Initializes a new instance of the <see cref="AutoConfiguredAwaitable" /> struct.
         /// </summary>
         /// <param name="task">The task being awaited</param>
         /// <exception cref="System.ArgumentNullException">task</exception>
@@ -84,5 +110,4 @@ namespace CqlSharp.Threading
             return _awaiter;
         }
     }
-
 }

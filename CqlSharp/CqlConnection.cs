@@ -13,7 +13,6 @@
 // See the License for the specific language governing permissions and
 // limitations under the License.
 
-using System.Runtime.ExceptionServices;
 using CqlSharp.Logging;
 using CqlSharp.Network;
 using CqlSharp.Network.Partition;
@@ -43,8 +42,9 @@ namespace CqlSharp
         private string _database;
         private bool _disposed;
         private CancellationTokenSource _openCancellationTokenSource;
+        private CancellationTokenSource _userCancelTokenSource;
         private volatile Task _openTask;
-
+        
 
         /// <summary>
         ///   Initializes the <see cref="CqlConnection" /> class.
@@ -438,18 +438,50 @@ namespace CqlSharp
         {
             try
             {
-                if (State != ConnectionState.Closed)
+                if(State != ConnectionState.Closed)
                     throw new InvalidOperationException("Connection must be closed before it is opened");
                 
-                _openCancellationTokenSource = ConnectionTimeout > 0
-                    ? new CancellationTokenSource(TimeSpan.FromSeconds(ConnectionTimeout))
-                    : new CancellationTokenSource();
+                //dispose any old cancel tokens
+                if (_userCancelTokenSource != null)
+                    _userCancelTokenSource.Dispose();
+                
+                if (_openCancellationTokenSource != null)
+                    _openCancellationTokenSource.Dispose();
 
-               Scheduler.RunSynchronously(() => OpenAsyncInternal(_openCancellationTokenSource.Token));
+                //setup cancel support by user
+                _userCancelTokenSource = new CancellationTokenSource();
+
+                //add timout cancellation if required
+                if(ConnectionTimeout > 0)
+                {
+                    var timeoutSource = new CancellationTokenSource(TimeSpan.FromSeconds(ConnectionTimeout));
+                    _openCancellationTokenSource =
+                        CancellationTokenSource.CreateLinkedTokenSource(_userCancelTokenSource.Token,
+                                                                        timeoutSource.Token);
+                }
+                else
+                    _openCancellationTokenSource = _userCancelTokenSource;
+
+                //finally call open
+                Scheduler.RunSynchronously(() => OpenAsyncInternal(_openCancellationTokenSource.Token));
             }
-            finally
+            catch(OperationCanceledException ocex)
             {
-                _openCancellationTokenSource = null;
+                //check if user abort or timout
+                if(_openCancellationTokenSource != null && ocex.CancellationToken == _openCancellationTokenSource.Token)
+                {
+                    //check if user abort
+                    if(_userCancelTokenSource != null && _userCancelTokenSource.IsCancellationRequested)
+                    {
+                        throw new CqlException("CqlConnection Open has been aborted by user");
+                    }
+
+                    //timout
+                    throw new TimeoutException("CqlConnection.Open timed out.");
+                }
+                
+                //some other cancellation: rethrow
+                throw;
             }
         }
 
@@ -458,8 +490,8 @@ namespace CqlSharp
         /// </summary>
         public virtual void Cancel()
         {
-            if (_openCancellationTokenSource != null)
-                _openCancellationTokenSource.Cancel();
+            if (_userCancelTokenSource != null)
+                _userCancelTokenSource.Cancel();
         }
 
         /// <summary>

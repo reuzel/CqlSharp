@@ -101,7 +101,8 @@ namespace CqlSharp.Protocol
                 //signal EOS when window reached
                 if(_unreadFromStream <= 0)
                 {
-                    Scheduler.RunOnIOThread(() => _waitUntilAllFrameDataRead.TrySetResult(true));
+                    //Scheduler.RunOnIOThread(() => _waitUntilAllFrameDataRead.TrySetResult(true));
+                    _waitUntilAllFrameDataRead.TrySetResult(true);
                 }
 
                 //return actual read count
@@ -113,7 +114,8 @@ namespace CqlSharp.Protocol
                 _unreadFromStream = 0;
 
                 //signal error as EOS
-                Scheduler.RunOnIOThread(() => _waitUntilAllFrameDataRead.SetException(ex));
+                //Scheduler.RunOnIOThread(() => _waitUntilAllFrameDataRead.SetException(ex));
+                _waitUntilAllFrameDataRead.SetException(ex);
 
                 //rethrow
                 throw;
@@ -206,7 +208,8 @@ namespace CqlSharp.Protocol
                         _unreadFromStream -= _innerStream.Read(_buffer, 0, Math.Min(_buffer.Length, _unreadFromStream));
                     }
 
-                    Scheduler.RunOnIOThread(() => _waitUntilAllFrameDataRead.TrySetResult(true));
+                    //Scheduler.RunOnIOThread(() => _waitUntilAllFrameDataRead.TrySetResult(true));
+                    _waitUntilAllFrameDataRead.TrySetResult(true);
                 }
                 catch (Exception ex)
                 {

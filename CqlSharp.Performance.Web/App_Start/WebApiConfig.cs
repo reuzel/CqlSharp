@@ -13,7 +13,6 @@
 // See the License for the specific language governing permissions and
 // limitations under the License.
 
-using System.Threading;
 using System.Web.Http;
 using CqlSharp.Performance.Data;
 
@@ -30,7 +29,7 @@ namespace CqlSharp.Performance.Web
             // Web API routes
             config.MapHttpAttributeRoutes();
 
-            config.Routes.MapHttpRoute("DefaultApi", "measurement/{controller}/{id}", new {} );
+            config.Routes.MapHttpRoute("DefaultApi", "measurement/{controller}/{id}", new {});
         }
     }
 }

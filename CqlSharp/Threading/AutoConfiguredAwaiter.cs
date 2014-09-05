@@ -1,3 +1,18 @@
+// CqlSharp - CqlSharp
+// Copyright (c) 2014 Joost Reuzel
+//   
+// Licensed under the Apache License, Version 2.0 (the "License");
+// you may not use this file except in compliance with the License.
+// You may obtain a copy of the License at
+//   
+// http://www.apache.org/licenses/LICENSE-2.0
+//  
+// Unless required by applicable law or agreed to in writing, software
+// distributed under the License is distributed on an "AS IS" BASIS,
+// WITHOUT WARRANTIES OR CONDITIONS OF ANY KIND, either express or implied.
+// See the License for the specific language governing permissions and
+// limitations under the License.
+
 using System;
 using System.Diagnostics;
 using System.Runtime.CompilerServices;
@@ -42,7 +57,7 @@ namespace CqlSharp.Threading
             {
                 _task.Wait();
             }
-            catch(AggregateException aex)
+            catch (AggregateException aex)
             {
                 ExceptionDispatchInfo.Capture(aex.InnerException).Throw();
             }
@@ -51,7 +66,11 @@ namespace CqlSharp.Threading
         /// <summary>
         /// Schedules the continuation action that's invoked when the instance completes.
         /// </summary>
-        /// <param name="continuation">The action to invoke when the operation completes.</param><exception cref="T:System.ArgumentNullException">The <paramref name="continuation"/> argument is null (Nothing in Visual Basic).</exception>
+        /// <param name="continuation">The action to invoke when the operation completes.</param>
+        /// <exception cref="T:System.ArgumentNullException">
+        /// The <paramref name="continuation" /> argument is null (Nothing in
+        /// Visual Basic).
+        /// </exception>
         public void OnCompleted(Action continuation)
         {
             AutoConfiguredAwaitable.OnCompleted(_task, continuation);
@@ -60,7 +79,11 @@ namespace CqlSharp.Threading
         /// <summary>
         /// Schedules the continuation action that's invoked when the instance completes.
         /// </summary>
-        /// <param name="continuation">The action to invoke when the operation completes.</param><exception cref="T:System.ArgumentNullException">The <paramref name="continuation"/> argument is null (Nothing in Visual Basic).</exception>
+        /// <param name="continuation">The action to invoke when the operation completes.</param>
+        /// <exception cref="T:System.ArgumentNullException">
+        /// The <paramref name="continuation" /> argument is null (Nothing in
+        /// Visual Basic).
+        /// </exception>
         [SecurityCritical]
         public void UnsafeOnCompleted(Action continuation)
         {
@@ -106,14 +129,18 @@ namespace CqlSharp.Threading
             catch (AggregateException aex)
             {
                 ExceptionDispatchInfo.Capture(aex.InnerException).Throw();
-                throw; //dead code, but required to compile
+                throw;
             }
         }
 
         /// <summary>
         /// Schedules the continuation action that's invoked when the instance completes.
         /// </summary>
-        /// <param name="continuation">The action to invoke when the operation completes.</param><exception cref="T:System.ArgumentNullException">The <paramref name="continuation"/> argument is null (Nothing in Visual Basic).</exception>
+        /// <param name="continuation">The action to invoke when the operation completes.</param>
+        /// <exception cref="T:System.ArgumentNullException">
+        /// The <paramref name="continuation" /> argument is null (Nothing in
+        /// Visual Basic).
+        /// </exception>
         public void OnCompleted(Action continuation)
         {
             AutoConfiguredAwaitable.OnCompleted(_task, continuation);
@@ -122,7 +149,11 @@ namespace CqlSharp.Threading
         /// <summary>
         /// Schedules the continuation action that's invoked when the instance completes.
         /// </summary>
-        /// <param name="continuation">The action to invoke when the operation completes.</param><exception cref="T:System.ArgumentNullException">The <paramref name="continuation"/> argument is null (Nothing in Visual Basic).</exception>
+        /// <param name="continuation">The action to invoke when the operation completes.</param>
+        /// <exception cref="T:System.ArgumentNullException">
+        /// The <paramref name="continuation" /> argument is null (Nothing in
+        /// Visual Basic).
+        /// </exception>
         [SecurityCritical]
         public void UnsafeOnCompleted(Action continuation)
         {

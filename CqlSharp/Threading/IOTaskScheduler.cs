@@ -1,10 +1,17 @@
-﻿//--------------------------------------------------------------------------
-// 
-//  Copyright (c) Microsoft Corporation.  All rights reserved. 
-// 
-//  File: IOTaskScheduler.cs
-//
-//--------------------------------------------------------------------------
+﻿// CqlSharp - CqlSharp
+// Copyright (c) 2014 Joost Reuzel
+//   
+// Licensed under the Apache License, Version 2.0 (the "License");
+// you may not use this file except in compliance with the License.
+// You may obtain a copy of the License at
+//   
+// http://www.apache.org/licenses/LICENSE-2.0
+//  
+// Unless required by applicable law or agreed to in writing, software
+// distributed under the License is distributed on an "AS IS" BASIS,
+// WITHOUT WARRANTIES OR CONDITIONS OF ANY KIND, either express or implied.
+// See the License for the specific language governing permissions and
+// limitations under the License.
 
 using System;
 using System.Collections.Concurrent;
@@ -16,7 +23,10 @@ using System.Threading.Tasks;
 namespace CqlSharp.Threading
 {
     /// <summary>Provides a task scheduler that targets the I/O ThreadPool.</summary>
-    /// <remarks>Based on the IOTaskScheduler as provided here: <see cref="http://code.msdn.microsoft.com/Samples-for-Parallel-b4b76364/sourcecode?fileId=44488&pathId=1257700934"/></remarks>
+    /// <remarks>
+    /// Based on the IOTaskScheduler as provided here:
+    /// <see cref="http://code.msdn.microsoft.com/Samples-for-Parallel-b4b76364/sourcecode?fileId=44488&pathId=1257700934" />
+    /// </remarks>
     internal sealed class IOTaskScheduler : TaskScheduler, IDisposable
     {
         /// <summary>Represents a task queued to the I/O pool.</summary>
@@ -39,7 +49,7 @@ namespace CqlSharp.Threading
 
                 // Put this item back into the pool for someone else to use
                 var pool = _scheduler._availableWorkItems;
-                if (pool != null) pool.Add(this);
+                if(pool != null) pool.Add(this);
                 else Overlapped.Free(pNOlap);
             }
 
@@ -71,13 +81,11 @@ namespace CqlSharp.Threading
         private WorkItem GetOrCreateWorkItem()
         {
             var pool = _availableWorkItems;
-            if (pool == null) throw new ObjectDisposedException(GetType().Name);
+            if(pool == null) throw new ObjectDisposedException(GetType().Name);
 
             WorkItem item;
             if(!pool.TryTake(out item))
-            {
                 item = new WorkItem(this);
-            }
 
             return item;
         }
@@ -117,7 +125,7 @@ namespace CqlSharp.Threading
             WorkItem item;
             while(pool.TryTake(out item))
                 item.Dispose();
-            
+
             // NOTE: A window exists where some number of NativeOverlapped ptrs could
             // be leaked, if the call to Dispose races with work items completing.
         }
@@ -125,6 +133,9 @@ namespace CqlSharp.Threading
         /// <summary>Gets an enumerable of tasks queued to the scheduler.</summary>
         /// <returns>An enumerable of tasks queued to the scheduler.</returns>
         /// <remarks>This implementation will always return an empty enumerable.</remarks>
-        protected override IEnumerable<Task> GetScheduledTasks() { return Enumerable.Empty<Task>(); }
+        protected override IEnumerable<Task> GetScheduledTasks()
+        {
+            return Enumerable.Empty<Task>();
+        }
     }
 }

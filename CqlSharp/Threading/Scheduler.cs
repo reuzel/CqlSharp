@@ -1,4 +1,19 @@
-﻿using System;
+﻿// CqlSharp - CqlSharp
+// Copyright (c) 2014 Joost Reuzel
+//   
+// Licensed under the Apache License, Version 2.0 (the "License");
+// you may not use this file except in compliance with the License.
+// You may obtain a copy of the License at
+//   
+// http://www.apache.org/licenses/LICENSE-2.0
+//  
+// Unless required by applicable law or agreed to in writing, software
+// distributed under the License is distributed on an "AS IS" BASIS,
+// WITHOUT WARRANTIES OR CONDITIONS OF ANY KIND, either express or implied.
+// See the License for the specific language governing permissions and
+// limitations under the License.
+
+using System;
 using System.Runtime.ExceptionServices;
 using System.Threading;
 using System.Threading.Tasks;
@@ -20,7 +35,7 @@ namespace CqlSharp.Threading
         public static Task RunOnIOThread(Func<Task> task)
         {
             return Task.Factory.StartNew(task, CancellationToken.None, TaskCreationOptions.DenyChildAttach, IOScheduler)
-                .Unwrap();
+                       .Unwrap();
         }
 
         public static Task<T> RunOnIOThread<T>(Func<Task<T>> task)
@@ -28,7 +43,7 @@ namespace CqlSharp.Threading
             return Task.Factory.StartNew(task, CancellationToken.None, TaskCreationOptions.DenyChildAttach, IOScheduler)
                        .Unwrap();
         }
-
+        
         /// <summary>
         /// Runs a task as much as possible on the current thread. This can be regarded as an aggressive form of inlining.
         /// </summary>
@@ -38,12 +53,13 @@ namespace CqlSharp.Threading
             //capture and clear context
             var currentContext = SynchronizationContext.Current;
             SynchronizationContext.SetSynchronizationContext(null);
-            
+
             //create scheduler to run the task on the current thread
             var scheduler = new ActiveThreadScheduler();
 
             //schedule the task (on the current thread)
-            var executedTask = Task.Factory.StartNew(task, CancellationToken.None, TaskCreationOptions.DenyChildAttach, scheduler)
+            var executedTask = Task.Factory.StartNew(task, CancellationToken.None, TaskCreationOptions.DenyChildAttach,
+                                                     scheduler)
                                    .Unwrap()
                                    .ContinueWith(previous =>
                                    {
@@ -67,7 +83,6 @@ namespace CqlSharp.Threading
                 //return any inner exception.
                 ExceptionDispatchInfo.Capture(aex.Flatten().InnerException).Throw();
             }
-
         }
 
         /// <summary>
@@ -127,7 +142,7 @@ namespace CqlSharp.Threading
         /// Gets a value indicating whether [running synchronously].
         /// </summary>
         /// <value>
-        ///   <c>true</c> if [running synchronously]; otherwise, <c>false</c>.
+        /// <c>true</c> if [running synchronously]; otherwise, <c>false</c>.
         /// </value>
         public static bool RunningSynchronously
         {
@@ -135,20 +150,23 @@ namespace CqlSharp.Threading
         }
 
         /// <summary>
-        /// Automatically the configures the await depending on the required premise.
+        /// Automatically the configures the await depending on the type of scheduler
         /// </summary>
-        /// <param name="task">The task.</param>
+        /// <param name="task">The task "to be awaited".</param>
         /// <returns></returns>
         public static AutoConfiguredAwaitable AutoConfigureAwait(this Task task)
         {
             return new AutoConfiguredAwaitable(task);
         }
 
+        /// <summary>
+        /// Automatically the configures the await depending on the type of scheduler
+        /// </summary>
+        /// <param name="task">The task "to be awaited".</param>
+        /// <returns></returns>        
         public static AutoConfiguredAwaitable<T> AutoConfigureAwait<T>(this Task<T> task)
         {
             return new AutoConfiguredAwaitable<T>(task);
         }
     }
-
-   
 }

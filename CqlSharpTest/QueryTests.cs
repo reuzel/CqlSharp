@@ -13,6 +13,7 @@
 // See the License for the specific language governing permissions and
 // limitations under the License.
 
+using CqlSharp.Network;
 using CqlSharp.Protocol;
 using CqlSharp.Serialization;
 using CqlSharp.Tracing;
@@ -278,6 +279,90 @@ namespace CqlSharp.Test
                 {
                     Assert.Fail("Read should have succeeded");
                 }
+            }
+        }
+
+        [TestMethod]
+        [ExpectedException(typeof(CqlException))]
+        public void BasicInsertSelectSynchronousCancel()
+        {
+            //Assume
+            const string insertCql = @"insert into Test.BasicFlow (id,value) values (54235,'Hallo 54235');";
+            const string retrieveCql = @"select * from Test.BasicFlow;";
+
+            //Act
+            using (var connection = new CqlConnection(ConnectionString))
+            {
+                connection.Open();
+
+                //insert data
+                var cmd = new CqlCommand(connection, insertCql, CqlConsistency.One);
+                cmd.ExecuteNonQuery();
+
+
+                //select data
+                var selectCmd = new CqlCommand(connection, retrieveCql, CqlConsistency.One);
+                selectCmd.CommandTimeout = Timeout.Infinite;
+                selectCmd.Prepare();
+
+                
+                //get connection, and cancel the select as soon as it registers
+                EventHandler<Network.LoadChangeEvent> cancelHandler = (src, ev) => selectCmd.Cancel();
+                Connection networkConnection = connection.GetConnection();
+
+                networkConnection.OnLoadChange += cancelHandler;
+
+                try
+                {
+                    CqlDataReader reader = selectCmd.ExecuteReader();
+                }
+                finally
+                {
+                    networkConnection.OnLoadChange -= cancelHandler;
+                }
+                
+            }
+        }
+
+        [TestMethod]
+        [ExpectedException(typeof(TimeoutException))]
+        public void BasicInsertSelectSynchronousTimeout()
+        {
+            //Assume
+            const string insertCql = @"insert into Test.BasicFlow (id,value) values (13244,'Hallo 54235');";
+            const string retrieveCql = @"select * from Test.BasicFlow;";
+
+            //Act
+            using (var connection = new CqlConnection(ConnectionString))
+            {
+                connection.Open();
+
+                //insert data
+                var cmd = new CqlCommand(connection, insertCql, CqlConsistency.One);
+                cmd.ExecuteNonQuery();
+
+
+                //select data
+                var selectCmd = new CqlCommand(connection, retrieveCql, CqlConsistency.One);
+                selectCmd.CommandTimeout = Timeout.Infinite;
+                selectCmd.Prepare();
+
+                //get connection, and cancel the select as soon as it registers
+                EventHandler<Network.LoadChangeEvent> delayHandler = (src, ev) => Thread.Sleep(1200);
+                Connection networkConnection = connection.GetConnection();
+                networkConnection.OnLoadChange += delayHandler;
+
+                try
+                {
+                    //set command timeout as low as possible (1 second)
+                    selectCmd.CommandTimeout = 1;
+                    CqlDataReader reader = selectCmd.ExecuteReader();
+                }
+                finally
+                {
+                    networkConnection.OnLoadChange -= delayHandler;
+                }
+               
             }
         }
 
