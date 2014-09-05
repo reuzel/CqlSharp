@@ -1,3 +1,10 @@
+## Version 0.39.0 - Performance of sync operations
+* Many changes to have synchronous API really execute synchronously, it is no longer a sync-over-async wrapper
+* Improved exception generation in case of query cancellation or timeout
+* logging cancelled queries
+* Replacing old test app with a new performance test app
+* added NLog as seperate logging package
+
 ## Version 0.38.0 - Fixes and Improved Aliveness Checking of Cassandra Nodes
 * Fixed bug that hampered exponential backoff
 * Succesfull connection to a node must be made before it is marked as up again, keeping it out-of-scope of connection strategies until proven up.
