@@ -34,6 +34,8 @@ namespace CqlSharp
 
         LocalQuorum = 0x0006,
 
-        EachQuorum = 0x0007
+        EachQuorum = 0x0007,
+        
+        LocalOne = 0x000A
     }
 }
