@@ -14,7 +14,6 @@
 // limitations under the License.
 
 using System;
-using System.Collections.Concurrent;
 using System.Collections.Generic;
 using System.IO;
 using System.Net;
@@ -253,7 +252,6 @@ namespace CqlSharp.Protocol
         ///   Reads the array segment async.
         /// </summary>
         /// <param name="size"> The size. </param>
-        /// <param name=""></param>
         /// <returns> </returns>
         private async Task ReadSegmentAsync(int size)
         {
@@ -300,23 +298,7 @@ namespace CqlSharp.Protocol
         }
 
         #endregion
-
-
-        /// <summary>
-        ///   Reads the byte 
-        /// </summary>
-        /// <returns> </returns>
-        public byte ReadByte()
-        {
-            if (!TryGetSegmentFromBuffer(1))
-            {
-                ReadSegmentAsync(1).Wait();
-            }
-            
-            //not in buffer, read and return
-            return _lastReadSegment.Array[_lastReadSegment.Offset];
-        }
-
+        
         /// <summary>
         ///   Reads the byte async.
         /// </summary>
@@ -344,21 +326,7 @@ namespace CqlSharp.Protocol
             await ReadSegmentAsync(1).AutoConfigureAwait();
             return _lastReadSegment.Array[_lastReadSegment.Offset];
         }
-
-        /// <summary>
-        ///   Reads the short.
-        /// </summary>
-        /// <returns> </returns>
-        public ushort ReadShort()
-        {
-            if (!TryGetSegmentFromBuffer(2))
-            {
-                ReadSegmentAsync(2).Wait();
-            }
-            
-            return _lastReadSegment.Array.ToShort(_lastReadSegment.Offset);
-        }
-
+        
         /// <summary>
         ///   Reads the short async.
         /// </summary>
@@ -389,21 +357,7 @@ namespace CqlSharp.Protocol
 
             return value;
         }
-
-        /// <summary>
-        ///   Reads the int.
-        /// </summary>
-        /// <returns> </returns>
-        public int ReadInt()
-        {
-            if (!TryGetSegmentFromBuffer(4))
-            {
-                ReadSegmentAsync(4).Wait();
-            }
-
-            return _lastReadSegment.Array.ToInt(_lastReadSegment.Offset);
-        }
-
+        
         /// <summary>
         ///   Reads the int async.
         /// </summary>
@@ -432,27 +386,6 @@ namespace CqlSharp.Protocol
             int value = _lastReadSegment.Array.ToInt(_lastReadSegment.Offset);
 
             return value;
-        }
-
-        /// <summary>
-        ///   Reads the string.
-        /// </summary>
-        /// <returns> </returns>
-        public string ReadString()
-        {
-            //read length
-            ushort len = ReadShort();
-            if (0 == len)
-            {
-                return string.Empty;
-            }
-
-            //read the string segment
-            if (!TryGetSegmentFromBuffer(len))
-                ReadSegmentAsync(len).Wait();
-
-            //return parsed string
-            return Encoding.UTF8.GetString(_lastReadSegment.Array, _lastReadSegment.Offset, _lastReadSegment.Count);
         }
         
         public Task<string> ReadStringAsync()
@@ -505,28 +438,6 @@ namespace CqlSharp.Protocol
         ///   Reads the bytes async.
         /// </summary>
         /// <returns> </returns>
-        public byte[] ReadBytes()
-        {
-            int len = ReadInt();
-            if (-1 == len)
-            {
-                return null;
-            }
-
-            //read the string segment
-            if (!TryGetSegmentFromBuffer(len))
-                ReadSegmentAsync(len).Wait();
-
-            //copy data from buffer into new array if necessary
-            byte[] data = _lastReadSegment.Array == _buffer ? CopySegmentToArray() : _lastReadSegment.Array;
-
-            return data;
-        }
-
-        /// <summary>
-        ///   Reads the bytes async.
-        /// </summary>
-        /// <returns> </returns>
         public async Task<byte[]> ReadBytesAsync()
         {
             int len = await ReadIntAsync().AutoConfigureAwait();
@@ -538,27 +449,6 @@ namespace CqlSharp.Protocol
             //read the string segment
             if (!TryGetSegmentFromBuffer(len))
                 await ReadSegmentAsync(len).AutoConfigureAwait();
-
-            //copy data from buffer into new array if necessary
-            byte[] data = _lastReadSegment.Array == _buffer ? CopySegmentToArray() : _lastReadSegment.Array;
-
-            return data;
-        }
-
-        /// <summary>
-        ///   Reads the short bytes.
-        /// </summary>
-        /// <returns> </returns>
-        public byte[] ReadShortBytes()
-        {
-            ushort len = ReadShort();
-
-            if (len == 0)
-                return new byte[0];
-
-            //read the data segment
-            if (!TryGetSegmentFromBuffer(len))
-                ReadSegmentAsync(len).Wait();
 
             //copy data from buffer into new array if necessary
             byte[] data = _lastReadSegment.Array == _buffer ? CopySegmentToArray() : _lastReadSegment.Array;
@@ -588,21 +478,6 @@ namespace CqlSharp.Protocol
         }
 
         /// <summary>
-        ///   Reads the string list.
-        /// </summary>
-        /// <returns> </returns>
-        public IList<string> ReadStringList()
-        {
-            ushort len = ReadShort();
-            var data = new string[len];
-            for (int i = 0; i < len; ++i)
-            {
-                data[i] = ReadString();
-            }
-            return data;
-        }
-
-        /// <summary>
         ///   Reads the string list async.
         /// </summary>
         /// <returns> </returns>
@@ -614,24 +489,6 @@ namespace CqlSharp.Protocol
             {
                 data[i] = await ReadStringAsync().AutoConfigureAwait(); 
             }
-            return data;
-        }
-
-        /// <summary>
-        ///   Reads the string multimap.
-        /// </summary>
-        /// <returns> </returns>
-        public Dictionary<string, IList<string>> ReadStringMultimap()
-        {
-            ushort len = ReadShort();
-            var data = new Dictionary<string, IList<string>>(len);
-            for (int i = 0; i < len; ++i)
-            {
-                string key = ReadString();
-                IList<string> value = ReadStringList();
-                data.Add(key, value);
-            }
-
             return data;
         }
 
@@ -654,27 +511,6 @@ namespace CqlSharp.Protocol
         }
 
         /// <summary>
-        ///   Reads the inet.
-        /// </summary>
-        /// <returns> </returns>
-        public IPEndPoint ReadInet()
-        {
-            byte length = ReadByte();
-
-            if (!TryGetSegmentFromBuffer(length))
-                ReadSegmentAsync(length).Wait();
-
-            byte[] address = CopySegmentToArray();
-            var ipAddress = new IPAddress(address);
-
-            int port = ReadInt();
-
-            var endpoint = new IPEndPoint(ipAddress, port);
-
-            return endpoint;
-        }
-
-        /// <summary>
         ///   Reads the inet async.
         /// </summary>
         /// <returns> </returns>
@@ -694,19 +530,7 @@ namespace CqlSharp.Protocol
 
             return endpoint;
         }
-
-        /// <summary>
-        ///   Reads the UUID.
-        /// </summary>
-        /// <returns> </returns>
-        public Guid ReadUuid()
-        {
-            if (!TryGetSegmentFromBuffer(16))
-                ReadSegmentAsync(16).Wait();
-
-            return _lastReadSegment.Array.ToGuid(_lastReadSegment.Offset);
-        }
-
+        
         /// <summary>
         ///   Reads the UUID async.
         /// </summary>

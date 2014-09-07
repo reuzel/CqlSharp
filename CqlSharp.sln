@@ -14,8 +14,14 @@ Project("{2150E333-8FDC-42A3-9474-1A3956D46DE8}") = "Solution Items", "Solution 
 	EndProjectSection
 EndProject
 Project("{FAE04EC0-301F-11D3-BF4B-00C04F79EFBC}") = "CqlSharp.Performance.Host", "CqlSharp.Performance.Host\CqlSharp.Performance.Host.csproj", "{CBDE5E8A-04C2-4DF2-8DB0-12A0CA1FCBE6}"
+	ProjectSection(ProjectDependencies) = postProject
+		{C78885B6-B61C-48CD-8CC2-E12AB6B8C280} = {C78885B6-B61C-48CD-8CC2-E12AB6B8C280}
+	EndProjectSection
 EndProject
 Project("{FAE04EC0-301F-11D3-BF4B-00C04F79EFBC}") = "CqlSharp.Performance.Web", "CqlSharp.Performance.Web\CqlSharp.Performance.Web.csproj", "{C78885B6-B61C-48CD-8CC2-E12AB6B8C280}"
+	ProjectSection(ProjectDependencies) = postProject
+		{26AA128D-CC4D-441C-9EF1-DC7AFC14A0E7} = {26AA128D-CC4D-441C-9EF1-DC7AFC14A0E7}
+	EndProjectSection
 EndProject
 Project("{FAE04EC0-301F-11D3-BF4B-00C04F79EFBC}") = "CqlSharp.Performance.Client", "CqlSharp.Performance.Client\CqlSharp.Performance.Client.csproj", "{2D573049-394D-4BEA-90CB-3FACABCC9DFE}"
 EndProject

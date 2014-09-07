@@ -37,11 +37,7 @@
   <ItemGroup>
     <Reference Include="System" />
     <Reference Include="System.Core" />
-    <Reference Include="System.Xml.Linq" />
-    <Reference Include="System.Data.DataSetExtensions" />
-    <Reference Include="Microsoft.CSharp" />
     <Reference Include="System.Data" />
-    <Reference Include="System.Xml" />
   </ItemGroup>
   <ItemGroup>
     <Compile Include="Measurement.cs" />
@@ -55,10 +51,6 @@
     </Content>
   </ItemGroup>
   <ItemGroup>
-    <ProjectReference Include="..\CqlSharp.NLog\CqlSharp.NLog.csproj">
-      <Project>{eed9f793-6c9e-4b7a-b492-2b8c9b0cb461}</Project>
-      <Name>CqlSharp.NLog</Name>
-    </ProjectReference>
     <ProjectReference Include="..\CqlSharp\CqlSharp.csproj">
       <Project>{45f69fdc-eef6-43da-a457-95ee553c68a1}</Project>
       <Name>CqlSharp</Name>

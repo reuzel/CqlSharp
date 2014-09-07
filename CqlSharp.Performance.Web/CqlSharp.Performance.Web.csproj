@@ -106,6 +106,10 @@
     <Compile Include="Properties\AssemblyInfo.cs" />
   </ItemGroup>
   <ItemGroup>
+    <ProjectReference Include="..\CqlSharp.NLog\CqlSharp.NLog.csproj">
+      <Project>{eed9f793-6c9e-4b7a-b492-2b8c9b0cb461}</Project>
+      <Name>CqlSharp.NLog</Name>
+    </ProjectReference>
     <ProjectReference Include="..\CqlSharp.Performance.Data\CqlSharp.Performance.Data.csproj">
       <Project>{26AA128D-CC4D-441C-9EF1-DC7AFC14A0E7}</Project>
       <Name>CqlSharp.Performance.Data</Name>

@@ -881,8 +881,9 @@ namespace CqlSharp.Network
                     //completions may be continued synchronously, potentially
                     //leading to deadlocks when the continuation sends another request
                     //on this connection.
-                    Scheduler.RunOnIOThread(() => openRequest.TrySetResult(frame));
-                    
+                    //Scheduler.RunOnIOThread(() => openRequest.TrySetResult(frame));
+                    openRequest.TrySetResult(frame);
+
                     logger.LogVerbose("Waiting for frame content to be read from {0}", this);
 
                     //wait until all frame data is read (especially important for queries and results)
