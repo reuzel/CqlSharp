@@ -24,6 +24,7 @@ using CqlSharp.Network;
 using CqlSharp.Network.Fakes;
 using CqlSharp.Network.Partition;
 using CqlSharp.Protocol;
+using CqlSharp.Threading;
 using Microsoft.QualityTools.Testing.Fakes;
 using Microsoft.VisualStudio.TestTools.UnitTesting;
 

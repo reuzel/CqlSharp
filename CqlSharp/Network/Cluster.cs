@@ -25,6 +25,7 @@ using System.Threading.Tasks;
 using CqlSharp.Logging;
 using CqlSharp.Network.Partition;
 using CqlSharp.Protocol;
+using CqlSharp.Threading;
 
 namespace CqlSharp.Network
 {
@@ -46,8 +47,7 @@ namespace CqlSharp.Network
         private volatile Task _openTask;
         private string _rack;
         private string _release;
-        private SemaphoreSlim _throttle;
-
+        
         /// <summary>
         /// Initializes a new instance of the <see cref="Cluster" /> class.
         /// </summary>
@@ -67,21 +67,6 @@ namespace CqlSharp.Network
         public CqlConnectionStringBuilder Config
         {
             get { return _config; }
-        }
-
-        /// <summary>
-        /// Gets the throttle to limit concurrent requests.
-        /// </summary>
-        /// <value> The throttle. </value>
-        internal SemaphoreSlim Throttle
-        {
-            get
-            {
-                if(_disposed)
-                    throw new ObjectDisposedException("Cluster");
-
-                return _throttle;
-            }
         }
 
         /// <summary>
@@ -203,14 +188,11 @@ namespace CqlSharp.Network
                 Logger.Current.LogVerbose("Starting shutdown of {0}", this);
                 try
                 {
-                    if(_throttle != null)
-                        _throttle.Dispose();
-
                     if(_nodes != null)
                     {
                         foreach(var node in _nodes)
                             node.Dispose();
-                    }
+                        }
 
                     if(_maintenanceConnection != null)
                         _maintenanceConnection.Dispose();
@@ -255,7 +237,7 @@ namespace CqlSharp.Network
         private async Task OpenAsyncInternal(Logger logger, CancellationToken token)
         {
             logger.LogInfo("Opening Cluster with parameters: {0}", _config.ToString());
-
+            
             //initialize the ring
             _nodes = new Ring();
 
@@ -265,9 +247,10 @@ namespace CqlSharp.Network
                 try
                 {
                     var seed = new Node(seedAddress, this);
-                    await GetClusterInfoAsync(seed, logger, token).ConfigureAwait(false);
+
+                    await GetClusterInfoAsync(seed, logger, token).AutoConfigureAwait();
                 }
-                catch(TaskCanceledException)
+                catch(OperationCanceledException)
                 {
                     logger.LogWarning("Opening connection to cluster was cancelled");
                     throw;
@@ -305,7 +288,7 @@ namespace CqlSharp.Network
                 logger.LogCritical("Unable to setup Cluster based on given configuration: {0}", ex);
                 throw ex;
             }
-
+           
             //setup cluster connection strategy
             switch(_config.ConnectionStrategy)
             {
@@ -321,7 +304,7 @@ namespace CqlSharp.Network
                 case CqlSharp.ConnectionStrategy.PartitionAware:
                     _connectionStrategy = new PartitionAwareConnectionStrategy(_nodes, _config);
                     if(_config.DiscoveryScope != DiscoveryScope.Cluster ||
-                       _config.DiscoveryScope != DiscoveryScope.DataCenter)
+                        _config.DiscoveryScope != DiscoveryScope.DataCenter)
                     {
                         logger.LogWarning(
                             "PartitionAware connection strategy performs best if DiscoveryScope is set to cluster or datacenter");
@@ -329,20 +312,11 @@ namespace CqlSharp.Network
                     break;
             }
 
-            //setup throttle
-            int concurrent = _config.MaxConcurrentQueries <= 0
-                ? _nodes.Count*_config.MaxConnectionsPerNode*256
-                : _config.MaxConcurrentQueries;
-
-            logger.LogInfo("Cluster is configured to allow {0} parallel queries", concurrent);
-
-            _throttle = new SemaphoreSlim(concurrent, concurrent);
-
             //setup prepared query cache
             PreparedQueryCache = new ConcurrentDictionary<string, ResultFrame>();
 
             //setup maintenance connection
-            SetupMaintenanceConnection(logger);
+            Scheduler.RunOnThreadPool(() => SetupMaintenanceConnection(logger));
         }
 
         /// <summary>
@@ -380,7 +354,7 @@ namespace CqlSharp.Network
                     _maintenanceConnection = connection;
 
                     //register for events
-                    await connection.RegisterForClusterChangesAsync(logger).ConfigureAwait(false);
+                    await connection.RegisterForClusterChangesAsync(logger).AutoConfigureAwait();
 
                     logger.LogInfo("Registered for cluster changes using {0}", connection);
                 }
@@ -401,7 +375,7 @@ namespace CqlSharp.Network
 
             //wait a moment, try again
             logger.LogVerbose("Waiting 2secs before retrying setup maintenance connection");
-            await Task.Delay(2000).ConfigureAwait(false);
+            await Task.Delay(2000).AutoConfigureAwait();
 
             SetupMaintenanceConnection(logger);
         }
@@ -412,6 +386,7 @@ namespace CqlSharp.Network
         /// <param name="seed"> The reference. </param>
         /// <param name="logger"> logger used to log progress </param>
         /// <param name="token"> The token. </param>
+        /// <param name=""></param>
         /// <returns> </returns>
         /// <exception cref="CqlException">
         /// Could not detect datacenter or rack information from the reference specified in the
@@ -439,15 +414,16 @@ namespace CqlSharp.Network
 
             //get local information
             string partitioner;
-            using(
-                var result =
-                    await
-                        ExecQuery(c,
-                                  "select cluster_name, cql_version, release_version, partitioner, data_center, rack, tokens from system.local",
-                                  logger, token).ConfigureAwait(false))
+
+            using(var result = await ExecQuery(c,
+                              "select cluster_name, cql_version, release_version, partitioner, data_center, rack, tokens from system.local",
+                                               logger,
+                                               token
+                                               ).AutoConfigureAwait())
             {
-                if(!await result.ReadAsync(token).ConfigureAwait(false))
-                    throw new CqlException("Could not detect the cluster partitioner");
+                if(! await result.ReadAsyncInternal(token).AutoConfigureAwait())
+                    throw new CqlException("Could not fetch configuration data from seed");
+
                 _name = result.GetString(0);
                 _cqlVersion = result.GetString(1);
                 _release = result.GetString(2);
@@ -464,16 +440,16 @@ namespace CqlSharp.Network
             //create list of nodes that make up the cluster, and add the seed
             var found = new List<Node> {seed};
 
+
             //get the peers
             using(
                 var result =
                     await
                         ExecQuery(c, "select peer, rpc_address, data_center, rack, tokens, release_version from system.peers", logger,
-                                  token).
-                            ConfigureAwait(false))
+                                  token).AutoConfigureAwait())
             {
                 //iterate over the peers
-                while(await result.ReadAsync(token).ConfigureAwait(false))
+                while(await result.ReadAsyncInternal(token).AutoConfigureAwait())
                 {
                     var newNode = GetNodeFromDataReader(result, logger);
 
@@ -490,13 +466,13 @@ namespace CqlSharp.Network
             if(_nodes.Any(n => n.Tokens.Count == 0))
             {
                 //wait and retry the fetch later...
-                var retry = Task.Run(async () =>
+                Scheduler.RunOnThreadPool(async () =>
                 {
                     try
                     {
                         logger.LogInfo("Cluster info incomplete scheduling new retrieval in 1 minute");
-                        await Task.Delay(TimeSpan.FromMinutes(1)).ConfigureAwait(false);
-                        await GetClusterInfoAsync(null, logger, CancellationToken.None).ConfigureAwait(false);
+                        await Task.Delay(TimeSpan.FromMinutes(1)).AutoConfigureAwait();
+                        await GetClusterInfoAsync(null, logger, CancellationToken.None).AutoConfigureAwait();
                     }
                     catch(Exception ex)
                     {
@@ -508,7 +484,7 @@ namespace CqlSharp.Network
 
         private Node GetNodeFromDataReader(CqlDataReader reader, Logger logger)
         {
-            //get address of new node, and fallback to listen_address when address is set to any
+                //get address of new node, and fallback to listen_address when address is set to any
             var address = reader.GetIPAddress(reader.GetOrdinal("rpc_address"));
             if(address == null || address.Equals(IPAddress.Any))
                 address = reader.GetIPAddress(reader.GetOrdinal("peer"));
@@ -516,16 +492,16 @@ namespace CqlSharp.Network
             var dc = reader.GetString(reader.GetOrdinal("data_center"));
             var rack = reader.GetString(reader.GetOrdinal("rack"));
 
-            //check if we have an address, otherwise ignore
+                //check if we have an address, otherwise ignore
             if(address == null || dc == null || rack == null)
-            {
-                logger.LogError("Incomplete node information retrieved for a node: address={0}, dc={1}, rack={2}",
+                {
+                    logger.LogError("Incomplete node information retrieved for a node: address={0}, dc={1}, rack={2}", 
                                 address != null ? address.ToString() : "(address not found!)",
-                                dc ?? "(datacenter not found)",
-                                rack ?? "(rack not found)");
+                        dc ?? "(datacenter not found)",
+                        rack ?? "(rack not found)");
 
-                return null;
-            }
+                    return null;
+                }
 
             //get tokens
             var tokens = (reader.GetSet<string>(reader.GetOrdinal("tokens"))) ?? new HashSet<string>();
@@ -533,15 +509,15 @@ namespace CqlSharp.Network
             //distill protocol version from release version
             var release = reader.GetString(reader.GetOrdinal("release_version"));
             byte protocolVersion = DistillProtocolVersion(release);
-    
-            //create a new node
-            return new Node(address, this)
-            {
-                DataCenter = dc,
-                Rack = rack,
+
+                //create a new node
+                return new Node(address, this)
+                                    {
+                                        DataCenter = dc,
+                                        Rack = rack,
                 Tokens = tokens,
                 ProtocolVersion = protocolVersion
-            };
+                                    };
         }
 
         /// <summary>
@@ -569,7 +545,7 @@ namespace CqlSharp.Network
                 //parse error, return highest supported protocol version
                 return highestSupported;
             }
-
+                    
         }
 
         /// <summary>
@@ -579,6 +555,7 @@ namespace CqlSharp.Network
         /// <param name="cql"> The CQL. </param>
         /// <param name="logger"> The logger. </param>
         /// <param name="token"> The token. </param>
+        /// <param name=""></param>
         /// <returns> A CqlDataReader that can be used to access the query results </returns>
         private async Task<CqlDataReader> ExecQuery(Connection connection, string cql, Logger logger,
                                                     CancellationToken token)
@@ -590,7 +567,10 @@ namespace CqlSharp.Network
 
             var query = new QueryFrame(cql, CqlConsistency.One, null);
             var result =
-                (ResultFrame)await connection.SendRequestAsync(query, logger, 1, false, token).ConfigureAwait(false);
+                (ResultFrame)
+                    await
+                        connection.SendRequestAsync(query, logger, 1, false, token)
+                                  .AutoConfigureAwait();
             var reader = new CqlDataReader(null, result, null);
 
             logger.LogVerbose("Query {0} returned {1} results", cql, reader.Count);
@@ -648,9 +628,11 @@ namespace CqlSharp.Network
                     var node = connection.Node;
 
                     //refetch the cluster configuration
-                    await Task.Delay(5000).ConfigureAwait(false);
+                    await Task.Delay(5000).AutoConfigureAwait();
                         //delay as Add is typically send a bit too early (and therefore no tokens are distributed)
-                    await GetClusterInfoAsync(node, logger, CancellationToken.None).ConfigureAwait(false);
+                    await
+                        GetClusterInfoAsync(node, logger, CancellationToken.None)
+                            .AutoConfigureAwait();
                 }
                 else if(args.Change.Equals(ClusterChange.Up))
                 {
@@ -660,7 +642,7 @@ namespace CqlSharp.Network
                     {
                         using(logger.ThreadBinding())
                         {
-                            await Task.Delay(5000).ConfigureAwait(false);
+                            await Task.Delay(5000).AutoConfigureAwait();
                                 //delay as Up is typically send a bit too early
                             upNode.Reactivate();
                         }

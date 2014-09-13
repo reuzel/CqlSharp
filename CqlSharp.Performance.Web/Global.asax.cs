@@ -1,4 +1,4 @@
-﻿// CqlSharp - CqlTest
+﻿// CqlSharp - CqlSharp.Performance.Web
 // Copyright (c) 2014 Joost Reuzel
 //   
 // Licensed under the Apache License, Version 2.0 (the "License");
@@ -13,17 +13,22 @@
 // See the License for the specific language governing permissions and
 // limitations under the License.
 
-using System;
-using System.Collections.Generic;
-using CqlSharp.Serialization;
+using System.Web;
+using System.Web.Http;
+using CqlSharp.Performance.Data;
 
-namespace CqlTest
+namespace CqlSharp.Performance.Web
 {
-    [CqlTable("carts")]
-    public class Cart
+    public class WebApiApplication : HttpApplication
     {
-        public Guid Id { get; set; }
-        public string GroupId { get; set; }
-        public Dictionary<string, int> Items { get; set; }
+        protected void Application_Start()
+        {
+            GlobalConfiguration.Configure(WebApiConfig.Register);
+        }
+
+        protected void Application_End()
+        {
+            MeasurementManager.Disconnect();
+        }
     }
 }

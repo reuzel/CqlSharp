@@ -17,6 +17,7 @@ using System;
 using System.Collections.Generic;
 using System.Threading;
 using System.Threading.Tasks;
+using CqlSharp.Threading;
 
 namespace CqlSharp.Tracing
 {
@@ -51,9 +52,9 @@ namespace CqlSharp.Tracing
                                             _tracingId + ";", CqlConsistency.One);
             using(
                 CqlDataReader<TracingSession> reader =
-                    await sessionCmd.ExecuteReaderAsync<TracingSession>(token).ConfigureAwait(false))
+                    await sessionCmd.ExecuteReaderAsync<TracingSession>(token).AutoConfigureAwait())
             {
-                if(await reader.ReadAsync().ConfigureAwait(false))
+                if (await reader.ReadAsync(token).AutoConfigureAwait())
                     session = reader.Current;
                 else
                     return null;
@@ -64,10 +65,10 @@ namespace CqlSharp.Tracing
                                            _tracingId + ";", CqlConsistency.One);
             using(
                 CqlDataReader<TracingEvent> reader =
-                    await eventsCmd.ExecuteReaderAsync<TracingEvent>(token).ConfigureAwait(false))
+                    await eventsCmd.ExecuteReaderAsync<TracingEvent>(token).AutoConfigureAwait())
             {
                 var events = new List<TracingEvent>(reader.Count);
-                while(await reader.ReadAsync().ConfigureAwait(false))
+                while(await reader.ReadAsync().AutoConfigureAwait())
                     events.Add(reader.Current);
 
                 session.Events = events;
@@ -85,14 +86,7 @@ namespace CqlSharp.Tracing
         /// <returns> TracingSession if any, null otherwise </returns>
         public TracingSession GetTraceSession()
         {
-            try
-            {
-                return GetTraceSessionAsync(CancellationToken.None).Result;
-            }
-            catch(AggregateException aex)
-            {
-                throw aex.InnerException;
-            }
+            return Scheduler.RunSynchronously(() => GetTraceSessionAsync(CancellationToken.None));
         }
     }
 }

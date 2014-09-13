@@ -23,6 +23,7 @@ using System.Threading;
 using System.Threading.Tasks;
 using CqlSharp.Logging;
 using CqlSharp.Protocol;
+using CqlSharp.Threading;
 
 namespace CqlSharp.Network
 {
@@ -563,11 +564,11 @@ namespace CqlSharp.Network
                         {
                             var connection = AddConnection();
 
-                            Task.Run(async () =>
+                            Scheduler.RunOnThreadPool(async () =>
                             {
                                 try
                                 {
-                                    await connection.OpenAsync(logger).ConfigureAwait(false);
+                                    await connection.OpenAsync(logger).AutoConfigureAwait();
                                     using(logger.ThreadBinding())
                                         connection.Dispose();
                                 }

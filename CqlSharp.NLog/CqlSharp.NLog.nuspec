@@ -1,0 +1,35 @@
+<?xml version="1.0"?>
+<package >
+  <metadata>
+    <id>$id$</id>
+    <version>$version$</version>
+    <title>CQLSharp.Nlog - An NLog log provider for CqlSharp</title>
+    <authors>Joost Reuzel</authors>
+    <owners>Joost Reuzel</owners>
+    <licenseUrl>http://www.apache.org/licenses/LICENSE-2.0</licenseUrl>
+    <projectUrl>https://github.com/reuzel/CqlSharp/wiki</projectUrl>
+    <iconUrl>https://raw.github.com/reuzel/CqlSharp/master/logo.png</iconUrl>
+    <requireLicenseAcceptance>false</requireLicenseAcceptance>
+    <summary>
+      An NLog logging extension to process CqlSharp logs through the NLog library.
+    </summary>
+    <description>
+      An NLog logging extension to process CqlSharp logs through the NLog library.
+
+      CqlSharp is a high performance, asynchronous Cassandra CQL binary protocol client implementing the ADO.NET data provider interfaces.
+
+      See https://github.com/reuzel/CqlSharp/wiki for details.
+    </description>
+    <releaseNotes>
+      ## Version 0.1.0 - First version
+    </releaseNotes>
+    <copyright>Copyright 2014 Joost Reuzel</copyright>
+    <tags>Cassandra CQL ADO.NET client database provider driver nosql net45 TPL async high-performance CqlSharp nlog logging</tags>
+
+    <dependencies>
+      <dependency id="CqlSharp" version="0.13.0" />
+    </dependencies>
+
+  </metadata>
+  
+</package>

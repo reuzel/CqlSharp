@@ -19,6 +19,7 @@ using System.Threading;
 using System.Threading.Tasks;
 using CqlSharp.Memory;
 using CqlSharp.Network.nSnappy;
+using CqlSharp.Threading;
 
 namespace CqlSharp.Protocol
 {
@@ -93,7 +94,7 @@ namespace CqlSharp.Protocol
         /// Gets the frame bytes.
         /// </summary>
         /// <returns> </returns>
-        public Stream GetFrameBytes(bool compress, int compressTreshold)
+        public PoolMemoryStream GetFrameBytes(bool compress, int compressTreshold)
         {
             var buffer = new PoolMemoryStream();
 
@@ -161,11 +162,15 @@ namespace CqlSharp.Protocol
             int read = 0;
             var header = new byte[8];
             while(read < 8)
-                read += await stream.ReadAsync(header, read, 8 - read).ConfigureAwait(false);
+            {
+                if(Scheduler.RunningSynchronously)
+                    read += stream.Read(header, read, 8 - read);
+                else
+                    read += await stream.ReadAsync(header, read, 8 - read).AutoConfigureAwait();
+            }
 
             //get length
-            if(BitConverter.IsLittleEndian) Array.Reverse(header, 4, 4);
-            int length = BitConverter.ToInt32(header, 4);
+            int length = header.ToInt(4);
 
             Frame frame;
             switch((FrameOpcode)header[3])
@@ -209,17 +214,37 @@ namespace CqlSharp.Protocol
             var reader = new FrameReader(stream, length);
             frame.Reader = reader;
 
+            return frame;
+        }
+
+        /// <summary>
+        /// Reads the frame content asynchronous.
+        /// </summary>
+        /// <returns></returns>
+        internal Task ReadFrameContentAsync()
+        {
             //decompress the contents of the frame (implicity loads the entire frame body!)
-            if(frame.Flags.HasFlag(FrameFlags.Compression))
-                await reader.DecompressAsync().ConfigureAwait(false);
+            if(!Flags.HasFlag(FrameFlags.Compression) && !Flags.HasFlag(FrameFlags.Tracing))
+                return InitializeAsync();
+            else
+                return PrepareAndInitializeContentAsync();
+        }
+
+        /// <summary>
+        /// Prepares the reader/content and initializes content asynchronous.
+        /// </summary>
+        /// <returns></returns>
+        private async Task PrepareAndInitializeContentAsync()
+        {
+            //decompress the contents of the frame (implicity loads the entire frame body!)
+            if (Flags.HasFlag(FrameFlags.Compression))
+                await Reader.DecompressAsync().AutoConfigureAwait();
 
             //read tracing id if set
-            if(frame.Flags.HasFlag(FrameFlags.Tracing))
-                frame.TracingId = await reader.ReadUuidAsync().ConfigureAwait(false);
+            if (Flags.HasFlag(FrameFlags.Tracing))
+                TracingId = await Reader.ReadUuidAsync().AutoConfigureAwait();
 
-            await frame.InitializeAsync().ConfigureAwait(false);
-
-            return frame;
+            await InitializeAsync().AutoConfigureAwait();
         }
 
         /// <summary>

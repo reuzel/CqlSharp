@@ -17,6 +17,7 @@ using System;
 using System.IO;
 using System.Threading;
 using System.Threading.Tasks;
+using CqlSharp.Threading;
 
 namespace CqlSharp.Memory
 {
@@ -646,8 +647,8 @@ namespace CqlSharp.Memory
                 cancellationToken.ThrowIfCancellationRequested();
                 if(_disposed) throw new ObjectDisposedException("PoolMemoryStream");
 
-                var writeSize = (int)Math.Min((long)BufferSize - bufferOffset, toCopy);
-                await destination.WriteAsync(_buffers[bufferIndex], bufferOffset, writeSize).ConfigureAwait(false);
+                var writeSize = (int) Math.Min((long) BufferSize - bufferOffset, toCopy);
+                await destination.WriteAsync(_buffers[bufferIndex], bufferOffset, writeSize).AutoConfigureAwait();
                 bufferIndex++;
                 bufferOffset = 0;
                 toCopy -= writeSize;

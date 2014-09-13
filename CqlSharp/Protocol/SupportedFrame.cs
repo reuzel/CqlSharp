@@ -17,6 +17,7 @@ using System;
 using System.Collections.Generic;
 using System.IO;
 using System.Threading.Tasks;
+using CqlSharp.Threading;
 
 namespace CqlSharp.Protocol
 {
@@ -31,7 +32,7 @@ namespace CqlSharp.Protocol
 
         protected override async Task InitializeAsync()
         {
-            SupportedOptions = await Reader.ReadStringMultimapAsync().ConfigureAwait(false);
+            SupportedOptions = await Reader.ReadStringMultimapAsync().AutoConfigureAwait();
         }
     }
 }

@@ -19,6 +19,7 @@ using System.Net;
 using System.Net.Sockets;
 using System.Threading;
 using System.Threading.Tasks;
+using CqlSharp.Threading;
 
 namespace CqlSharp.Network
 {
@@ -44,7 +45,7 @@ namespace CqlSharp.Network
                 //close connection when timeout is invoked
                 using(token.Register(cl => ((TcpClient)cl).Close(), client))
                 {
-                    await client.ConnectAsync(address, port).ConfigureAwait(false);
+                    await client.ConnectAsync(address, port).AutoConfigureAwait();
                 }
             }
             catch(Exception ex)

@@ -24,6 +24,7 @@
     <DefineConstants>DEBUG;TRACE</DefineConstants>
     <ErrorReport>prompt</ErrorReport>
     <WarningLevel>4</WarningLevel>
+    <AllowUnsafeBlocks>true</AllowUnsafeBlocks>
   </PropertyGroup>
   <PropertyGroup Condition=" '$(Configuration)|$(Platform)' == 'Release|AnyCPU' ">
     <DebugType>pdbonly</DebugType>
@@ -34,6 +35,7 @@
     <WarningLevel>4</WarningLevel>
     <DocumentationFile>
     </DocumentationFile>
+    <AllowUnsafeBlocks>true</AllowUnsafeBlocks>
   </PropertyGroup>
   <PropertyGroup>
     <ApplicationIcon>Properties\logo.ico</ApplicationIcon>
@@ -232,6 +234,11 @@
     <Compile Include="Serialization\CqlIgnoreAttribute.cs" />
     <Compile Include="Serialization\CqlTableAttribute.cs" />
     <Compile Include="Serialization\ObjectAccessor.cs" />
+    <Compile Include="Threading\ActiveThreadScheduler.cs" />
+    <Compile Include="Threading\AutoConfiguredAwaitable.cs" />
+    <Compile Include="Threading\AutoConfiguredAwaiter.cs" />
+    <Compile Include="Threading\IOTaskScheduler.cs" />
+    <Compile Include="Threading\Scheduler.cs" />
     <Compile Include="Serialization\CqlUserTypeAttribute.cs" />
     <Compile Include="TimeGuid.cs" />
     <Compile Include="Tracing\QueryTraceCommand.cs" />

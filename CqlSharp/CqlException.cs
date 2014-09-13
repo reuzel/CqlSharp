@@ -15,12 +15,14 @@
 
 using System;
 using System.Data.Common;
+using System.Runtime.Serialization;
 
 namespace CqlSharp
 {
     /// <summary>
     /// Exception representint Cql specific errors
     /// </summary>
+    [Serializable]
     public class CqlException : DbException
     {
         /// <summary>

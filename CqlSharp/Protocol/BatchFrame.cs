@@ -17,6 +17,7 @@ using System;
 using System.Collections.Generic;
 using System.IO;
 using System.Threading.Tasks;
+using CqlSharp.Threading;
 
 namespace CqlSharp.Protocol
 {
@@ -105,6 +106,7 @@ namespace CqlSharp.Protocol
         /// <summary>
         /// Initialize frame contents from the stream
         /// </summary>
+        /// <param name=""></param>
         /// <returns> </returns>
         /// <exception cref="System.NotSupportedException"></exception>
         protected override Task InitializeAsync()

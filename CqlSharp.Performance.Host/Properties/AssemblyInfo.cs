@@ -1,4 +1,4 @@
-﻿// CqlSharp - CqlTest
+﻿// CqlSharp - CqlSharp.Performance.Host
 // Copyright (c) 2014 Joost Reuzel
 //   
 // Licensed under the Apache License, Version 2.0 (the "License");
@@ -20,12 +20,12 @@ using System.Runtime.InteropServices;
 // set of attributes. Change these attribute values to modify the information
 // associated with an assembly.
 
-[assembly: AssemblyTitle("CqlTest")]
+[assembly: AssemblyTitle("CqlSharp.Performance.Host")]
 [assembly: AssemblyDescription("")]
 [assembly: AssemblyConfiguration("")]
 [assembly: AssemblyCompany("")]
-[assembly: AssemblyProduct("CqlTest")]
-[assembly: AssemblyCopyright("Copyright ©  2013")]
+[assembly: AssemblyProduct("CqlSharp.Performance.Host")]
+[assembly: AssemblyCopyright("Copyright ©  2014")]
 [assembly: AssemblyTrademark("")]
 [assembly: AssemblyCulture("")]
 
@@ -37,7 +37,7 @@ using System.Runtime.InteropServices;
 
 // The following GUID is for the ID of the typelib if this project is exposed to COM
 
-[assembly: Guid("37d6592b-266b-4969-bd8c-1e8482d557e3")]
+[assembly: Guid("5b6bc6db-70d1-40d8-a205-1b6866f891a7")]
 
 // Version information for an assembly consists of the following four values:
 //

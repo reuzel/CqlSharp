@@ -7,13 +7,31 @@ Project("{FAE04EC0-301F-11D3-BF4B-00C04F79EFBC}") = "CqlSharp", "CqlSharp\CqlSha
 EndProject
 Project("{FAE04EC0-301F-11D3-BF4B-00C04F79EFBC}") = "CqlSharp.Test", "CqlSharpTest\CqlSharp.Test.csproj", "{7F0D1D97-5AC1-4848-9D64-DC88FE63744D}"
 EndProject
-Project("{FAE04EC0-301F-11D3-BF4B-00C04F79EFBC}") = "CqlTest", "CqlTest\CqlTest.csproj", "{61D745C9-1B9B-40A2-A9A6-A37A58E6B496}"
-EndProject
 Project("{2150E333-8FDC-42A3-9474-1A3956D46DE8}") = "Solution Items", "Solution Items", "{D825317C-46F7-452D-8928-2BC89C7037E3}"
 	ProjectSection(SolutionItems) = preProject
 		ChangeLog.md = ChangeLog.md
 		README.md = README.md
 	EndProjectSection
+EndProject
+Project("{FAE04EC0-301F-11D3-BF4B-00C04F79EFBC}") = "CqlSharp.Performance.Host", "CqlSharp.Performance.Host\CqlSharp.Performance.Host.csproj", "{CBDE5E8A-04C2-4DF2-8DB0-12A0CA1FCBE6}"
+	ProjectSection(ProjectDependencies) = postProject
+		{C78885B6-B61C-48CD-8CC2-E12AB6B8C280} = {C78885B6-B61C-48CD-8CC2-E12AB6B8C280}
+	EndProjectSection
+EndProject
+Project("{FAE04EC0-301F-11D3-BF4B-00C04F79EFBC}") = "CqlSharp.Performance.Web", "CqlSharp.Performance.Web\CqlSharp.Performance.Web.csproj", "{C78885B6-B61C-48CD-8CC2-E12AB6B8C280}"
+	ProjectSection(ProjectDependencies) = postProject
+		{26AA128D-CC4D-441C-9EF1-DC7AFC14A0E7} = {26AA128D-CC4D-441C-9EF1-DC7AFC14A0E7}
+	EndProjectSection
+EndProject
+Project("{FAE04EC0-301F-11D3-BF4B-00C04F79EFBC}") = "CqlSharp.Performance.Client", "CqlSharp.Performance.Client\CqlSharp.Performance.Client.csproj", "{2D573049-394D-4BEA-90CB-3FACABCC9DFE}"
+EndProject
+Project("{2150E333-8FDC-42A3-9474-1A3956D46DE8}") = "Performance", "Performance", "{F081BC78-8E62-47B1-895B-05597D6FAC9A}"
+EndProject
+Project("{2150E333-8FDC-42A3-9474-1A3956D46DE8}") = "Library", "Library", "{61213789-C96D-4EE9-8BC9-70AA62711082}"
+EndProject
+Project("{FAE04EC0-301F-11D3-BF4B-00C04F79EFBC}") = "CqlSharp.Performance.Data", "CqlSharp.Performance.Data\CqlSharp.Performance.Data.csproj", "{26AA128D-CC4D-441C-9EF1-DC7AFC14A0E7}"
+EndProject
+Project("{FAE04EC0-301F-11D3-BF4B-00C04F79EFBC}") = "CqlSharp.NLog", "CqlSharp.NLog\CqlSharp.NLog.csproj", "{EED9F793-6C9E-4B7A-B492-2B8C9B0CB461}"
 EndProject
 Global
 	GlobalSection(SolutionConfigurationPlatforms) = preSolution
@@ -28,12 +46,40 @@ Global
 		{7F0D1D97-5AC1-4848-9D64-DC88FE63744D}.Debug|Any CPU.ActiveCfg = Debug|Any CPU
 		{7F0D1D97-5AC1-4848-9D64-DC88FE63744D}.Debug|Any CPU.Build.0 = Debug|Any CPU
 		{7F0D1D97-5AC1-4848-9D64-DC88FE63744D}.Release|Any CPU.ActiveCfg = Release|Any CPU
-		{61D745C9-1B9B-40A2-A9A6-A37A58E6B496}.Debug|Any CPU.ActiveCfg = Debug|Any CPU
-		{61D745C9-1B9B-40A2-A9A6-A37A58E6B496}.Debug|Any CPU.Build.0 = Debug|Any CPU
-		{61D745C9-1B9B-40A2-A9A6-A37A58E6B496}.Release|Any CPU.ActiveCfg = Release|Any CPU
-		{61D745C9-1B9B-40A2-A9A6-A37A58E6B496}.Release|Any CPU.Build.0 = Release|Any CPU
+		{CBDE5E8A-04C2-4DF2-8DB0-12A0CA1FCBE6}.Debug|Any CPU.ActiveCfg = Debug|Any CPU
+		{CBDE5E8A-04C2-4DF2-8DB0-12A0CA1FCBE6}.Debug|Any CPU.Build.0 = Debug|Any CPU
+		{CBDE5E8A-04C2-4DF2-8DB0-12A0CA1FCBE6}.Release|Any CPU.ActiveCfg = Release|Any CPU
+		{CBDE5E8A-04C2-4DF2-8DB0-12A0CA1FCBE6}.Release|Any CPU.Build.0 = Release|Any CPU
+		{C78885B6-B61C-48CD-8CC2-E12AB6B8C280}.Debug|Any CPU.ActiveCfg = Debug|Any CPU
+		{C78885B6-B61C-48CD-8CC2-E12AB6B8C280}.Debug|Any CPU.Build.0 = Debug|Any CPU
+		{C78885B6-B61C-48CD-8CC2-E12AB6B8C280}.Release|Any CPU.ActiveCfg = Release|Any CPU
+		{C78885B6-B61C-48CD-8CC2-E12AB6B8C280}.Release|Any CPU.Build.0 = Release|Any CPU
+		{2D573049-394D-4BEA-90CB-3FACABCC9DFE}.Debug|Any CPU.ActiveCfg = Debug|Any CPU
+		{2D573049-394D-4BEA-90CB-3FACABCC9DFE}.Debug|Any CPU.Build.0 = Debug|Any CPU
+		{2D573049-394D-4BEA-90CB-3FACABCC9DFE}.Release|Any CPU.ActiveCfg = Release|Any CPU
+		{2D573049-394D-4BEA-90CB-3FACABCC9DFE}.Release|Any CPU.Build.0 = Release|Any CPU
+		{26AA128D-CC4D-441C-9EF1-DC7AFC14A0E7}.Debug|Any CPU.ActiveCfg = Debug|Any CPU
+		{26AA128D-CC4D-441C-9EF1-DC7AFC14A0E7}.Debug|Any CPU.Build.0 = Debug|Any CPU
+		{26AA128D-CC4D-441C-9EF1-DC7AFC14A0E7}.Release|Any CPU.ActiveCfg = Release|Any CPU
+		{26AA128D-CC4D-441C-9EF1-DC7AFC14A0E7}.Release|Any CPU.Build.0 = Release|Any CPU
+		{EED9F793-6C9E-4B7A-B492-2B8C9B0CB461}.Debug|Any CPU.ActiveCfg = Debug|Any CPU
+		{EED9F793-6C9E-4B7A-B492-2B8C9B0CB461}.Debug|Any CPU.Build.0 = Debug|Any CPU
+		{EED9F793-6C9E-4B7A-B492-2B8C9B0CB461}.Release|Any CPU.ActiveCfg = Release|Any CPU
+		{EED9F793-6C9E-4B7A-B492-2B8C9B0CB461}.Release|Any CPU.Build.0 = Release|Any CPU
 	EndGlobalSection
 	GlobalSection(SolutionProperties) = preSolution
 		HideSolutionNode = FALSE
+	EndGlobalSection
+	GlobalSection(NestedProjects) = preSolution
+		{45F69FDC-EEF6-43DA-A457-95EE553C68A1} = {61213789-C96D-4EE9-8BC9-70AA62711082}
+		{7F0D1D97-5AC1-4848-9D64-DC88FE63744D} = {61213789-C96D-4EE9-8BC9-70AA62711082}
+		{CBDE5E8A-04C2-4DF2-8DB0-12A0CA1FCBE6} = {F081BC78-8E62-47B1-895B-05597D6FAC9A}
+		{C78885B6-B61C-48CD-8CC2-E12AB6B8C280} = {F081BC78-8E62-47B1-895B-05597D6FAC9A}
+		{2D573049-394D-4BEA-90CB-3FACABCC9DFE} = {F081BC78-8E62-47B1-895B-05597D6FAC9A}
+		{26AA128D-CC4D-441C-9EF1-DC7AFC14A0E7} = {F081BC78-8E62-47B1-895B-05597D6FAC9A}
+		{EED9F793-6C9E-4B7A-B492-2B8C9B0CB461} = {61213789-C96D-4EE9-8BC9-70AA62711082}
+	EndGlobalSection
+	GlobalSection(Performance) = preSolution
+		HasPerformanceSessions = true
 	EndGlobalSection
 EndGlobal
