@@ -53,7 +53,7 @@ namespace CqlSharp.Protocol
             FrameReader reader = Reader;
 
             CqlResultType = (CqlResultType)await reader.ReadIntAsync().AutoConfigureAwait();
-            switch (CqlResultType)
+            switch(CqlResultType)
             {
                 case CqlResultType.Void:
                     break;
@@ -128,10 +128,8 @@ namespace CqlSharp.Protocol
             int colCount = await reader.ReadIntAsync().AutoConfigureAwait();
 
             //get paging state if present
-            if (flags.HasFlag(MetadataFlags.HasMorePages))
-            {
+            if(flags.HasFlag(MetadataFlags.HasMorePages))
                 metaData.PagingState = await reader.ReadBytesAsync().AutoConfigureAwait();
-            }
 
             //stop processing if no metadata flag is set
             if(flags.HasFlag(MetadataFlags.NoMetaData))
@@ -144,7 +142,7 @@ namespace CqlSharp.Protocol
             if(globalTablesSpec)
             {
                 keyspace = await reader.ReadStringAsync().AutoConfigureAwait();
-                table = await reader.ReadStringAsync().AutoConfigureAwait(); 
+                table = await reader.ReadStringAsync().AutoConfigureAwait();
             }
 
             //go and start processing all the columns
@@ -176,23 +174,23 @@ namespace CqlSharp.Protocol
             var colType = (CqlTypeCode)await reader.ReadShortAsync().AutoConfigureAwait();
             CqlType type;
             switch(colType)
-                {
+            {
                 case CqlTypeCode.Custom:
-                        var colCustom = await reader.ReadStringAsync().AutoConfigureAwait();
+                    var colCustom = await reader.ReadStringAsync().AutoConfigureAwait();
                     type = CqlType.CreateType(colCustom);
-                        break;
+                    break;
 
                 case CqlTypeCode.List:
                 case CqlTypeCode.Set:
-                        var colValueType = await ReadCqlType(reader).AutoConfigureAwait();
+                    var colValueType = await ReadCqlType(reader).AutoConfigureAwait();
                     type = CqlType.CreateType(colType, colValueType);
-                        break;
+                    break;
 
                 case CqlTypeCode.Map:
-                        var colKeyType = await ReadCqlType(reader).AutoConfigureAwait();
-                        var colValType = await ReadCqlType(reader).AutoConfigureAwait();
+                    var colKeyType = await ReadCqlType(reader).AutoConfigureAwait();
+                    var colValType = await ReadCqlType(reader).AutoConfigureAwait();
                     type = CqlType.CreateType(colType, colKeyType, colValType);
-                        break;
+                    break;
 
                 default:
                     type = CqlType.CreateType(colType);

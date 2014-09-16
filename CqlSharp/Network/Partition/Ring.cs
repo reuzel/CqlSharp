@@ -25,7 +25,7 @@ namespace CqlSharp.Network.Partition
     /// <summary>
     /// Ring of nodes, along with their token values
     /// </summary>
-    internal class Ring : IList<Node>
+    internal class Ring : IList<Node>, IDisposable
     {
         private readonly ReaderWriterLockSlim _nodeLock;
         private readonly List<Node> _nodes;
@@ -37,8 +37,6 @@ namespace CqlSharp.Network.Partition
         /// <summary>
         /// Initializes a new instance of the <see cref="Ring" /> class.
         /// </summary>
-        /// <param name="nodes"> The nodes. </param>
-        /// <param name="partitioner"> </param>
         public Ring()
         {
             _nodes = new List<Node>();
@@ -84,14 +82,6 @@ namespace CqlSharp.Network.Partition
         IEnumerator IEnumerable.GetEnumerator()
         {
             return GetEnumerator();
-        }
-
-        /// <summary>
-        /// Adds a range of nodes
-        /// </summary>
-        /// <param name="items"></param>
-        public void AddRange(IEnumerable<Node> items)
-        {
         }
 
         /// <summary>
@@ -460,7 +450,7 @@ namespace CqlSharp.Network.Partition
         /// </summary>
         /// <param name="key"> The partition key </param>
         /// <returns> </returns>
-        public List<Node> GetResponsibleNodes(PartitionKey key)
+        public IEnumerable<Node> GetResponsibleNodes(PartitionKey key)
         {
             _nodeLock.EnterReadLock();
 
@@ -547,6 +537,29 @@ namespace CqlSharp.Network.Partition
             finally
             {
                 _nodeLock.ExitWriteLock();
+            }
+        }
+
+        /// <summary>
+        /// Performs application-defined tasks associated with freeing, releasing, or resetting unmanaged resources.
+        /// </summary>
+        public void Dispose()
+        {
+            _nodeLock.EnterWriteLock();
+            try
+            {
+                var nodes = _nodes.ToArray();
+                _nodes.Clear();
+                _tokenMap.Clear();
+                _tokens.Clear();
+
+                foreach (var node in nodes)
+                    node.Dispose();
+
+            }
+            finally
+            {
+                _nodeLock.Dispose();
             }
         }
     }

@@ -100,8 +100,8 @@ namespace CqlSharp.Protocol
                 //signal EOS when window reached
                 if(_unreadFromStream <= 0)
                 {
-                    //Scheduler.RunOnIOThread(() => _waitUntilAllFrameDataRead.TrySetResult(true));
-                    _waitUntilAllFrameDataRead.TrySetResult(true);
+                    Scheduler.RunOnIOThread(() => _waitUntilAllFrameDataRead.TrySetResult(true));
+                    //_waitUntilAllFrameDataRead.TrySetResult(true);
                 }
 
                 //return actual read count
@@ -113,8 +113,8 @@ namespace CqlSharp.Protocol
                 _unreadFromStream = 0;
 
                 //signal error as EOS
-                //Scheduler.RunOnIOThread(() => _waitUntilAllFrameDataRead.SetException(ex));
-                _waitUntilAllFrameDataRead.SetException(ex);
+                Scheduler.RunOnIOThread(() => _waitUntilAllFrameDataRead.SetException(ex));
+                //_waitUntilAllFrameDataRead.SetException(ex);
 
                 //rethrow
                 throw;
@@ -156,7 +156,7 @@ namespace CqlSharp.Protocol
                 var readTask = ReadAsync(newBuffer, _remainingInBuffer, newSize - _remainingInBuffer);
                 _remainingInBuffer += await readTask.AutoConfigureAwait();
             }
-            }
+        }
 
         /// <summary>
         /// Gets a value indicating whether this frame instance content is completely read from stream.
@@ -206,8 +206,8 @@ namespace CqlSharp.Protocol
                     while(_unreadFromStream > 0)
                         _unreadFromStream -= _innerStream.Read(_buffer, 0, Math.Min(_buffer.Length, _unreadFromStream));
 
-                    //Scheduler.RunOnIOThread(() => _waitUntilAllFrameDataRead.TrySetResult(true));
-                    _waitUntilAllFrameDataRead.TrySetResult(true);
+                    Scheduler.RunOnIOThread(() => _waitUntilAllFrameDataRead.TrySetResult(true));
+                    //_waitUntilAllFrameDataRead.TrySetResult(true);
                 }
                 catch(Exception ex)
                 {
@@ -289,7 +289,7 @@ namespace CqlSharp.Protocol
                 //read
                 int extra = await ReadAsync(_buffer, offset, _buffer.Length - offset).AutoConfigureAwait();
 
-                if (extra == 0)
+                if(extra == 0)
                     throw new IOException("Unexpected end of stream reached");
 
                 _remainingInBuffer += extra;
@@ -395,7 +395,7 @@ namespace CqlSharp.Protocol
             {
                 //synchronously completed (probably as it could be read from the buffer)
                 ushort len = lengthTask.Result;
-                
+
                 //check for empty string
                 if(0 == len)
                     return String.Empty.AsTask();
@@ -403,7 +403,8 @@ namespace CqlSharp.Protocol
                 if(TryGetSegmentFromBuffer(len))
                 {
                     //yep, enough data available, return a cached version of the string
-                    string str = Encoding.UTF8.GetString(_lastReadSegment.Array, _lastReadSegment.Offset, _lastReadSegment.Count);
+                    string str = Encoding.UTF8.GetString(_lastReadSegment.Array, _lastReadSegment.Offset,
+                                                         _lastReadSegment.Count);
                     return str.AsTask();
                 }
             }
@@ -420,11 +421,11 @@ namespace CqlSharp.Protocol
         {
             //read length
             ushort len = await lengthTask.AutoConfigureAwait();
-            if (0 == len)
+            if(0 == len)
                 return string.Empty;
 
             //read the string segment
-            if (!TryGetSegmentFromBuffer(len))
+            if(!TryGetSegmentFromBuffer(len))
                 await ReadSegmentAsync(len).AutoConfigureAwait();
 
             //return parsed string
@@ -438,11 +439,11 @@ namespace CqlSharp.Protocol
         public async Task<byte[]> ReadBytesAsync()
         {
             int len = await ReadIntAsync().AutoConfigureAwait();
-            if (-1 == len)
+            if(-1 == len)
                 return null;
 
             //read the string segment
-            if (!TryGetSegmentFromBuffer(len))
+            if(!TryGetSegmentFromBuffer(len))
                 await ReadSegmentAsync(len).AutoConfigureAwait();
 
             //copy data from buffer into new array if necessary
@@ -463,7 +464,7 @@ namespace CqlSharp.Protocol
                 return new byte[0];
 
             //read the data segment
-            if (!TryGetSegmentFromBuffer(len))
+            if(!TryGetSegmentFromBuffer(len))
                 await ReadSegmentAsync(len).AutoConfigureAwait();
 
             //copy data from buffer into new array if necessary
@@ -482,7 +483,7 @@ namespace CqlSharp.Protocol
             var data = new string[len];
             for(int i = 0; i < len; ++i)
             {
-                data[i] = await ReadStringAsync().AutoConfigureAwait(); 
+                data[i] = await ReadStringAsync().AutoConfigureAwait();
             }
             return data;
         }
@@ -532,7 +533,7 @@ namespace CqlSharp.Protocol
         /// <returns> </returns>
         public async Task<Guid> ReadUuidAsync()
         {
-            if (!TryGetSegmentFromBuffer(16))
+            if(!TryGetSegmentFromBuffer(16))
                 await ReadSegmentAsync(16).AutoConfigureAwait();
 
             return _lastReadSegment.Array.ToGuid(_lastReadSegment.Offset);

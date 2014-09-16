@@ -72,7 +72,7 @@ namespace CqlSharp.Serialization
             get
             {
                 if(!_cqlTypeCode.HasValue)
-                    throw new CqlException("CqlTypeCode attribute property was not set");
+                    throw new InvalidOperationException("CqlTypeCode attribute property was not set");
 
                 return _cqlTypeCode.Value;
             }
@@ -102,7 +102,7 @@ namespace CqlSharp.Serialization
             get
             {
                 if(!_order.HasValue)
-                    throw new CqlException("Order attribute property was not set");
+                    throw new InvalidOperationException("Order attribute property was not set");
 
                 return _order.Value;
             }

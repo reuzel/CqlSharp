@@ -189,13 +189,11 @@ namespace CqlSharp.Network
                 try
                 {
                     if(_nodes != null)
-                    {
-                        foreach(var node in _nodes)
-                            node.Dispose();
-                        }
+                        _nodes.Dispose();
 
                     if(_maintenanceConnection != null)
                         _maintenanceConnection.Dispose();
+                    
                 }
                 catch(Exception ex)
                 {
@@ -206,6 +204,17 @@ namespace CqlSharp.Network
 
         #endregion
 
+        /// <summary>
+        /// Gets a value indicating whether this cluster instance is open for handling queries.
+        /// </summary>
+        /// <value>
+        ///   <c>true</c> if this instance is open; otherwise, <c>false</c>.
+        /// </value>
+        internal bool IsOpen
+        {
+            get { return _openTask != null && _openTask.IsCompleted && !_openTask.IsFaulted && !_openTask.IsCanceled; }
+        }
+        
         /// <summary>
         /// Opens the cluster for queries.
         /// </summary>

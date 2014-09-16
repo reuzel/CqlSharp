@@ -247,6 +247,8 @@ namespace CqlSharp.Network
                 {
                     _frameSubmitLock.Dispose();
                     _writeLock.Dispose();
+                    _readLoopCompleted.Dispose();
+                    
 
                     //close client if it exists, and its inner socket exists
                     if(_client != null && _client.Client != null && _client.Client.Connected)

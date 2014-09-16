@@ -20,6 +20,7 @@ using System.Data.Common;
 using System.Threading;
 using System.Threading.Tasks;
 using CqlSharp.Logging;
+using CqlSharp.Memory;
 using CqlSharp.Network;
 using CqlSharp.Network.Partition;
 using CqlSharp.Protocol;
@@ -34,7 +35,7 @@ namespace CqlSharp
     {
         private static readonly ConcurrentDictionary<string, Cluster> Clusters;
 
-        private object _syncLock = new object();
+        private readonly object _syncLock = new object();
         private Cluster _cluster;
         private Connection _connection;
         private string _connectionString;
@@ -117,21 +118,21 @@ namespace CqlSharp
                 {
                     //get or add cluster based on connection string
                     _cluster = Clusters.GetOrAdd(ConnectionString, connString =>
-                                                                       {
-                                                                           //connection string unknown, create a new config 
-                                                                           var cc =
-                                                                               new CqlConnectionStringBuilder(connString);
+                    {
+                        //connection string unknown, create a new config 
+                        var cc =
+                            new CqlConnectionStringBuilder(connString);
 
-                                                                           //get normalized connection string
-                                                                           string normalizedConnectionString =
-                                                                               cc.ToString();
+                        //get normalized connection string
+                        string normalizedConnectionString =
+                            cc.ToString();
 
-                                                                           //get or add based on normalized string
-                                                                           return
-                                                                               Clusters.GetOrAdd(
-                                                                                   normalizedConnectionString,
-                                                                                   new Cluster(cc));
-                                                                       });
+                        //get or add based on normalized string
+                        return
+                            Clusters.GetOrAdd(
+                                normalizedConnectionString,
+                                new Cluster(cc));
+                    });
                 }
 
                 return _cluster;
@@ -139,7 +140,7 @@ namespace CqlSharp
         }
 
         /// <summary>
-        ///   Gets the config related to this connection.
+        /// Gets the config related to this connection.
         /// </summary>
         /// <value> The config </value>
         internal CqlConnectionStringBuilder Config
@@ -461,17 +462,34 @@ namespace CqlSharp
         /// </summary>
         public override void Open()
         {
+            if(State != ConnectionState.Closed)
+                throw new InvalidOperationException("Connection must be closed before it is opened");
+
+            if(Cluster.IsOpen)
+            {
+                //perform fast path to open
+                OpenAsyncInternal(CancellationToken.None).Wait();
+            }
+            else
+                OpenInternal();
+        }
+
+        /// <summary>
+        /// Opens the connection with full cancellation support.
+        /// </summary>
+        /// <exception cref="CqlException">CqlConnection Open has been aborted by user</exception>
+        /// <exception cref="System.TimeoutException">CqlConnection.Open timed out.</exception>
+        public void OpenInternal()
+        {
             try
             {
-                if(State != ConnectionState.Closed)
-                    throw new InvalidOperationException("Connection must be closed before it is opened");
-
                 //dispose any old cancel tokens
-                if (_userCancelTokenSource != null)
+                if(_userCancelTokenSource != null)
                     _userCancelTokenSource.Dispose();
-                
-                if (_openCancellationTokenSource != null)
+
+                if(_openCancellationTokenSource != null)
                     _openCancellationTokenSource.Dispose();
+
 
                 //setup cancel support by user
                 _userCancelTokenSource = new CancellationTokenSource();
@@ -483,11 +501,11 @@ namespace CqlSharp
                     _openCancellationTokenSource =
                         CancellationTokenSource.CreateLinkedTokenSource(_userCancelTokenSource.Token,
                                                                         timeoutSource.Token);
-            }
+                }
                 else
                     _openCancellationTokenSource = _userCancelTokenSource;
 
-                //finally call open
+                //call open synchronously
                 Scheduler.RunSynchronously(() => OpenAsyncInternal(_openCancellationTokenSource.Token));
             }
             catch(OperationCanceledException ocex)
@@ -497,14 +515,12 @@ namespace CqlSharp
                 {
                     //check if user abort
                     if(_userCancelTokenSource != null && _userCancelTokenSource.IsCancellationRequested)
-            {
                         throw new CqlException("CqlConnection Open has been aborted by user");
-                    }
 
                     //timout
                     throw new TimeoutException("CqlConnection.Open timed out.");
-            }
-                
+                }
+
                 //some other cancellation: rethrow
                 throw;
             }
@@ -515,7 +531,7 @@ namespace CqlSharp
         /// </summary>
         public virtual void Cancel()
         {
-            if (_userCancelTokenSource != null)
+            if(_userCancelTokenSource != null)
                 _userCancelTokenSource.Cancel();
         }
 
@@ -540,7 +556,7 @@ namespace CqlSharp
         }
 
         /// <summary>
-        ///   Opens the connection.
+        /// Opens the connection.
         /// </summary>
         /// <returns> </returns>
         /// <exception cref="System.ObjectDisposedException">CqlConnection</exception>
@@ -553,10 +569,21 @@ namespace CqlSharp
                 {
                     if(State == ConnectionState.Closed)
                     {
-                        _openTask = OpenAsyncInternal2(cancellationToken);
+                        //get a logger
+                        var logger = LoggerManager.GetLogger("CqlSharp.CqlConnection.Open");
+
+                        //if cluster is already open, use fastpath
+                        if(Cluster.IsOpen)
+                        {
+                            CompleteOpen(logger);
+                            _openTask = TaskCache.CompletedTask;
+                        }
+                        else
+                            _openTask = OpenAsyncInternal2(logger, cancellationToken);
                     }
                 }
             }
+
             return _openTask;
         }
 
@@ -565,19 +592,22 @@ namespace CqlSharp
         /// </summary>
         /// <returns> </returns>
         /// <exception cref="System.ObjectDisposedException">CqlConnection</exception>
-        private async Task OpenAsyncInternal2(CancellationToken cancellationToken)
+        private async Task OpenAsyncInternal2(Logger logger, CancellationToken cancellationToken)
         {
-            //get a logger
-            var logger = LoggerManager.GetLogger("CqlSharp.CqlConnection.Open");
-
             //make sure the cluster is open for connections
             await Cluster.OpenAsync(logger, cancellationToken).AutoConfigureAwait();
 
+            //complete
+            CompleteOpen(logger);
+        }
+
+        private void CompleteOpen(Logger logger)
+        {
             //get a connection
             using(logger.ThreadBinding())
             {
                 _connection = Cluster.ConnectionStrategy.GetOrCreateConnection(ConnectionScope.Connection,
-                                                                           PartitionKey.None);
+                                                                               PartitionKey.None);
             }
 
             //set database to its default
@@ -623,7 +653,7 @@ namespace CqlSharp
                         //wait until open is finished (may return immediatly)
                         _openTask.Wait();
                     }
-                    // ReSharper disable EmptyGeneralCatchClause
+                        // ReSharper disable EmptyGeneralCatchClause
                     catch
                     {
                         //ignore here
@@ -646,6 +676,19 @@ namespace CqlSharp
 
                 //clear database
                 _database = string.Empty;
+
+                //dispose any remaining cancel tokens
+                if(_userCancelTokenSource != null)
+                {
+                    _userCancelTokenSource.Dispose();
+                    _userCancelTokenSource = null;
+                }
+
+                if(_openCancellationTokenSource != null)
+                {
+                    _openCancellationTokenSource.Dispose();
+                    _openCancellationTokenSource = null;
+                }
 
                 _disposed = true;
             }

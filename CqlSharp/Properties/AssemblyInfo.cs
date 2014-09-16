@@ -55,8 +55,6 @@ using System.Runtime.InteropServices;
 [assembly: AssemblyFileVersion("0.40.0.0")]
 
 #if DEBUG
-
 [assembly: InternalsVisibleTo("CqlSharp.Fakes")]
 [assembly: InternalsVisibleTo("CqlSharp.Test")]
-[assembly: InternalsVisibleTo("CqlTest")]
 #endif
