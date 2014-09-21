@@ -24,7 +24,6 @@ using CqlSharp.Network;
 using CqlSharp.Network.Fakes;
 using CqlSharp.Network.Partition;
 using CqlSharp.Protocol;
-using CqlSharp.Threading;
 using Microsoft.QualityTools.Testing.Fakes;
 using Microsoft.VisualStudio.TestTools.UnitTesting;
 
@@ -70,7 +69,7 @@ namespace CqlSharp.Test
                     }
 
                     await
-                        connection.SendRequestAsync(new QueryFrame("", CqlConsistency.Any, null), logger, 10, false,
+                        connection.SendRequestAsync(new QueryFrame("", CqlConsistency.Any, null), logger, 10,
                                                     CancellationToken.None);
                 }
 
@@ -116,7 +115,7 @@ namespace CqlSharp.Test
                     }
 
                     await
-                        connection.SendRequestAsync(new QueryFrame("", CqlConsistency.Any, null), logger, 10, false,
+                        connection.SendRequestAsync(new QueryFrame("", CqlConsistency.Any, null), logger, 10,
                                                     CancellationToken.None);
                 }
 
@@ -163,7 +162,7 @@ namespace CqlSharp.Test
                     }
 
                     await
-                        connection.SendRequestAsync(new QueryFrame("", CqlConsistency.Any, null), logger, 10, false,
+                        connection.SendRequestAsync(new QueryFrame("", CqlConsistency.Any, null), logger, 10,
                                                     CancellationToken.None);
                 }
 
@@ -209,7 +208,7 @@ namespace CqlSharp.Test
                     }
 
                     await
-                        connection.SendRequestAsync(new QueryFrame("", CqlConsistency.Any, null), logger, 10, false,
+                        connection.SendRequestAsync(new QueryFrame("", CqlConsistency.Any, null), logger, 10,
                                                     CancellationToken.None);
                 }
 
@@ -255,7 +254,7 @@ namespace CqlSharp.Test
                     }
 
                     await
-                        connection.SendRequestAsync(new QueryFrame("", CqlConsistency.Any, null), logger, 10, false,
+                        connection.SendRequestAsync(new QueryFrame("", CqlConsistency.Any, null), logger, 10,
                                                     CancellationToken.None);
                 }
 
@@ -303,7 +302,7 @@ namespace CqlSharp.Test
                     }
 
                     await
-                        connection.SendRequestAsync(new QueryFrame("", CqlConsistency.Any, null), logger, 10, false,
+                        connection.SendRequestAsync(new QueryFrame("", CqlConsistency.Any, null), logger, 10,
                                                     CancellationToken.None);
                 }
 
@@ -352,7 +351,7 @@ namespace CqlSharp.Test
                     }
 
                     await
-                        connection.SendRequestAsync(new QueryFrame("", CqlConsistency.Any, null), logger, 10, false,
+                        connection.SendRequestAsync(new QueryFrame("", CqlConsistency.Any, null), logger, 10,
                                                     CancellationToken.None);
                 }
 
@@ -379,9 +378,9 @@ namespace CqlSharp.Test
 
                 // ReSharper disable AccessToModifiedClosure
                 connection.
-                    SendRequestAsyncFrameLoggerInt32BooleanCancellationToken
+                    SendRequestAsyncFrameLoggerInt32CancellationToken
                     =
-                    (frame, log, load, connecting, token) =>
+                    (frame, log, load, token) =>
                     {
                         //update connection load
                         connLoad += load;

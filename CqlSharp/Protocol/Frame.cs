@@ -59,7 +59,7 @@ namespace CqlSharp.Protocol
         /// Gets or sets the stream identifier (request response pair)
         /// </summary>
         /// <value> The stream. </value>
-        public sbyte Stream { get; set; }
+        public short Stream { get; set; }
 
         /// <summary>
         /// Gets or sets the op code.
@@ -226,8 +226,8 @@ namespace CqlSharp.Protocol
             //decompress the contents of the frame (implicity loads the entire frame body!)
             if(!Flags.HasFlag(FrameFlags.Compression) && !Flags.HasFlag(FrameFlags.Tracing))
                 return InitializeAsync();
-            else
-                return PrepareAndInitializeContentAsync();
+            
+            return PrepareAndInitializeContentAsync();
         }
 
         /// <summary>

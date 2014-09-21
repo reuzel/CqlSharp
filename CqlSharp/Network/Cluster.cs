@@ -395,7 +395,6 @@ namespace CqlSharp.Network
         /// <param name="seed"> The reference. </param>
         /// <param name="logger"> logger used to log progress </param>
         /// <param name="token"> The token. </param>
-        /// <param name=""></param>
         /// <returns> </returns>
         /// <exception cref="CqlException">
         /// Could not detect datacenter or rack information from the reference specified in the
@@ -564,10 +563,8 @@ namespace CqlSharp.Network
         /// <param name="cql"> The CQL. </param>
         /// <param name="logger"> The logger. </param>
         /// <param name="token"> The token. </param>
-        /// <param name=""></param>
         /// <returns> A CqlDataReader that can be used to access the query results </returns>
-        private async Task<CqlDataReader> ExecQuery(Connection connection, string cql, Logger logger,
-                                                    CancellationToken token)
+        private async Task<CqlDataReader> ExecQuery(Connection connection, string cql, Logger logger, CancellationToken token)
         {
             //cancel if requested
             token.ThrowIfCancellationRequested();
@@ -578,7 +575,7 @@ namespace CqlSharp.Network
             var result =
                 (ResultFrame)
                     await
-                        connection.SendRequestAsync(query, logger, 1, false, token)
+                        connection.SendRequestAsync(query, logger, 1, token)
                                   .AutoConfigureAwait();
             var reader = new CqlDataReader(null, result, null);
 

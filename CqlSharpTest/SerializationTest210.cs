@@ -25,6 +25,8 @@ namespace CqlSharp.Test
     [TestClass]
     public class SerializationTest210
     {
+        public static bool Cassandra210OrUp;
+        
         private const string ConnectionString =
             "server=localhost;throttle=256;MaxConnectionIdleTime=3600;ConnectionStrategy=Exclusive;loggerfactory=debug;loglevel=query;username=cassandra;password=cassandra";
 
@@ -50,6 +52,10 @@ namespace CqlSharp.Test
             {
                 connection.SetConnectionTimeout(0);
                 connection.Open();
+
+                Cassandra210OrUp = string.CompareOrdinal(connection.ServerVersion, "2.1.0") >= 0;
+                if(!Cassandra210OrUp)
+                    return;
 
                 try
                 {
@@ -77,6 +83,9 @@ namespace CqlSharp.Test
         [ClassCleanup]
         public static void Cleanup()
         {
+            if (!Cassandra210OrUp)
+                return;
+
             const string dropCql = @"drop keyspace TestUDT;";
 
             using(var connection = new CqlConnection(ConnectionString))
@@ -100,6 +109,9 @@ namespace CqlSharp.Test
         [TestInitialize]
         public void PrepareTest()
         {
+            if (!Cassandra210OrUp)
+                return;
+
             const string truncateTableCql = @"truncate TestUDT.Members;";
             const string truncateTable2Cql = @"truncate TestUDT.Groups;";
 
@@ -117,6 +129,9 @@ namespace CqlSharp.Test
         [TestMethod]
         public void InsertAndSelectTupleAndUDT()
         {
+            if (!Cassandra210OrUp)
+                return;
+
             var address = new Address {Street = "MyWay", Number = 1};
             var user = new User {Name = "Joost", Password = new byte[] {1, 2, 3}, Address = address};
             var member = new Member {Id = 1, User = user, Comment = Tuple.Create("my title", "phew")};
@@ -154,6 +169,9 @@ namespace CqlSharp.Test
         [TestMethod]
         public void InsertAndSelectNestedUDTAndTuples()
         {
+            if (!Cassandra210OrUp)
+                return;
+
             var address = new Address {Street = "MyWay", Number = 1};
             var user = new User {Name = "Joost", Password = new byte[] {1, 2, 3}, Address = address};
             var group = new Group {Id = 1, Members = new HashSet<Tuple<int, User>> {Tuple.Create(1, user)}};
@@ -189,6 +207,9 @@ namespace CqlSharp.Test
         [TestMethod]
         public void SelectAnonymousUDT()
         {
+            if (!Cassandra210OrUp)
+                return;
+
             var address = new Address {Street = "MyWay", Number = 1};
             var user = new User {Name = "Joost", Password = new byte[] {1, 2, 3}, Address = address};
             var member = new Member {Id = 1, User = user, Comment = Tuple.Create("my title", "phew")};
@@ -223,6 +244,9 @@ namespace CqlSharp.Test
         [TestMethod]
         public void SelectUDTAndTuplesViaNonGenericReader()
         {
+            if (!Cassandra210OrUp)
+                return;
+
             var address = new Address {Street = "MyWay", Number = 1};
             var user = new User {Name = "Joost", Password = new byte[] {1, 2, 3}, Address = address};
             var member = new Member {Id = 1, User = user, Comment = Tuple.Create("my title", "phew")};
@@ -261,6 +285,9 @@ namespace CqlSharp.Test
         [TestMethod]
         public void SerializeTupleAndUDTOutNullTest()
         {
+            if (!Cassandra210OrUp)
+                return;
+
             using(var connection = new CqlConnection(ConnectionString))
             {
                 connection.Open();

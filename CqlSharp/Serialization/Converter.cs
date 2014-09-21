@@ -16,7 +16,6 @@
 using System;
 using System.Collections.Concurrent;
 using System.Collections.Generic;
-using System.Diagnostics;
 using System.Linq;
 using System.Linq.Expressions;
 using System.Reflection;
@@ -122,7 +121,7 @@ namespace CqlSharp.Serialization
                                                                        "Convert" + srcType.Name + "To" + targetType.Name,
                                                                        new[] {src});
 
-                Debug.WriteLine(lambda.Name + " : " + lambda);
+                //Debug.WriteLine(lambda.Name + " : " + lambda);
 
                 Convert = lambda.Compile();
             }

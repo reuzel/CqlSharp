@@ -20,9 +20,7 @@ using System.Collections.Generic;
 using System.Linq;
 using System.Net;
 using System.Threading;
-using System.Threading.Tasks;
 using CqlSharp.Logging;
-using CqlSharp.Protocol;
 using CqlSharp.Threading;
 
 namespace CqlSharp.Network
@@ -322,7 +320,7 @@ namespace CqlSharp.Network
                         connection = AddConnection();
                 }
                 finally
-                    {
+                {
                     _connectionLock.ExitWriteLock();
                 }
             }
@@ -341,28 +339,28 @@ namespace CqlSharp.Network
         /// <returns></returns>
         private Connection AddConnection()
         {
-                        //create new connection
+            //create new connection
             var connection = new Connection(this, _counter++);
 
-                        //register to connection and load changes
-                        connection.OnConnectionChange += ConnectionChange;
-                        connection.OnLoadChange += LoadChange;
+            //register to connection and load changes
+            connection.OnConnectionChange += ConnectionChange;
+            connection.OnLoadChange += LoadChange;
 
-                        //assume it will succesfully open (to avoid too many connections to be opened)
-                        _openConnections++;
+            //assume it will succesfully open (to avoid too many connections to be opened)
+            _openConnections++;
 
             //add connection to list of open connections
-                        _connections.Add(connection);
+            _connections.Add(connection);
 
-                        //create cleanup timer if it does not exist yet
+            //create cleanup timer if it does not exist yet
             if(_connectionCleanupTimer == null)
             {
-                            _connectionCleanupTimer = new Timer(RemoveIdleConnections, null,
-                                                                TimeSpan.FromSeconds(
-                                                                    Cluster.Config.MaxConnectionIdleTime),
-                                                                TimeSpan.FromSeconds(
-                                                                    Cluster.Config.MaxConnectionIdleTime));
-                    }
+                _connectionCleanupTimer = new Timer(RemoveIdleConnections, null,
+                                                    TimeSpan.FromSeconds(
+                                                        Cluster.Config.MaxConnectionIdleTime),
+                                                    TimeSpan.FromSeconds(
+                                                        Cluster.Config.MaxConnectionIdleTime));
+            }
 
             return connection;
         }
@@ -501,14 +499,14 @@ namespace CqlSharp.Network
                 return;
 
             lock(_statusLock)
-                {
+            {
                 //we're down
                 _status = HostState.Down;
 
                 //clear all prepared id state, when first reconnect fails as we can assume the node really went down.
                 //In case state is not cleared here, preparedQueryIds will be cleared with first prepared query that 
                 //fails with unprepared error
-                if(_failureCount==1)
+                if(_failureCount == 1)
                     PreparedQueryIds.Clear();
 
                 //calculate the time, before retry
@@ -543,16 +541,16 @@ namespace CqlSharp.Network
                 lock(_statusLock)
                 {
                     if(_status == HostState.Down)
-            {
+                    {
                         //move to checking state
                         _status = HostState.Checking;
 
                         //dispose of any reactivation timer first
                         if(_reactivateTimer != null)
-                {
-                    _reactivateTimer.Dispose();
-                    _reactivateTimer = null;
-                }
+                        {
+                            _reactivateTimer.Dispose();
+                            _reactivateTimer = null;
+                        }
 
                         logger.LogInfo("Verifying if {0} is available again.", this);
 
@@ -570,7 +568,9 @@ namespace CqlSharp.Network
                                 {
                                     await connection.OpenAsync(logger).AutoConfigureAwait();
                                     using(logger.ThreadBinding())
+                                    {
                                         connection.Dispose();
+                                    }
                                 }
                                 catch(Exception)
                                 {

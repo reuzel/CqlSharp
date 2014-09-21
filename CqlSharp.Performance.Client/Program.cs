@@ -37,7 +37,7 @@ namespace CqlSharp.Performance.Client
             Func<string, Task> request = options.Sync ? (Func<string, Task>)DoRequest : DoRequestAsync;
 
             Console.WriteLine("Waiting for server to start...");
-            Thread.Sleep(5000);
+            Thread.Sleep(10000);
 
             ThreadPool.SetMinThreads(options.Concurrent + 10, options.Concurrent + 10);
 

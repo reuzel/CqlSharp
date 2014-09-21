@@ -559,6 +559,7 @@ namespace CqlSharp.Network.Partition
             }
             finally
             {
+                _nodeLock.ExitWriteLock();
                 _nodeLock.Dispose();
             }
         }

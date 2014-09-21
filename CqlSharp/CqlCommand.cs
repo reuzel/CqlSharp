@@ -1108,7 +1108,7 @@ namespace CqlSharp
 
                         var useFrame = new QueryFrame(useQuery, CqlConsistency.One, null);
 
-                        var result = await connection.SendRequestAsync(useFrame, logger, 1, false, token)
+                        var result = await connection.SendRequestAsync(useFrame, logger, 1, token)
                                                      .AutoConfigureAwait() as ResultFrame;
 
                         if(result == null || result.CqlResultType != CqlResultType.SetKeyspace)
@@ -1228,7 +1228,7 @@ namespace CqlSharp
             //send prepare request
             using(
                 Frame response =
-                    await connection.SendRequestAsync(request, logger, 1, false, token).AutoConfigureAwait())
+                    await connection.SendRequestAsync(request, logger, 1, token).AutoConfigureAwait())
             {
                 var result = response as ResultFrame;
                 if(result == null)
@@ -1300,7 +1300,7 @@ namespace CqlSharp
 
             Frame response =
                 await
-                    connection.SendRequestAsync(queryFrame, logger, Load, false, token)
+                    connection.SendRequestAsync(queryFrame, logger, Load, token)
                               .AutoConfigureAwait();
 
             var result = response as ResultFrame;
@@ -1381,7 +1381,7 @@ namespace CqlSharp
             logger.LogVerbose("Sending batch command using {0}", connection);
 
             Frame response =
-                await connection.SendRequestAsync(batchFrame, logger, Load, false, token).AutoConfigureAwait();
+                await connection.SendRequestAsync(batchFrame, logger, Load, token).AutoConfigureAwait();
 
             var result = response as ResultFrame;
             if(result != null)
