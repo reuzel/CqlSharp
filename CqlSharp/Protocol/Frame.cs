@@ -101,19 +101,25 @@ namespace CqlSharp.Protocol
             int versionByte = (ProtocolVersion & 0x7f) | (IsRequest ? 0 : 0x80);
             buffer.WriteByte((byte)versionByte);
             buffer.WriteByte((byte)Flags);
-            buffer.WriteByte(unchecked((byte)Stream));
+            if(ProtocolVersion <= 2)
+                buffer.WriteByte(unchecked((byte)Stream));
+            else
+                buffer.WriteShort(unchecked((ushort)Stream));
             buffer.WriteByte((byte)OpCode);
 
             //write length placeholder
             buffer.WriteInt(0);
 
+            long headerLength = buffer.Position;
+
             //write uncompressed data
             WriteData(buffer);
-
+            
             //compress if allowed, and buffer is large enough to compress
-            if(compress && buffer.Length > compressTreshold + 8)
+            if(compress && buffer.Length > headerLength + compressTreshold)
             {
-                buffer.Position = 8;
+                //rewind to start of content
+                buffer.Position = headerLength;
 
                 //compress data to temporary stream
                 using(var compressed = new PoolMemoryStream())
@@ -127,16 +133,16 @@ namespace CqlSharp.Protocol
                     buffer.WriteByte((byte)Flags);
 
                     //overwrite data with compressed data
-                    buffer.Position = 8;
+                    buffer.Position = headerLength;
                     compressed.Position = 0;
                     compressed.CopyTo(buffer);
-                    buffer.SetLength(length + 8);
+                    buffer.SetLength(headerLength + length);
                 }
             }
 
             //overwrite length with real value
-            buffer.Position = 4;
-            buffer.WriteInt((int)buffer.Length - 8);
+            buffer.Position = headerLength - 4;
+            buffer.WriteInt((int)(buffer.Length - headerLength));
 
             //reset buffer position
             buffer.Position = 0;
@@ -158,22 +164,79 @@ namespace CqlSharp.Protocol
         /// <returns> </returns>
         internal static async Task<Frame> FromStream(Stream stream)
         {
-            //read header
             int read = 0;
-            var header = new byte[8];
-            while(read < 8)
+            var header = new byte[9];
+
+            //read version byte first
+            if (Scheduler.RunningSynchronously)
+                read += stream.Read(header, 0, 1);
+            else
+                read += await stream.ReadAsync(header, 0, 1).AutoConfigureAwait();
+
+            if(read==0)
+                throw new IOException("End of stream reached");
+
+            //distill version
+            var protocolVersion = (byte)(header[0] & 0x7f);
+
+            //read remaining header bytes
+            int headerSize = protocolVersion <= 2 ? 8 : 9;
+            while (read < headerSize)
             {
                 if(Scheduler.RunningSynchronously)
-                    read += stream.Read(header, read, 8 - read);
+                    read += stream.Read(header, read, headerSize - read);
                 else
-                    read += await stream.ReadAsync(header, read, 8 - read).AutoConfigureAwait();
+                    read += await stream.ReadAsync(header, read, headerSize - read).AutoConfigureAwait();
+
+                //check if we are not end-of-stream
+                if(read==0 && read<headerSize)
+                    throw new IOException("Unexpected end of stream reached");
             }
 
-            //get length
-            int length = header.ToInt(4);
-
             Frame frame;
-            switch((FrameOpcode)header[3])
+            if(protocolVersion <= 2)
+            {
+                var opcode = (FrameOpcode)header[3];
+                frame = GetFrameFromOpcode(opcode);
+
+                frame.ProtocolVersion = protocolVersion;
+                frame.IsRequest = (header[0] & 0x80) == 0;
+                frame.Flags = (FrameFlags)header[1];
+                frame.Stream = unchecked((sbyte)header[2]);
+                frame.OpCode = opcode;
+                frame.Length = header.ToInt(4);
+            }
+            else
+            {
+                var opcode = (FrameOpcode)header[4];
+                frame = GetFrameFromOpcode(opcode);
+
+                frame.ProtocolVersion = protocolVersion;
+                frame.IsRequest = (header[0] & 0x80) == 0;
+                frame.Flags = (FrameFlags)header[1];
+                frame.Stream = unchecked((short)header.ToShort(2));
+                frame.OpCode = opcode;
+                frame.Length = header.ToInt(5);
+
+            }
+           
+            //wrap the stream in a window, that will be completely read when disposed
+            var reader = new FrameReader(stream, frame.Length);
+            frame.Reader = reader;
+
+            return frame;
+        }
+
+        /// <summary>
+        /// Gets the frame from opcode.
+        /// </summary>
+        /// <param name="opcode">The opcode.</param>
+        /// <returns></returns>
+        /// <exception cref="ProtocolException">0</exception>
+        private static Frame GetFrameFromOpcode(FrameOpcode opcode)
+        {
+            Frame frame;
+            switch(opcode)
             {
                 case FrameOpcode.Error:
                     frame = new ErrorFrame();
@@ -200,20 +263,8 @@ namespace CqlSharp.Protocol
                     frame = new EventFrame();
                     break;
                 default:
-                    throw new ProtocolException(0, string.Format("Unexpected OpCode {0:X} received.", header[3]));
+                    throw new ProtocolException(0, string.Format("Unexpected OpCode {0:X} received.", opcode));
             }
-
-            frame.ProtocolVersion = (byte)(header[0] & 0x7f);
-            frame.IsRequest = (header[0] & 0x80) == 0;
-            frame.Flags = (FrameFlags)header[1];
-            frame.Stream = unchecked((sbyte)header[2]);
-            frame.OpCode = (FrameOpcode)header[3];
-            frame.Length = length;
-
-            //wrap the stream in a window, that will be completely read when disposed
-            var reader = new FrameReader(stream, length);
-            frame.Reader = reader;
-
             return frame;
         }
 
