@@ -74,35 +74,73 @@ namespace CqlSharp.Serialization.Marshal
 
         public override byte[] Serialize(Dictionary<TKey, TValue> map, byte protocolVersion)
         {
-            using(var ms = new MemoryStream())
+            if(protocolVersion <= 2)
             {
-                ms.WriteShort((ushort)map.Count);
-                foreach(var de in map)
+                using(var ms = new MemoryStream())
                 {
-                    byte[] rawDataKey = _keyType.Serialize(de.Key, protocolVersion);
-                    ms.WriteShortByteArray(rawDataKey);
-                    byte[] rawDataValue = _valueType.Serialize(de.Value, protocolVersion);
-                    ms.WriteShortByteArray(rawDataValue);
+                    ms.WriteShort((ushort)map.Count);
+                    foreach(var de in map)
+                    {
+                        byte[] rawDataKey = _keyType.Serialize(de.Key, protocolVersion);
+                        ms.WriteShortByteArray(rawDataKey);
+                        byte[] rawDataValue = _valueType.Serialize(de.Value, protocolVersion);
+                        ms.WriteShortByteArray(rawDataValue);
+                    }
+                    return ms.ToArray();
                 }
-                return ms.ToArray();
+            }
+            else
+            {
+                using (var ms = new MemoryStream())
+                {
+                    ms.WriteInt(map.Count);
+                    foreach (var de in map)
+                    {
+                        byte[] rawDataKey = _keyType.Serialize(de.Key, protocolVersion);
+                        ms.WriteByteArray(rawDataKey);
+                        byte[] rawDataValue = _valueType.Serialize(de.Value, protocolVersion);
+                        ms.WriteByteArray(rawDataValue);
+                    }
+                    return ms.ToArray();
+                }
             }
         }
 
         public override Dictionary<TKey, TValue> Deserialize(byte[] data, byte protocolVersion)
         {
-            using(var ms = new MemoryStream(data))
+            if(protocolVersion <= 2)
             {
-                ushort nbElem = ms.ReadShort();
-                var map = new Dictionary<TKey, TValue>(nbElem);
-                for(int i = 0; i < nbElem; i++)
+                using(var ms = new MemoryStream(data))
                 {
-                    byte[] elemRawKey = ms.ReadShortByteArray();
-                    byte[] elemRawValue = ms.ReadShortByteArray();
-                    TKey key = _keyType.Deserialize(elemRawKey, protocolVersion);
-                    TValue value = _valueType.Deserialize(elemRawValue, protocolVersion);
-                    map.Add(key, value);
+                    ushort nbElem = ms.ReadShort();
+                    var map = new Dictionary<TKey, TValue>(nbElem);
+                    for(int i = 0; i < nbElem; i++)
+                    {
+                        byte[] elemRawKey = ms.ReadShortByteArray();
+                        byte[] elemRawValue = ms.ReadShortByteArray();
+                        TKey key = _keyType.Deserialize(elemRawKey, protocolVersion);
+                        TValue value = _valueType.Deserialize(elemRawValue, protocolVersion);
+                        map.Add(key, value);
+                    }
+                    return map;
                 }
-                return map;
+            }
+            else
+            {
+                using (var ms = new MemoryStream(data))
+                {
+                    int nbElem = ms.ReadInt();
+                    var map = new Dictionary<TKey, TValue>(nbElem);
+                    for (int i = 0; i < nbElem; i++)
+                    {
+                        byte[] elemRawKey = ms.ReadByteArray();
+                        byte[] elemRawValue = ms.ReadByteArray();
+                        TKey key = _keyType.Deserialize(elemRawKey, protocolVersion);
+                        TValue value = _valueType.Deserialize(elemRawValue, protocolVersion);
+                        map.Add(key, value);
+                    }
+                    return map;
+                }
             }
         }
 

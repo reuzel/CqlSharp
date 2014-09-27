@@ -70,36 +70,75 @@ namespace CqlSharp.Serialization.Marshal
         }
         public override byte[] Serialize(HashSet<T> value, byte protocolVersion)
         {
-            using(var ms = new MemoryStream())
+            if(protocolVersion <= 2)
             {
-                //write length placeholder
-                ms.Position = 2;
-                ushort count = 0;
-                foreach(T elem in value)
+                using(var ms = new MemoryStream())
                 {
-                    byte[] rawDataElem = _valueType.Serialize(elem, protocolVersion);
-                    ms.WriteShortByteArray(rawDataElem);
-                    count++;
+                    //write length placeholder
+                    ms.Position = 2;
+                    ushort count = 0;
+                    foreach(T elem in value)
+                    {
+                        byte[] rawDataElem = _valueType.Serialize(elem, protocolVersion);
+                        ms.WriteShortByteArray(rawDataElem);
+                        count++;
+                    }
+                    ms.Position = 0;
+                    ms.WriteShort(count);
+                    return ms.ToArray();
                 }
-                ms.Position = 0;
-                ms.WriteShort(count);
-                return ms.ToArray();
+            }
+            else
+            {
+                using (var ms = new MemoryStream())
+                {
+                    //write length placeholder
+                    ms.Position = 4;
+                    int count = 0;
+                    foreach (T elem in value)
+                    {
+                        byte[] rawDataElem = _valueType.Serialize(elem, protocolVersion);
+                        ms.WriteByteArray(rawDataElem);
+                        count++;
+                    }
+                    ms.Position = 0;
+                    ms.WriteInt(count);
+                    return ms.ToArray();
+                }
             }
         }
 
         public override HashSet<T> Deserialize(byte[] data, byte protocolVersion)
         {
-            using(var ms = new MemoryStream(data))
+            if(protocolVersion <= 2)
             {
-                ushort nbElem = ms.ReadShort();
-                var set = new HashSet<T>();
-                for(int i = 0; i < nbElem; i++)
+                using(var ms = new MemoryStream(data))
                 {
-                    byte[] elemRawData = ms.ReadShortByteArray();
-                    T elem = _valueType.Deserialize(elemRawData, protocolVersion);
-                    set.Add(elem);
+                    ushort nbElem = ms.ReadShort();
+                    var set = new HashSet<T>();
+                    for(int i = 0; i < nbElem; i++)
+                    {
+                        byte[] elemRawData = ms.ReadShortByteArray();
+                        T elem = _valueType.Deserialize(elemRawData, protocolVersion);
+                        set.Add(elem);
+                    }
+                    return set;
                 }
-                return set;
+            }
+            else
+            {
+                using (var ms = new MemoryStream(data))
+                {
+                    int nbElem = ms.ReadInt();
+                    var set = new HashSet<T>();
+                    for (int i = 0; i < nbElem; i++)
+                    {
+                        byte[] elemRawData = ms.ReadByteArray();
+                        T elem = _valueType.Deserialize(elemRawData, protocolVersion);
+                        set.Add(elem);
+                    }
+                    return set;
+                }
             }
         }
 

@@ -184,7 +184,7 @@ namespace CqlSharp.Serialization.Marshal
                                                              typeof(TSource), this));
                     }
 
-                    var rawValue = column.SerializeFrom(source, _fieldList[i].Value, protocolVersion);
+                    var rawValue = column.SerializeFrom(source, _fieldList[i].Value, (protocolVersion <= 2 ? (byte)3 : protocolVersion));
                     stream.WriteByteArray(rawValue);
                 }
 
@@ -235,7 +235,7 @@ namespace CqlSharp.Serialization.Marshal
 
                     ICqlColumnInfo column;
                     if(accessor.ColumnsByName.TryGetValue(field.Key, out column))
-                        column.DeserializeTo(result, rawValue, field.Value, protocolVersion);
+                        column.DeserializeTo(result, rawValue, field.Value, (protocolVersion <= 2 ? (byte)3 : protocolVersion));
                 }
 
                 return (TTarget)result;
