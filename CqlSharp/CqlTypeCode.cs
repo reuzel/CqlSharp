@@ -55,6 +55,11 @@ namespace CqlSharp
 
         Map = 0x0021,
 
-        Set = 0x0022
+        Set = 0x0022,
+
+        UserDefinedType = 0x0030,
+
+        Tuple = 0x0031
+
     }
 }

@@ -27,8 +27,8 @@ namespace CqlSharp.Serialization.Marshal
 {
     internal class UserDefinedTypeFactory : ITypeFactory
     {
-        private static readonly ConcurrentDictionary<string, Type> UserDefinedTypes =
-            new ConcurrentDictionary<string, Type>();
+        private static readonly ConcurrentDictionary<string, Lazy<Type>> UserDefinedTypes =
+            new ConcurrentDictionary<string, Lazy<Type>>();
 
         public string TypeName
         {
@@ -100,7 +100,10 @@ namespace CqlSharp.Serialization.Marshal
             if(udt == null)
             {
                 var typeId = GetTypeId(keyspace, name, fieldNames, fieldTypes);
-                udt = UserDefinedTypes.GetOrAdd(typeId, _ => EmitNewType(keyspace, name, fieldNames, fieldTypes));
+                udt = UserDefinedTypes.GetOrAdd(
+                                typeId, 
+                                _ => new Lazy<Type>( () => EmitNewType(keyspace, name, fieldNames, fieldTypes))
+                                ).Value;
             }
 
             Type userDefinedType = typeof(UserDefinedType<>).MakeGenericType(udt);

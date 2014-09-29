@@ -14,6 +14,7 @@
 // limitations under the License.
 
 using System;
+using System.Collections.Generic;
 using System.IO;
 using System.Threading.Tasks;
 using CqlSharp.Threading;
@@ -190,6 +191,32 @@ namespace CqlSharp.Protocol
                     var colKeyType = await ReadCqlType(reader).AutoConfigureAwait();
                     var colValType = await ReadCqlType(reader).AutoConfigureAwait();
                     type = CqlType.CreateType(colType, colKeyType, colValType);
+                    break;
+
+                case CqlTypeCode.UserDefinedType:
+                    var keyspace = await reader.ReadStringAsync().AutoConfigureAwait();
+                    var name = await reader.ReadStringAsync().AutoConfigureAwait();
+                    var fieldCount = await reader.ReadShortAsync().AutoConfigureAwait();
+                    var fieldNames = new List<string>(fieldCount);
+                    var fieldTypes = new List<CqlType>(fieldCount);
+                    for(int i = 0; i < fieldCount; i++)
+                    {
+                        fieldNames[i] = await reader.ReadStringAsync().AutoConfigureAwait();
+                        fieldTypes[i] = await ReadCqlType(reader).AutoConfigureAwait();
+                    }
+
+                    type = CqlType.CreateType(colType, keyspace, name, fieldNames, fieldTypes);
+                    break;
+
+                case CqlTypeCode.Tuple:
+                    var tupleItems = await reader.ReadShortAsync().AutoConfigureAwait();
+                    var tupleItemTypes = new object[tupleItems];
+                    for(int i = 0; i < tupleItems; i++)
+                    {
+                        tupleItemTypes[i] = await ReadCqlType(reader).AutoConfigureAwait();
+                    }
+
+                    type = CqlType.CreateType(colType, tupleItemTypes);
                     break;
 
                 default:

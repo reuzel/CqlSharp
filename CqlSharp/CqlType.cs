@@ -92,7 +92,9 @@ namespace CqlSharp
             TypeCodeMap[(short)CqlTypeCode.List] = new ListTypeFactory();
             TypeCodeMap[(short)CqlTypeCode.Set] = new SetTypeFactory();
             TypeCodeMap[(short)CqlTypeCode.Map] = new MapTypeFactory();
-
+            TypeCodeMap[(short)CqlTypeCode.UserDefinedType] = new UserDefinedTypeFactory();
+            TypeCodeMap[(short)CqlTypeCode.Tuple] = new TupleTypeFactory();
+            
             //populate .net type to CqlType map with all native classes
             Type2CqlType = new ConcurrentDictionary<Type, CqlType>();
             Type2CqlType[typeof(string)] = UTF8Type.Instance;

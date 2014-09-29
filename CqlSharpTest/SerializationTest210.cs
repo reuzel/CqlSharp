@@ -40,7 +40,7 @@ namespace CqlSharp.Test
                 @"create type TestUDT.address (street text, number int);";
 
             const string createUserType =
-                @"CREATE type TestUDT.user (name text, password blob, address address);";
+                @"CREATE type TestUDT.user (name text, password blob, address address, phones list<text>);";
 
             const string createTableCql =
                 @"create table TestUDT.Members (id int primary key, user user, comment tuple<text,text>);";
@@ -133,8 +133,8 @@ namespace CqlSharp.Test
                 return;
 
             var address = new Address {Street = "MyWay", Number = 1};
-            var user = new User {Name = "Joost", Password = new byte[] {1, 2, 3}, Address = address};
-            var member = new Member {Id = 1, User = user, Comment = Tuple.Create("my title", "phew")};
+            var user = new User { Name = "Joost", Password = new byte[] { 1, 2, 3 }, Address = address, Phones = new List<string> { "call me once", "call me twice", "no answer" } };
+            var member = new Member { Id = 1, User = user, Comment = Tuple.Create("my title", "phew") };
 
             using(var connection = new CqlConnection(ConnectionString))
             {
@@ -161,6 +161,10 @@ namespace CqlSharp.Test
                         Assert.AreEqual(member.User.Name, actual.User.Name);
                         Assert.IsNotNull(member.User.Address);
                         Assert.AreEqual(member.User.Address.Street, actual.User.Address.Street);
+                        Assert.IsNotNull(member.User.Phones);
+                        Assert.AreEqual(3, member.User.Phones.Count);
+                        Assert.AreEqual("call me twice", member.User.Phones[1]);
+
                     }
                 }
             }
@@ -173,8 +177,8 @@ namespace CqlSharp.Test
                 return;
 
             var address = new Address {Street = "MyWay", Number = 1};
-            var user = new User {Name = "Joost", Password = new byte[] {1, 2, 3}, Address = address};
-            var group = new Group {Id = 1, Members = new HashSet<Tuple<int, User>> {Tuple.Create(1, user)}};
+            var user = new User { Name = "Joost", Password = new byte[] { 1, 2, 3 }, Address = address, Phones = new List<string> { "call me once", "call me twice", "no answer" } };
+            var group = new Group { Id = 1, Members = new HashSet<Tuple<int, User>> { Tuple.Create(1, user) } };
 
             using(var connection = new CqlConnection(ConnectionString))
             {
@@ -199,6 +203,7 @@ namespace CqlSharp.Test
                         Assert.IsInstanceOfType(group.Members, typeof(HashSet<Tuple<int, User>>));
                         Assert.AreEqual(1, group.Members.Count);
                         Assert.AreEqual("Joost", group.Members.First().Item2.Name);
+                        Assert.AreEqual("call me twice", group.Members.First().Item2.Phones[1]);
                     }
                 }
             }
@@ -211,7 +216,7 @@ namespace CqlSharp.Test
                 return;
 
             var address = new Address {Street = "MyWay", Number = 1};
-            var user = new User {Name = "Joost", Password = new byte[] {1, 2, 3}, Address = address};
+            var user = new User { Name = "Joost", Password = new byte[] { 1, 2, 3 }, Address = address, Phones = new List<string> { "call me once", "call me twice", "no answer" } };
             var member = new Member {Id = 1, User = user, Comment = Tuple.Create("my title", "phew")};
 
             using(var connection = new CqlConnection(ConnectionString))
@@ -236,6 +241,7 @@ namespace CqlSharp.Test
                         Assert.AreEqual(member.User.Name, actualUser.Name);
                         Assert.IsNotNull(actualUser.Address);
                         Assert.AreEqual(member.User.Address.Street, actualUser.Address.Street);
+                        Assert.AreEqual(member.User.Phones[2], actualUser.Phones[2]);
                     }
                 }
             }
@@ -248,7 +254,7 @@ namespace CqlSharp.Test
                 return;
 
             var address = new Address {Street = "MyWay", Number = 1};
-            var user = new User {Name = "Joost", Password = new byte[] {1, 2, 3}, Address = address};
+            var user = new User { Name = "Joost", Password = new byte[] { 1, 2, 3 }, Address = address, Phones = new List<string> { "call me once", "call me twice", "no answer" } };
             var member = new Member {Id = 1, User = user, Comment = Tuple.Create("my title", "phew")};
 
             using(var connection = new CqlConnection(ConnectionString))
@@ -273,6 +279,8 @@ namespace CqlSharp.Test
                         Assert.AreEqual(member.User.Name, actualUser.Name);
                         Assert.IsNotNull(actualUser.Address);
                         Assert.AreEqual(member.User.Address.Street, actualUser.Address.Street);
+                        Assert.IsNotNull(actualUser.Phones);
+                        Assert.AreEqual(member.User.Phones[2], actualUser.Phones[2]);
 
                         var comment = reader.GetTuple<string, string>(2);
                         Assert.IsNotNull(comment);
@@ -335,6 +343,9 @@ namespace CqlSharp.Test
 
             [CqlColumn(Order = 2)]
             public Address Address { get; set; }
+
+            [CqlColumn(Order=3)]
+            public List<String> Phones { get; set; }
         }
 
         [CqlTable("members", Keyspace = "testudt")]
