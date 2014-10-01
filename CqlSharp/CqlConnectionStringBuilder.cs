@@ -51,7 +51,6 @@ namespace CqlSharp
                       {Keyword.MaxConnectionsPerNode, 2},
                       {Keyword.MaxConnections, -1},
                       {Keyword.NewConnectionTreshold, 10},
-                      {Keyword.MaxConcurrentQueries, -1},
                       {Keyword.MaxConnectionIdleTime, 10},
                       {Keyword.MaxQueryRetries, 2},
                       {Keyword.LoggerFactory, "Null"},
@@ -112,14 +111,6 @@ namespace CqlSharp
                     {"new connection treshold", Keyword.NewConnectionTreshold},
                     {"treshold", Keyword.NewConnectionTreshold},
                     {"connection treshold", Keyword.NewConnectionTreshold},
-                    {"maxconcurrentqueries", Keyword.MaxConcurrentQueries},
-                    {"max concurrent queries", Keyword.MaxConcurrentQueries},
-                    {"max concurrent", Keyword.MaxConcurrentQueries},
-                    {"concurrent queries", Keyword.MaxConcurrentQueries},
-                    {"concurrentqueries", Keyword.MaxConcurrentQueries},
-                    {"max queries", Keyword.MaxConcurrentQueries},
-                    {"maxqueries", Keyword.MaxConcurrentQueries},
-                    {"throttle", Keyword.MaxConcurrentQueries},
                     {"maxconnectionidletime", Keyword.MaxConnectionIdleTime},
                     {"max connection idle time", Keyword.MaxConnectionIdleTime},
                     {"connectionidletime", Keyword.MaxConnectionIdleTime},
@@ -437,21 +428,6 @@ namespace CqlSharp
         }
 
         /// <summary>
-        /// Gets or sets the max concurrent queries. Threads attempting to execute a query (whether async or not) will be blocked
-        /// until
-        /// the number of active queries drops below this number.
-        /// </summary>
-        /// <value>
-        /// The max concurrent queries. if 0 or negative, the max will be calculated by the number of found nodes in the
-        /// cluster * MaxConnectionsPerNode * 2.
-        /// </value>
-        public int MaxConcurrentQueries
-        {
-            get { return (int)_values[Keyword.MaxConcurrentQueries]; }
-            set { SetValue(Keyword.MaxConcurrentQueries, value); }
-        }
-
-        /// <summary>
         /// Gets or sets the max connection idle time. Any connection that did not perform a query within this timespan is
         /// elligable to be closed.
         /// </summary>
@@ -704,9 +680,6 @@ namespace CqlSharp
                     case Keyword.NewConnectionTreshold:
                         sanatizedValue = Convert.ToInt32(value);
                         break;
-                    case Keyword.MaxConcurrentQueries:
-                        sanatizedValue = Convert.ToInt32(value);
-                        break;
                     case Keyword.MaxConnectionIdleTime:
                         sanatizedValue = Convert.ToInt32(value);
                         break;
@@ -932,7 +905,6 @@ namespace CqlSharp
             MaxConnectionsPerNode,
             MaxConnections,
             NewConnectionTreshold,
-            MaxConcurrentQueries,
             MaxConnectionIdleTime,
             MaxQueryRetries,
             LoggerFactory,
