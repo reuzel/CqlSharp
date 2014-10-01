@@ -201,8 +201,8 @@ namespace CqlSharp.Protocol
                     var fieldTypes = new List<CqlType>(fieldCount);
                     for(int i = 0; i < fieldCount; i++)
                     {
-                        fieldNames[i] = await reader.ReadStringAsync().AutoConfigureAwait();
-                        fieldTypes[i] = await ReadCqlType(reader).AutoConfigureAwait();
+                        fieldNames.Add(await reader.ReadStringAsync().AutoConfigureAwait());
+                        fieldTypes.Add(await ReadCqlType(reader).AutoConfigureAwait());
                     }
 
                     type = CqlType.CreateType(colType, keyspace, name, fieldNames, fieldTypes);

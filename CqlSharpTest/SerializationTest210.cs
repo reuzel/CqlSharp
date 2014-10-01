@@ -37,16 +37,16 @@ namespace CqlSharp.Test
                 @"CREATE KEYSPACE TestUDT WITH replication = {'class': 'SimpleStrategy', 'replication_factor' : 1} and durable_writes = 'false';";
 
             const string createAddressType =
-                @"create type TestUDT.address (street text, number int);";
+                @"create type TestUDT.TAddress (street text, number int);";
 
             const string createUserType =
-                @"CREATE type TestUDT.user (name text, password blob, address address, phones list<text>);";
+                @"CREATE type TestUDT.TUser (name text, password blob, address frozen<TAddress>, phones list<text>);";
 
             const string createTableCql =
-                @"create table TestUDT.Members (id int primary key, user user, comment tuple<text,text>);";
+                @"create table TestUDT.Members (id int primary key, user frozen<TUser>, comment frozen<tuple<text,text>>);";
 
             const string createTable2Cql =
-                @"create table TestUDT.Groups (id int primary key, members set<tuple<int, user>>);";
+                @"create table TestUDT.Groups (id int primary key, members set<frozen<tuple<int, frozen<TUser>>>>);";
 
             using(var connection = new CqlConnection(ConnectionString))
             {
@@ -166,6 +166,11 @@ namespace CqlSharp.Test
                         Assert.AreEqual("call me twice", member.User.Phones[1]);
 
                     }
+                    else
+                    {
+                        Assert.Fail("Read failed.");
+                    }
+
                 }
             }
         }
@@ -205,6 +210,11 @@ namespace CqlSharp.Test
                         Assert.AreEqual("Joost", group.Members.First().Item2.Name);
                         Assert.AreEqual("call me twice", group.Members.First().Item2.Phones[1]);
                     }
+                    else
+                    {
+                        Assert.Fail("Read failed.");
+                    }
+
                 }
             }
         }
@@ -243,6 +253,11 @@ namespace CqlSharp.Test
                         Assert.AreEqual(member.User.Address.Street, actualUser.Address.Street);
                         Assert.AreEqual(member.User.Phones[2], actualUser.Phones[2]);
                     }
+                    else
+                    {
+                        Assert.Fail("Read failed.");
+                    }
+
                 }
             }
         }
@@ -286,6 +301,11 @@ namespace CqlSharp.Test
                         Assert.IsNotNull(comment);
                         Assert.AreEqual(member.Comment, comment);
                     }
+                    else
+                    {
+                        Assert.Fail("Read failed.");
+                    }
+
                 }
             }
         }
@@ -318,11 +338,79 @@ namespace CqlSharp.Test
                         Assert.IsNull(actual.User);
                         Assert.IsNull(actual.Comment);
                     }
+                    else
+                    {
+                        Assert.Fail("Read failed.");
+                    }
+
                 }
             }
         }
 
-        [CqlUserType("testudt", "address")]
+        [TestMethod]
+        public void InsertWithTimestamp()
+        {
+            if (!Cassandra210OrUp)
+                return;
+
+            using (var connection = new CqlConnection(ConnectionString))
+            {
+                connection.Open();
+
+                DateTime yesterday = DateTime.UtcNow - TimeSpan.FromDays(1);
+
+                var command = new CqlCommand(connection, "insert into testudt.members (id, comment) values (2,('hi','there'));");
+                command.Timestamp = yesterday;
+                command.ExecuteNonQuery();
+
+                var select = new CqlCommand(connection, "select WRITETIME(comment) from testudt.members where id=2;");
+                using (var reader = select.ExecuteReader())
+                {
+                    Assert.AreEqual(1, reader.Count);
+                    if (reader.Read())
+                    {
+                        DateTime writeTime = ((long)(reader.GetDouble(0) / 1000)).ToDateTime();
+                        Assert.AreEqual(0 , (int)((writeTime-yesterday).TotalMilliseconds));
+                    }
+                    else
+                    {
+                        Assert.Fail("Read failed.");
+                    }
+                }
+            }
+        }
+
+        [TestMethod]
+        public void InsertWithTimestamp2()
+        {
+            if (!Cassandra210OrUp)
+                return;
+
+            using (var connection = new CqlConnection(ConnectionString))
+            {
+               connection.Open();
+
+               var command = new CqlCommand(connection, "insert into testudt.members (id, comment) values (3,('hi','there3'));");
+               command.ExecuteNonQuery();
+
+                var select = new CqlCommand(connection, "select WRITETIME(comment) from testudt.members where id=3;");
+                using (var reader = select.ExecuteReader())
+                {
+                    Assert.AreEqual(1, reader.Count);
+                    if (reader.Read())
+                    {
+                        DateTime writeTime = ((long)(reader.GetDouble(0)/1000)).ToDateTime();
+                        Assert.IsTrue(writeTime - DateTime.UtcNow < TimeSpan.FromSeconds(1));
+                    }
+                    else
+                    {
+                        Assert.Fail("Read failed.");
+                    }
+                }
+            }
+        }
+
+        [CqlUserType("testudt", "taddress")]
         public class Address
         {
             [CqlColumn(Order = 0)]
@@ -332,7 +420,7 @@ namespace CqlSharp.Test
             public int Number { get; set; }
         }
 
-        [CqlUserType("testudt", "user")]
+        [CqlUserType("testudt", "tuser")]
         private class User
         {
             [CqlColumn(Order = 0)]

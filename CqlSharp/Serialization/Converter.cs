@@ -20,6 +20,7 @@ using System.Linq;
 using System.Linq.Expressions;
 using System.Reflection;
 using CqlSharp.Annotations;
+using CqlSharp.Protocol;
 
 namespace CqlSharp.Serialization
 {
@@ -108,6 +109,7 @@ namespace CqlSharp.Serialization
                 //create function call expression
                 Expression call = GetIdentityConversion(srcType, targetType, src) ??
                                   GetCastConversion(targetType, src) ??
+                                  GetDateTimeConversion(srcType, targetType, src) ??
                                   GetIConvertibleConversion(srcType, targetType, src) ??
                                   GetITypeConverterConversion(srcType, targetType, src) ??
                                   GetDictionaryConversion(srcType, targetType, src) ??
@@ -158,6 +160,35 @@ namespace CqlSharp.Serialization
 
                     return null;
                 }
+            }
+
+            private static Expression GetDateTimeConversion(Type srcType, Type targetType, ParameterExpression src)
+            {
+                var nonNullableSource = Nullable.GetUnderlyingType(srcType) ?? srcType;
+                var nonNullableTargetType = Nullable.GetUnderlyingType(targetType) ?? targetType;
+
+                Expression call = null;
+
+                if (nonNullableSource == typeof(DateTime) && nonNullableTargetType == typeof(long))
+                {
+                    call = Expression.Call(typeof(TypeExtensions), "ToTimestamp", null, src);
+
+                }
+                else if(nonNullableSource == typeof(long) && nonNullableTargetType == typeof(DateTime))
+                {
+                    call = Expression.Call(typeof(TypeExtensions), "ToDateTime", null, src);
+                }
+                else
+                {
+                    return null;
+                }
+
+                //convert result back to nullable value if necessary
+                if (nonNullableTargetType != targetType)
+                    call = Expression.Convert(call, targetType);
+                
+                //add null check
+                return AddNullCheck(srcType, targetType, src, call);
             }
 
             /// <summary>

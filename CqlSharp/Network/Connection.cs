@@ -515,7 +515,7 @@ namespace CqlSharp.Network
             //dispose AuthenticateFrame
             auth.Dispose();
 
-            if(auth.ProtocolVersion == 2)
+            if(auth.ProtocolVersion >= 2)
             {
                 //protocol version2: use SASL AuthResponse to authenticate
 

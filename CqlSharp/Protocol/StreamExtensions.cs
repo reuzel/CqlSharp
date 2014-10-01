@@ -61,6 +61,27 @@ namespace CqlSharp.Protocol
         }
 
         /// <summary>
+        /// Writes an long.
+        /// </summary>
+        /// <param name="stream"> The stream. </param>
+        /// <param name="data"> The data. </param>
+        public static void WriteLong(this Stream stream, long data)
+        {
+            //byte[] buffer = BitConverter.GetBytes(data);
+            //if (BitConverter.IsLittleEndian) Array.Reverse(buffer);
+            //stream.Write(buffer, 0, buffer.Length);
+
+            stream.WriteByte((byte)(data >> 56));
+            stream.WriteByte((byte)(data >> 48)); 
+            stream.WriteByte((byte)(data >> 40));
+            stream.WriteByte((byte)(data >> 32));
+            stream.WriteByte((byte)(data >> 24));
+            stream.WriteByte((byte)(data >> 16));
+            stream.WriteByte((byte)(data >> 8));
+            stream.WriteByte((byte)(data));
+        }
+
+        /// <summary>
         /// Writes a string.
         /// </summary>
         /// <param name="stream"> The stream. </param>

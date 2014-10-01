@@ -110,7 +110,7 @@ namespace CqlSharp.Network
             _status = HostState.Up; //assume up
             Tokens = new HashSet<string>();
             _counter = 0;
-            ProtocolVersion = 2;
+            ProtocolVersion = 3;
         }
 
         /// <summary>

@@ -535,7 +535,7 @@ namespace CqlSharp.Network
         /// <returns></returns>
         private byte DistillProtocolVersion(string release)
         {
-            const byte highestSupported = 2;
+            const byte highestSupported = 3;
             try
             {
                 //split the release. We expect something in form of major.minor.patch
@@ -545,6 +545,10 @@ namespace CqlSharp.Network
                 if (versionParts[0] < 2)
                     return 1;
 
+                //return version 2 for nodes running than 2.0.x
+                if (versionParts[1] == 0)
+                    return 2;
+                
                 //return highest supported protocol version for all other nodes
                 return highestSupported;
             }

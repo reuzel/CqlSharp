@@ -158,6 +158,15 @@ namespace CqlSharp
             }
         }
 
+        /// <summary>
+        /// The timestamp representing the default timestamp for the query. If provided, this will
+        /// replace the server side assigned timestamp as default timestamp.
+        /// </summary>
+        /// <value>
+        /// The (default) timestamp.
+        /// </value>
+        public virtual DateTime? Timestamp { get; set; }
+
         #region CommandText
 
         /// <summary>
@@ -1294,10 +1303,15 @@ namespace CqlSharp
                 queryFrame.SerialConsistency = SerialConsistency.LocalSerial;
             }
 
+            //set default timestamp (if any)
+            queryFrame.Timestamp = Timestamp;
+
             //update frame with tracing option if requested
             if(EnableTracing)
                 queryFrame.Flags |= FrameFlags.Tracing;
 
+            
+            
             Frame response =
                 await
                     connection.SendRequestAsync(queryFrame, logger, Load, token)
@@ -1333,7 +1347,7 @@ namespace CqlSharp
                 {
                     IsPrepared = IsPrepared,
                     CqlQuery = Query,
-                                             ParameterValues = HasParameters ? Parameters.Clone() : null
+                    ParameterValues = HasParameters ? Parameters.Clone() : null
                 };
 
                 Transaction.Commands.Add(batchedCommand);
@@ -1373,6 +1387,16 @@ namespace CqlSharp
 
                 batchFrame.Commands.Add(command);
             }
+
+            //set local serial
+            if (UseCASLocalSerial)
+            {
+                logger.LogVerbose("Using LocalSerial consistency for CAS prepare and propose");
+                batchFrame.SerialConsistency = SerialConsistency.LocalSerial;
+            }
+
+            //set default timestamp (if any)
+            batchFrame.Timestamp = Timestamp;
 
             //update frame with tracing option if requested
             if(EnableTracing)

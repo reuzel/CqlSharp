@@ -15,6 +15,7 @@
 
 using System;
 using System.Collections.Generic;
+using System.Configuration;
 using System.IO;
 using System.Threading.Tasks;
 using CqlSharp.Threading;
@@ -60,6 +61,24 @@ namespace CqlSharp.Protocol
         public CqlConsistency CqlConsistency { get; set; }
 
         /// <summary>
+        /// The consistency level for the serial phase of conditional updates. That consitency
+        /// can only be either SERIAL or LOCAL_SERIAL and if not present, it defaults to SERIAL.
+        /// This option will be ignored for anything else that a conditional update/insert.
+        /// </summary>
+        /// <value> The serial consistency. </value>
+        /// <exception cref="CqlException">Serial Consistency can only be LocalSerial or Serial</exception>
+        public SerialConsistency? SerialConsistency { get; set; }
+
+        /// <summary>
+        /// The timestamp is a representing the default timestamp for the query. If provided, this will 
+        /// replace the server side assigned timestamp as default timestamp. 
+        /// </summary>
+        /// <value>
+        /// The (default) timestamp.
+        /// </value>
+        public DateTime? Timestamp { get; set; }
+
+        /// <summary>
         /// Writes the data to buffer.
         /// </summary>
         /// <param name="buffer"> The buffer. </param>
@@ -101,6 +120,22 @@ namespace CqlSharp.Protocol
             }
 
             buffer.WriteConsistency(CqlConsistency);
+
+            if(ProtocolVersion >= 3)
+            {
+                var flags = (byte)((SerialConsistency.HasValue ? 16 : 0) |
+                                   (Timestamp.HasValue ? 32 : 0));
+
+                buffer.WriteByte(flags);
+
+                if (SerialConsistency.HasValue)
+                    buffer.WriteShort((ushort)SerialConsistency.Value);
+
+                if (Timestamp.HasValue)
+                    buffer.WriteLong(Timestamp.Value.ToTimestamp());
+            }
+
+            
         }
 
         /// <summary>

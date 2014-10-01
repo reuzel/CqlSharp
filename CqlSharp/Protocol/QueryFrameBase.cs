@@ -17,7 +17,6 @@ using System;
 using System.Collections.Generic;
 using System.IO;
 using System.Threading.Tasks;
-using CqlSharp.Threading;
 
 namespace CqlSharp.Protocol
 {
@@ -64,6 +63,15 @@ namespace CqlSharp.Protocol
         public SerialConsistency? SerialConsistency { get; set; }
 
         /// <summary>
+        /// The timestamp is a representing the default timestamp for the query. If provided, this will
+        /// replace the server side assigned timestamp as default timestamp.
+        /// </summary>
+        /// <value>
+        /// The (default) timestamp.
+        /// </value>
+        public DateTime? Timestamp { get; set; }
+
+        /// <summary>
         /// Writes the query parameters.
         /// </summary>
         /// <param name="buffer">The buffer.</param>
@@ -75,7 +83,8 @@ namespace CqlSharp.Protocol
                                (SkipMetaData ? 2 : 0) |
                                (PageSize.HasValue ? 4 : 0) |
                                (PagingState != null ? 8 : 0) |
-                               (SerialConsistency.HasValue ? 16 : 0));
+                               (SerialConsistency.HasValue ? 16 : 0) |
+                               (ProtocolVersion >= 3 && Timestamp.HasValue ? 32 : 0));
 
             buffer.WriteByte(flags);
 
@@ -94,7 +103,11 @@ namespace CqlSharp.Protocol
 
             if(SerialConsistency.HasValue)
                 buffer.WriteShort((ushort)SerialConsistency.Value);
+
+            if(ProtocolVersion >= 3 && Timestamp.HasValue)
+                buffer.WriteLong(Timestamp.Value.ToTimestamp() * 1000); //convert milliseconds to microseconds
         }
+
 
         protected override Task InitializeAsync()
         {

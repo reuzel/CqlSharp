@@ -76,28 +76,9 @@ namespace CqlSharp
         /// Initializes a new instance of the <see cref="CqlBatchTransaction" /> class.
         /// </summary>
         /// <param name="connection"> The connection. </param>
-        public CqlBatchTransaction(CqlConnection connection)
-            : this(connection, CqlBatchType.Logged, CqlConsistency.One)
-        {
-        }
-
-        /// <summary>
-        /// Initializes a new instance of the <see cref="CqlBatchTransaction" /> class.
-        /// </summary>
-        /// <param name="connection"> The connection. </param>
-        /// <param name="batchType"> Type of the batch. </param>
-        public CqlBatchTransaction(CqlConnection connection, CqlBatchType batchType)
-            : this(connection, batchType, CqlConsistency.One)
-        {
-        }
-
-        /// <summary>
-        /// Initializes a new instance of the <see cref="CqlBatchTransaction" /> class.
-        /// </summary>
-        /// <param name="connection"> The connection. </param>
         /// <param name="batchType"> Type of the batch. </param>
         /// <param name="consistency"> The consistency. </param>
-        public CqlBatchTransaction(CqlConnection connection, CqlBatchType batchType, CqlConsistency consistency)
+        public CqlBatchTransaction(CqlConnection connection, CqlBatchType batchType = CqlBatchType.Logged, CqlConsistency consistency = CqlConsistency.One)
         {
             _batchCommand = new CqlCommand(connection) {Consistency = consistency, Transaction = this};
             _commands = new List<BatchFrame.BatchedCommand>();
@@ -113,7 +94,7 @@ namespace CqlSharp
         {
             get { return _batchCommand.CommandTimeout; }
             set { _batchCommand.CommandTimeout = value; }
-            }
+        }
 
         /// <summary>
         /// Specifies the <see cref="T:System.Data.Common.DbConnection" /> object associated with the transaction.
@@ -132,7 +113,7 @@ namespace CqlSharp
         {
             get { return _batchCommand.Connection; }
             set { _batchCommand.Connection = value; }
-            }
+        }
 
         /// <summary>
         /// Specifies the <see cref="T:System.Data.IsolationLevel" /> for this transaction.
@@ -154,6 +135,33 @@ namespace CqlSharp
             set { _batchType = value; }
         }
 
+        /// <summary>
+        /// Gets or sets a value indicating whether to use local serial for Compare-And-Set (CAS) write operations.
+        /// </summary>
+        /// <value>
+        /// <c>true</c> if use local serial for Compare-And-Set (CAS)  write operations; otherwise, <c>false</c>.
+        /// </value>
+        // ReSharper disable once InconsistentNaming
+        public virtual bool UseCASLocalSerial
+        {
+            get { return _batchCommand.UseCASLocalSerial; }
+            set { _batchCommand.UseCASLocalSerial = value; }
+        }
+
+
+        /// <summary>
+        /// The timestamp representing the default timestamp for the query. If provided, this will
+        /// replace the server side assigned timestamp as default timestamp.
+        /// </summary>
+        /// <value>
+        /// The (default) timestamp.
+        /// </value>
+        public virtual DateTime? Timestamp 
+        {
+            get { return _batchCommand.Timestamp; }
+            set { _batchCommand.Timestamp = value; }
+        }
+        
         /// <summary>
         /// Gets the commands.
         /// </summary>
