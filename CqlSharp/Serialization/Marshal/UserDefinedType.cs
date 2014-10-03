@@ -166,31 +166,30 @@ namespace CqlSharp.Serialization.Marshal
 
             var accessor = ObjectAccessor<TSource>.Instance;
 
-            if(accessor.Columns.Count > _fieldList.Count)
-            {
-                throw new CqlException(string.Format("Type {0} is not compatible with CqlType {1}", typeof(TSource),
-                                                     this));
-            }
-
             //write all the components
             using(var stream = new MemoryStream())
             {
-                for(int i = 0; i < accessor.Columns.Count; i++)
-                {
-                    var column = accessor.Columns[i];
-                    if(column.CqlType != _fieldList[i].Value)
-                    {
-                        throw new CqlException(string.Format("Type {0} is not compatible with CqlType {1}",
-                                                             typeof(TSource), this));
-                    }
 
-                    var rawValue = column.SerializeFrom(source, _fieldList[i].Value, (protocolVersion <= 2 ? (byte)3 : protocolVersion));
-                    stream.WriteByteArray(rawValue);
+                foreach(var field in _fieldList)
+                {
+
+                    ICqlColumnInfo<TSource> column;
+                    if(accessor.ColumnsByName.TryGetValue(field.Key, out column))
+                    {
+                        var rawValue = column.SerializeFrom(source, field.Value,
+                                                            (protocolVersion <= 2 ? (byte)3 : protocolVersion));
+                        stream.WriteByteArray(rawValue);
+                    }
+                    else
+                    {
+                        stream.WriteByteArray(null);
+                    }
                 }
 
                 return stream.ToArray();
             }
         }
+        
 
         public override byte[] Serialize(T value, byte protocolVersion)
         {

@@ -48,12 +48,12 @@ namespace CqlSharp.Serialization
             if(columnAttribute != null && columnAttribute.OrderHasValue)
                 Order = columnAttribute.Order;
 
-            //get CqlTypeCode from attribute (if any)
+            //get CqlType from attribute (if any)
             if(columnAttribute != null && columnAttribute.CqlTypeHasValue)
                 CqlType = CqlType.CreateType(columnAttribute.CqlTypeCode);
             else
             {
-                //get CqlTypeCode from property Type
+                //get CqlType from property Type
                 CqlType = CqlType.CreateType(Type);
             }
 

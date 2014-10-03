@@ -127,6 +127,57 @@ namespace CqlSharp.Test
         }
 
         [TestMethod]
+        public void InsertAnonymousUDTAndSelect()
+        {
+            if (!Cassandra210OrUp)
+                return;
+            
+            using (var connection = new CqlConnection(ConnectionString))
+            {
+                connection.Open();
+
+                var command = new CqlCommand(connection,
+                                             "insert into testudt.members (id, user, comment) values (?,?,?);");
+                command.Prepare();
+                command.Parameters["id"].Value = 1;
+                command.Parameters["user"].Value =
+                    new
+                    {
+                        Name = "Joost",
+                        Password = new byte[] {1, 2, 3},
+                        Address = new {Street = "MyWay", Number = 1},
+                        Phones = new List<string> {"call me once", "call me twice", "no answer"}
+                    };
+                command.Parameters["comment"].Value = Tuple.Create("my title", "phew");
+                command.ExecuteNonQuery();
+
+                var select = new CqlCommand(connection, "select * from testudt.members;");
+                using (var reader = select.ExecuteReader<Member>())
+                {
+                    Assert.AreEqual(1, reader.Count);
+                    if (reader.Read())
+                    {
+                        var actual = reader.Current;
+
+                        Assert.IsNotNull(actual);
+                        Assert.AreEqual(1, actual.Id);
+                        Assert.AreEqual(Tuple.Create("my title", "phew"), actual.Comment);
+                        Assert.AreEqual("Joost", actual.User.Name);
+                        Assert.AreEqual("MyWay", actual.User.Address.Street);
+                        Assert.AreEqual(3, actual.User.Phones.Count);
+                        Assert.AreEqual("call me twice", actual.User.Phones[1]);
+
+                    }
+                    else
+                    {
+                        Assert.Fail("Read failed.");
+                    }
+
+                }
+            }
+        }
+
+        [TestMethod]
         public void InsertAndSelectTupleAndUDT()
         {
             if (!Cassandra210OrUp)
@@ -157,13 +208,13 @@ namespace CqlSharp.Test
                         Assert.IsNotNull(actual);
                         Assert.AreEqual(member.Id, actual.Id);
                         Assert.AreEqual(member.Comment, actual.Comment);
-                        Assert.IsNotNull(member.User);
+                        Assert.IsNotNull(actual.User);
                         Assert.AreEqual(member.User.Name, actual.User.Name);
-                        Assert.IsNotNull(member.User.Address);
+                        Assert.IsNotNull(actual.User.Address);
                         Assert.AreEqual(member.User.Address.Street, actual.User.Address.Street);
-                        Assert.IsNotNull(member.User.Phones);
-                        Assert.AreEqual(3, member.User.Phones.Count);
-                        Assert.AreEqual("call me twice", member.User.Phones[1]);
+                        Assert.IsNotNull(actual.User.Phones);
+                        Assert.AreEqual(3, actual.User.Phones.Count);
+                        Assert.AreEqual("call me twice", actual.User.Phones[1]);
 
                     }
                     else
@@ -204,11 +255,11 @@ namespace CqlSharp.Test
 
                         Assert.IsNotNull(actual);
                         Assert.AreEqual(group.Id, actual.Id);
-                        Assert.IsNotNull(group.Members);
-                        Assert.IsInstanceOfType(group.Members, typeof(HashSet<Tuple<int, User>>));
-                        Assert.AreEqual(1, group.Members.Count);
-                        Assert.AreEqual("Joost", group.Members.First().Item2.Name);
-                        Assert.AreEqual("call me twice", group.Members.First().Item2.Phones[1]);
+                        Assert.IsNotNull(actual.Members);
+                        Assert.IsInstanceOfType(actual.Members, typeof(HashSet<Tuple<int, User>>));
+                        Assert.AreEqual(1, actual.Members.Count);
+                        Assert.AreEqual("Joost", actual.Members.First().Item2.Name);
+                        Assert.AreEqual("call me twice", actual.Members.First().Item2.Phones[1]);
                     }
                     else
                     {

@@ -208,6 +208,9 @@ namespace CqlSharp
                 if(customAttribute != null)
                     return customAttribute.CreateFactory().CreateType(newType);
 
+                if(newType.IsAnonymous())
+                    return new AnonymousTypeFactory().CreateType(newType);
+
                 throw new Exception("Unsupported type");
             });
         }

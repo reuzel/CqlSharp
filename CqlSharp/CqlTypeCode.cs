@@ -60,6 +60,5 @@ namespace CqlSharp
         UserDefinedType = 0x0030,
 
         Tuple = 0x0031
-
     }
 }

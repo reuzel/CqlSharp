@@ -178,6 +178,8 @@
     <Compile Include="Serialization\CqlEntityConverter.cs" />
     <Compile Include="Serialization\IKeyProvider.cs" />
     <Compile Include="Serialization\ITypeConverter.cs" />
+    <Compile Include="Serialization\Marshal\AnonymousType.cs" />
+    <Compile Include="Serialization\Marshal\AnonymousTypeFactory.cs" />
     <Compile Include="Serialization\Marshal\TupleType.cs" />
     <Compile Include="Serialization\Marshal\AsciiType.cs" />
     <Compile Include="Serialization\Marshal\TupleTypeFactory.cs" />
