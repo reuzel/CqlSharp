@@ -30,10 +30,10 @@ namespace CqlSharp.Network.Partition
         /// <summary>
         /// An empty, unset partitionkey
         /// </summary>
-        public readonly static PartitionKey None = new PartitionKey();
-        
+        public static readonly PartitionKey None = new PartitionKey();
+
         private byte[] _key;
-       
+
         /// <summary>
         /// Gets a value indicating whether a value is set for this PartitionKey
         /// </summary>
@@ -81,15 +81,15 @@ namespace CqlSharp.Network.Partition
             else
             {
                 var rawValues = new byte[types.Length][];
-                for (int i = 0; i < types.Length; i++)
+                for(int i = 0; i < types.Length; i++)
                 {
                     rawValues[i] = types[i].Serialize(values[i], 1); //should work from protocol version 1 and upwards
                 }
 
-                int length = types.Length * 3 + rawValues.Sum(val => val.Length);
-                using (var stream = new MemoryStream(length))
+                int length = types.Length*3 + rawValues.Sum(val => val.Length);
+                using(var stream = new MemoryStream(length))
                 {
-                    foreach (var rawValue in rawValues)
+                    foreach(var rawValue in rawValues)
                     {
                         stream.WriteShortByteArray(rawValue);
                         stream.WriteByte(0);
@@ -98,8 +98,6 @@ namespace CqlSharp.Network.Partition
                     _key = stream.ToArray();
                 }
             }
-
-
         }
 
         /// <summary>

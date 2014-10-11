@@ -169,10 +169,8 @@ namespace CqlSharp.Serialization.Marshal
             //write all the components
             using(var stream = new MemoryStream())
             {
-
                 foreach(var field in _fieldList)
                 {
-
                     ICqlColumnInfo<TSource> column;
                     if(accessor.ColumnsByName.TryGetValue(field.Key, out column))
                     {
@@ -181,15 +179,13 @@ namespace CqlSharp.Serialization.Marshal
                         stream.WriteByteArray(rawValue);
                     }
                     else
-                    {
                         stream.WriteByteArray(null);
-                    }
                 }
 
                 return stream.ToArray();
             }
         }
-        
+
 
         public override byte[] Serialize(T value, byte protocolVersion)
         {
@@ -234,7 +230,10 @@ namespace CqlSharp.Serialization.Marshal
 
                     ICqlColumnInfo column;
                     if(accessor.ColumnsByName.TryGetValue(field.Key, out column))
-                        column.DeserializeTo(result, rawValue, field.Value, (protocolVersion <= 2 ? (byte)3 : protocolVersion));
+                    {
+                        column.DeserializeTo(result, rawValue, field.Value,
+                                             (protocolVersion <= 2 ? (byte)3 : protocolVersion));
+                    }
                 }
 
                 return (TTarget)result;

@@ -17,7 +17,6 @@ using System;
 using System.Collections;
 using System.Collections.Generic;
 using System.Data.Common;
-using System.Diagnostics;
 using System.Linq;
 using CqlSharp.Protocol;
 using CqlSharp.Serialization;
@@ -34,7 +33,7 @@ namespace CqlSharp
         private MetaData _metaData;
 
         /// <summary>
-        /// Initializes a new instance of the <see cref="CqlParameterCollection"/> class.
+        /// Initializes a new instance of the <see cref="CqlParameterCollection" /> class.
         /// </summary>
         public CqlParameterCollection()
         {
@@ -42,7 +41,7 @@ namespace CqlSharp
         }
 
         /// <summary>
-        /// Initializes a new instance of the <see cref="CqlParameterCollection"/> class.
+        /// Initializes a new instance of the <see cref="CqlParameterCollection" /> class.
         /// </summary>
         /// <param name="metaData">The meta data.</param>
         internal CqlParameterCollection(MetaData metaData)

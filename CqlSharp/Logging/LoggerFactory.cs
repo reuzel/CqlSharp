@@ -48,7 +48,7 @@ namespace CqlSharp.Logging
         public virtual ILogger CreateLogger(string name)
         {
             return _loggers.GetOrAdd(name, n => (T)Activator.CreateInstance(typeof(T), name));
-                // not the fastest, but we cache the instance - so who cares
+            // not the fastest, but we cache the instance - so who cares
         }
 
         #endregion

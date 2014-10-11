@@ -68,6 +68,7 @@ namespace CqlSharp.Serialization.Marshal
         {
             get { return 2000000000; }
         }
+
         public override byte[] Serialize(HashSet<T> value, byte protocolVersion)
         {
             if(protocolVersion <= 2)
@@ -88,23 +89,20 @@ namespace CqlSharp.Serialization.Marshal
                     return ms.ToArray();
                 }
             }
-            else
+            using(var ms = new MemoryStream())
             {
-                using (var ms = new MemoryStream())
+                //write length placeholder
+                ms.Position = 4;
+                int count = 0;
+                foreach(T elem in value)
                 {
-                    //write length placeholder
-                    ms.Position = 4;
-                    int count = 0;
-                    foreach (T elem in value)
-                    {
-                        byte[] rawDataElem = _valueType.Serialize(elem, protocolVersion);
-                        ms.WriteByteArray(rawDataElem);
-                        count++;
-                    }
-                    ms.Position = 0;
-                    ms.WriteInt(count);
-                    return ms.ToArray();
+                    byte[] rawDataElem = _valueType.Serialize(elem, protocolVersion);
+                    ms.WriteByteArray(rawDataElem);
+                    count++;
                 }
+                ms.Position = 0;
+                ms.WriteInt(count);
+                return ms.ToArray();
             }
         }
 
@@ -125,20 +123,17 @@ namespace CqlSharp.Serialization.Marshal
                     return set;
                 }
             }
-            else
+            using(var ms = new MemoryStream(data))
             {
-                using (var ms = new MemoryStream(data))
+                int nbElem = ms.ReadInt();
+                var set = new HashSet<T>();
+                for(int i = 0; i < nbElem; i++)
                 {
-                    int nbElem = ms.ReadInt();
-                    var set = new HashSet<T>();
-                    for (int i = 0; i < nbElem; i++)
-                    {
-                        byte[] elemRawData = ms.ReadByteArray();
-                        T elem = _valueType.Deserialize(elemRawData, protocolVersion);
-                        set.Add(elem);
-                    }
-                    return set;
+                    byte[] elemRawData = ms.ReadByteArray();
+                    T elem = _valueType.Deserialize(elemRawData, protocolVersion);
+                    set.Add(elem);
                 }
+                return set;
             }
         }
 

@@ -54,7 +54,7 @@ namespace CqlSharp.Tracing
                 CqlDataReader<TracingSession> reader =
                     await sessionCmd.ExecuteReaderAsync<TracingSession>(token).AutoConfigureAwait())
             {
-                if (await reader.ReadAsync(token).AutoConfigureAwait())
+                if(await reader.ReadAsync(token).AutoConfigureAwait())
                     session = reader.Current;
                 else
                     return null;

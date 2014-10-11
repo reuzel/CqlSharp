@@ -48,6 +48,7 @@ namespace CqlSharp.Serialization.Marshal
         {
             get { return 8; }
         }
+
         public override byte[] Serialize(double value, byte protocolVersion)
         {
             var data = BitConverter.GetBytes(value);

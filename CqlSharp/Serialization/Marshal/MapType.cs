@@ -89,20 +89,17 @@ namespace CqlSharp.Serialization.Marshal
                     return ms.ToArray();
                 }
             }
-            else
+            using(var ms = new MemoryStream())
             {
-                using (var ms = new MemoryStream())
+                ms.WriteInt(map.Count);
+                foreach(var de in map)
                 {
-                    ms.WriteInt(map.Count);
-                    foreach (var de in map)
-                    {
-                        byte[] rawDataKey = _keyType.Serialize(de.Key, protocolVersion);
-                        ms.WriteByteArray(rawDataKey);
-                        byte[] rawDataValue = _valueType.Serialize(de.Value, protocolVersion);
-                        ms.WriteByteArray(rawDataValue);
-                    }
-                    return ms.ToArray();
+                    byte[] rawDataKey = _keyType.Serialize(de.Key, protocolVersion);
+                    ms.WriteByteArray(rawDataKey);
+                    byte[] rawDataValue = _valueType.Serialize(de.Value, protocolVersion);
+                    ms.WriteByteArray(rawDataValue);
                 }
+                return ms.ToArray();
             }
         }
 
@@ -125,22 +122,19 @@ namespace CqlSharp.Serialization.Marshal
                     return map;
                 }
             }
-            else
+            using(var ms = new MemoryStream(data))
             {
-                using (var ms = new MemoryStream(data))
+                int nbElem = ms.ReadInt();
+                var map = new Dictionary<TKey, TValue>(nbElem);
+                for(int i = 0; i < nbElem; i++)
                 {
-                    int nbElem = ms.ReadInt();
-                    var map = new Dictionary<TKey, TValue>(nbElem);
-                    for (int i = 0; i < nbElem; i++)
-                    {
-                        byte[] elemRawKey = ms.ReadByteArray();
-                        byte[] elemRawValue = ms.ReadByteArray();
-                        TKey key = _keyType.Deserialize(elemRawKey, protocolVersion);
-                        TValue value = _valueType.Deserialize(elemRawValue, protocolVersion);
-                        map.Add(key, value);
-                    }
-                    return map;
+                    byte[] elemRawKey = ms.ReadByteArray();
+                    byte[] elemRawValue = ms.ReadByteArray();
+                    TKey key = _keyType.Deserialize(elemRawKey, protocolVersion);
+                    TValue value = _valueType.Deserialize(elemRawValue, protocolVersion);
+                    map.Add(key, value);
                 }
+                return map;
             }
         }
 

@@ -14,7 +14,6 @@
 // limitations under the License.
 
 using System;
-using System.Diagnostics;
 using System.Runtime.CompilerServices;
 using System.Runtime.ExceptionServices;
 using System.Security;
@@ -57,7 +56,7 @@ namespace CqlSharp.Threading
             {
                 _task.Wait();
             }
-            catch (AggregateException aex)
+            catch(AggregateException aex)
             {
                 ExceptionDispatchInfo.Capture(aex.InnerException).Throw();
             }
@@ -126,7 +125,7 @@ namespace CqlSharp.Threading
             {
                 return _task.Result;
             }
-            catch (AggregateException aex)
+            catch(AggregateException aex)
             {
                 ExceptionDispatchInfo.Capture(aex.InnerException).Throw();
                 throw;

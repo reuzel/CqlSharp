@@ -72,7 +72,7 @@ namespace CqlSharp.Protocol
             //stream.Write(buffer, 0, buffer.Length);
 
             stream.WriteByte((byte)(data >> 56));
-            stream.WriteByte((byte)(data >> 48)); 
+            stream.WriteByte((byte)(data >> 48));
             stream.WriteByte((byte)(data >> 40));
             stream.WriteByte((byte)(data >> 32));
             stream.WriteByte((byte)(data >> 24));

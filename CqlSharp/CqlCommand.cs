@@ -16,7 +16,6 @@
 using System;
 using System.Data;
 using System.Data.Common;
-using System.Diagnostics;
 using System.Threading;
 using System.Threading.Tasks;
 using CqlSharp.Logging;
@@ -571,7 +570,7 @@ namespace CqlSharp
         /// <param name="cancellationToken"> The cancellation token. </param>
         /// <returns> </returns>
         public new virtual Task<CqlDataReader> ExecuteReaderAsync(CommandBehavior behavior,
-                                                                        CancellationToken cancellationToken)
+                                                                  CancellationToken cancellationToken)
         {
             return ExecuteReaderAsyncInternal(behavior, cancellationToken);
         }
@@ -635,7 +634,7 @@ namespace CqlSharp
         /// <param name="cancellationToken"> The cancellation token. </param>
         /// <returns> </returns>
         public virtual Task<CqlDataReader<T>> ExecuteReaderAsync<T>(CommandBehavior behavior,
-                                                                          CancellationToken cancellationToken)
+                                                                    CancellationToken cancellationToken)
             where T : class, new()
         {
             return ExecuteReaderAsyncInternal<T>(behavior, cancellationToken);
@@ -704,9 +703,8 @@ namespace CqlSharp
         /// <returns> </returns>
         /// <exception cref="System.ArgumentException">Command behavior not supported;behavior</exception>
         internal async Task<ResultFrame> ExecuteQueryAsyncInternal(CommandBehavior behavior,
-                                                                    CancellationToken cancellationToken)
+                                                                   CancellationToken cancellationToken)
         {
-
 #if DEBUG
             var st = new Stopwatch();
             st.Start();
@@ -765,9 +763,9 @@ namespace CqlSharp
         /// <returns> </returns>
         /// <exception cref="CqlException">Execute Scalar Query yield no results</exception>
         public override Task<object> ExecuteScalarAsync(CancellationToken token)
-            {
+        {
             return ExecuteScalarAsyncInternal(token);
-            }
+        }
 
         /// <summary>
         /// Executes the query, and returns the value of the first column of the first row.
@@ -806,7 +804,7 @@ namespace CqlSharp
                 CheckCancellationSource(ocex);
                 throw;
             }
-            }
+        }
 
         /// <summary>
         /// This is the asynchronous version of <see cref="M:System.Data.Common.DbCommand.ExecuteNonQuery" />. Providers should
@@ -908,7 +906,7 @@ namespace CqlSharp
                 CheckCancellationSource(ocex);
                 throw;
             }
-            }
+        }
 
         /// <summary>
         /// Executes the batch asynchronous.
@@ -934,8 +932,8 @@ namespace CqlSharp
 
             var logger = _connection.LoggerManager.GetLogger("CqlSharp.CqlBatchTransaction.Commit");
 
-                //continue?
-                token.ThrowIfCancellationRequested();
+            //continue?
+            token.ThrowIfCancellationRequested();
 
             using(token.Register(() => logger.LogQuery("Batch was cancelled")))
             {
@@ -1057,12 +1055,11 @@ namespace CqlSharp
         /// <returns> </returns>
         private async Task PrepareAsyncInternal(CancellationToken token, Logger logger)
         {
-                //continue?
-                token.ThrowIfCancellationRequested();
+            //continue?
+            token.ThrowIfCancellationRequested();
 
             using(token.Register(() => logger.LogQuery("Preparation of Query {0} was cancelled", Query)))
             {
-
                 logger.LogVerbose("Start executing prepare query");
 
                 ResultFrame result = await RunWithRetry(SendPrepareAsync, logger, token).AutoConfigureAwait();
@@ -1280,7 +1277,9 @@ namespace CqlSharp
             }
             else
             {
-                byte[][] values = _parameters != null && _parameters.Count > 0 ? _parameters.Serialize(connection.ProtocolVersion) : null;
+                byte[][] values = _parameters != null && _parameters.Count > 0
+                    ? _parameters.Serialize(connection.ProtocolVersion)
+                    : null;
                 queryFrame = new QueryFrame(Query, Consistency, values);
                 logger.LogVerbose("Sending query {0} using {1}", Query, connection);
             }
@@ -1310,8 +1309,7 @@ namespace CqlSharp
             if(EnableTracing)
                 queryFrame.Flags |= FrameFlags.Tracing;
 
-            
-            
+
             Frame response =
                 await
                     connection.SendRequestAsync(queryFrame, logger, Load, token)
@@ -1389,7 +1387,7 @@ namespace CqlSharp
             }
 
             //set local serial
-            if (UseCASLocalSerial)
+            if(UseCASLocalSerial)
             {
                 logger.LogVerbose("Using LocalSerial consistency for CAS prepare and propose");
                 batchFrame.SerialConsistency = SerialConsistency.LocalSerial;

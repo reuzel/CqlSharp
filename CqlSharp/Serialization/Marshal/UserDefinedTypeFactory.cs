@@ -101,9 +101,9 @@ namespace CqlSharp.Serialization.Marshal
             {
                 var typeId = GetTypeId(keyspace, name, fieldNames, fieldTypes);
                 udt = UserDefinedTypes.GetOrAdd(
-                                typeId, 
-                                _ => new Lazy<Type>( () => EmitNewType(keyspace, name, fieldNames, fieldTypes))
-                                ).Value;
+                    typeId,
+                    _ => new Lazy<Type>(() => EmitNewType(keyspace, name, fieldNames, fieldTypes))
+                    ).Value;
             }
 
             Type userDefinedType = typeof(UserDefinedType<>).MakeGenericType(udt);

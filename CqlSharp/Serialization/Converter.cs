@@ -20,7 +20,6 @@ using System.Linq;
 using System.Linq.Expressions;
 using System.Reflection;
 using CqlSharp.Annotations;
-using CqlSharp.Protocol;
 
 namespace CqlSharp.Serialization
 {
@@ -169,24 +168,17 @@ namespace CqlSharp.Serialization
 
                 Expression call = null;
 
-                if (nonNullableSource == typeof(DateTime) && nonNullableTargetType == typeof(long))
-                {
+                if(nonNullableSource == typeof(DateTime) && nonNullableTargetType == typeof(long))
                     call = Expression.Call(typeof(TypeExtensions), "ToTimestamp", null, src);
-
-                }
                 else if(nonNullableSource == typeof(long) && nonNullableTargetType == typeof(DateTime))
-                {
                     call = Expression.Call(typeof(TypeExtensions), "ToDateTime", null, src);
-                }
                 else
-                {
                     return null;
-                }
 
                 //convert result back to nullable value if necessary
-                if (nonNullableTargetType != targetType)
+                if(nonNullableTargetType != targetType)
                     call = Expression.Convert(call, targetType);
-                
+
                 //add null check
                 return AddNullCheck(srcType, targetType, src, call);
             }

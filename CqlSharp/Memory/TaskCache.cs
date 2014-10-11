@@ -35,7 +35,8 @@ namespace CqlSharp.Memory
 
         public static readonly Task CompletedTask;
 
-        private static readonly ConcurrentDictionary<string, Task<string>> StringCache = new ConcurrentDictionary<string, Task<string>>();
+        private static readonly ConcurrentDictionary<string, Task<string>> StringCache =
+            new ConcurrentDictionary<string, Task<string>>();
 
         static TaskCache()
         {

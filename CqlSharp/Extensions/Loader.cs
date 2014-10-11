@@ -45,8 +45,8 @@ namespace CqlSharp.Extensions
                     {
                         if(_loader == null)
                             _loader = new Loader();
-                        }
                     }
+                }
                 return _loader;
             }
         }
@@ -104,7 +104,7 @@ namespace CqlSharp.Extensions
             string subPath = AppDomain.CurrentDomain.RelativeSearchPath;
 
             //or in bin directory (asp.net)
-            if (!string.IsNullOrEmpty(subPath) && Directory.Exists(subPath))
+            if(!string.IsNullOrEmpty(subPath) && Directory.Exists(subPath))
                 catalog.Catalogs.Add(new DirectoryCatalog(subPath, conventions));
 
             //create container
@@ -119,17 +119,17 @@ namespace CqlSharp.Extensions
             {
                 //in case of any loading errors, load only the loggers and authenticators, and serializers that we implement
                 LoggerFactories = new List<ILoggerFactory>
-                                      {
-                                          new NullLoggerFactory(),
-                                          new ConsoleLoggerFactory(),
-                                          new DebugLoggerFactory(),
-                                          new TraceLoggerFactory()
-                                      };
+                {
+                    new NullLoggerFactory(),
+                    new ConsoleLoggerFactory(),
+                    new DebugLoggerFactory(),
+                    new TraceLoggerFactory()
+                };
 
                 AuthenticationFactories = new List<IAuthenticatorFactory>
-                                              {
-                                                  new PasswordAuthenticatorFactory()
-                                              };
+                {
+                    new PasswordAuthenticatorFactory()
+                };
 
                 TypeFactories = new List<ITypeFactory>
                 {

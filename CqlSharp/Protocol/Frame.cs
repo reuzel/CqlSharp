@@ -114,7 +114,7 @@ namespace CqlSharp.Protocol
 
             //write uncompressed data
             WriteData(buffer);
-            
+
             //compress if allowed, and buffer is large enough to compress
             if(compress && buffer.Length > headerLength + compressTreshold)
             {
@@ -168,12 +168,12 @@ namespace CqlSharp.Protocol
             var header = new byte[9];
 
             //read version byte first
-            if (Scheduler.RunningSynchronously)
+            if(Scheduler.RunningSynchronously)
                 read += stream.Read(header, 0, 1);
             else
                 read += await stream.ReadAsync(header, 0, 1).AutoConfigureAwait();
 
-            if(read==0)
+            if(read == 0)
                 throw new IOException("End of stream reached");
 
             //distill version
@@ -181,7 +181,7 @@ namespace CqlSharp.Protocol
 
             //read remaining header bytes
             int headerSize = protocolVersion <= 2 ? 8 : 9;
-            while (read < headerSize)
+            while(read < headerSize)
             {
                 if(Scheduler.RunningSynchronously)
                     read += stream.Read(header, read, headerSize - read);
@@ -189,7 +189,7 @@ namespace CqlSharp.Protocol
                     read += await stream.ReadAsync(header, read, headerSize - read).AutoConfigureAwait();
 
                 //check if we are not end-of-stream
-                if(read==0 && read<headerSize)
+                if(read == 0 && read < headerSize)
                     throw new IOException("Unexpected end of stream reached");
             }
 
@@ -217,9 +217,8 @@ namespace CqlSharp.Protocol
                 frame.Stream = unchecked((short)header.ToShort(2));
                 frame.OpCode = opcode;
                 frame.Length = header.ToInt(5);
-
             }
-           
+
             //wrap the stream in a window, that will be completely read when disposed
             var reader = new FrameReader(stream, frame.Length);
             frame.Reader = reader;
@@ -277,7 +276,7 @@ namespace CqlSharp.Protocol
             //decompress the contents of the frame (implicity loads the entire frame body!)
             if(!Flags.HasFlag(FrameFlags.Compression) && !Flags.HasFlag(FrameFlags.Tracing))
                 return InitializeAsync();
-            
+
             return PrepareAndInitializeContentAsync();
         }
 
@@ -288,11 +287,11 @@ namespace CqlSharp.Protocol
         private async Task PrepareAndInitializeContentAsync()
         {
             //decompress the contents of the frame (implicity loads the entire frame body!)
-            if (Flags.HasFlag(FrameFlags.Compression))
+            if(Flags.HasFlag(FrameFlags.Compression))
                 await Reader.DecompressAsync().AutoConfigureAwait();
 
             //read tracing id if set
-            if (Flags.HasFlag(FrameFlags.Tracing))
+            if(Flags.HasFlag(FrameFlags.Tracing))
                 TracingId = await Reader.ReadUuidAsync().AutoConfigureAwait();
 
             await InitializeAsync().AutoConfigureAwait();

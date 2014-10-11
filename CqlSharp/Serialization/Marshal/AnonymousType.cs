@@ -20,11 +20,12 @@ using System.Text;
 namespace CqlSharp.Serialization.Marshal
 {
     /// <summary>
-    /// Ascii string type
+    /// Anonymous type, representing anonymous .Net objects that are used as input
+    /// to Cql queries.
     /// </summary>
     public class AnonymousType<T> : CqlType<T>
     {
-         /// <summary>
+        /// <summary>
         /// Gets the CQL type code.
         /// </summary>
         /// <value>
@@ -86,7 +87,8 @@ namespace CqlSharp.Serialization.Marshal
         /// <returns></returns>
         public override byte[] Serialize(T value, byte protocolVersion)
         {
-           throw new NotSupportedException("Anonymous types can not be serialized without additional type information. When inserting or updating, please prepare your query, or provide an explicit CqlType to the corresponding parameter.");
+            throw new NotSupportedException(
+                "Anonymous types can not be serialized without additional type information. When inserting or updating, please prepare your query, or provide an explicit CqlType to the corresponding parameter.");
         }
 
         /// <summary>
@@ -97,7 +99,8 @@ namespace CqlSharp.Serialization.Marshal
         /// <returns></returns>
         public override T Deserialize(byte[] data, byte protocolVersion)
         {
-            throw new NotSupportedException("Anonymous types can not be deserialized without additional type information.");
+            throw new NotSupportedException(
+                "Anonymous types can not be deserialized without additional type information.");
         }
     }
 }

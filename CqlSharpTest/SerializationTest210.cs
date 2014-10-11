@@ -139,7 +139,7 @@ namespace CqlSharp.Test
                 var command = new CqlCommand(connection,
                                              "insert into testudt.members (id, user, comment) values (?,?,?);");
                 command.Prepare();
-                command.Parameters["id"].Value = 1;
+                command.Parameters["id"].Value = 12;
                 command.Parameters["user"].Value =
                     new
                     {
@@ -160,7 +160,7 @@ namespace CqlSharp.Test
                         var actual = reader.Current;
 
                         Assert.IsNotNull(actual);
-                        Assert.AreEqual(1, actual.Id);
+                        Assert.AreEqual(12, actual.Id);
                         Assert.AreEqual(Tuple.Create("my title", "phew"), actual.Comment);
                         Assert.AreEqual("Joost", actual.User.Name);
                         Assert.AreEqual("MyWay", actual.User.Address.Street);

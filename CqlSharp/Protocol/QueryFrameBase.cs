@@ -105,7 +105,7 @@ namespace CqlSharp.Protocol
                 buffer.WriteShort((ushort)SerialConsistency.Value);
 
             if(ProtocolVersion >= 3 && Timestamp.HasValue)
-                buffer.WriteLong(Timestamp.Value.ToTimestamp() * 1000); //convert milliseconds to microseconds
+                buffer.WriteLong(Timestamp.Value.ToTimestamp()*1000); //convert milliseconds to microseconds
         }
 
 

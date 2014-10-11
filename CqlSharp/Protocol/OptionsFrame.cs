@@ -16,7 +16,6 @@
 using System;
 using System.IO;
 using System.Threading.Tasks;
-using CqlSharp.Threading;
 
 namespace CqlSharp.Protocol
 {

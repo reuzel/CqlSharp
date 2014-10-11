@@ -50,7 +50,8 @@ namespace CqlSharp.Serialization.Marshal
             {
                 var bytes = Expression.Call(typeof(StreamExtensions), "ReadByteArray", null, data);
                 var cqlType = Expression.ArrayIndex(types, Expression.Constant(i));
-                expressions[i] = Expression.Call(cqlType, "Deserialize", new[] { typeArguments[i] }, bytes, protocolVersion);
+                expressions[i] = Expression.Call(cqlType, "Deserialize", new[] {typeArguments[i]}, bytes,
+                                                 protocolVersion);
             }
 
             //create the new tupe
@@ -59,7 +60,8 @@ namespace CqlSharp.Serialization.Marshal
                                            expressions.Select(e => e.Type).ToArray(),
                                            expressions);
 
-            Deserializer = Expression.Lambda<Func<Stream, CqlType[], byte, T>>(newTuple, data, types, protocolVersion).Compile();
+            Deserializer =
+                Expression.Lambda<Func<Stream, CqlType[], byte, T>>(newTuple, data, types, protocolVersion).Compile();
         }
 
         /// <summary>

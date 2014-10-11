@@ -553,9 +553,8 @@ namespace CqlSharp.Network.Partition
                 _tokenMap.Clear();
                 _tokens.Clear();
 
-                foreach (var node in nodes)
+                foreach(var node in nodes)
                     node.Dispose();
-
             }
             finally
             {

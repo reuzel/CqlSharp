@@ -94,7 +94,7 @@ namespace CqlSharp
             TypeCodeMap[(short)CqlTypeCode.Map] = new MapTypeFactory();
             TypeCodeMap[(short)CqlTypeCode.UserDefinedType] = new UserDefinedTypeFactory();
             TypeCodeMap[(short)CqlTypeCode.Tuple] = new TupleTypeFactory();
-            
+
             //populate .net type to CqlType map with all native classes
             Type2CqlType = new ConcurrentDictionary<Type, CqlType>();
             Type2CqlType[typeof(string)] = UTF8Type.Instance;
@@ -264,7 +264,7 @@ namespace CqlSharp
         /// <value>
         /// The maximum size in bytes.
         /// </value>
-        public abstract int Size { get;  }
+        public abstract int Size { get; }
 
         /// <summary>
         /// Serializes the specified object.
@@ -280,11 +280,13 @@ namespace CqlSharp
                 var parameter = Expression.Parameter(typeof(object));
                 var version = Expression.Parameter(typeof(byte));
                 var instance = Expression.Parameter(typeof(CqlType));
-                var call = Expression.Call(instance, "Serialize", new[] {type}, Expression.Convert(parameter, type), version);
+                var call = Expression.Call(instance, "Serialize", new[] {type}, Expression.Convert(parameter, type),
+                                           version);
                 var lambda = Expression.Lambda<Func<CqlType, object, byte, byte[]>>(call,
-                                                                              string.Format("CqlType.Serialize<{0}>",
-                                                                                            type.Name),
-                                                                              new[] {instance, parameter, version});
+                                                                                    string.Format(
+                                                                                        "CqlType.Serialize<{0}>",
+                                                                                        type.Name),
+                                                                                    new[] {instance, parameter, version});
                 return lambda.Compile();
             });
 
@@ -433,7 +435,7 @@ namespace CqlSharp
         {
             get { return typeof(T); }
         }
-        
+
         /// <summary>
         /// Serializes the specified object.
         /// </summary>

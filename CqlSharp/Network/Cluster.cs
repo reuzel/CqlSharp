@@ -47,7 +47,7 @@ namespace CqlSharp.Network
         private volatile Task _openTask;
         private string _rack;
         private string _release;
-        
+
         /// <summary>
         /// Initializes a new instance of the <see cref="Cluster" /> class.
         /// </summary>
@@ -193,7 +193,6 @@ namespace CqlSharp.Network
 
                     if(_maintenanceConnection != null)
                         _maintenanceConnection.Dispose();
-                    
                 }
                 catch(Exception ex)
                 {
@@ -208,13 +207,13 @@ namespace CqlSharp.Network
         /// Gets a value indicating whether this cluster instance is open for handling queries.
         /// </summary>
         /// <value>
-        ///   <c>true</c> if this instance is open; otherwise, <c>false</c>.
+        /// <c>true</c> if this instance is open; otherwise, <c>false</c>.
         /// </value>
         internal bool IsOpen
         {
             get { return _openTask != null && _openTask.IsCompleted && !_openTask.IsFaulted && !_openTask.IsCanceled; }
         }
-        
+
         /// <summary>
         /// Opens the cluster for queries.
         /// </summary>
@@ -246,7 +245,7 @@ namespace CqlSharp.Network
         private async Task OpenAsyncInternal(Logger logger, CancellationToken token)
         {
             logger.LogInfo("Opening Cluster with parameters: {0}", _config.ToString());
-            
+
             //initialize the ring
             _nodes = new Ring();
 
@@ -297,7 +296,7 @@ namespace CqlSharp.Network
                 logger.LogCritical("Unable to setup Cluster based on given configuration: {0}", ex);
                 throw ex;
             }
-           
+
             //setup cluster connection strategy
             switch(_config.ConnectionStrategy)
             {
@@ -313,7 +312,7 @@ namespace CqlSharp.Network
                 case CqlSharp.ConnectionStrategy.PartitionAware:
                     _connectionStrategy = new PartitionAwareConnectionStrategy(_nodes, _config);
                     if(_config.DiscoveryScope != DiscoveryScope.Cluster ||
-                        _config.DiscoveryScope != DiscoveryScope.DataCenter)
+                       _config.DiscoveryScope != DiscoveryScope.DataCenter)
                     {
                         logger.LogWarning(
                             "PartitionAware connection strategy performs best if DiscoveryScope is set to cluster or datacenter");
@@ -424,10 +423,10 @@ namespace CqlSharp.Network
             string partitioner;
 
             using(var result = await ExecQuery(c,
-                              "select cluster_name, cql_version, release_version, partitioner, data_center, rack, tokens from system.local",
+                                               "select cluster_name, cql_version, release_version, partitioner, data_center, rack, tokens from system.local",
                                                logger,
                                                token
-                                               ).AutoConfigureAwait())
+                ).AutoConfigureAwait())
             {
                 if(! await result.ReadAsyncInternal(token).AutoConfigureAwait())
                     throw new CqlException("Could not fetch configuration data from seed");
@@ -453,7 +452,9 @@ namespace CqlSharp.Network
             using(
                 var result =
                     await
-                        ExecQuery(c, "select peer, rpc_address, data_center, rack, tokens, release_version from system.peers", logger,
+                        ExecQuery(c,
+                                  "select peer, rpc_address, data_center, rack, tokens, release_version from system.peers",
+                                  logger,
                                   token).AutoConfigureAwait())
             {
                 //iterate over the peers
@@ -492,7 +493,7 @@ namespace CqlSharp.Network
 
         private Node GetNodeFromDataReader(CqlDataReader reader, Logger logger)
         {
-                //get address of new node, and fallback to listen_address when address is set to any
+            //get address of new node, and fallback to listen_address when address is set to any
             var address = reader.GetIPAddress(reader.GetOrdinal("rpc_address"));
             if(address == null || address.Equals(IPAddress.Any))
                 address = reader.GetIPAddress(reader.GetOrdinal("peer"));
@@ -500,16 +501,16 @@ namespace CqlSharp.Network
             var dc = reader.GetString(reader.GetOrdinal("data_center"));
             var rack = reader.GetString(reader.GetOrdinal("rack"));
 
-                //check if we have an address, otherwise ignore
+            //check if we have an address, otherwise ignore
             if(address == null || dc == null || rack == null)
-                {
-                    logger.LogError("Incomplete node information retrieved for a node: address={0}, dc={1}, rack={2}", 
+            {
+                logger.LogError("Incomplete node information retrieved for a node: address={0}, dc={1}, rack={2}",
                                 address != null ? address.ToString() : "(address not found!)",
-                        dc ?? "(datacenter not found)",
-                        rack ?? "(rack not found)");
+                                dc ?? "(datacenter not found)",
+                                rack ?? "(rack not found)");
 
-                    return null;
-                }
+                return null;
+            }
 
             //get tokens
             var tokens = (reader.GetSet<string>(reader.GetOrdinal("tokens"))) ?? new HashSet<string>();
@@ -518,14 +519,14 @@ namespace CqlSharp.Network
             var release = reader.GetString(reader.GetOrdinal("release_version"));
             byte protocolVersion = DistillProtocolVersion(release);
 
-                //create a new node
-                return new Node(address, this)
-                                    {
-                                        DataCenter = dc,
-                                        Rack = rack,
+            //create a new node
+            return new Node(address, this)
+            {
+                DataCenter = dc,
+                Rack = rack,
                 Tokens = tokens,
                 ProtocolVersion = protocolVersion
-                                    };
+            };
         }
 
         /// <summary>
@@ -542,13 +543,13 @@ namespace CqlSharp.Network
                 int[] versionParts = release.Split('.').Select(int.Parse).ToArray();
 
                 //return version 1 for nodes older than 2.0.0
-                if (versionParts[0] < 2)
+                if(versionParts[0] < 2)
                     return 1;
 
                 //return version 2 for nodes running than 2.0.x
-                if (versionParts[1] == 0)
+                if(versionParts[1] == 0)
                     return 2;
-                
+
                 //return highest supported protocol version for all other nodes
                 return highestSupported;
             }
@@ -557,7 +558,6 @@ namespace CqlSharp.Network
                 //parse error, return highest supported protocol version
                 return highestSupported;
             }
-                    
         }
 
         /// <summary>
@@ -568,7 +568,8 @@ namespace CqlSharp.Network
         /// <param name="logger"> The logger. </param>
         /// <param name="token"> The token. </param>
         /// <returns> A CqlDataReader that can be used to access the query results </returns>
-        private async Task<CqlDataReader> ExecQuery(Connection connection, string cql, Logger logger, CancellationToken token)
+        private async Task<CqlDataReader> ExecQuery(Connection connection, string cql, Logger logger,
+                                                    CancellationToken token)
         {
             //cancel if requested
             token.ThrowIfCancellationRequested();
@@ -639,7 +640,7 @@ namespace CqlSharp.Network
 
                     //refetch the cluster configuration
                     await Task.Delay(5000).AutoConfigureAwait();
-                        //delay as Add is typically send a bit too early (and therefore no tokens are distributed)
+                    //delay as Add is typically send a bit too early (and therefore no tokens are distributed)
                     await
                         GetClusterInfoAsync(node, logger, CancellationToken.None)
                             .AutoConfigureAwait();
@@ -653,7 +654,7 @@ namespace CqlSharp.Network
                         using(logger.ThreadBinding())
                         {
                             await Task.Delay(5000).AutoConfigureAwait();
-                                //delay as Up is typically send a bit too early
+                            //delay as Up is typically send a bit too early
                             upNode.Reactivate();
                         }
                     }

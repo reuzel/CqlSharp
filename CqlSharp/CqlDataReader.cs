@@ -217,7 +217,7 @@ namespace CqlSharp
         #endregion
 
         /// <summary>
-        ///   Forwards the reader to the next row.
+        /// Forwards the reader to the next row.
         /// </summary>
         /// <returns> true if there are more rows; otherwise, false. </returns>
         public override bool Read()
@@ -226,7 +226,7 @@ namespace CqlSharp
         }
 
         /// <summary>
-        ///   Forwards the reader to the next row async.
+        /// Forwards the reader to the next row async.
         /// </summary>
         /// <returns> </returns>
         public override Task<bool> ReadAsync(CancellationToken cancellationToken)
@@ -235,11 +235,11 @@ namespace CqlSharp
         }
 
         /// <summary>
-        ///   Forwards the reader to the next row async.
+        /// Forwards the reader to the next row async.
         /// </summary>
         /// <returns> </returns>
         internal async Task<bool> ReadAsyncInternal(CancellationToken cancellationToken)
-            {
+        {
             while(true)
             {
                 //read next row from frame
@@ -256,7 +256,10 @@ namespace CqlSharp
                     //get next page of data
                     cancellationToken.ThrowIfCancellationRequested();
                     _command.PagingState = _frame.ResultMetaData.PagingState;
-                    _frame = await _command.ExecuteQueryAsyncInternal(CommandBehavior.Default, cancellationToken).AutoConfigureAwait();
+                    _frame =
+                        await
+                            _command.ExecuteQueryAsyncInternal(CommandBehavior.Default, cancellationToken)
+                                    .AutoConfigureAwait();
                     _command.PagingState = null;
                 }
                 else
@@ -271,9 +274,6 @@ namespace CqlSharp
             return false;
         }
 
-
-
-       
 
         /// <summary>
         /// Closes this instance.
@@ -884,8 +884,6 @@ namespace CqlSharp
         {
             return new DbEnumerator(this, false);
         }
-
-        
     }
 
     /// <summary>
@@ -980,10 +978,10 @@ namespace CqlSharp
         /// </returns>
         /// <filterpriority>1</filterpriority>
         public new virtual IEnumerator<T> GetEnumerator()
-            {
+        {
             while(Read())
                 yield return Current;
-            }
+        }
 
         /// <summary>
         /// Returns an enumerator that iterates through a collection.

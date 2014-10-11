@@ -78,7 +78,8 @@ namespace CqlSharp
         /// <param name="connection"> The connection. </param>
         /// <param name="batchType"> Type of the batch. </param>
         /// <param name="consistency"> The consistency. </param>
-        public CqlBatchTransaction(CqlConnection connection, CqlBatchType batchType = CqlBatchType.Logged, CqlConsistency consistency = CqlConsistency.One)
+        public CqlBatchTransaction(CqlConnection connection, CqlBatchType batchType = CqlBatchType.Logged,
+                                   CqlConsistency consistency = CqlConsistency.One)
         {
             _batchCommand = new CqlCommand(connection) {Consistency = consistency, Transaction = this};
             _commands = new List<BatchFrame.BatchedCommand>();
@@ -156,12 +157,12 @@ namespace CqlSharp
         /// <value>
         /// The (default) timestamp.
         /// </value>
-        public virtual DateTime? Timestamp 
+        public virtual DateTime? Timestamp
         {
             get { return _batchCommand.Timestamp; }
             set { _batchCommand.Timestamp = value; }
         }
-        
+
         /// <summary>
         /// Gets the commands.
         /// </summary>
@@ -183,7 +184,7 @@ namespace CqlSharp
         {
             get { return _batchCommand.Consistency; }
             set { _batchCommand.Consistency = value; }
-            }
+        }
 
         /// <summary>
         /// Indication of the load this query generates (e.g. the number of statements in the batch). Used by connection stratagies
@@ -268,15 +269,14 @@ namespace CqlSharp
         {
             CheckIfPending();
 
-            if (Connection.State != ConnectionState.Open)
+            if(Connection.State != ConnectionState.Open)
                 throw new InvalidOperationException("Commit error: Connection is closed or disposed");
-            
-            if (_commands.Count > 0)
-                    _batchCommand.ExecuteBatch();
 
-                _state = TransactionState.Committed;
-            
-            }
+            if(_commands.Count > 0)
+                _batchCommand.ExecuteBatch();
+
+            _state = TransactionState.Committed;
+        }
 
 
         /// <summary>
@@ -311,10 +311,8 @@ namespace CqlSharp
         /// <returns> </returns>
         private async Task CommitAsyncInternal(CancellationToken cancellationToken)
         {
-            if (_commands.Count > 0)
-            {
+            if(_commands.Count > 0)
                 await _batchCommand.ExecuteBatchAsync(cancellationToken).AutoConfigureAwait();
-            }
 
             _state = TransactionState.Committed;
         }

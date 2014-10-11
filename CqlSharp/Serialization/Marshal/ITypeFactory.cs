@@ -19,10 +19,34 @@ namespace CqlSharp.Serialization.Marshal
 {
     public interface ITypeFactory
     {
+        /// <summary>
+        /// Gets the name of the type without parameters.
+        /// </summary>
+        /// <value>
+        /// The name of the type.
+        /// </value>
         string TypeName { get; }
 
+        /// <summary>
+        /// Creates the type based on the provided parameters.
+        /// </summary>
+        /// <param name="innerTypes">The inner types.</param>
+        /// <returns></returns>
         CqlType CreateType(params object[] innerTypes);
+
+        /// <summary>
+        /// Creates the type based on a textual represenation of the the type.
+        /// </summary>
+        /// <param name="parser">The parser.</param>
+        /// <returns></returns>
         CqlType CreateType(TypeParser parser);
+
+
+        /// <summary>
+        /// Creates the type based on provided .Net Type
+        /// </summary>
+        /// <param name="type">The type.</param>
+        /// <returns></returns>
         CqlType CreateType(Type type);
     }
 }
