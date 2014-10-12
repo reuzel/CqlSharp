@@ -299,7 +299,8 @@ namespace CqlSharp.Test
                         dynamic actualUser = reader.GetUserDefinedType(1);
 
                         Assert.IsNotNull(actualUser);
-                        Assert.AreEqual(member.User.Name, actualUser.Name);
+                        Assert.AreEqual(member.User.Name, actualUser.Name); //sanitized name
+                        Assert.AreEqual(member.User.Name, actualUser.name); //original field name
                         Assert.IsNotNull(actualUser.Address);
                         Assert.AreEqual(member.User.Address.Street, actualUser.Address.Street);
                         Assert.AreEqual(member.User.Phones[2], actualUser.Phones[2]);

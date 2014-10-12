@@ -178,8 +178,13 @@ namespace CqlSharp.Serialization.Marshal
                                                             new[] {columnOrderProperty}, new object[] {i});
                 field.SetCustomAttribute(columnAttr);
 
+
+                string propertyName = SanitizeName(fieldname);
+                if(fieldname.Equals(propertyName))
+                    continue;
+
                 //define Property
-                PropertyBuilder property = myTypeBuilder.DefineProperty(SanitizeName(fieldname),
+                PropertyBuilder property = myTypeBuilder.DefineProperty(propertyName,
                                                                  PropertyAttributes.None,
                                                                  type.Type,
                                                                  null);
@@ -191,7 +196,7 @@ namespace CqlSharp.Serialization.Marshal
 
                 // Define the "get" accessor method.
                 MethodBuilder propertyGetter =
-                    myTypeBuilder.DefineMethod("get_"+ SanitizeName(fieldname),
+                    myTypeBuilder.DefineMethod("get_" + propertyName,
                                                getSetAttr,
                                                type.Type,
                                                Type.EmptyTypes);
@@ -204,7 +209,7 @@ namespace CqlSharp.Serialization.Marshal
 
                 // Define the "set" accessor method 
                 MethodBuilder propertySetter =
-                    myTypeBuilder.DefineMethod("set_" + SanitizeName(fieldname),
+                    myTypeBuilder.DefineMethod("set_" + propertyName,
                                                getSetAttr,
                                                null,
                                                new Type[] { type.Type });
