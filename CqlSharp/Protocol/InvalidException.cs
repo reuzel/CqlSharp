@@ -23,8 +23,14 @@ namespace CqlSharp.Protocol
     [Serializable]
     public class InvalidException : ProtocolException
     {
-        internal InvalidException(string message, Guid? tracingId)
-            : base(Protocol.ErrorCode.Invalid, message, tracingId)
+        /// <summary>
+        /// Initializes a new instance of the <see cref="InvalidException"/> class.
+        /// </summary>
+        /// <param name="protocolVersion">The CQL binary protocol version in use.</param>
+        /// <param name="message">The message.</param>
+        /// <param name="tracingId">The tracing identifier.</param>
+        internal InvalidException(byte protocolVersion, string message, Guid? tracingId)
+            : base(protocolVersion, Protocol.ErrorCode.Invalid, message, tracingId)
         {
         }
     }

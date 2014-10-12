@@ -197,7 +197,7 @@ namespace CqlSharp.Protocol
             if(protocolVersion <= 2)
             {
                 var opcode = (FrameOpcode)header[3];
-                frame = GetFrameFromOpcode(opcode);
+                frame = GetFrameFromOpcode(protocolVersion, opcode);
 
                 frame.ProtocolVersion = protocolVersion;
                 frame.IsRequest = (header[0] & 0x80) == 0;
@@ -209,7 +209,7 @@ namespace CqlSharp.Protocol
             else
             {
                 var opcode = (FrameOpcode)header[4];
-                frame = GetFrameFromOpcode(opcode);
+                frame = GetFrameFromOpcode(protocolVersion, opcode);
 
                 frame.ProtocolVersion = protocolVersion;
                 frame.IsRequest = (header[0] & 0x80) == 0;
@@ -229,10 +229,11 @@ namespace CqlSharp.Protocol
         /// <summary>
         /// Gets the frame from opcode.
         /// </summary>
+        /// <param name="protocolVersion">the version of the cql binary protocol in use</param>
         /// <param name="opcode">The opcode.</param>
         /// <returns></returns>
-        /// <exception cref="ProtocolException">0</exception>
-        private static Frame GetFrameFromOpcode(FrameOpcode opcode)
+        /// <exception cref="ProtocolException">Unexpected OpCode received.</exception>
+        private static Frame GetFrameFromOpcode(byte protocolVersion, FrameOpcode opcode)
         {
             Frame frame;
             switch(opcode)
@@ -262,7 +263,7 @@ namespace CqlSharp.Protocol
                     frame = new EventFrame();
                     break;
                 default:
-                    throw new ProtocolException(0, string.Format("Unexpected OpCode {0:X} received.", opcode));
+                    throw new ProtocolException(protocolVersion, 0, string.Format("Unexpected OpCode {0:X} received.", opcode));
             }
             return frame;
         }

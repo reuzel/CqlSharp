@@ -23,8 +23,14 @@ namespace CqlSharp.Protocol
     [Serializable]
     public class UnauthorizedException : ProtocolException
     {
-        internal UnauthorizedException(string message, Guid? tracingId)
-            : base(Protocol.ErrorCode.Unauthorized, message, tracingId)
+        /// <summary>
+        /// Initializes a new instance of the <see cref="UnauthorizedException"/> class.
+        /// </summary>
+        /// <param name="protocolVersion">The CQL binary protocol version in use.</param>
+        /// <param name="message">The message.</param>
+        /// <param name="tracingId">The tracing identifier.</param>
+        internal UnauthorizedException(byte protocolVersion, string message, Guid? tracingId)
+            : base(protocolVersion, Protocol.ErrorCode.Unauthorized, message, tracingId)
         {
         }
     }

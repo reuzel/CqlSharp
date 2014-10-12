@@ -43,14 +43,13 @@ namespace CqlSharp.Authentication
         public string Username { get; set; }
         public string Password { get; set; }
 
-        public bool Authenticate(byte[] challenge, out byte[] response)
+        public bool Authenticate(byte protocolVersion, byte[] challenge, out byte[] response)
         {
             if(challenge == null)
             {
                 if(Username == null || Password == null)
                 {
-                    throw new AuthenticationException(
-                        "Username and Password must be provided when using PasswordAuthenticator");
+                    throw new AuthenticationException(protocolVersion, "Username and Password must be provided when using PasswordAuthenticator");
                 }
 
                 var username = Encoding.UTF8.GetBytes(Username);
@@ -72,7 +71,7 @@ namespace CqlSharp.Authentication
             return false;
         }
 
-        public bool Authenticate(byte[] finalResponse)
+        public bool Authenticate(byte protocolVersion, byte[] finalResponse)
         {
             return true;
         }

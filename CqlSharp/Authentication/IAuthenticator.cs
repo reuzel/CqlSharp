@@ -23,16 +23,18 @@ namespace CqlSharp.Authentication
         /// <summary>
         /// Authenticates using the specified Sasl challenge.
         /// </summary>
+        /// <param name="protocolVersion">The version of the protocol in use</param>
         /// <param name="challenge"> The challenge. </param>
         /// <param name="response"> The response. </param>
         /// <returns> true, if authentication may continue </returns>
-        bool Authenticate(byte[] challenge, out byte[] response);
+        bool Authenticate(byte protocolVersion, byte[] challenge, out byte[] response);
 
         /// <summary>
         /// Authenticates the specified final SASL response.
         /// </summary>
+        /// <param name="protocolVersion">The version of the protocol in use</param>
         /// <param name="finalResponse"> The final response. </param>
         /// <returns> true, if authentication is succesful </returns>
-        bool Authenticate(byte[] finalResponse);
+        bool Authenticate(byte protocolVersion, byte[] finalResponse);
     }
 }

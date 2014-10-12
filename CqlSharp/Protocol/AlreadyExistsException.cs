@@ -26,12 +26,13 @@ namespace CqlSharp.Protocol
         /// <summary>
         /// Initializes a new instance of the <see cref="AlreadyExistsException" /> class.
         /// </summary>
+        /// <param name="protocolVersion">The version of the protocol in use</param>
         /// <param name="message"> The message. </param>
         /// <param name="keyspace"> The keyspace. </param>
         /// <param name="table"> The table. </param>
         /// <param name="tracingId"> The tracing unique identifier. </param>
-        internal AlreadyExistsException(string message, string keyspace, string table, Guid? tracingId)
-            : base(Protocol.ErrorCode.AlreadyExists, message, tracingId)
+        internal AlreadyExistsException(byte protocolVersion, string message, string keyspace, string table, Guid? tracingId)
+            : base(protocolVersion, Protocol.ErrorCode.AlreadyExists, message, tracingId)
         {
             Keyspace = keyspace;
             Table = table;

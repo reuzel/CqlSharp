@@ -23,9 +23,18 @@ namespace CqlSharp.Protocol
     [Serializable]
     public class WriteTimeOutException : TimeOutException
     {
-        internal WriteTimeOutException(string message, CqlConsistency cqlConsistency, int received, int blockFor,
-                                       string writeType, Guid? tracingId)
-            : base(Protocol.ErrorCode.WriteTimeout, message, cqlConsistency, received, blockFor, tracingId)
+        /// <summary>
+        /// Initializes a new instance of the <see cref="WriteTimeOutException" /> class.
+        /// </summary>
+        /// <param name="protocolVersion">The CQL binary protocol version in use.</param>
+        /// <param name="message">The message.</param>
+        /// <param name="cqlConsistency">The CQL consistency.</param>
+        /// <param name="received">The number of nodes of which a response is received.</param>
+        /// <param name="blockFor">The number of nodes the query was waiting for.</param>
+        /// <param name="writeType">Type of the write.</param>
+        /// <param name="tracingId">The tracing identifier.</param>
+        internal WriteTimeOutException(byte protocolVersion, string message, CqlConsistency cqlConsistency, int received, int blockFor, string writeType, Guid? tracingId)
+            : base(protocolVersion, Protocol.ErrorCode.WriteTimeout, message, cqlConsistency, received, blockFor, tracingId)
         {
             WriteType = writeType;
         }
