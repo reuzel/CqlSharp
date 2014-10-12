@@ -1,4 +1,5 @@
-## Version 0.40.0 - Types,types,types
+## Version 0.40.0 - Cql Binary Protocol v3 and new type system
+* Implements binary protocol v3: more queries per connection, timestamp property, UDT and Tuple types, larger collections.
 * Rewrite of type system, CqlType is no longer an enum but a class with subclasses for every Cassandra type.
 * Previous CqlType enum is now called CqlTypeCode.
 * Primitive Cql types can be accessed through CqlType.* static properties. Others can be constructed from .NET class, type string, or TypeCode + parameter via the CqlType.CreateType overloads.
