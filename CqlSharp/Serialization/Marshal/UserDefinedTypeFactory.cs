@@ -19,6 +19,7 @@ using System.Collections.Generic;
 using System.Diagnostics;
 using System.Globalization;
 using System.Linq;
+using System.Linq.Expressions;
 using System.Reflection;
 using System.Reflection.Emit;
 using System.Text;
@@ -166,7 +167,7 @@ namespace CqlSharp.Serialization.Marshal
                 CqlType type = types[i];
 
                 //define the field
-                var field = myTypeBuilder.DefineField(SanitizeName(fieldname), type.Type, FieldAttributes.Public);
+                var field = myTypeBuilder.DefineField(fieldname, type.Type, FieldAttributes.Public);
 
                 //define CqlColumnAttribute
                 var columnAttrParams = new[] {typeof(string)};
@@ -176,6 +177,54 @@ namespace CqlSharp.Serialization.Marshal
                 var columnAttr = new CustomAttributeBuilder(columnAttrConstructor, new object[] {fieldname},
                                                             new[] {columnOrderProperty}, new object[] {i});
                 field.SetCustomAttribute(columnAttr);
+
+                //define Property
+                PropertyBuilder property = myTypeBuilder.DefineProperty(SanitizeName(fieldname),
+                                                                 PropertyAttributes.None,
+                                                                 type.Type,
+                                                                 null);
+
+                // The property set and property get methods require a special 
+                // set of attributes.
+                const MethodAttributes getSetAttr = MethodAttributes.Public | MethodAttributes.SpecialName |
+                                                    MethodAttributes.HideBySig;
+
+                // Define the "get" accessor method.
+                MethodBuilder propertyGetter =
+                    myTypeBuilder.DefineMethod("get_"+ SanitizeName(fieldname),
+                                               getSetAttr,
+                                               type.Type,
+                                               Type.EmptyTypes);
+
+                ILGenerator propertyGetterIL = propertyGetter.GetILGenerator();
+
+                propertyGetterIL.Emit(OpCodes.Ldarg_0);
+                propertyGetterIL.Emit(OpCodes.Ldfld, field);
+                propertyGetterIL.Emit(OpCodes.Ret);
+
+                // Define the "set" accessor method 
+                MethodBuilder propertySetter =
+                    myTypeBuilder.DefineMethod("set_" + SanitizeName(fieldname),
+                                               getSetAttr,
+                                               null,
+                                               new Type[] { type.Type });
+
+                ILGenerator propertySetterIL = propertySetter.GetILGenerator();
+
+                propertySetterIL.Emit(OpCodes.Ldarg_0);
+                propertySetterIL.Emit(OpCodes.Ldarg_1);
+                propertySetterIL.Emit(OpCodes.Stfld, field);
+                propertySetterIL.Emit(OpCodes.Ret);
+
+                // Last, we must map the two methods created above to our PropertyBuilder to  
+                // their corresponding behaviors, "get" and "set" respectively. 
+                property.SetGetMethod(propertyGetter);
+                property.SetSetMethod(propertySetter);
+
+                var ignoreAttrConstructor = typeof(CqlIgnoreAttribute).GetConstructor(Type.EmptyTypes);
+                Debug.Assert(ignoreAttrConstructor != null, "ignoreAttrConstructor != null");
+                var ignoreAttr = new CustomAttributeBuilder(ignoreAttrConstructor, new object[0]);
+                property.SetCustomAttribute(ignoreAttr);
             }
 
             //set CqlUserType attribute

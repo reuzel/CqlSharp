@@ -111,7 +111,7 @@ namespace CqlSharp.Serialization.Marshal
 
             var typeFactory =
                 Loader.Extensions.TypeFactories.Find(
-                    factory => factory.TypeName.Equals(type, StringComparison.OrdinalIgnoreCase));
+                    factory => string.Equals(factory.TypeName, type, StringComparison.OrdinalIgnoreCase));
 
             if(typeFactory == null)
                 throw new CqlException(string.Format("Type {0} is not supported", type));

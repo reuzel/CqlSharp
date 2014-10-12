@@ -21,7 +21,7 @@ namespace CqlSharp.Serialization.Marshal
     {
         public string TypeName
         {
-            get { throw new NotSupportedException("Anonymous types do not have a name"); }
+            get { return null; }
         }
 
         public CqlType CreateType(params object[] innerTypes)
