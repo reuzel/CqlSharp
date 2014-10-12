@@ -22,12 +22,13 @@
       * The API implements the ADO.NET interfaces. If you are familiar with SqlConnection, SqlCommand, and SqlReader, you should be able to use CqlSharp with no difficulty.
       * CqlSharp is an implementation of the (new) CQL Binary Protocol and therefore requires Cassandra 1.2 and up
       * CqlSharp supports all the binary protocol v2 features: batching, paging, bound query variables, result schema caching, check-and-set (CAS) statements, and sasl-authentication
+      * Implements binary protocol v3: more queries per connection, timestamp property, UDT and Tuple types, larger collections
       * Supports fast mapping of objects to query parameters, or query results to objects. Mapping is tunable by decorating your classes via Table and Column attributes.
       * Query tracing, timeouts and cancellation is supported
       * The API is predominately [asynchronous](http://msdn.microsoft.com/en-us/library/vstudio/hh191443.aspx), heavily relying on the System.Threading.Tasks namespace. Synchronous alternatives are available for convenience.
       * Configuration is done through connection strings. The simultaneous use of multiple Cassandra clusters is supported.
       * Extensive logging, including support for custom logger implementations
-      
+
       See https://github.com/reuzel/CqlSharp/wiki/Features for an extensive feature list.
     </description>
     <releaseNotes>
