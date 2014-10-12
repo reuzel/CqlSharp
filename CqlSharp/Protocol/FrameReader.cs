@@ -211,7 +211,8 @@ namespace CqlSharp.Protocol
                 }
                 catch(Exception ex)
                 {
-                    _waitUntilAllFrameDataRead.TrySetException(ex);
+                    Scheduler.RunOnIOThread(() => _waitUntilAllFrameDataRead.TrySetException(ex));
+                    //_waitUntilAllFrameDataRead.TrySetException(ex);
                 }
 
                 _innerStream = null;

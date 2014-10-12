@@ -579,36 +579,44 @@ namespace CqlSharp.Network
         /// <param name="load"> the load indication of the request. Used for balancing queries over nodes and connections </param>
         /// <param name="token"> The token. </param>
         /// <returns> </returns>
-        /// <exception cref="System.IO.IOException">Not connected</exception>
         internal Task<Frame> SendRequestAsync(Frame frame, Logger logger, int load, CancellationToken token)
         {
-            return token.CanBeCanceled
-                ? SendCancellableRequestAsync(frame, logger, load, token)
-                : SendRequestAsyncInternal(frame, logger, load, token);
+            if(_connectionState == ConnectionState.Connected && !token.CanBeCanceled)
+                return SendRequestAsyncInternal(frame, logger, load, token);
+
+            return SendRequestAsyncComplex(frame, logger, load, token);
         }
 
         /// <summary>
-        /// Sends the cancellable request async. Adds a cancellation wrapper around SendRequestInternal
+        ///  Submits a frame, and waits until response is received (complex version)
         /// </summary>
-        /// <param name="frame"> The frame. </param>
-        /// <param name="logger"> The logger. </param>
-        /// <param name="load"> The load. </param>
+        /// <param name="frame"> The frame to send. </param>
+        /// <param name="logger"> logger to write progress to </param>
+        /// <param name="load"> the load indication of the request. Used for balancing queries over nodes and connections </param>
         /// <param name="token"> The token. </param>
-        /// <returns> </returns>
-        /// <exception cref="System.OperationCanceledException"></exception>
-        private async Task<Frame> SendCancellableRequestAsync(Frame frame, Logger logger, int load,
-                                                              CancellationToken token)
+        /// <returns></returns>
+        private async Task<Frame> SendRequestAsyncComplex(Frame frame, Logger logger, int load, CancellationToken token)
         {
-            var task = SendRequestAsyncInternal(frame, logger, load, token);
+            //make sure connection is open
+            await OpenAsync(logger).AutoConfigureAwait();
+
+            //send request
+            var requestTask = SendRequestAsyncInternal(frame, logger, load, token);
+            
+            //take fast path if we can skip cancellation support
+            if(!token.CanBeCanceled)
+                return await requestTask.AutoConfigureAwait();
+            
+            //setup task that completes when token is set to cancelled
             var cancelTask = new TaskCompletionSource<bool>();
             using (token.Register(s => ((TaskCompletionSource<bool>)s).TrySetResult(true), cancelTask))
             {
                 //wait for either sendTask or cancellation task to complete
-                if (task != await Task.WhenAny(task, cancelTask.Task).AutoConfigureAwait())
+                if (requestTask != await Task.WhenAny(requestTask, cancelTask.Task).AutoConfigureAwait())
                 {
                     //ignore/log any exception of the handled task
                     // ReSharper disable once UnusedVariable
-                    var logError = task.ContinueWith((sendTask, log) =>
+                    var logError = requestTask.ContinueWith((sendTask, log) =>
                     {
                         if (sendTask.Exception == null)
                             return;
@@ -625,9 +633,8 @@ namespace CqlSharp.Network
                     throw new OperationCanceledException(token);
                 }
             }
-            return await task.AutoConfigureAwait();
+            return await requestTask.AutoConfigureAwait();
         }
-
 
         /// <summary>
         /// Sends the request async internal. Cancellation supported until request is send, after which answer must be handled
@@ -654,10 +661,7 @@ namespace CqlSharp.Network
                 {
                     //increase the load
                     UpdateLoad(load, logger);
-
-                    //make sure connection is open
-                    await OpenAsync(logger).AutoConfigureAwait();
-
+                    
                     //wait until frame id is available to submit a frame
                     logger.LogVerbose("Waiting for connection lock on {0}...", this);
                     if (Scheduler.RunningSynchronously)
@@ -912,7 +916,7 @@ namespace CqlSharp.Network
         {
             var registerframe = new RegisterFrame(new List<string> { "TOPOLOGY_CHANGE", "STATUS_CHANGE" });
             Frame result =
-                await SendRequestAsync(registerframe, logger, 1, CancellationToken.None).AutoConfigureAwait();
+                await SendRequestAsyncInternal(registerframe, logger, 1, CancellationToken.None).AutoConfigureAwait();
 
             if (!(result is ReadyFrame))
                 throw new CqlException("Could not register for cluster changes!");
