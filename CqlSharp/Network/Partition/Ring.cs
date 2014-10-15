@@ -550,7 +550,8 @@ namespace CqlSharp.Network.Partition
             {
                 var nodes = _nodes.ToArray();
                 _nodes.Clear();
-                _tokenMap.Clear();
+                if(_tokenMap !=null) 
+                    _tokenMap.Clear();
                 _tokens.Clear();
 
                 foreach(var node in nodes)

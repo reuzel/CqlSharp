@@ -1,4 +1,8 @@
-## Version 0.40.0 - Cql Binary Protocol v3 and new type system
+## Version 0.40.1 - Fix CqlConnection.Open retry bug
+* Solves issue with connection to 2.0 and 1.x clusters when MaxQueryRetries=0
+* Retries CqlConnection.Open up to MaxQueryRetries + 1, when opening connections to the cluster fails
+
+## Version 0.40.0 - Cassandra 2.1, binary protocol v3 and new type system
 * Implements binary protocol v3: more queries per connection, timestamp property, UDT and Tuple types, larger collections.
 * Rewrite of type system, CqlType is no longer an enum but a class with subclasses for every Cassandra type.
 * Previous CqlType enum is now called CqlTypeCode.

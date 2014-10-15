@@ -100,7 +100,7 @@ namespace CqlSharp.Test
             using(
                 var connection =
                     new CqlConnection(
-                        "servers=192.168.100.100,192.168.100.101;SocketConnectTimeout=3000;Logger=Debug;LogLevel=Verbose")
+                        "servers=192.168.100.100,192.168.100.101;SocketConnectTimeout=1000;Logger=Debug;LogLevel=Verbose")
                 )
             {
                 await connection.OpenAsync();
@@ -140,6 +140,19 @@ namespace CqlSharp.Test
                 var connection =
                     new CqlConnection(
                         "servers=localhost;username=cassandra;password=cassandra;MaxConnectionIdleTime=1200;Logger=Debug;LogLevel=Verbose;DiscoveryScope=Cluster")
+                )
+            {
+                await connection.OpenAsync();
+            }
+        }
+
+        [TestMethod]
+        public async Task OpenAsyncNoRetry()
+        {
+            using (
+                var connection =
+                    new CqlConnection(
+                        "servers=localhost;username=cassandra;password=cassandra;MaxConnectionIdleTime=1200;Logger=Debug;LogLevel=Verbose;DiscoveryScope=Cluster;MaxQueryRetries=0;CommandTimeout=1")
                 )
             {
                 await connection.OpenAsync();

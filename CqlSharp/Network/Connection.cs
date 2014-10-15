@@ -297,8 +297,7 @@ namespace CqlSharp.Network
             
             try
             {
-                //try to connect MaxQueryRetries + 1 time
-                for(int attempt=0;attempt<=Node.Cluster.Config.MaxQueryRetries;attempt++)
+                while(true)
                 {
                     //set state to connecting
                     Interlocked.Exchange(ref _connectionState, ConnectionState.Connecting);
@@ -323,16 +322,22 @@ namespace CqlSharp.Network
                     }
                     catch (ProtocolException pex)
                     {
-                        
+                        //In case of a protocol version mismatch, Cassandra will reply with an error 
+                        //using the supported protocol version. If we are using the correct version 
+                        //something else is wrong, and it is no use to retry with a different version, 
+                        //so rethrow
+                        if(Node.ProtocolVersion == pex.ProtocolVersion)
+                            throw;
+
                         logger.LogVerbose("Failed connecting using protocol version {0}, retrying with protocol version {1}...",
                                             Node.ProtocolVersion, pex.ProtocolVersion);
-
+                        
                         //set protocol version to the one received
                         Node.ProtocolVersion = pex.ProtocolVersion;
 
                         //close the connection (required as protocols are not backwards compatible, so stream may be corrupt now)
                         using(logger.ThreadBinding())
-                            Close(pex);
+                            Close();
 
                         //wait until readloop finishes
                         _readLoopCompleted.Wait();
@@ -657,7 +662,7 @@ namespace CqlSharp.Network
                 //count the operation
                 Interlocked.Increment(ref _activeRequests);
 
-                if (_connectionState != ConnectionState.Connecting)
+                if (_connectionState == ConnectionState.Connected)
                 {
                     //increase the load
                     UpdateLoad(load, logger);
@@ -766,11 +771,10 @@ namespace CqlSharp.Network
                         _availableQueryIds.Enqueue(id);
                     }
 
-                    if (_connectionState != ConnectionState.Connecting)
+                    if (_connectionState == ConnectionState.Connected)
                     {
                         //allow another frame to be send
-                        if (_connectionState != ConnectionState.Closed)
-                            _frameSubmitLock.Release();
+                        _frameSubmitLock.Release();
 
                         //reduce load, we are done
                         UpdateLoad(-load, logger);
@@ -838,6 +842,16 @@ namespace CqlSharp.Network
                     //read next frame from stream
                     Frame frame = await Frame.FromStream(_readStream).AutoConfigureAwait();
 
+                    //frame may be null, when the stream was closed gracefully by Cassandra
+                    if(frame == null)
+                    {
+                        using(logger.ThreadBinding())
+                        {
+                            Close();
+                            break;
+                        }
+                    }
+
                     //check if frame is event
                     if (frame.Stream == -1)
                     {
@@ -890,7 +904,7 @@ namespace CqlSharp.Network
             List<TaskCompletionSource<Frame>> unfinishedRequests;
             lock (_availableQueryIds)
             {
-                unfinishedRequests = new List<TaskCompletionSource<Frame>>(_openRequests.Values);
+                unfinishedRequests = new List<TaskCompletionSource<Frame>>(_openRequests.Values.Where(tcs => !(tcs.Task.IsCanceled || tcs.Task.IsFaulted || tcs.Task.IsCompleted)));
                 if (unfinishedRequests.Count > 0)
                 {
                     logger.LogWarning("{0} closed, throwing connection closed error for {1} queries", this,

@@ -173,8 +173,9 @@ namespace CqlSharp.Protocol
             else
                 read += await stream.ReadAsync(header, 0, 1).AutoConfigureAwait();
 
+            //return null if the stream was closed by Cassandra
             if(read == 0)
-                throw new IOException("End of stream reached");
+                return null;
 
             //distill version
             var protocolVersion = (byte)(header[0] & 0x7f);

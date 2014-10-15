@@ -16,6 +16,7 @@
 using System;
 using System.Collections.Concurrent;
 using System.Collections.Generic;
+using System.Configuration;
 using System.IO;
 using System.Linq;
 using System.Net;
@@ -249,35 +250,43 @@ namespace CqlSharp.Network
             //initialize the ring
             _nodes = new Ring();
 
-            //try to connect to the seeds in turn
-            foreach(IPAddress seedAddress in _config.ServerAddresses)
+            //retry a few times to deal with bad network conditions
+            for(int attempt = 0; attempt<=_config.MaxQueryRetries && _nodes.Count==0; attempt++)
             {
-                try
+                //try to connect to the seeds in turn
+                foreach(IPAddress seedAddress in _config.ServerAddresses)
                 {
-                    var seed = new Node(seedAddress, this);
+                    try
+                    {
+                        var seed = new Node(seedAddress, this);
 
-                    await GetClusterInfoAsync(seed, logger, token).AutoConfigureAwait();
-                }
-                catch(OperationCanceledException)
-                {
-                    logger.LogWarning("Opening connection to cluster was cancelled");
-                    throw;
-                }
-                catch(ProtocolException pex)
-                {
-                    //node is not available, or starting up, try next, otherwise throw error
-                    if(pex.Code != ErrorCode.Overloaded && pex.Code != ErrorCode.IsBootstrapping)
+                        await GetClusterInfoAsync(seed, logger, token).AutoConfigureAwait();
+
+                        //break from the loop as it seems we are done
+                        if(_nodes.Count>0)
+                            break;
+                    }
+                    catch(OperationCanceledException)
+                    {
+                        logger.LogWarning("Opening connection to cluster was cancelled");
                         throw;
-                }
-                catch(SocketException ex)
-                {
-                    //seed not reachable, try next
-                    logger.LogWarning("Could not open TCP connection to seed {0}: {1}", seedAddress, ex);
-                }
-                catch(IOException ex)
-                {
-                    //seed not reachable, try next
-                    logger.LogWarning("Could not discover nodes via seed {0}: {1}", seedAddress, ex);
+                    }
+                    catch(ProtocolException pex)
+                    {
+                        //node is not available, or starting up, try next, otherwise throw error
+                        if(pex.Code != ErrorCode.Overloaded && pex.Code != ErrorCode.IsBootstrapping)
+                            throw;
+                    }
+                    catch(SocketException ex)
+                    {
+                        //seed not reachable, try next
+                        logger.LogWarning("Could not open TCP connection to seed {0}: {1}", seedAddress, ex);
+                    }
+                    catch(IOException ex)
+                    {
+                        //seed not reachable, try next
+                        logger.LogWarning("Could not discover nodes via seed {0}: {1}", seedAddress, ex);
+                    }
                 }
             }
 
