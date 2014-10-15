@@ -1,5 +1,5 @@
 // CqlSharp - CqlSharp
-// Copyright (c) 2013 Joost Reuzel
+// Copyright (c) 2014 Joost Reuzel
 //   
 // Licensed under the Apache License, Version 2.0 (the "License");
 // you may not use this file except in compliance with the License.
@@ -22,23 +22,21 @@ namespace CqlSharp.Network.nSnappy
         public HashTable(int size)
         {
             int htSize = 256;
-            while (htSize < CompressorConstants.MaxHashTableSize && htSize < size)
-            {
+            while(htSize < CompressorConstants.MaxHashTableSize && htSize < size)
                 htSize <<= 1;
-            }
 
             _table = new ushort[htSize];
         }
 
         public uint Size
         {
-            get { return (uint) _table.Length; }
+            get { return (uint)_table.Length; }
         }
 
         public int this[uint hash]
         {
             get { return _table[hash]; }
-            set { _table[hash] = (ushort) value; }
+            set { _table[hash] = (ushort)value; }
         }
     }
 }

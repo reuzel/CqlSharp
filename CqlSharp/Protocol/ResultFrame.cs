@@ -1,5 +1,5 @@
 // CqlSharp - CqlSharp
-// Copyright (c) 2013 Joost Reuzel
+// Copyright (c) 2014 Joost Reuzel
 //   
 // Licensed under the Apache License, Version 2.0 (the "License");
 // you may not use this file except in compliance with the License.
@@ -14,6 +14,7 @@
 // limitations under the License.
 
 using System;
+using System.Collections.Generic;
 using System.IO;
 using System.Threading.Tasks;
 using CqlSharp.Threading;
@@ -53,7 +54,7 @@ namespace CqlSharp.Protocol
             FrameReader reader = Reader;
 
             CqlResultType = (CqlResultType)await reader.ReadIntAsync().AutoConfigureAwait();
-            switch (CqlResultType)
+            switch(CqlResultType)
             {
                 case CqlResultType.Void:
                     break;
@@ -78,7 +79,7 @@ namespace CqlSharp.Protocol
                     QueryMetaData = await ReadMetaDataAsync().AutoConfigureAwait();
 
                     //read result metadata if not version 1 
-                    if ((Version & FrameVersion.ProtocolVersionMask) != FrameVersion.ProtocolVersion1)
+                    if(ProtocolVersion > 1)
                         ResultMetaData = await ReadMetaDataAsync().AutoConfigureAwait();
 
                     break;
@@ -87,13 +88,13 @@ namespace CqlSharp.Protocol
                     throw new ArgumentException("Unexpected ResultOpcode");
             }
         }
-        
+
         public async Task<byte[][]> ReadNextDataRowAsync()
         {
             //return null array if no data available
             if(_count == 0)
                 return null;
-            
+
             var valueBytes = new byte[ResultMetaData.Count][];
             for(int i = 0; i < ResultMetaData.Count; i++)
             {
@@ -104,18 +105,18 @@ namespace CqlSharp.Protocol
             _count--;
 
             //dispose reader when it is no longer needed
-            if (_count == 0)
+            if(_count == 0)
                 Reader.Dispose();
 
             return valueBytes;
         }
-        
+
         public Task BufferDataAsync()
         {
             return Reader.BufferRemainingData();
         }
 
-        internal async Task<MetaData> ReadMetaDataAsync()
+        private async Task<MetaData> ReadMetaDataAsync()
         {
             var metaData = new MetaData();
 
@@ -128,27 +129,25 @@ namespace CqlSharp.Protocol
             int colCount = await reader.ReadIntAsync().AutoConfigureAwait();
 
             //get paging state if present
-            if (flags.HasFlag(MetadataFlags.HasMorePages))
-            {
-                metaData.PagingState = await reader.ReadBytesAsync().AutoConfigureAwait(); ;
-            }
+            if(flags.HasFlag(MetadataFlags.HasMorePages))
+                metaData.PagingState = await reader.ReadBytesAsync().AutoConfigureAwait();
 
             //stop processing if no metadata flag is set
-            if (flags.HasFlag(MetadataFlags.NoMetaData))
+            if(flags.HasFlag(MetadataFlags.NoMetaData))
                 return metaData;
 
             //get the global keyspace,table if present
             bool globalTablesSpec = flags.HasFlag(MetadataFlags.GlobalTablesSpec);
             string keyspace = null;
             string table = null;
-            if (globalTablesSpec)
+            if(globalTablesSpec)
             {
                 keyspace = await reader.ReadStringAsync().AutoConfigureAwait();
-                table = await reader.ReadStringAsync().AutoConfigureAwait(); 
+                table = await reader.ReadStringAsync().AutoConfigureAwait();
             }
 
             //go and start processing all the columns
-            for (int colIdx = 0; colIdx < colCount; colIdx++)
+            for(int colIdx = 0; colIdx < colCount; colIdx++)
             {
                 //read name
                 string colKeyspace = globalTablesSpec ? keyspace : await reader.ReadStringAsync().AutoConfigureAwait();
@@ -156,33 +155,75 @@ namespace CqlSharp.Protocol
                 string colName = await reader.ReadStringAsync().AutoConfigureAwait();
 
                 //read type
-                var colType = (CqlType)await reader.ReadShortAsync().AutoConfigureAwait();
-                string colCustom = null;
-                CqlType? colKeyType = null;
-                CqlType? colValueType = null;
-                switch (colType)
-                {
-                    case CqlType.Custom:
-                        colCustom = await reader.ReadStringAsync().AutoConfigureAwait();
-                        break;
-
-                    case CqlType.List:
-                    case CqlType.Set:
-                        colValueType = (CqlType)await reader.ReadShortAsync().AutoConfigureAwait();
-                        break;
-
-                    case CqlType.Map:
-                        colKeyType = (CqlType)await reader.ReadShortAsync().AutoConfigureAwait();
-                        colValueType = (CqlType)await reader.ReadShortAsync().AutoConfigureAwait();
-                        break;
-                }
+                CqlType type = await ReadCqlType(reader).AutoConfigureAwait();
 
                 //add to the MetaData
-                metaData.Add(new Column(colIdx, colKeyspace, colTable, colName, colType, colCustom,
-                                        colKeyType, colValueType));
+                metaData.Add(new Column(colIdx, colKeyspace, colTable, colName, type));
             }
 
             return metaData;
+        }
+
+        /// <summary>
+        /// Reads the CqlType
+        /// </summary>
+        /// <param name="reader">The reader.</param>
+        /// <returns>a CqlType</returns>
+        private static async Task<CqlType> ReadCqlType(FrameReader reader)
+        {
+            //read typeCode
+            var colType = (CqlTypeCode)await reader.ReadShortAsync().AutoConfigureAwait();
+            CqlType type;
+            switch(colType)
+            {
+                case CqlTypeCode.Custom:
+                    var colCustom = await reader.ReadStringAsync().AutoConfigureAwait();
+                    type = CqlType.CreateType(colCustom);
+                    break;
+
+                case CqlTypeCode.List:
+                case CqlTypeCode.Set:
+                    var colValueType = await ReadCqlType(reader).AutoConfigureAwait();
+                    type = CqlType.CreateType(colType, colValueType);
+                    break;
+
+                case CqlTypeCode.Map:
+                    var colKeyType = await ReadCqlType(reader).AutoConfigureAwait();
+                    var colValType = await ReadCqlType(reader).AutoConfigureAwait();
+                    type = CqlType.CreateType(colType, colKeyType, colValType);
+                    break;
+
+                case CqlTypeCode.UserDefinedType:
+                    var keyspace = await reader.ReadStringAsync().AutoConfigureAwait();
+                    var name = await reader.ReadStringAsync().AutoConfigureAwait();
+                    var fieldCount = await reader.ReadShortAsync().AutoConfigureAwait();
+                    var fieldNames = new List<string>(fieldCount);
+                    var fieldTypes = new List<CqlType>(fieldCount);
+                    for(int i = 0; i < fieldCount; i++)
+                    {
+                        fieldNames.Add(await reader.ReadStringAsync().AutoConfigureAwait());
+                        fieldTypes.Add(await ReadCqlType(reader).AutoConfigureAwait());
+                    }
+
+                    type = CqlType.CreateType(colType, keyspace, name, fieldNames, fieldTypes);
+                    break;
+
+                case CqlTypeCode.Tuple:
+                    var tupleItems = await reader.ReadShortAsync().AutoConfigureAwait();
+                    var tupleItemTypes = new object[tupleItems];
+                    for(int i = 0; i < tupleItems; i++)
+                    {
+                        tupleItemTypes[i] = await ReadCqlType(reader).AutoConfigureAwait();
+                    }
+
+                    type = CqlType.CreateType(colType, tupleItemTypes);
+                    break;
+
+                default:
+                    type = CqlType.CreateType(colType);
+                    break;
+            }
+            return type;
         }
     }
 }

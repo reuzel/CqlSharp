@@ -1,5 +1,5 @@
 // CqlSharp - CqlSharp
-// Copyright (c) 2013 Joost Reuzel
+// Copyright (c) 2014 Joost Reuzel
 //   
 // Licensed under the Apache License, Version 2.0 (the "License");
 // you may not use this file except in compliance with the License.
@@ -18,18 +18,18 @@ using System;
 namespace CqlSharp
 {
     /// <summary>
-    ///   Represents a query result
+    /// Represents a query result
     /// </summary>
     public interface ICqlQueryResult
     {
         /// <summary>
-        ///   Gets the type of the result.
+        /// Gets the type of the result.
         /// </summary>
         /// <value> The type of the result. </value>
         CqlResultType ResultType { get; }
 
         /// <summary>
-        ///   Gets the tracing id, if present
+        /// Gets the tracing id, if present
         /// </summary>
         /// <value> The tracing id, if present </value>
         Guid? TracingId { get; }

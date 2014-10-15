@@ -1,5 +1,5 @@
 ﻿// CqlSharp - CqlSharp.Test
-// Copyright (c) 2013 Joost Reuzel
+// Copyright (c) 2014 Joost Reuzel
 //   
 // Licensed under the Apache License, Version 2.0 (the "License");
 // you may not use this file except in compliance with the License.
@@ -13,13 +13,11 @@
 // See the License for the specific language governing permissions and
 // limitations under the License.
 
+using System;
+using System.Fakes;
+using System.Threading.Tasks;
 using Microsoft.QualityTools.Testing.Fakes;
 using Microsoft.VisualStudio.TestTools.UnitTesting;
-using System;
-using System.Collections.Concurrent;
-using System.Fakes;
-using System.Numerics;
-using System.Threading.Tasks;
 
 namespace CqlSharp.Test
 {
@@ -38,29 +36,26 @@ namespace CqlSharp.Test
         [TestMethod]
         public async Task Issue15()
         {
-            using (ShimsContext.Create())
+            using(ShimsContext.Create())
             {
                 //Assume
                 //make DateTime.Now return a value in a different timezone
                 ShimDateTime.NowGet = () =>
-                                          {
-                                              var timezone = TimeZoneInfo.CreateCustomTimeZone("Issue15Zone",
-                                                                                               TimeSpan.FromHours(-5),
-                                                                                               "Issue 15 zone",
-                                                                                               "Issue 15 zone");
+                {
+                    var timezone = TimeZoneInfo.CreateCustomTimeZone("Issue15Zone",
+                                                                     TimeSpan.FromHours(-5),
+                                                                     "Issue 15 zone",
+                                                                     "Issue 15 zone");
 
-                                              return TimeZoneInfo.ConvertTimeFromUtc(DateTime.UtcNow, timezone);
-                                          };
+                    return TimeZoneInfo.ConvertTimeFromUtc(DateTime.UtcNow, timezone);
+                };
 
                 //Act
-                using (var connection = new CqlConnection(ConnectionString))
+                using(var connection = new CqlConnection(ConnectionString))
                 {
                     await connection.OpenAsync();
                 }
             }
         }
-
- 
-
     }
 }

@@ -1,5 +1,5 @@
 // CqlSharp - CqlSharp
-// Copyright (c) 2013 Joost Reuzel
+// Copyright (c) 2014 Joost Reuzel
 //   
 // Licensed under the Apache License, Version 2.0 (the "License");
 // you may not use this file except in compliance with the License.
@@ -26,7 +26,7 @@ namespace CqlSharp.Protocol
             Parameters = parameters;
             SkipMetaData = true;
 
-            Version = FrameVersion.Request;
+            IsRequest = true;
             Flags = FrameFlags.None;
             Stream = 0;
             OpCode = FrameOpcode.Execute;
@@ -38,25 +38,21 @@ namespace CqlSharp.Protocol
         {
             buffer.WriteShortByteArray(QueryId);
 
-            if ((Version & FrameVersion.ProtocolVersionMask) == FrameVersion.ProtocolVersion1)
+            if(ProtocolVersion == 1)
             {
-                if (Parameters == null)
-                {
+                if(Parameters == null)
                     buffer.WriteShort(0);
-                }
                 else
                 {
-                    buffer.WriteShort((ushort) Parameters.Count);
-                    foreach (var prm in Parameters)
+                    buffer.WriteShort((ushort)Parameters.Count);
+                    foreach(var prm in Parameters)
                         buffer.WriteByteArray(prm);
                 }
 
                 buffer.WriteConsistency(CqlConsistency);
             }
             else
-            {
                 WriteQueryParameters(buffer);
-            }
         }
     }
 }

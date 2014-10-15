@@ -1,5 +1,5 @@
 ﻿// CqlSharp - CqlSharp
-// Copyright (c) 2013 Joost Reuzel
+// Copyright (c) 2014 Joost Reuzel
 //   
 // Licensed under the Apache License, Version 2.0 (the "License");
 // you may not use this file except in compliance with the License.
@@ -19,38 +19,38 @@ using System.Threading;
 namespace CqlSharp.Logging
 {
     /// <summary>
-    ///   Represents a logger for a single logical flow through the library
+    /// Represents a logger for a single logical flow through the library
     /// </summary>
     internal struct Logger
     {
         /// <summary>
-        ///   Thread local storage of the currently active logger.
+        /// Thread local storage of the currently active logger.
         /// </summary>
         private static readonly ThreadLocal<Logger> ThreadLocalLogger = new ThreadLocal<Logger>();
 
         /// <summary>
-        ///   helper class instance representing a binding of a logger to a thread. Does not contain any state
-        ///   and can therefore be reused among all logger instances.
+        /// helper class instance representing a binding of a logger to a thread. Does not contain any state
+        /// and can therefore be reused among all logger instances.
         /// </summary>
         private static readonly LoggerBinding Binding = new LoggerBinding();
 
         /// <summary>
-        ///   The log level
+        /// The log level
         /// </summary>
         private readonly LogLevel _logLevel;
 
         /// <summary>
-        ///   reference to the actual logger implementation
+        /// reference to the actual logger implementation
         /// </summary>
         private readonly ILogger _logger;
 
         /// <summary>
-        ///   The id of the active trace
+        /// The id of the active trace
         /// </summary>
         private readonly Guid _traceId;
 
         /// <summary>
-        ///   Initializes a new instance of the <see cref="Logger" /> class.
+        /// Initializes a new instance of the <see cref="Logger" /> class.
         /// </summary>
         /// <param name="logger"> The logger. </param>
         /// <param name="logLevel"> Minimum level to use for logging </param>
@@ -62,7 +62,7 @@ namespace CqlSharp.Logging
         }
 
         /// <summary>
-        ///   Gets the current Logger.
+        /// Gets the current Logger.
         /// </summary>
         /// <value> The current logger </value>
         public static Logger Current
@@ -71,7 +71,7 @@ namespace CqlSharp.Logging
         }
 
         /// <summary>
-        ///   Binds this instance to the current thread, such that it becomes available via Logger.Current
+        /// Binds this instance to the current thread, such that it becomes available via Logger.Current
         /// </summary>
         /// <returns> IDisposable, that when disposed removes the logger from the current thread </returns>
         public IDisposable ThreadBinding()
@@ -82,51 +82,51 @@ namespace CqlSharp.Logging
 
         public void LogVerbose(string format, params object[] values)
         {
-            if (_logLevel == LogLevel.Verbose)
+            if(_logLevel == LogLevel.Verbose)
                 _logger.LogVerbose(_traceId, format, values);
         }
 
         public void LogQuery(string format, params object[] values)
         {
-            if (_logLevel <= LogLevel.Query)
+            if(_logLevel <= LogLevel.Query)
                 _logger.LogQuery(_traceId, format, values);
         }
 
         public void LogInfo(string format, params object[] values)
         {
-            if (_logLevel <= LogLevel.Info)
+            if(_logLevel <= LogLevel.Info)
                 _logger.LogInfo(_traceId, format, values);
         }
 
         public void LogWarning(string format, params object[] values)
         {
-            if (_logLevel <= LogLevel.Warning)
+            if(_logLevel <= LogLevel.Warning)
                 _logger.LogWarning(_traceId, format, values);
         }
 
         public void LogError(string format, params object[] values)
         {
-            if (_logLevel <= LogLevel.Error)
+            if(_logLevel <= LogLevel.Error)
                 _logger.LogError(_traceId, format, values);
         }
 
         public void LogCritical(string format, params object[] values)
         {
-            if (_logLevel <= LogLevel.Critical)
+            if(_logLevel <= LogLevel.Critical)
                 _logger.LogCritical(_traceId, format, values);
         }
 
         #region Nested type: LoggerBinding
 
         /// <summary>
-        ///   Helper class to remove a logger from the thread local storage
+        /// Helper class to remove a logger from the thread local storage
         /// </summary>
         private class LoggerBinding : IDisposable
         {
             #region Implementation of IDisposable
 
             /// <summary>
-            ///   Performs application-defined tasks associated with freeing, releasing, or resetting unmanaged resources.
+            /// Performs application-defined tasks associated with freeing, releasing, or resetting unmanaged resources.
             /// </summary>
             /// <filterpriority>2</filterpriority>
             public void Dispose()

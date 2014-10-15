@@ -14,107 +14,324 @@
 // limitations under the License.
 
 using System;
+using System.Linq.Expressions;
 using System.Reflection;
 
 namespace CqlSharp.Serialization
 {
     /// <summary>
-    ///   Provides CQL information of a table class property or field
+    /// Provides CQL information of a table class property or field
     /// </summary>
     /// <typeparam name="TTable"> The type of the table. </typeparam>
-    public class CqlColumnInfo<TTable> : ICqlColumnInfo
+    /// <typeparam name="TMember"> The type of the class member that stores this column value</typeparam>
+    internal class CqlColumnInfo<TTable, TMember> : ICqlColumnInfo<TTable>, IKeyMember
     {
-        internal CqlColumnInfo()
+        public CqlColumnInfo(MemberInfo member)
         {
+            //set the member
+            MemberInfo = member;
+
+            //set the type
+            Type = typeof(TMember);
+
+            //check for column attribute
+            var columnAttribute =
+                Attribute.GetCustomAttribute(member, typeof(CqlColumnAttribute)) as CqlColumnAttribute;
+
+            //get column name from attribute or base on name otherwise
+            if(columnAttribute != null && columnAttribute.Column != null)
+                Name = columnAttribute.Column;
+            else
+                Name = member.Name.ToLower();
+
+            //get order if any
+            if(columnAttribute != null && columnAttribute.OrderHasValue)
+                Order = columnAttribute.Order;
+
+            //get CqlType from attribute (if any)
+            if(columnAttribute != null && columnAttribute.CqlTypeHasValue)
+                CqlType = CqlType.CreateType(columnAttribute.CqlTypeCode);
+            else
+            {
+                //get CqlType from property Type
+                CqlType = CqlType.CreateType(Type);
+            }
+
+            //check for index attribute
+            var indexAttribute =
+                Attribute.GetCustomAttribute(member, typeof(CqlIndexAttribute)) as CqlIndexAttribute;
+
+            if(indexAttribute != null)
+            {
+                IsIndexed = true;
+                IndexName = indexAttribute.Name;
+            }
+            else
+                IsIndexed = false;
         }
 
         /// <summary>
-        ///   Gets the column name.
+        /// The function to write to the member (compiled expression for performance reasons)
+        /// </summary>
+        private Action<TTable, TMember> _writeFunction;
+
+        /// <summary>
+        /// The function to read the member (compiled expression for performance reasons)
+        /// </summary>
+        private Func<TTable, TMember> _readFunction;
+
+        /// <summary>
+        /// Gets the column name.
         /// </summary>
         /// <value> The name. </value>
-        public string Name { get; internal set; }
+        public string Name { get; private set; }
 
         /// <summary>
-        ///   Gets the CQL type.
-        /// </summary>
-        /// <value> The type. </value>
-        public CqlType CqlType { get; internal set; }
-
-        /// <summary>
-        ///   Gets the .NET type.
-        /// </summary>
-        /// <value> The type. </value>
-        public Type Type { get; internal set; }
-
-        /// <summary>
-        ///   Gets the order/index of a key column.
-        /// </summary>
-        /// <value> The order. </value>
-        public int? Order { get; internal set; }
-
-        /// <summary>
-        ///   Gets a value indicating whether this column is part of the partition key.
-        /// </summary>
-        /// <value> <c>true</c> if this column is part of the partition key; otherwise, <c>false</c> . </value>
-        public bool IsPartitionKey { get; internal set; }
-
-
-        /// <summary>
-        ///   Gets a value indicating whether this column is part of the clustering key.
-        /// </summary>
-        /// <value> <c>true</c> if this column is part of the clustering key; otherwise, <c>false</c> . </value>
-        public bool IsClusteringKey { get; internal set; }
-
-        /// <summary>
-        ///   Gets a value indicating whether this column is indexed.
-        /// </summary>
-        /// <value> <c>true</c> if this column is indexed; otherwise, <c>false</c> . </value>
-        public bool IsIndexed { get; internal set; }
-
-        /// <summary>
-        ///   Gets the name of the index (if any).
-        /// </summary>
-        /// <value> The name of the index. </value>
-        public string IndexName { get; internal set; }
-
-        /// <summary>
-        ///   Gets the member information.
-        /// </summary>
-        /// <value> The member information. </value>
-        public MemberInfo MemberInfo { get; internal set; }
-
-        /// <summary>
-        ///   Gets the function that can be used to read this column value from a table object
-        /// </summary>
-        /// <value> The read function. </value>
-        public Func<TTable, Object> ReadFunction { get; internal set; }
-
-        /// <summary>
-        ///   Gets the function that can be used to write a column value to a table object
-        /// </summary>
-        /// <value> The write function. </value>
-        public Action<TTable, Object> WriteFunction { get; internal set; }
-
-        /// <summary>
-        /// Gets the function that can be used to write a column value to a table object
+        /// Gets the type of the CQL column.
         /// </summary>
         /// <value>
-        /// The write function.
+        /// The type of the CQL column.
         /// </value>
-        Action<object, object> ICqlColumnInfo.WriteFunction
-        {
-            get { return WriteFunction == null ? default(Action<object, object>) : (table, obj) => WriteFunction((TTable)table, obj); }
-        }
+        public CqlType CqlType { get; private set; }
 
         /// <summary>
-        /// Gets the function that can be used to read this column value from a table object
+        /// Gets the .NET type.
+        /// </summary>
+        /// <value> The type. </value>
+        public Type Type { get; private set; }
+
+        /// <summary>
+        /// Gets the order/index of a key column.
+        /// </summary>
+        /// <value> The order. </value>
+        public int? Order { get; private set; }
+
+        /// <summary>
+        /// Gets a value indicating whether this column is part of the partition key.
+        /// </summary>
+        /// <value> <c>true</c> if this column is part of the partition key; otherwise, <c>false</c> . </value>
+        public bool IsPartitionKey { get; set; }
+
+        /// <summary>
+        /// Gets a value indicating whether this column is part of the clustering key.
+        /// </summary>
+        /// <value> <c>true</c> if this column is part of the clustering key; otherwise, <c>false</c> . </value>
+        public bool IsClusteringKey { get; set; }
+
+        /// <summary>
+        /// Gets a value indicating whether this column is indexed.
+        /// </summary>
+        /// <value> <c>true</c> if this column is indexed; otherwise, <c>false</c> . </value>
+        public bool IsIndexed { get; private set; }
+
+        /// <summary>
+        /// Gets the name of the index (if any).
+        /// </summary>
+        /// <value> The name of the index. </value>
+        public string IndexName { get; private set; }
+
+        /// <summary>
+        /// Gets the member information.
+        /// </summary>
+        /// <value> The member information. </value>
+        public MemberInfo MemberInfo { get; private set; }
+
+
+        /// <summary>
+        /// Reads the column value from the specified source.
+        /// </summary>
+        /// <typeparam name="TResult">The type of the result.</typeparam>
+        /// <param name="source">The source.</param>
+        /// <returns></returns>
+        public TResult Read<TResult>(TTable source)
+        {
+            var value = ReadFunction(source);
+
+            if(value == null)
+                return default(TResult);
+
+            return Converter.ChangeType<TMember, TResult>(value);
+        }
+
+
+        /// <summary>
+        /// Gets the read function.
         /// </summary>
         /// <value>
         /// The read function.
         /// </value>
-        Func<object, object> ICqlColumnInfo.ReadFunction
+        private Func<TTable, TMember> ReadFunction
         {
-            get { return ReadFunction == null ? default(Func<object, object>) : table => ReadFunction((TTable)table); }
+            get
+            {
+                if(_readFunction == null)
+                {
+                    var source = Expression.Parameter(typeof(TTable));
+                    var member = Expression.MakeMemberAccess(source, MemberInfo);
+
+                    _readFunction = Expression.Lambda<Func<TTable, TMember>>(member,
+                                                                             string.Format(
+                                                                                 "CqlColumnInfo.Read({0}.{1})",
+                                                                                 source.Type.Name, member.Member.Name),
+                                                                             new[] {source})
+                                              .Compile();
+                }
+
+                return _readFunction;
+            }
+        }
+
+        /// <summary>
+        /// Writes the value to the column on the specified target.
+        /// </summary>
+        /// <typeparam name="TValue">The type of the value.</typeparam>
+        /// <param name="target">The target.</param>
+        /// <param name="value">The value.</param>
+        /// <exception cref="System.ArgumentNullException">target</exception>
+        public void Write<TValue>(TTable target, TValue value)
+        {
+            if(target == null)
+                throw new ArgumentNullException("target");
+
+            if(value == null)
+                WriteFunction(target, default(TMember));
+            else
+            {
+                var memberValue = Converter.ChangeType<TValue, TMember>(value);
+                WriteFunction(target, memberValue);
+            }
+        }
+
+
+        /// <summary>
+        /// Gets the write function.
+        /// </summary>
+        /// <value>
+        /// The write function.
+        /// </value>
+        private Action<TTable, TMember> WriteFunction
+        {
+            get
+            {
+                if(_writeFunction == null)
+                {
+                    var target = Expression.Parameter(typeof(TTable));
+                    var value = Expression.Parameter(typeof(TMember));
+                    var member = Expression.MakeMemberAccess(target, MemberInfo);
+
+                    Expression body = Expression.Assign(member, value);
+
+
+                    _writeFunction = Expression.Lambda<Action<TTable, TMember>>(body,
+                                                                                string.Format(
+                                                                                    "CqlColumnInfo.Write({0}.{1})",
+                                                                                    target.Type.Name, member.Member.Name),
+                                                                                new[] {target, value})
+                                               .Compile();
+                }
+
+                return _writeFunction;
+            }
+        }
+
+
+        /// <summary>
+        /// Serializes the column value from the provided source using the given type.
+        /// </summary>
+        /// <param name="source">The source.</param>
+        /// <param name="type">The type.</param>
+        /// <param name="protocolVersion">protocol version of the underlying connection</param>
+        /// <returns></returns>
+        public byte[] SerializeFrom(TTable source, CqlType type, byte protocolVersion)
+        {
+            TMember value = ReadFunction(source);
+            return value == null ? null : type.Serialize(value, protocolVersion);
+        }
+
+        /// <summary>
+        /// Deserializes the provided data using the given type and assigns it to the column member of the given target.
+        /// </summary>
+        /// <param name="target">The target.</param>
+        /// <param name="data">The data.</param>
+        /// <param name="type">The type of the data.</param>
+        /// <param name="protocolVersion">protocol version of the underlying connection</param>
+        public void DeserializeTo(TTable target, byte[] data, CqlType type, byte protocolVersion)
+        {
+            TMember value = data != null ? type.Deserialize<TMember>(data, protocolVersion) : default(TMember);
+            WriteFunction(target, value);
+        }
+
+        /// <summary>
+        /// Copies the value of this column on the source object to the specified column on the
+        /// target object.
+        /// </summary>
+        /// <typeparam name="TTarget">The type of the target.</typeparam>
+        /// <param name="source">The source.</param>
+        /// <param name="target">The target.</param>
+        /// <param name="column">The column.</param>
+        public void CopyValue<TTarget>(TTable source, TTarget target, ICqlColumnInfo<TTarget> column)
+        {
+            TMember value = ReadFunction(source);
+            column.Write(target, value);
+        }
+
+        /// <summary>
+        /// Writes a value to the member belonging to this column on the specified target.
+        /// </summary>
+        /// <typeparam name="TValue">The type of the value.</typeparam>
+        /// <param name="target">The target.</param>
+        /// <param name="value">The value.</param>
+        void ICqlColumnInfo.Write<TValue>(object target, TValue value)
+        {
+            Write((TTable)target, value);
+        }
+
+        /// <summary>
+        /// Reads a value from the member belonging to this column from the specified source.
+        /// </summary>
+        /// <typeparam name="TValue">The type of the value.</typeparam>
+        /// <param name="source"></param>
+        /// <returns></returns>
+        TValue ICqlColumnInfo.Read<TValue>(object source)
+        {
+            return Read<TValue>((TTable)source);
+        }
+
+        /// <summary>
+        /// Copies the value of this column on the source object to the specified column on the
+        /// target object.
+        /// </summary>
+        /// <param name="source">The source.</param>
+        /// <param name="target">The target.</param>
+        /// <param name="column">The column.</param>
+        void ICqlColumnInfo.CopyValue(object source, object target, ICqlColumnInfo column)
+        {
+            TMember value = ReadFunction((TTable)source);
+            column.Write(target, value);
+        }
+
+        /// <summary>
+        /// Serializes the column value from the provided source using the given type.
+        /// </summary>
+        /// <param name="source">The source.</param>
+        /// <param name="type">The type.</param>
+        /// <param name="protocolVersion">protocol version of the underlying connection</param>
+        /// <returns></returns>
+        byte[] ICqlColumnInfo.SerializeFrom(object source, CqlType type, byte protocolVersion)
+        {
+            return SerializeFrom((TTable)source, type, protocolVersion);
+        }
+
+        /// <summary>
+        /// Deserializes the provided data using the given type and assigns it to the column member of the given target.
+        /// </summary>
+        /// <param name="target">The target.</param>
+        /// <param name="data">The data.</param>
+        /// <param name="type">The type of the data.</param>
+        /// <param name="protocolVersion">protocol version of the underlying connection</param>
+        void ICqlColumnInfo.DeserializeTo(object target, byte[] data, CqlType type, byte protocolVersion)
+        {
+            DeserializeTo((TTable)target, data, type, protocolVersion);
         }
     }
 }

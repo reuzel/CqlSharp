@@ -1,5 +1,5 @@
 ﻿// CqlSharp - CqlSharp.Test
-// Copyright (c) 2013 Joost Reuzel
+// Copyright (c) 2014 Joost Reuzel
 //   
 // Licensed under the Apache License, Version 2.0 (the "License");
 // you may not use this file except in compliance with the License.
@@ -19,14 +19,13 @@ using System.Linq;
 using System.Net;
 using System.Threading;
 using System.Threading.Tasks;
+using CqlSharp.Logging;
 using CqlSharp.Network;
 using CqlSharp.Network.Fakes;
 using CqlSharp.Network.Partition;
 using CqlSharp.Protocol;
-using CqlSharp.Threading;
 using Microsoft.QualityTools.Testing.Fakes;
 using Microsoft.VisualStudio.TestTools.UnitTesting;
-using CqlSharp.Logging;
 
 namespace CqlSharp.Test
 {
@@ -36,7 +35,7 @@ namespace CqlSharp.Test
         [TestMethod]
         public async Task BalancedStrategyLowTreshold()
         {
-            using (ShimsContext.Create())
+            using(ShimsContext.Create())
             {
                 //create cluster
                 var config = new CqlConnectionStringBuilder {NewConnectionTreshold = 5};
@@ -49,7 +48,8 @@ namespace CqlSharp.Test
                 var n3 = new Node(IPAddress.Parse("127.0.0.3"), cluster);
                 var n4 = new Node(IPAddress.Parse("127.0.0.4"), cluster);
                 var nodes = new Ring();
-                nodes.Update(new List<Node> { n, n2, n3, n4 }, "RandomPartitioner", new Logger(new NullLogger(), LogLevel.None));
+                nodes.Update(new List<Node> {n, n2, n3, n4}, "RandomPartitioner",
+                             new Logger(new NullLogger(), LogLevel.None));
 
                 ShimAllConnections();
 
@@ -59,15 +59,17 @@ namespace CqlSharp.Test
 
                 const int nr = 8;
 
-                for (int i = 0; i < nr; i++)
+                for(int i = 0; i < nr; i++)
                 {
                     Connection connection;
 
-                    using (logger.ThreadBinding())
+                    using(logger.ThreadBinding())
+                    {
                         connection = strategy.GetOrCreateConnection(ConnectionScope.Command, PartitionKey.None);
+                    }
 
                     await
-                        connection.SendRequestAsync(new QueryFrame("", CqlConsistency.Any, null), logger, 10, false,
+                        connection.SendRequestAsync(new QueryFrame("", CqlConsistency.Any, null), logger, 10,
                                                     CancellationToken.None);
                 }
 
@@ -79,7 +81,7 @@ namespace CqlSharp.Test
         [TestMethod]
         public async Task BalancedStrategyManyRequestLowMaxConnections()
         {
-            using (ShimsContext.Create())
+            using(ShimsContext.Create())
             {
                 //create cluster
                 var config = new CqlConnectionStringBuilder {NewConnectionTreshold = 5, MaxConnections = 6};
@@ -92,7 +94,8 @@ namespace CqlSharp.Test
                 var n3 = new Node(IPAddress.Parse("127.0.0.3"), cluster);
                 var n4 = new Node(IPAddress.Parse("127.0.0.4"), cluster);
                 var nodes = new Ring();
-                nodes.Update(new List<Node> { n1, n2, n3, n4 }, "RandomPartitioner", new Logger(new NullLogger(), LogLevel.None));
+                nodes.Update(new List<Node> {n1, n2, n3, n4}, "RandomPartitioner",
+                             new Logger(new NullLogger(), LogLevel.None));
 
                 ShimAllConnections();
 
@@ -102,15 +105,17 @@ namespace CqlSharp.Test
 
                 const int nr = 80;
 
-                for (int i = 0; i < nr; i++)
+                for(int i = 0; i < nr; i++)
                 {
                     Connection connection;
 
-                    using (logger.ThreadBinding())
+                    using(logger.ThreadBinding())
+                    {
                         connection = strategy.GetOrCreateConnection(ConnectionScope.Command, PartitionKey.None);
+                    }
 
                     await
-                        connection.SendRequestAsync(new QueryFrame("", CqlConsistency.Any, null), logger, 10, false,
+                        connection.SendRequestAsync(new QueryFrame("", CqlConsistency.Any, null), logger, 10,
                                                     CancellationToken.None);
                 }
 
@@ -122,7 +127,7 @@ namespace CqlSharp.Test
         [TestMethod]
         public async Task BalancedStrategyTestMedTreshold()
         {
-            using (ShimsContext.Create())
+            using(ShimsContext.Create())
             {
                 //create cluster 
                 var config = new CqlConnectionStringBuilder {NewConnectionTreshold = 20};
@@ -135,7 +140,8 @@ namespace CqlSharp.Test
                 var n3 = new Node(IPAddress.Parse("127.0.0.3"), cluster);
                 var n4 = new Node(IPAddress.Parse("127.0.0.4"), cluster);
                 var nodes = new Ring();
-                nodes.Update(new List<Node> { n, n2, n3, n4 }, "RandomPartitioner", new Logger(new NullLogger(), LogLevel.None));
+                nodes.Update(new List<Node> {n, n2, n3, n4}, "RandomPartitioner",
+                             new Logger(new NullLogger(), LogLevel.None));
 
 
                 ShimAllConnections();
@@ -146,15 +152,17 @@ namespace CqlSharp.Test
 
                 const int nr = 8;
 
-                for (int i = 0; i < nr; i++)
+                for(int i = 0; i < nr; i++)
                 {
                     Connection connection;
 
-                    using (logger.ThreadBinding())
+                    using(logger.ThreadBinding())
+                    {
                         connection = strategy.GetOrCreateConnection(ConnectionScope.Command, PartitionKey.None);
+                    }
 
                     await
-                        connection.SendRequestAsync(new QueryFrame("", CqlConsistency.Any, null), logger, 10, false,
+                        connection.SendRequestAsync(new QueryFrame("", CqlConsistency.Any, null), logger, 10,
                                                     CancellationToken.None);
                 }
 
@@ -166,7 +174,7 @@ namespace CqlSharp.Test
         [TestMethod]
         public async Task BalancedStrategyTestHighTreshold()
         {
-            using (ShimsContext.Create())
+            using(ShimsContext.Create())
             {
                 //create cluster 
                 var config = new CqlConnectionStringBuilder {NewConnectionTreshold = 200};
@@ -179,7 +187,8 @@ namespace CqlSharp.Test
                 var n3 = new Node(IPAddress.Parse("127.0.0.3"), cluster);
                 var n4 = new Node(IPAddress.Parse("127.0.0.4"), cluster);
                 var nodes = new Ring();
-                nodes.Update(new List<Node> { n1, n2, n3, n4 }, "RandomPartitioner", new Logger(new NullLogger(), LogLevel.None));
+                nodes.Update(new List<Node> {n1, n2, n3, n4}, "RandomPartitioner",
+                             new Logger(new NullLogger(), LogLevel.None));
 
                 ShimAllConnections();
 
@@ -189,15 +198,17 @@ namespace CqlSharp.Test
 
                 const int nr = 8;
 
-                for (int i = 0; i < nr; i++)
+                for(int i = 0; i < nr; i++)
                 {
                     Connection connection;
 
-                    using (logger.ThreadBinding())
+                    using(logger.ThreadBinding())
+                    {
                         connection = strategy.GetOrCreateConnection(ConnectionScope.Command, PartitionKey.None);
+                    }
 
                     await
-                        connection.SendRequestAsync(new QueryFrame("", CqlConsistency.Any, null), logger, 10, false,
+                        connection.SendRequestAsync(new QueryFrame("", CqlConsistency.Any, null), logger, 10,
                                                     CancellationToken.None);
                 }
 
@@ -209,7 +220,7 @@ namespace CqlSharp.Test
         [TestMethod]
         public async Task BalancedStrategyTestMaxConnections()
         {
-            using (ShimsContext.Create())
+            using(ShimsContext.Create())
             {
                 //create cluster
                 var config = new CqlConnectionStringBuilder {NewConnectionTreshold = 5, MaxConnections = 6};
@@ -222,7 +233,8 @@ namespace CqlSharp.Test
                 var n3 = new Node(IPAddress.Parse("127.0.0.3"), cluster);
                 var n4 = new Node(IPAddress.Parse("127.0.0.4"), cluster);
                 var nodes = new Ring();
-                nodes.Update(new List<Node> { n, n2, n3, n4 }, "RandomPartitioner", new Logger(new NullLogger(), LogLevel.None));
+                nodes.Update(new List<Node> {n, n2, n3, n4}, "RandomPartitioner",
+                             new Logger(new NullLogger(), LogLevel.None));
 
                 ShimAllConnections();
 
@@ -232,15 +244,17 @@ namespace CqlSharp.Test
 
                 const int nr = 8;
 
-                for (int i = 0; i < nr; i++)
+                for(int i = 0; i < nr; i++)
                 {
                     Connection connection;
 
-                    using (logger.ThreadBinding())
+                    using(logger.ThreadBinding())
+                    {
                         connection = strategy.GetOrCreateConnection(ConnectionScope.Command, PartitionKey.None);
+                    }
 
                     await
-                        connection.SendRequestAsync(new QueryFrame("", CqlConsistency.Any, null), logger, 10, false,
+                        connection.SendRequestAsync(new QueryFrame("", CqlConsistency.Any, null), logger, 10,
                                                     CancellationToken.None);
                 }
 
@@ -253,7 +267,7 @@ namespace CqlSharp.Test
         [TestMethod]
         public async Task BalancedStrategyFewRequests()
         {
-            using (ShimsContext.Create())
+            using(ShimsContext.Create())
             {
                 //create cluster 
                 var config = new CqlConnectionStringBuilder {NewConnectionTreshold = 20};
@@ -266,7 +280,8 @@ namespace CqlSharp.Test
                 var n3 = new Node(IPAddress.Parse("127.0.0.3"), cluster);
                 var n4 = new Node(IPAddress.Parse("127.0.0.4"), cluster);
                 var nodes = new Ring();
-                nodes.Update(new List<Node> { n, n2, n3, n4 }, "RandomPartitioner", new Logger(new NullLogger(), LogLevel.None));
+                nodes.Update(new List<Node> {n, n2, n3, n4}, "RandomPartitioner",
+                             new Logger(new NullLogger(), LogLevel.None));
 
 
                 ShimAllConnections();
@@ -277,15 +292,17 @@ namespace CqlSharp.Test
 
                 const int nr = 8;
 
-                for (int i = 0; i < nr; i++)
+                for(int i = 0; i < nr; i++)
                 {
                     Connection connection;
 
-                    using (logger.ThreadBinding())
+                    using(logger.ThreadBinding())
+                    {
                         connection = strategy.GetOrCreateConnection(ConnectionScope.Command, PartitionKey.None);
+                    }
 
                     await
-                        connection.SendRequestAsync(new QueryFrame("", CqlConsistency.Any, null), logger, 10, false,
+                        connection.SendRequestAsync(new QueryFrame("", CqlConsistency.Any, null), logger, 10,
                                                     CancellationToken.None);
                 }
 
@@ -298,7 +315,7 @@ namespace CqlSharp.Test
         [TestMethod]
         public async Task BalancedStrategyManyRequests()
         {
-            using (ShimsContext.Create())
+            using(ShimsContext.Create())
             {
                 //create cluster 
                 var config = new CqlConnectionStringBuilder {NewConnectionTreshold = 20};
@@ -311,7 +328,8 @@ namespace CqlSharp.Test
                 var n3 = new Node(IPAddress.Parse("127.0.0.3"), cluster);
                 var n4 = new Node(IPAddress.Parse("127.0.0.4"), cluster);
                 var nodes = new Ring();
-                nodes.Update(new List<Node> { n, n2, n3, n4 }, "RandomPartitioner", new Logger(new NullLogger(), LogLevel.None));
+                nodes.Update(new List<Node> {n, n2, n3, n4}, "RandomPartitioner",
+                             new Logger(new NullLogger(), LogLevel.None));
 
 
                 ShimAllConnections();
@@ -323,15 +341,17 @@ namespace CqlSharp.Test
 
                 const int nr = 80;
 
-                for (int i = 0; i < nr; i++)
+                for(int i = 0; i < nr; i++)
                 {
                     Connection connection;
 
-                    using (logger.ThreadBinding())
+                    using(logger.ThreadBinding())
+                    {
                         connection = strategy.GetOrCreateConnection(ConnectionScope.Command, PartitionKey.None);
+                    }
 
                     await
-                        connection.SendRequestAsync(new QueryFrame("", CqlConsistency.Any, null), logger, 10, false,
+                        connection.SendRequestAsync(new QueryFrame("", CqlConsistency.Any, null), logger, 10,
                                                     CancellationToken.None);
                 }
 
@@ -345,50 +365,52 @@ namespace CqlSharp.Test
         {
             //shim connections to avoid network connections...
             ShimConnection.ConstructorNodeInt32 = (conn, node, nr) =>
-                                                      {
-                                                          //wrap the new connection in a shim
-                                                          var connection = new ShimConnection(conn);
-                                                          int connLoad = 0;
-                                                          EventHandler<LoadChangeEvent> nodeHandler = null;
+            {
+                //wrap the new connection in a shim
+                var connection = new ShimConnection(conn);
+                int connLoad = 0;
+                EventHandler<LoadChangeEvent> nodeHandler = null;
 
-                                                          //replace any IO inducing methods
-                                                          connection.OpenAsyncLogger =
-                                                              log => Task.FromResult(true);
+                //replace any IO inducing methods
+                connection.OpenAsyncLogger =
+                    log => Task.FromResult(true);
 
 
-                                                          // ReSharper disable AccessToModifiedClosure
-                                                          connection.
-                                                              SendRequestAsyncFrameLoggerInt32BooleanCancellationToken
-                                                              =
-                                                              (frame, log, load, connecting, token) =>
-                                                                  {
-                                                                      //update connection load
-                                                                      connLoad += load;
-                                                                      //call load change event handler
-                                                                      if (nodeHandler != null)
-                                                                          nodeHandler(connection,
-                                                                                      new LoadChangeEvent
-                                                                                          {LoadDelta = load});
-                                                                      //done
-                                                                      return
-                                                                          Task.FromResult<Frame>(
-                                                                              (Frame)
-                                                                              new ResultFrame {Stream = frame.Stream});
-                                                                  };
-                                                          // ReSharper restore AccessToModifiedClosure
+                // ReSharper disable AccessToModifiedClosure
+                connection.
+                    SendRequestAsyncFrameLoggerInt32CancellationToken
+                    =
+                    (frame, log, load, token) =>
+                    {
+                        //update connection load
+                        connLoad += load;
+                        //call load change event handler
+                        if(nodeHandler != null)
+                        {
+                            nodeHandler(connection,
+                                        new LoadChangeEvent
+                                        {LoadDelta = load});
+                        }
+                        //done
+                        return
+                            Task.FromResult(
+                                (Frame)
+                                    new ResultFrame {Stream = frame.Stream});
+                    };
+                // ReSharper restore AccessToModifiedClosure
 
-                                                          //intercept load changed handlers
-                                                          connection.
-                                                              OnLoadChangeAddEventHandlerOfLoadChangeEvent
-                                                              = handler => { nodeHandler += handler; };
+                //intercept load changed handlers
+                connection.
+                    OnLoadChangeAddEventHandlerOfLoadChangeEvent
+                    = handler => { nodeHandler += handler; };
 
-                                                          //return proper load values
-                                                          connection.LoadGet = () => connLoad;
+                //return proper load values
+                connection.LoadGet = () => connLoad;
 
-                                                          //set some default properties
-                                                          connection.IsConnectedGet = () => true;
-                                                          connection.IsIdleGet = () => false;
-                                                      };
+                //set some default properties
+                connection.IsConnectedGet = () => true;
+                connection.IsIdleGet = () => false;
+            };
         }
     }
 }

@@ -10,6 +10,8 @@ EndProject
 Project("{2150E333-8FDC-42A3-9474-1A3956D46DE8}") = "Solution Items", "Solution Items", "{D825317C-46F7-452D-8928-2BC89C7037E3}"
 	ProjectSection(SolutionItems) = preProject
 		ChangeLog.md = ChangeLog.md
+		Performance2.psess = Performance2.psess
+		Performance3.psess = Performance3.psess
 		README.md = README.md
 	EndProjectSection
 EndProject
@@ -78,8 +80,5 @@ Global
 		{2D573049-394D-4BEA-90CB-3FACABCC9DFE} = {F081BC78-8E62-47B1-895B-05597D6FAC9A}
 		{26AA128D-CC4D-441C-9EF1-DC7AFC14A0E7} = {F081BC78-8E62-47B1-895B-05597D6FAC9A}
 		{EED9F793-6C9E-4B7A-B492-2B8C9B0CB461} = {61213789-C96D-4EE9-8BC9-70AA62711082}
-	EndGlobalSection
-	GlobalSection(Performance) = preSolution
-		HasPerformanceSessions = true
 	EndGlobalSection
 EndGlobal

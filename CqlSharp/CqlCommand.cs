@@ -69,9 +69,9 @@ namespace CqlSharp
         /// <summary>
         /// Initializes a new instance of the <see cref="CqlCommand" /> class. Uses a default consistency level One
         /// </summary>
-        /// <param name="connection"> The connection. </param>
-        /// <param name="cql"> The CQL. </param>
-        /// <param name="level"> The level. </param>
+        /// <param name="connection">The connection.</param>
+        /// <param name="cql">The CQL text.</param>
+        /// <param name="level">The consistency level.</param>
         public CqlCommand(IDbConnection connection, string cql = "", CqlConsistency level = CqlConsistency.One)
             : this((CqlConnection)connection, cql, level)
         {
@@ -157,6 +157,15 @@ namespace CqlSharp
                 return _partitionKey;
             }
         }
+
+        /// <summary>
+        /// The timestamp representing the default timestamp for the query. If provided, this will
+        /// replace the server side assigned timestamp as default timestamp.
+        /// </summary>
+        /// <value>
+        /// The (default) timestamp.
+        /// </value>
+        public virtual DateTime? Timestamp { get; set; }
 
         #region CommandText
 
@@ -697,7 +706,6 @@ namespace CqlSharp
         internal async Task<ResultFrame> ExecuteQueryAsyncInternal(CommandBehavior behavior,
                                                                    CancellationToken cancellationToken)
         {
-
 #if DEBUG
             var st = new Stopwatch();
             st.Start();
@@ -1053,7 +1061,6 @@ namespace CqlSharp
 
             using(token.Register(() => logger.LogQuery("Preparation of Query {0} was cancelled", Query)))
             {
-
                 logger.LogVerbose("Start executing prepare query");
 
                 ResultFrame result = await RunWithRetry(SendPrepareAsync, logger, token).AutoConfigureAwait();
@@ -1108,7 +1115,7 @@ namespace CqlSharp
 
                         var useFrame = new QueryFrame(useQuery, CqlConsistency.One, null);
 
-                        var result = await connection.SendRequestAsync(useFrame, logger, 1, false, token)
+                        var result = await connection.SendRequestAsync(useFrame, logger, 1, token)
                                                      .AutoConfigureAwait() as ResultFrame;
 
                         if(result == null || result.CqlResultType != CqlResultType.SetKeyspace)
@@ -1228,7 +1235,7 @@ namespace CqlSharp
             //send prepare request
             using(
                 Frame response =
-                    await connection.SendRequestAsync(request, logger, 1, false, token).AutoConfigureAwait())
+                    await connection.SendRequestAsync(request, logger, 1, token).AutoConfigureAwait())
             {
                 var result = response as ResultFrame;
                 if(result == null)
@@ -1265,13 +1272,15 @@ namespace CqlSharp
                     queryId = prepareResult.PreparedQueryId;
                 }
 
-                queryFrame = new ExecuteFrame(queryId, Consistency, Parameters.Values);
+                queryFrame = new ExecuteFrame(queryId, Consistency, Parameters.Serialize(connection.ProtocolVersion));
 
                 logger.LogVerbose("Sending execute {0} using {1}", Query, connection);
             }
             else
             {
-                byte[][] values = _parameters != null && _parameters.Count > 0 ? _parameters.Values : null;
+                byte[][] values = _parameters != null && _parameters.Count > 0
+                    ? _parameters.Serialize(connection.ProtocolVersion)
+                    : null;
                 queryFrame = new QueryFrame(Query, Consistency, values);
                 logger.LogVerbose("Sending query {0} using {1}", Query, connection);
             }
@@ -1294,13 +1303,17 @@ namespace CqlSharp
                 queryFrame.SerialConsistency = SerialConsistency.LocalSerial;
             }
 
+            //set default timestamp (if any)
+            queryFrame.Timestamp = Timestamp;
+
             //update frame with tracing option if requested
             if(EnableTracing)
                 queryFrame.Flags |= FrameFlags.Tracing;
 
+
             Frame response =
                 await
-                    connection.SendRequestAsync(queryFrame, logger, Load, false, token)
+                    connection.SendRequestAsync(queryFrame, logger, Load, token)
                               .AutoConfigureAwait();
 
             var result = response as ResultFrame;
@@ -1333,7 +1346,7 @@ namespace CqlSharp
                 {
                     IsPrepared = IsPrepared,
                     CqlQuery = Query,
-                    ParameterValues = HasParameters ? Parameters.Values : null
+                    ParameterValues = HasParameters ? Parameters.Clone() : null
                 };
 
                 Transaction.Commands.Add(batchedCommand);
@@ -1374,6 +1387,16 @@ namespace CqlSharp
                 batchFrame.Commands.Add(command);
             }
 
+            //set local serial
+            if(UseCASLocalSerial)
+            {
+                logger.LogVerbose("Using LocalSerial consistency for CAS prepare and propose");
+                batchFrame.SerialConsistency = SerialConsistency.LocalSerial;
+            }
+
+            //set default timestamp (if any)
+            batchFrame.Timestamp = Timestamp;
+
             //update frame with tracing option if requested
             if(EnableTracing)
                 batchFrame.Flags |= FrameFlags.Tracing;
@@ -1381,7 +1404,7 @@ namespace CqlSharp
             logger.LogVerbose("Sending batch command using {0}", connection);
 
             Frame response =
-                await connection.SendRequestAsync(batchFrame, logger, Load, false, token).AutoConfigureAwait();
+                await connection.SendRequestAsync(batchFrame, logger, Load, token).AutoConfigureAwait();
 
             var result = response as ResultFrame;
             if(result != null)

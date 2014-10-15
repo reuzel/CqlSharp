@@ -1,5 +1,5 @@
 // CqlSharp - CqlSharp
-// Copyright (c) 2013 Joost Reuzel
+// Copyright (c) 2014 Joost Reuzel
 //   
 // Licensed under the Apache License, Version 2.0 (the "License");
 // you may not use this file except in compliance with the License.
@@ -16,27 +16,27 @@
 namespace CqlSharp.Network
 {
     /// <summary>
-    ///   CqlType of possible evented changes to a cluster
+    /// CqlTypeCode of possible evented changes to a cluster
     /// </summary>
     internal enum ClusterChange
     {
         /// <summary>
-        ///   a node was restored to active duty
+        /// a node was restored to active duty
         /// </summary>
         Up,
 
         /// <summary>
-        ///   A node become unavailable
+        /// A node become unavailable
         /// </summary>
         Down,
 
         /// <summary>
-        ///   A node was added to the cluster
+        /// A node was added to the cluster
         /// </summary>
         New,
 
         /// <summary>
-        ///   A node was (permanently) removed from the cluster
+        /// A node was (permanently) removed from the cluster
         /// </summary>
         Removed
     }

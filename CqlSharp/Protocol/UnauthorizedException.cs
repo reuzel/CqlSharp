@@ -1,5 +1,5 @@
 // CqlSharp - CqlSharp
-// Copyright (c) 2013 Joost Reuzel
+// Copyright (c) 2014 Joost Reuzel
 //   
 // Licensed under the Apache License, Version 2.0 (the "License");
 // you may not use this file except in compliance with the License.
@@ -23,8 +23,14 @@ namespace CqlSharp.Protocol
     [Serializable]
     public class UnauthorizedException : ProtocolException
     {
-        internal UnauthorizedException(string message, Guid? tracingId)
-            : base(Protocol.ErrorCode.Unauthorized, message, tracingId)
+        /// <summary>
+        /// Initializes a new instance of the <see cref="UnauthorizedException"/> class.
+        /// </summary>
+        /// <param name="protocolVersion">The CQL binary protocol version in use.</param>
+        /// <param name="message">The message.</param>
+        /// <param name="tracingId">The tracing identifier.</param>
+        internal UnauthorizedException(byte protocolVersion, string message, Guid? tracingId)
+            : base(protocolVersion, Protocol.ErrorCode.Unauthorized, message, tracingId)
         {
         }
     }

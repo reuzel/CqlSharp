@@ -1,5 +1,5 @@
 ﻿// CqlSharp - CqlSharp
-// Copyright (c) 2013 Joost Reuzel
+// Copyright (c) 2014 Joost Reuzel
 //   
 // Licensed under the Apache License, Version 2.0 (the "License");
 // you may not use this file except in compliance with the License.
@@ -18,20 +18,21 @@ using System;
 namespace CqlSharp.Logging
 {
     /// <summary>
-    ///   Logger factory for logging to Console output window
+    /// Logger factory for logging to Console output window
     /// </summary>
     internal class ConsoleLoggerFactory : LoggerFactory<ConsoleLogger>
     {
         #region Implementation of ILoggerFactory
 
-        public ConsoleLoggerFactory() : base("Console") { }
+        public ConsoleLoggerFactory() : base("Console")
+        {
+        }
 
         #endregion
-
     }
 
     /// <summary>
-    ///   Logger that logs to Console output
+    /// Logger that logs to Console output
     /// </summary>
     internal class ConsoleLogger : ILogger
     {
@@ -48,7 +49,7 @@ namespace CqlSharp.Logging
 
         public void LogVerbose(Guid traceId, string format, params object[] values)
         {
-            lock (SyncLock)
+            lock(SyncLock)
             {
                 Console.ForegroundColor = ConsoleColor.DarkGray;
                 Console.WriteLine("    DEBUG - {0} - {1} - {2} - {3}", _name, DateTime.Now, traceId,
@@ -59,7 +60,7 @@ namespace CqlSharp.Logging
 
         public void LogQuery(Guid traceId, string format, params object[] values)
         {
-            lock (SyncLock)
+            lock(SyncLock)
             {
                 Console.ForegroundColor = ConsoleColor.DarkGreen;
                 Console.WriteLine("QUERY - {0} - {1} - {2} - {3}", _name, DateTime.Now, traceId,
@@ -70,7 +71,7 @@ namespace CqlSharp.Logging
 
         public void LogInfo(Guid traceId, string format, params object[] values)
         {
-            lock (SyncLock)
+            lock(SyncLock)
             {
                 Console.WriteLine("INFO - {0} - {1} - {2} - {3}", _name, DateTime.Now, traceId,
                                   string.Format(format, values));
@@ -79,7 +80,7 @@ namespace CqlSharp.Logging
 
         public void LogWarning(Guid traceId, string format, params object[] values)
         {
-            lock (SyncLock)
+            lock(SyncLock)
             {
                 Console.ForegroundColor = ConsoleColor.DarkMagenta;
                 Console.WriteLine("WARNING - {0} - {1} - {2} - {3}", _name, DateTime.Now, traceId,
@@ -90,7 +91,7 @@ namespace CqlSharp.Logging
 
         public void LogError(Guid traceId, string format, params object[] values)
         {
-            lock (SyncLock)
+            lock(SyncLock)
             {
                 Console.ForegroundColor = ConsoleColor.Red;
                 Console.WriteLine("ERROR - {0} - {1} - {2} - {3}", _name, DateTime.Now, traceId,
@@ -101,7 +102,7 @@ namespace CqlSharp.Logging
 
         public void LogCritical(Guid traceId, string format, params object[] values)
         {
-            lock (SyncLock)
+            lock(SyncLock)
             {
                 Console.ForegroundColor = ConsoleColor.DarkRed;
                 Console.WriteLine("CRITICAL - {0} - {1} - {2} - {3}", _name, DateTime.Now, traceId,

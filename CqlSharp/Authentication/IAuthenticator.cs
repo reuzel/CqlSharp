@@ -1,5 +1,5 @@
 ﻿// CqlSharp - CqlSharp
-// Copyright (c) 2013 Joost Reuzel
+// Copyright (c) 2014 Joost Reuzel
 //   
 // Licensed under the Apache License, Version 2.0 (the "License");
 // you may not use this file except in compliance with the License.
@@ -16,23 +16,25 @@
 namespace CqlSharp.Authentication
 {
     /// <summary>
-    ///   Implemented by Authentication algorithms
+    /// Implemented by Authentication algorithms
     /// </summary>
     public interface IAuthenticator
     {
         /// <summary>
-        ///   Authenticates using the specified Sasl challenge.
+        /// Authenticates using the specified Sasl challenge.
         /// </summary>
+        /// <param name="protocolVersion">The version of the protocol in use</param>
         /// <param name="challenge"> The challenge. </param>
         /// <param name="response"> The response. </param>
         /// <returns> true, if authentication may continue </returns>
-        bool Authenticate(byte[] challenge, out byte[] response);
+        bool Authenticate(byte protocolVersion, byte[] challenge, out byte[] response);
 
         /// <summary>
-        ///   Authenticates the specified final SASL response.
+        /// Authenticates the specified final SASL response.
         /// </summary>
+        /// <param name="protocolVersion">The version of the protocol in use</param>
         /// <param name="finalResponse"> The final response. </param>
         /// <returns> true, if authentication is succesful </returns>
-        bool Authenticate(byte[] finalResponse);
+        bool Authenticate(byte protocolVersion, byte[] finalResponse);
     }
 }

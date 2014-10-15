@@ -42,6 +42,7 @@
     <Reference Include="CqlSharp.Fakes">
       <HintPath>FakesAssemblies\CqlSharp.Fakes.dll</HintPath>
     </Reference>
+    <Reference Include="Microsoft.CSharp" />
     <Reference Include="Microsoft.QualityTools.Testing.Fakes, Version=11.0.0.0, Culture=neutral, PublicKeyToken=b03f5f7f11d50a3a, processorArchitecture=MSIL" />
     <Reference Include="mscorlib.4.0.0.0.Fakes">
       <HintPath>FakesAssemblies\mscorlib.4.0.0.0.Fakes.dll</HintPath>
@@ -67,6 +68,7 @@
   <ItemGroup>
     <Compile Include="ActiveThreadSchedulerTest.cs" />
     <Compile Include="ConnectionStrategyTest.cs" />
+    <Compile Include="ConversionTest.cs" />
     <Compile Include="ConnectionStringTest.cs" />
     <Compile Include="CqlConnectionTest.cs" />
     <Compile Include="CqlParameterTest.cs" />
@@ -80,6 +82,9 @@
     <Compile Include="SyncContextHelper.cs" />
     <Compile Include="ObjectAccessorTest.cs" />
     <Compile Include="TimeUuidTest.cs" />
+    <Compile Include="CqlTypeTest.cs" />
+    <Compile Include="SerializationTest210.cs" />
+    <Compile Include="TokenTest.cs" />
   </ItemGroup>
   <ItemGroup>
     <ProjectReference Include="..\CqlSharp\CqlSharp.csproj">

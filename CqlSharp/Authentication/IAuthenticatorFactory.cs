@@ -1,5 +1,5 @@
 ﻿// CqlSharp - CqlSharp
-// Copyright (c) 2013 Joost Reuzel
+// Copyright (c) 2014 Joost Reuzel
 //   
 // Licensed under the Apache License, Version 2.0 (the "License");
 // you may not use this file except in compliance with the License.
@@ -18,7 +18,7 @@ namespace CqlSharp.Authentication
     public interface IAuthenticatorFactory
     {
         /// <summary>
-        ///   The full class name of the Cassandra authenticator this authenticator factory can be used with
+        /// The full class name of the Cassandra authenticator this authenticator factory can be used with
         /// </summary>
         /// <value> The name </value>
         string Name { get; }

@@ -1,5 +1,5 @@
 ﻿// CqlSharp - CqlSharp
-// Copyright (c) 2013 Joost Reuzel
+// Copyright (c) 2014 Joost Reuzel
 //   
 // Licensed under the Apache License, Version 2.0 (the "License");
 // you may not use this file except in compliance with the License.
@@ -13,9 +13,9 @@
 // See the License for the specific language governing permissions and
 // limitations under the License.
 
-using CqlSharp.Extensions;
 using System;
 using System.Linq;
+using CqlSharp.Extensions;
 
 namespace CqlSharp.Logging
 {
@@ -34,17 +34,17 @@ namespace CqlSharp.Logging
         }
 
         /// <summary>
-        ///   Gets a logger instance with the specified name.
+        /// Gets a logger instance with the specified name.
         /// </summary>
         /// <param name="name"> The name. </param>
         /// <returns> </returns>
         public Logger GetLogger(string name)
         {
-            if (_factory == null)
+            if(_factory == null)
             {
-                lock (_syncLock)
+                lock(_syncLock)
                 {
-                    if (_factory == null)
+                    if(_factory == null)
                     {
                         var factory =
                             Loader.Extensions.LoggerFactories.FirstOrDefault(

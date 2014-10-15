@@ -1,5 +1,5 @@
 ﻿// CqlSharp - CqlSharp.Test
-// Copyright (c) 2013 Joost Reuzel
+// Copyright (c) 2014 Joost Reuzel
 //   
 // Licensed under the Apache License, Version 2.0 (the "License");
 // you may not use this file except in compliance with the License.
@@ -23,8 +23,8 @@ using System.Windows.Threading;
 namespace CqlSharp.Test
 {
     /// <summary>
-    ///   Helper context to mimic constrained synchronization contexts.
-    ///   Based on: http://stackoverflow.com/questions/1882417/looking-for-an-example-of-a-custom-synchronizationcontext
+    /// Helper context to mimic constrained synchronization contexts.
+    /// Obtained from: http://stackoverflow.com/questions/1882417/looking-for-an-example-of-a-custom-synchronizationcontext
     /// </summary>
     public class SyncContextHelper : IDisposable
     {
@@ -38,7 +38,7 @@ namespace CqlSharp.Test
             mainThread.Start();
 
             //wait to get the main thread's dispatcher
-            while (Thread.VolatileRead(ref _dispObj) == null)
+            while(Thread.VolatileRead(ref _dispObj) == null)
                 Thread.Yield();
 
             _dispatcher = _dispObj as Dispatcher;
@@ -48,7 +48,7 @@ namespace CqlSharp.Test
 
         public void Dispose()
         {
-            if (!_dispatcher.HasShutdownStarted && !_dispatcher.HasShutdownFinished)
+            if(!_dispatcher.HasShutdownStarted && !_dispatcher.HasShutdownFinished)
                 _dispatcher.BeginInvokeShutdown(DispatcherPriority.Normal);
 
             GC.SuppressFinalize(this);
@@ -70,7 +70,7 @@ namespace CqlSharp.Test
             task.Wait();
             helper.Dispose();
         }
-        
+
         private void MainThread(object param)
         {
             Thread.VolatileWrite(ref _dispObj, Dispatcher.CurrentDispatcher);

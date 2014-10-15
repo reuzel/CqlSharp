@@ -1,5 +1,5 @@
 // CqlSharp - CqlSharp
-// Copyright (c) 2013 Joost Reuzel
+// Copyright (c) 2014 Joost Reuzel
 //   
 // Licensed under the Apache License, Version 2.0 (the "License");
 // you may not use this file except in compliance with the License.
@@ -16,7 +16,7 @@
 namespace CqlSharp
 {
     /// <summary>
-    ///   Cql Consistency 'levels'
+    /// Cql Consistency 'levels'
     /// </summary>
     public enum CqlConsistency : ushort
     {
@@ -35,7 +35,7 @@ namespace CqlSharp
         LocalQuorum = 0x0006,
 
         EachQuorum = 0x0007,
-        
+
         LocalOne = 0x000A
     }
 }

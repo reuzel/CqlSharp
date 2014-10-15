@@ -1,5 +1,5 @@
 ﻿// CqlSharp - CqlSharp
-// Copyright (c) 2013 Joost Reuzel
+// Copyright (c) 2014 Joost Reuzel
 //   
 // Licensed under the Apache License, Version 2.0 (the "License");
 // you may not use this file except in compliance with the License.
@@ -21,6 +21,7 @@ using System.ComponentModel.Composition.Registration;
 using System.IO;
 using CqlSharp.Authentication;
 using CqlSharp.Logging;
+using CqlSharp.Serialization.Marshal;
 
 namespace CqlSharp.Extensions
 {
@@ -38,14 +39,12 @@ namespace CqlSharp.Extensions
         {
             get
             {
-                if (_loader == null)
+                if(_loader == null)
                 {
-                    lock (SyncLock)
+                    lock(SyncLock)
                     {
-                        if (_loader == null)
-                        {
+                        if(_loader == null)
                             _loader = new Loader();
-                        }
                     }
                 }
                 return _loader;
@@ -56,8 +55,10 @@ namespace CqlSharp.Extensions
 
         public List<IAuthenticatorFactory> AuthenticationFactories { get; set; }
 
+        public List<ITypeFactory> TypeFactories { get; set; }
+
         /// <summary>
-        ///   Loads the logger factories.
+        /// Loads the logger factories.
         /// </summary>
         private void LoadFactories()
         {
@@ -73,6 +74,11 @@ namespace CqlSharp.Extensions
                 .ForTypesDerivedFrom<IAuthenticatorFactory>()
                 .Export<IAuthenticatorFactory>();
 
+            //search for ISerializerFactory implementations
+            conventions
+                .ForTypesDerivedFrom<ITypeFactory>()
+                .Export<ITypeFactory>();
+
             //import into LoggerFactories
             conventions
                 .ForType<Loader>()
@@ -82,6 +88,11 @@ namespace CqlSharp.Extensions
             conventions
                 .ForType<Loader>()
                 .ImportProperty(extensions => extensions.AuthenticationFactories);
+
+            //import into AuthenticationFactories
+            conventions
+                .ForType<Loader>()
+                .ImportProperty(extensions => extensions.TypeFactories);
 
             //create catalog of dlls
             var catalog = new AggregateCatalog();
@@ -93,7 +104,7 @@ namespace CqlSharp.Extensions
             string subPath = AppDomain.CurrentDomain.RelativeSearchPath;
 
             //or in bin directory (asp.net)
-            if (!string.IsNullOrEmpty(subPath) && Directory.Exists(subPath))
+            if(!string.IsNullOrEmpty(subPath) && Directory.Exists(subPath))
                 catalog.Catalogs.Add(new DirectoryCatalog(subPath, conventions));
 
             //create container
@@ -106,19 +117,43 @@ namespace CqlSharp.Extensions
             }
             catch
             {
-                //in case of any loading errors, load only the loggers and authenticators that we implement
+                //in case of any loading errors, load only the loggers and authenticators, and serializers that we implement
                 LoggerFactories = new List<ILoggerFactory>
-                                      {
-                                          new NullLoggerFactory(),
-                                          new ConsoleLoggerFactory(),
-                                          new DebugLoggerFactory(),
-                                          new TraceLoggerFactory()
-                                      };
+                {
+                    new NullLoggerFactory(),
+                    new ConsoleLoggerFactory(),
+                    new DebugLoggerFactory(),
+                    new TraceLoggerFactory()
+                };
 
                 AuthenticationFactories = new List<IAuthenticatorFactory>
-                                              {
-                                                  new PasswordAuthenticatorFactory()
-                                              };
+                {
+                    new PasswordAuthenticatorFactory()
+                };
+
+                TypeFactories = new List<ITypeFactory>
+                {
+                    new AsciiTypeFactory(),
+                    new BooleanTypeFactory(),
+                    new BytesTypeFactory(),
+                    new CounterColumnTypeFactory(),
+                    new DateTypeFactory(),
+                    new DecimalTypeFactory(),
+                    new DoubleTypeFactory(),
+                    new FloatTypeFactory(),
+                    new InetAddressTypeFactory(),
+                    new Int32TypeFactory(),
+                    new IntegerTypeFactory(),
+                    new LexicalUUIDTypeFactory(),
+                    new ListTypeFactory(),
+                    new LongTypeFactory(),
+                    new MapTypeFactory(),
+                    new SetTypeFactory(),
+                    new TimestampTypeFactory(),
+                    new TimeUUIDTypeFactory(),
+                    new UTF8TypeFactory(),
+                    new UUIDTypeFactory()
+                };
             }
         }
     }

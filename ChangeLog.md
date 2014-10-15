@@ -1,3 +1,22 @@
+## Version 0.40.1 - Fix CqlConnection.Open retry bug
+* Solves issue with connection to 2.0 and 1.x clusters when MaxQueryRetries=0
+* Retries CqlConnection.Open up to MaxQueryRetries + 1, when opening connections to the cluster fails
+
+## Version 0.40.0 - Cassandra 2.1, binary protocol v3 and new type system
+* Implements binary protocol v3: more queries per connection, timestamp property, UDT and Tuple types, larger collections.
+* Rewrite of type system, CqlType is no longer an enum but a class with subclasses for every Cassandra type.
+* Previous CqlType enum is now called CqlTypeCode.
+* Primitive Cql types can be accessed through CqlType.* static properties. Others can be constructed from .NET class, type string, or TypeCode + parameter via the CqlType.CreateType overloads.
+* CqlParameter no longer accepts different CqlTypeCodes, but requires a single CqlType
+* Added high performance and extremely flexible type conversion that prevents boxing, and even converts collection types (e.g. hashset{int} to list{long})
+* Removed explicit references to collection key and value types. They are not used separate from the corresponding CqlTypes anymore
+* CqlDataReader.GetDataTypeName(int i) now returns full string representation of the Cassandra type (e.g. map<varchar, int>)
+* CqlDataReader.GetFieldCqlType added that returns the CqlType used for the given field
+* Removed a lot of boxing/unboxing of primitive types during serialization/deserialization
+* Implemented DbDataReader.GetFieldValue{T}(int i)
+* Supports User Defined Types. Annotate your class with CqlUserType and CqlColumn to have it correctly mapped to a Cassandra User Defined Type
+* Guesses protocol version from release_version shortening connection setup times for older clusters
+
 ## Version 0.39.0 - Performance of sync operations
 * Many changes to have synchronous API really execute synchronously, it is no longer a sync-over-async wrapper
 * Improved exception generation in case of query cancellation or timeout

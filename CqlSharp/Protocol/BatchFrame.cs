@@ -1,5 +1,5 @@
 ﻿// CqlSharp - CqlSharp
-// Copyright (c) 2013 Joost Reuzel
+// Copyright (c) 2014 Joost Reuzel
 //   
 // Licensed under the Apache License, Version 2.0 (the "License");
 // you may not use this file except in compliance with the License.
@@ -17,21 +17,20 @@ using System;
 using System.Collections.Generic;
 using System.IO;
 using System.Threading.Tasks;
-using CqlSharp.Threading;
 
 namespace CqlSharp.Protocol
 {
     /// <summary>
-    ///   Frame holding a batch of statements
+    /// Frame holding a batch of statements
     /// </summary>
     internal class BatchFrame : Frame
     {
         /// <summary>
-        ///   Initializes a new instance of the <see cref="BatchFrame" /> class.
+        /// Initializes a new instance of the <see cref="BatchFrame" /> class.
         /// </summary>
         public BatchFrame(CqlBatchType batchType, CqlConsistency consistency)
         {
-            Version = FrameVersion.Request;
+            IsRequest = true;
             Flags = FrameFlags.None;
             Stream = 0;
             OpCode = FrameOpcode.Batch;
@@ -42,37 +41,57 @@ namespace CqlSharp.Protocol
         }
 
         /// <summary>
-        ///   Gets or sets the type of the batch.
+        /// Gets or sets the type of the batch.
         /// </summary>
         /// <value> The type. </value>
         public CqlBatchType Type { get; set; }
 
         /// <summary>
-        ///   Gets or sets the commands.
+        /// Gets or sets the commands.
         /// </summary>
         /// <value> The commands. </value>
         public IList<BatchedCommand> Commands { get; private set; }
 
         /// <summary>
-        ///   Gets or sets the CQL consistency.
+        /// Gets or sets the CQL consistency.
         /// </summary>
         /// <value> The CQL consistency. </value>
         public CqlConsistency CqlConsistency { get; set; }
 
         /// <summary>
-        ///   Writes the data to buffer.
+        /// The consistency level for the serial phase of conditional updates. That consitency
+        /// can only be either SERIAL or LOCAL_SERIAL and if not present, it defaults to SERIAL.
+        /// This option will be ignored for anything else that a conditional update/insert.
+        /// </summary>
+        /// <value> The serial consistency. </value>
+        /// <exception cref="CqlException">Serial Consistency can only be LocalSerial or Serial</exception>
+        public SerialConsistency? SerialConsistency { get; set; }
+
+        /// <summary>
+        /// The timestamp is a representing the default timestamp for the query. If provided, this will
+        /// replace the server side assigned timestamp as default timestamp.
+        /// </summary>
+        /// <value>
+        /// The (default) timestamp.
+        /// </value>
+        public DateTime? Timestamp { get; set; }
+
+        /// <summary>
+        /// Writes the data to buffer.
         /// </summary>
         /// <param name="buffer"> The buffer. </param>
         protected override void WriteData(Stream buffer)
         {
-            if ((Version & FrameVersion.ProtocolVersionMask) == FrameVersion.ProtocolVersion1)
-                throw new ProtocolException(ErrorCode.Protocol, "Batch frames are supported from Cassandra Version 2.0.0 and up.", null);
+            if(ProtocolVersion == 1)
+            {
+                throw new ProtocolException(ProtocolVersion, ErrorCode.Protocol, "Batch frames are supported from Cassandra Version 2.0.0 and up.");
+            }
 
             buffer.WriteByte((byte)Type);
             buffer.WriteShort((ushort)Commands.Count);
-            foreach (var command in Commands)
+            foreach(var command in Commands)
             {
-                if (command.IsPrepared)
+                if(command.IsPrepared)
                 {
                     buffer.WriteByte(1);
                     buffer.WriteShortByteArray(command.QueryId);
@@ -83,24 +102,39 @@ namespace CqlSharp.Protocol
                     buffer.WriteLongString(command.CqlQuery);
                 }
 
-                if (command.ParameterValues != null)
+                if(command.ParameterValues != null)
                 {
-                    var length = (ushort)command.ParameterValues.Length;
+                    byte[][] paramValues = command.ParameterValues.Serialize(ProtocolVersion);
+                    var length = (ushort)paramValues.Length;
                     buffer.WriteShort(length);
-                    for (var i = 0; i < length; i++)
-                        buffer.WriteByteArray(command.ParameterValues[i]);
+                    for(var i = 0; i < length; i++)
+                    {
+                        buffer.WriteByteArray(paramValues[i]);
+                    }
                 }
                 else
-                {
                     buffer.WriteShort(0);
-                }
             }
 
             buffer.WriteConsistency(CqlConsistency);
+
+            if(ProtocolVersion >= 3)
+            {
+                var flags = (byte)((SerialConsistency.HasValue ? 16 : 0) |
+                                   (Timestamp.HasValue ? 32 : 0));
+
+                buffer.WriteByte(flags);
+
+                if(SerialConsistency.HasValue)
+                    buffer.WriteShort((ushort)SerialConsistency.Value);
+
+                if(Timestamp.HasValue)
+                    buffer.WriteLong(Timestamp.Value.ToTimestamp());
+            }
         }
 
         /// <summary>
-        ///   Initialize frame contents from the stream
+        /// Initialize frame contents from the stream
         /// </summary>
         /// <param name=""></param>
         /// <returns> </returns>
@@ -113,14 +147,14 @@ namespace CqlSharp.Protocol
         #region Nested type: BatchedCommand
 
         /// <summary>
-        ///   Structure to hold values of commands
+        /// Structure to hold values of commands
         /// </summary>
         public class BatchedCommand
         {
             public bool IsPrepared { get; set; }
             public byte[] QueryId { get; set; }
             public string CqlQuery { get; set; }
-            public byte[][] ParameterValues { get; set; }
+            public CqlParameterCollection ParameterValues { get; set; }
         }
 
         #endregion

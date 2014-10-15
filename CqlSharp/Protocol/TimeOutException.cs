@@ -1,5 +1,5 @@
 // CqlSharp - CqlSharp
-// Copyright (c) 2013 Joost Reuzel
+// Copyright (c) 2014 Joost Reuzel
 //   
 // Licensed under the Apache License, Version 2.0 (the "License");
 // you may not use this file except in compliance with the License.
@@ -23,9 +23,18 @@ namespace CqlSharp.Protocol
     [Serializable]
     public abstract class TimeOutException : ProtocolException
     {
-        protected TimeOutException(ErrorCode code, string message, CqlConsistency cqlConsistency, int received,
-                                   int blockFor, Guid? tracingId)
-            : base(code, message, tracingId)
+        /// <summary>
+        /// Initializes a new instance of the <see cref="TimeOutException"/> class.
+        /// </summary>
+        /// <param name="protocolVersion">The CQL binary protocol version in use.</param>
+        /// <param name="code">The error code.</param>
+        /// <param name="message">The message.</param>
+        /// <param name="cqlConsistency">The CQL consistency.</param>
+        /// <param name="received">The number of nodes of which a response is received.</param>
+        /// <param name="blockFor">The number of nodes the query was waiting for.</param>
+        /// <param name="tracingId">The tracing identifier.</param>
+        protected TimeOutException(byte protocolVersion, ErrorCode code, string message, CqlConsistency cqlConsistency, int received, int blockFor, Guid? tracingId)
+            : base(protocolVersion, code, message, tracingId)
         {
             CqlConsistency = cqlConsistency;
             Received = received;

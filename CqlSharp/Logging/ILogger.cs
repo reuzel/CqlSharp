@@ -1,5 +1,5 @@
 // CqlSharp - CqlSharp
-// Copyright (c) 2013 Joost Reuzel
+// Copyright (c) 2014 Joost Reuzel
 //   
 // Licensed under the Apache License, Version 2.0 (the "License");
 // you may not use this file except in compliance with the License.
@@ -18,12 +18,12 @@ using System;
 namespace CqlSharp.Logging
 {
     /// <summary>
-    ///   Interface towards logger implementations.
+    /// Interface towards logger implementations.
     /// </summary>
     public interface ILogger
     {
         /// <summary>
-        ///   Logs a message on verbose level
+        /// Logs a message on verbose level
         /// </summary>
         /// <param name="traceId"> The trace id. </param>
         /// <param name="format"> The format. </param>
@@ -31,7 +31,7 @@ namespace CqlSharp.Logging
         void LogVerbose(Guid traceId, string format, params object[] values);
 
         /// <summary>
-        ///   Logs the succesfull execution of a query
+        /// Logs the succesfull execution of a query
         /// </summary>
         /// <param name="traceId"> The trace id. </param>
         /// <param name="format"> The format. </param>
@@ -39,7 +39,7 @@ namespace CqlSharp.Logging
         void LogQuery(Guid traceId, string format, params object[] values);
 
         /// <summary>
-        ///   Logs a message on info level
+        /// Logs a message on info level
         /// </summary>
         /// <param name="traceId"> The trace id. </param>
         /// <param name="format"> The format. </param>
@@ -47,7 +47,7 @@ namespace CqlSharp.Logging
         void LogInfo(Guid traceId, string format, params object[] values);
 
         /// <summary>
-        ///   Logs a message on warning level
+        /// Logs a message on warning level
         /// </summary>
         /// <param name="traceId"> The trace id. </param>
         /// <param name="format"> The format. </param>
@@ -55,7 +55,7 @@ namespace CqlSharp.Logging
         void LogWarning(Guid traceId, string format, params object[] values);
 
         /// <summary>
-        ///   Logs a message on error level
+        /// Logs a message on error level
         /// </summary>
         /// <param name="traceId"> The trace id. </param>
         /// <param name="format"> The format. </param>
@@ -63,7 +63,7 @@ namespace CqlSharp.Logging
         void LogError(Guid traceId, string format, params object[] values);
 
         /// <summary>
-        ///   Logs a message on critical level
+        /// Logs a message on critical level
         /// </summary>
         /// <param name="traceId"> The trace id. </param>
         /// <param name="format"> The format. </param>

@@ -13,12 +13,12 @@
 // See the License for the specific language governing permissions and
 // limitations under the License.
 
-using CqlSharp.Serialization;
-using Microsoft.VisualStudio.TestTools.UnitTesting;
 using System;
 using System.Collections.Generic;
 using System.Linq;
 using System.Reflection;
+using CqlSharp.Serialization;
+using Microsoft.VisualStudio.TestTools.UnitTesting;
 
 #pragma warning disable 0168
 #pragma warning disable 0169
@@ -37,8 +37,8 @@ namespace CqlSharp.Test
 
             Assert.IsFalse(accessor.IsKeySpaceSet);
             Assert.IsNull(accessor.Keyspace);
-            Assert.IsTrue(accessor.IsTableSet);
-            Assert.AreEqual("a", accessor.Table);
+            Assert.IsTrue(accessor.IsNameSet);
+            Assert.AreEqual("a", accessor.Name);
 
             Assert.AreEqual(6, accessor.Columns.Count);
             Assert.AreEqual(12, accessor.ColumnsByName.Count);
@@ -48,7 +48,7 @@ namespace CqlSharp.Test
 
             var members = typeof(A).GetProperties().Union((IEnumerable<MemberInfo>)typeof(A).GetFields());
 
-            foreach (var member in members)
+            foreach(var member in members)
             {
                 var info = accessor.ColumnsByMember[member];
                 Assert.AreEqual(member.Name.ToLower(), info.Name);
@@ -59,46 +59,28 @@ namespace CqlSharp.Test
                 Assert.IsNull(info.IndexName);
                 Assert.AreEqual(member, info.MemberInfo);
 
-                switch (info.Name)
+                switch(info.Name)
                 {
                     case "id":
-                        Assert.AreEqual(CqlType.Int, info.CqlType);
+                        Assert.AreEqual(CqlTypeCode.Int, info.CqlType.CqlTypeCode);
                         break;
                     case "value":
-                        Assert.AreEqual(CqlType.Varchar, info.CqlType);
+                        Assert.AreEqual(CqlTypeCode.Varchar, info.CqlType.CqlTypeCode);
                         break;
                     case "entries":
-                        Assert.AreEqual(CqlType.Map, info.CqlType);
+                        Assert.AreEqual(CqlTypeCode.Map, info.CqlType.CqlTypeCode);
                         break;
                     case "readonlyentries":
-                        Assert.AreEqual(CqlType.List, info.CqlType);
+                        Assert.AreEqual(CqlTypeCode.List, info.CqlType.CqlTypeCode);
                         break;
                     case "writeonlyentries":
-                        Assert.AreEqual(CqlType.Set, info.CqlType);
+                        Assert.AreEqual(CqlTypeCode.Set, info.CqlType.CqlTypeCode);
                         break;
                     case "constant":
-                        Assert.AreEqual(CqlType.Bigint, info.CqlType);
+                        Assert.AreEqual(CqlTypeCode.Bigint, info.CqlType.CqlTypeCode);
                         break;
                     default:
                         Assert.Fail("unknown member name {0} found!", info.Name);
-                        break;
-                }
-
-                switch (info.Name)
-                {
-                    case "readonlyentries":
-                    case "constant":
-                        Assert.IsNotNull(info.ReadFunction);
-                        Assert.IsNull(info.WriteFunction);
-                        break;
-
-                    case "writeonlyentries":
-                        Assert.IsNull(info.ReadFunction);
-                        Assert.IsNotNull(info.WriteFunction);
-                        break;
-                    default:
-                        Assert.IsNotNull(info.ReadFunction);
-                        Assert.IsNotNull(info.WriteFunction);
                         break;
                 }
             }
@@ -111,8 +93,8 @@ namespace CqlSharp.Test
 
             Assert.IsTrue(accessor.IsKeySpaceSet);
             Assert.AreEqual("bKeyspace", accessor.Keyspace);
-            Assert.IsTrue(accessor.IsTableSet);
-            Assert.AreEqual("bTable", accessor.Table);
+            Assert.IsTrue(accessor.IsNameSet);
+            Assert.AreEqual("bTable", accessor.Name);
 
             Assert.AreEqual(2, accessor.Columns.Count);
             Assert.AreEqual(6, accessor.ColumnsByName.Count);
@@ -123,29 +105,24 @@ namespace CqlSharp.Test
             MemberInfo member = typeof(B).GetField("Id");
             var info = accessor.ColumnsByMember[member];
             Assert.AreEqual("guid", info.Name);
-            Assert.AreEqual(CqlType.Timeuuid, info.CqlType);
-            Assert.IsTrue(info.Order.HasValue);
-            Assert.AreEqual(0, info.Order.Value);
+            Assert.AreEqual(CqlTypeCode.Timeuuid, info.CqlType.CqlTypeCode);
+            Assert.IsFalse(info.Order.HasValue);
             Assert.IsTrue(info.IsPartitionKey);
             Assert.IsFalse(info.IsClusteringKey);
             Assert.IsFalse(info.IsIndexed);
             Assert.IsNull(info.IndexName);
             Assert.AreEqual(member, info.MemberInfo);
-            Assert.IsNotNull(info.ReadFunction);
-            Assert.IsNotNull(info.WriteFunction);
 
             member = typeof(B).GetProperty("Indexed");
             info = accessor.ColumnsByMember[member];
             Assert.AreEqual("index", info.Name);
-            Assert.AreEqual(CqlType.Varchar, info.CqlType);
+            Assert.AreEqual(CqlTypeCode.Varchar, info.CqlType.CqlTypeCode);
             Assert.IsFalse(info.Order.HasValue);
             Assert.IsFalse(info.IsPartitionKey);
             Assert.IsFalse(info.IsClusteringKey);
             Assert.IsTrue(info.IsIndexed);
             Assert.AreEqual("bTableIndex", info.IndexName);
             Assert.AreEqual(member, info.MemberInfo);
-            Assert.IsNotNull(info.ReadFunction);
-            Assert.IsNotNull(info.WriteFunction);
         }
 
         [TestMethod]
@@ -154,28 +131,35 @@ namespace CqlSharp.Test
             var accessor = ObjectAccessor<C>.Instance;
 
             MemberInfo member = typeof(C).GetField("Id");
-            var info = accessor.ColumnsByMember[member];
-            Assert.IsTrue(info.Order.HasValue);
-            Assert.AreEqual(0, info.Order.Value);
-            Assert.IsTrue(info.IsPartitionKey);
-            Assert.IsFalse(info.IsClusteringKey);
+            var info1 = accessor.ColumnsByMember[member];
+            Assert.IsTrue(info1.Order.HasValue);
+            Assert.AreEqual(0, info1.Order.Value);
+            Assert.IsTrue(info1.IsPartitionKey);
+            Assert.IsFalse(info1.IsClusteringKey);
 
             member = typeof(C).GetField("Id2");
-            info = accessor.ColumnsByMember[member];
-            Assert.IsTrue(info.Order.HasValue);
-            Assert.AreEqual(1, info.Order.Value);
-            Assert.IsTrue(info.IsPartitionKey);
-            Assert.IsFalse(info.IsClusteringKey);
+            var info2 = accessor.ColumnsByMember[member];
+            Assert.IsTrue(info2.Order.HasValue);
+            Assert.AreEqual(1, info2.Order.Value);
+            Assert.IsTrue(info2.IsPartitionKey);
+            Assert.IsFalse(info2.IsClusteringKey);
 
             member = typeof(C).GetField("Id3");
-            info = accessor.ColumnsByMember[member];
-            Assert.IsTrue(info.Order.HasValue);
-            Assert.AreEqual(2, info.Order.Value);
-            Assert.IsFalse(info.IsPartitionKey);
-            Assert.IsTrue(info.IsClusteringKey);
+            var info3 = accessor.ColumnsByMember[member];
+            Assert.IsTrue(info3.Order.HasValue);
+            Assert.AreEqual(2, info3.Order.Value);
+            Assert.IsFalse(info3.IsPartitionKey);
+            Assert.IsTrue(info3.IsClusteringKey);
+
+            Assert.AreEqual(2, accessor.PartitionKeys.Count);
+            Assert.AreEqual(info1, accessor.PartitionKeys[0]);
+            Assert.AreEqual(info2, accessor.PartitionKeys[1]);
+
+            Assert.AreEqual(1, accessor.ClusteringKeys.Count);
+            Assert.AreEqual(info3, accessor.ClusteringKeys[0]);
         }
 
-        #region Nested type: A
+        #region Nested typeCode: A
 
         private class A
         {
@@ -199,14 +183,12 @@ namespace CqlSharp.Test
 
         #endregion
 
-        #region Nested type: B
+        #region Nested typeCode: B
 
         [CqlTable("bTable", Keyspace = "bKeyspace")]
         private class B
         {
-            [CqlKey]
-            [CqlColumn("guid", CqlType.Timeuuid)]
-            public Guid Id;
+            [CqlKey] [CqlColumn("guid", CqlTypeCode.Timeuuid)] public Guid Id;
 
             [CqlIndex(Name = "bTableIndex")]
             [CqlColumn("index")]
@@ -218,17 +200,15 @@ namespace CqlSharp.Test
 
         #endregion
 
-        #region Nested type: C
+        #region Nested typeCode: C
 
         private class C
         {
-            [CqlKey(IsPartitionKey = true, Order = 0)]
-            public Guid Id;
+            [CqlKey(IsPartitionKey = true)] [CqlColumn(Order = 1)] public string Id2;
 
-            [CqlKey(IsPartitionKey = true, Order = 1)]
-            public string Id2;
-            [CqlKey(IsPartitionKey = false, Order = 2)]
-            public string Id3;
+            [CqlKey] [CqlColumn(Order = 0)] public Guid Id;
+
+            [CqlKey(IsPartitionKey = false)] [CqlColumn(Order = 2)] public string Id3;
         }
 
         #endregion

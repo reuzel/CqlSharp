@@ -13,11 +13,11 @@
 // See the License for the specific language governing permissions and
 // limitations under the License.
 
-using Microsoft.VisualStudio.TestTools.UnitTesting;
 using System;
 using System.Collections.Concurrent;
 using System.Numerics;
 using System.Threading.Tasks;
+using Microsoft.VisualStudio.TestTools.UnitTesting;
 
 namespace CqlSharp.Test
 {
@@ -32,18 +32,18 @@ namespace CqlSharp.Test
             var timestamps = new ConcurrentDictionary<BigInteger, Guid>();
 
             Action runner = delegate
-                                {
-                                    // run a full clock sequence cycle (or so)
-                                    for (var n = 0; n < 10001; n++)
-                                    {
-                                        var time = DateTime.UtcNow;
-                                        var guid = time.GenerateTimeBasedGuid();
-                                        var bigint = new BigInteger(guid.ToByteArray());
+            {
+                // run a full clock sequence cycle (or so)
+                for(var n = 0; n < 10001; n++)
+                {
+                    var time = DateTime.UtcNow;
+                    var guid = time.GenerateTimeBasedGuid();
+                    var bigint = new BigInteger(guid.ToByteArray());
 
-                                        Assert.IsTrue(timestamps.TryAdd(bigint, guid), "Key already exists!");
-                                        //Assert.AreEqual(time.ToTimestamp(), guid.GetDateTime().ToTimestamp());
-                                    }
-                                };
+                    Assert.IsTrue(timestamps.TryAdd(bigint, guid), "Key already exists!");
+                    //Assert.AreEqual(time.ToTimestamp(), guid.GetDateTime().ToTimestamp());
+                }
+            };
 
             Parallel.Invoke(runner, runner, runner, runner);
         }
@@ -57,7 +57,7 @@ namespace CqlSharp.Test
 
             //allow a clock drift of 1ms. other unit tests have created a lot of
             //guids, and a single ms drift is therefore allowed here.
-            Assert.IsTrue(Math.Abs(time.Ticks - time2.Ticks)<=1);
+            Assert.IsTrue(Math.Abs(time.Ticks - time2.Ticks) <= 1);
         }
 
         [TestMethod]
@@ -79,7 +79,7 @@ namespace CqlSharp.Test
 
             var dateTime = new DateTime(2014, 2, 20, 22, 44, 36, 256, DateTimeKind.Utc);
             var time = (dateTime - TimeGuid.GregorianCalendarStart).Ticks;
-            var node = new byte[] { 0x08, 0x00, 0x20, 0x0c, 0x9a, 0x66 };
+            var node = new byte[] {0x08, 0x00, 0x20, 0x0c, 0x9a, 0x66};
             const int clockId = 5737;
 
             var guid = TimeGuid.GenerateTimeBasedGuid(time, clockId, node);

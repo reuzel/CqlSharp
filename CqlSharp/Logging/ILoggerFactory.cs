@@ -1,5 +1,5 @@
 ﻿// CqlSharp - CqlSharp
-// Copyright (c) 2013 Joost Reuzel
+// Copyright (c) 2014 Joost Reuzel
 //   
 // Licensed under the Apache License, Version 2.0 (the "License");
 // you may not use this file except in compliance with the License.
@@ -18,14 +18,14 @@ namespace CqlSharp.Logging
     public interface ILoggerFactory
     {
         /// <summary>
-        ///   Gets the name for this logger implementation. E.g. Null, Debug, Log4Net
+        /// Gets the name for this logger implementation. E.g. Null, Debug, Log4Net
         /// </summary>
         /// <value> The name </value>
         string Name { get; }
 
 
         /// <summary>
-        ///   Creates a logger implementation.
+        /// Creates a logger implementation.
         /// </summary>
         /// <param name="name"> The name. </param>
         /// <returns> </returns>

@@ -1,5 +1,5 @@
 // CqlSharp - CqlSharp
-// Copyright (c) 2013 Joost Reuzel
+// Copyright (c) 2014 Joost Reuzel
 //   
 // Licensed under the Apache License, Version 2.0 (the "License");
 // you may not use this file except in compliance with the License.
@@ -20,6 +20,9 @@ using CqlSharp.Threading;
 
 namespace CqlSharp.Protocol
 {
+    /// <summary>
+    /// Authenticate frame
+    /// </summary>
     internal class AuthenticateFrame : Frame
     {
         public string Authenticator { get; private set; }

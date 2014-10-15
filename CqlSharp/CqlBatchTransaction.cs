@@ -1,5 +1,5 @@
 ﻿// CqlSharp - CqlSharp
-// Copyright (c) 2013 Joost Reuzel
+// Copyright (c) 2014 Joost Reuzel
 //   
 // Licensed under the Apache License, Version 2.0 (the "License");
 // you may not use this file except in compliance with the License.
@@ -13,20 +13,20 @@
 // See the License for the specific language governing permissions and
 // limitations under the License.
 
-using CqlSharp.Protocol;
 using System;
 using System.Collections.Generic;
 using System.Data;
 using System.Data.Common;
 using System.Threading;
 using System.Threading.Tasks;
+using CqlSharp.Protocol;
 using CqlSharp.Threading;
 
 namespace CqlSharp
 {
     /// <summary>
-    ///   A batched query. Any commands executed as part of a <see cref="CqlBatchTransaction" /> will be 
-    ///   buffered and executed in a single batch when committed.
+    /// A batched query. Any commands executed as part of a <see cref="CqlBatchTransaction" /> will be
+    /// buffered and executed in a single batch when committed.
     /// </summary>
     public class CqlBatchTransaction : DbTransaction
     {
@@ -62,67 +62,43 @@ namespace CqlSharp
         private CqlBatchType _batchType;
 
         /// <summary>
-        ///   Initializes a new instance of the <see cref="CqlBatchTransaction" /> class.
+        /// Initializes a new instance of the <see cref="CqlBatchTransaction" /> class.
         /// </summary>
         public CqlBatchTransaction()
         {
-            _batchCommand = new CqlCommand { Transaction = this };
+            _batchCommand = new CqlCommand {Transaction = this};
             _commands = new List<BatchFrame.BatchedCommand>();
             _batchType = CqlBatchType.Logged;
             _state = TransactionState.Pending;
         }
 
         /// <summary>
-        ///   Initializes a new instance of the <see cref="CqlBatchTransaction" /> class.
-        /// </summary>
-        /// <param name="connection"> The connection. </param>
-        public CqlBatchTransaction(CqlConnection connection)
-            : this(connection, CqlBatchType.Logged, CqlConsistency.One)
-        {
-        }
-
-        /// <summary>
-        ///   Initializes a new instance of the <see cref="CqlBatchTransaction" /> class.
-        /// </summary>
-        /// <param name="connection"> The connection. </param>
-        /// <param name="batchType"> Type of the batch. </param>
-        public CqlBatchTransaction(CqlConnection connection, CqlBatchType batchType)
-            : this(connection, batchType, CqlConsistency.One)
-        {
-        }
-
-        /// <summary>
-        ///   Initializes a new instance of the <see cref="CqlBatchTransaction" /> class.
+        /// Initializes a new instance of the <see cref="CqlBatchTransaction" /> class.
         /// </summary>
         /// <param name="connection"> The connection. </param>
         /// <param name="batchType"> Type of the batch. </param>
         /// <param name="consistency"> The consistency. </param>
-        public CqlBatchTransaction(CqlConnection connection, CqlBatchType batchType, CqlConsistency consistency)
+        public CqlBatchTransaction(CqlConnection connection, CqlBatchType batchType = CqlBatchType.Logged,
+                                   CqlConsistency consistency = CqlConsistency.One)
         {
-            _batchCommand = new CqlCommand(connection) { Consistency = consistency, Transaction = this };
+            _batchCommand = new CqlCommand(connection) {Consistency = consistency, Transaction = this};
             _commands = new List<BatchFrame.BatchedCommand>();
             _batchType = batchType;
             _state = TransactionState.Pending;
         }
 
         /// <summary>
-        ///   Gets or sets the wait time before terminating the attempt to execute a (batch) command and generating an error.
+        /// Gets or sets the wait time before terminating the attempt to execute a (batch) command and generating an error.
         /// </summary>
         /// <returns> The time (in seconds) to wait for the command to execute. The default value is 30 seconds. </returns>
         public virtual int CommandTimeout
         {
-            get
-            {
-                return _batchCommand.CommandTimeout;
-            }
-            set
-            {
-                _batchCommand.CommandTimeout = value;
-            }
+            get { return _batchCommand.CommandTimeout; }
+            set { _batchCommand.CommandTimeout = value; }
         }
 
         /// <summary>
-        ///   Specifies the <see cref="T:System.Data.Common.DbConnection" /> object associated with the transaction.
+        /// Specifies the <see cref="T:System.Data.Common.DbConnection" /> object associated with the transaction.
         /// </summary>
         /// <returns> The <see cref="T:System.Data.Common.DbConnection" /> object associated with the transaction. </returns>
         protected override DbConnection DbConnection
@@ -131,23 +107,17 @@ namespace CqlSharp
         }
 
         /// <summary>
-        ///   Specifies the <see cref="T:CqlSharp.CqlConnection" /> object associated with the transaction.
+        /// Specifies the <see cref="T:CqlSharp.CqlConnection" /> object associated with the transaction.
         /// </summary>
         /// <returns> The <see cref="T:CqlSharp.CqlConnection" /> object associated with the transaction. </returns>
-        public virtual new CqlConnection Connection
+        public new virtual CqlConnection Connection
         {
-            get
-            {
-                return _batchCommand.Connection;
-            }
-            set
-            {
-                _batchCommand.Connection = value;
-            }
+            get { return _batchCommand.Connection; }
+            set { _batchCommand.Connection = value; }
         }
 
         /// <summary>
-        ///   Specifies the <see cref="T:System.Data.IsolationLevel" /> for this transaction.
+        /// Specifies the <see cref="T:System.Data.IsolationLevel" /> for this transaction.
         /// </summary>
         /// <returns> The <see cref="T:System.Data.IsolationLevel" /> for this transaction. </returns>
         /// <filterpriority>1</filterpriority>
@@ -157,7 +127,7 @@ namespace CqlSharp
         }
 
         /// <summary>
-        ///   Gets or sets the type of the batch.
+        /// Gets or sets the type of the batch.
         /// </summary>
         /// <value> The type of the batch. </value>
         public virtual CqlBatchType BatchType
@@ -167,7 +137,34 @@ namespace CqlSharp
         }
 
         /// <summary>
-        ///   Gets the commands.
+        /// Gets or sets a value indicating whether to use local serial for Compare-And-Set (CAS) write operations.
+        /// </summary>
+        /// <value>
+        /// <c>true</c> if use local serial for Compare-And-Set (CAS)  write operations; otherwise, <c>false</c>.
+        /// </value>
+        // ReSharper disable once InconsistentNaming
+        public virtual bool UseCASLocalSerial
+        {
+            get { return _batchCommand.UseCASLocalSerial; }
+            set { _batchCommand.UseCASLocalSerial = value; }
+        }
+
+
+        /// <summary>
+        /// The timestamp representing the default timestamp for the query. If provided, this will
+        /// replace the server side assigned timestamp as default timestamp.
+        /// </summary>
+        /// <value>
+        /// The (default) timestamp.
+        /// </value>
+        public virtual DateTime? Timestamp
+        {
+            get { return _batchCommand.Timestamp; }
+            set { _batchCommand.Timestamp = value; }
+        }
+
+        /// <summary>
+        /// Gets the commands.
         /// </summary>
         /// <value> The commands. </value>
         internal List<BatchFrame.BatchedCommand> Commands
@@ -180,73 +177,53 @@ namespace CqlSharp
         }
 
         /// <summary>
-        ///   Gets or sets the consistency.
+        /// Gets or sets the consistency.
         /// </summary>
         /// <value> The consistency. </value>
         public virtual CqlConsistency Consistency
         {
-            get
-            {
-                return _batchCommand.Consistency;
-            }
-            set
-            {
-                _batchCommand.Consistency = value;
-            }
+            get { return _batchCommand.Consistency; }
+            set { _batchCommand.Consistency = value; }
         }
 
         /// <summary>
-        ///   Indication of the load this query generates (e.g. the number of statements in the batch). Used by connection stratagies for balancing
-        ///   queries over connections.
+        /// Indication of the load this query generates (e.g. the number of statements in the batch). Used by connection stratagies
+        /// for balancing
+        /// queries over connections.
         /// </summary>
         /// <value> The load. Defaults to 1 </value>
         public virtual int Load
         {
-            get
-            {
-                return _batchCommand.Load;
-            }
-            set
-            {
-                _batchCommand.Load = value;
-            }
+            get { return _batchCommand.Load; }
+            set { _batchCommand.Load = value; }
         }
 
         /// <summary>
-        ///   Gets or sets a value indicating whether tracing enabled should be enabled.
+        /// Gets or sets a value indicating whether tracing enabled should be enabled.
         /// </summary>
         /// <value> <c>true</c> if tracing enabled; otherwise, <c>false</c> . </value>
         public virtual bool EnableTracing
         {
-            get
-            {
-                return _batchCommand.EnableTracing;
-            }
-            set
-            {
-                _batchCommand.EnableTracing = value;
-            }
+            get { return _batchCommand.EnableTracing; }
+            set { _batchCommand.EnableTracing = value; }
         }
 
         /// <summary>
-        ///   Gets the last batch query result. Contains a reference to any tracing identifier
+        /// Gets the last batch query result. Contains a reference to any tracing identifier
         /// </summary>
         /// <value> The last query result. </value>
         public virtual ICqlQueryResult LastBatchResult
         {
-            get
-            {
-                return _batchCommand.LastQueryResult;
-            }
+            get { return _batchCommand.LastQueryResult; }
         }
 
         /// <summary>
-        ///   Performs application-defined tasks associated with freeing, releasing, or resetting unmanaged resources.
+        /// Performs application-defined tasks associated with freeing, releasing, or resetting unmanaged resources.
         /// </summary>
         /// <filterpriority>2</filterpriority>
         protected override void Dispose(bool disposing)
         {
-            if (disposing)
+            if(disposing)
             {
                 _state = TransactionState.Disposed;
                 _commands.Clear();
@@ -266,18 +243,18 @@ namespace CqlSharp
         /// </exception>
         private void CheckIfPending()
         {
-            if (_state == TransactionState.Disposed)
+            if(_state == TransactionState.Disposed)
                 throw new ObjectDisposedException("CqlBatchTransaction");
 
-            if (_state == TransactionState.Committed)
+            if(_state == TransactionState.Committed)
                 throw new InvalidOperationException("Transaction has already been committed");
 
-            if (_state == TransactionState.RolledBack)
+            if(_state == TransactionState.RolledBack)
                 throw new InvalidOperationException("Transaction has been rolled back");
         }
 
         /// <summary>
-        ///   Cancels the execution of this batch.
+        /// Cancels the execution of this batch.
         /// </summary>
         public virtual void Cancel()
         {
@@ -285,26 +262,25 @@ namespace CqlSharp
         }
 
         /// <summary>
-        ///   Commits the database transaction.
+        /// Commits the database transaction.
         /// </summary>
         /// <filterpriority>1</filterpriority>
         public override void Commit()
         {
             CheckIfPending();
 
-            if (Connection.State != ConnectionState.Open)
+            if(Connection.State != ConnectionState.Open)
                 throw new InvalidOperationException("Commit error: Connection is closed or disposed");
-            
-            if (_commands.Count > 0)
+
+            if(_commands.Count > 0)
                 _batchCommand.ExecuteBatch();
 
             _state = TransactionState.Committed;
-            
         }
 
 
         /// <summary>
-        ///   Commits the database transaction asynchronously.
+        /// Commits the database transaction asynchronously.
         /// </summary>
         /// <filterpriority>1</filterpriority>
         public virtual Task CommitAsync()
@@ -314,7 +290,7 @@ namespace CqlSharp
 
 
         /// <summary>
-        ///   Commits the database transaction asynchronously.
+        /// Commits the database transaction asynchronously.
         /// </summary>
         /// <param name="cancellationToken"> The cancellation token. </param>
         /// <returns> </returns>
@@ -322,29 +298,27 @@ namespace CqlSharp
         {
             CheckIfPending();
 
-            if (Connection.State != ConnectionState.Open)
+            if(Connection.State != ConnectionState.Open)
                 throw new InvalidOperationException("Commit error: Connection is closed or disposed");
 
             return CommitAsyncInternal(cancellationToken);
         }
 
         /// <summary>
-        ///   Performs the actual asynchronous commit operation
+        /// Performs the actual asynchronous commit operation
         /// </summary>
         /// <param name="cancellationToken"> The cancellation token. </param>
         /// <returns> </returns>
         private async Task CommitAsyncInternal(CancellationToken cancellationToken)
         {
-            if (_commands.Count > 0)
-            {
+            if(_commands.Count > 0)
                 await _batchCommand.ExecuteBatchAsync(cancellationToken).AutoConfigureAwait();
-            }
 
             _state = TransactionState.Committed;
         }
 
         /// <summary>
-        ///   Rolls back a transaction from a pending state.
+        /// Rolls back a transaction from a pending state.
         /// </summary>
         /// <filterpriority>1</filterpriority>
         public override void Rollback()

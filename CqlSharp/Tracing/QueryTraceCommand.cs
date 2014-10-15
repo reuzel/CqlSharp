@@ -1,5 +1,5 @@
 ﻿// CqlSharp - CqlSharp
-// Copyright (c) 2013 Joost Reuzel
+// Copyright (c) 2014 Joost Reuzel
 //   
 // Licensed under the Apache License, Version 2.0 (the "License");
 // you may not use this file except in compliance with the License.
@@ -17,11 +17,12 @@ using System;
 using System.Collections.Generic;
 using System.Threading;
 using System.Threading.Tasks;
+using CqlSharp.Threading;
 
 namespace CqlSharp.Tracing
 {
     /// <summary>
-    ///   Helper command to fetch Cassandra tracing information
+    /// Helper command to fetch Cassandra tracing information
     /// </summary>
     public class QueryTraceCommand
     {
@@ -29,7 +30,7 @@ namespace CqlSharp.Tracing
         private readonly Guid _tracingId;
 
         /// <summary>
-        ///   Initializes a new instance of the <see cref="QueryTraceCommand" /> class.
+        /// Initializes a new instance of the <see cref="QueryTraceCommand" /> class.
         /// </summary>
         /// <param name="connection"> The connection. </param>
         /// <param name="tracingId"> The tracing id. </param>
@@ -40,7 +41,7 @@ namespace CqlSharp.Tracing
         }
 
         /// <summary>
-        ///   Gets the trace session async.
+        /// Gets the trace session async.
         /// </summary>
         /// <returns> TracingSession if any, null otherwise </returns>
         public async Task<TracingSession> GetTraceSessionAsync(CancellationToken token)
@@ -49,14 +50,12 @@ namespace CqlSharp.Tracing
             var sessionCmd = new CqlCommand(_connection,
                                             "select * from system_traces.sessions where session_id=" +
                                             _tracingId + ";", CqlConsistency.One);
-            using (
+            using(
                 CqlDataReader<TracingSession> reader =
-                    await sessionCmd.ExecuteReaderAsync<TracingSession>(token))
+                    await sessionCmd.ExecuteReaderAsync<TracingSession>(token).AutoConfigureAwait())
             {
-                if (await reader.ReadAsync(token))
-                {
+                if(await reader.ReadAsync(token).AutoConfigureAwait())
                     session = reader.Current;
-                }
                 else
                     return null;
             }
@@ -64,15 +63,13 @@ namespace CqlSharp.Tracing
             var eventsCmd = new CqlCommand(_connection,
                                            "select * from system_traces.events where session_id=" +
                                            _tracingId + ";", CqlConsistency.One);
-            using (
+            using(
                 CqlDataReader<TracingEvent> reader =
-                    await eventsCmd.ExecuteReaderAsync<TracingEvent>(token))
+                    await eventsCmd.ExecuteReaderAsync<TracingEvent>(token).AutoConfigureAwait())
             {
                 var events = new List<TracingEvent>(reader.Count);
-                while (await reader.ReadAsync(token))
-                {
+                while(await reader.ReadAsync().AutoConfigureAwait())
                     events.Add(reader.Current);
-                }
 
                 session.Events = events;
             }
@@ -81,22 +78,15 @@ namespace CqlSharp.Tracing
         }
 
         /// <summary>
-        ///   Gets the trace session.
+        /// Gets the trace session.
         /// </summary>
         /// <remarks>
-        ///   Convenience wrapper around GetTraceSessionAsync
+        /// Convenience wrapper around GetTraceSessionAsync
         /// </remarks>
         /// <returns> TracingSession if any, null otherwise </returns>
         public TracingSession GetTraceSession()
         {
-            try
-            {
-                return GetTraceSessionAsync(CancellationToken.None).Result;
-            }
-            catch (AggregateException aex)
-            {
-                throw aex.InnerException;
-            }
+            return Scheduler.RunSynchronously(() => GetTraceSessionAsync(CancellationToken.None));
         }
     }
 }

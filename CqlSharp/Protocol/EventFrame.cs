@@ -1,5 +1,5 @@
 // CqlSharp - CqlSharp
-// Copyright (c) 2013 Joost Reuzel
+// Copyright (c) 2014 Joost Reuzel
 //   
 // Licensed under the Apache License, Version 2.0 (the "License");
 // you may not use this file except in compliance with the License.
@@ -22,37 +22,37 @@ using CqlSharp.Threading;
 namespace CqlSharp.Protocol
 {
     /// <summary>
-    ///   Represents a Frame with Event data
+    /// Represents a Frame with Event data
     /// </summary>
     internal class EventFrame : Frame
     {
         /// <summary>
-        ///   The name of the type of event
+        /// The name of the type of event
         /// </summary>
         public string EventType { get; private set; }
 
         /// <summary>
-        ///   the change that occurred
+        /// the change that occurred
         /// </summary>
         public string Change { get; set; }
 
         /// <summary>
-        ///   the node that went up/down, or was added or deleted
+        /// the node that went up/down, or was added or deleted
         /// </summary>
         public IPEndPoint Node { get; private set; }
 
         /// <summary>
-        ///   the altered keyspace
+        /// the altered keyspace
         /// </summary>
         public string KeySpace { get; private set; }
 
         /// <summary>
-        ///   the altered table
+        /// the altered table
         /// </summary>
         public string Table { get; private set; }
 
         /// <summary>
-        ///   Writes the data to buffer.
+        /// Writes the data to buffer.
         /// </summary>
         /// <param name="buffer"> The buffer. </param>
         /// <exception cref="System.NotSupportedException"></exception>
@@ -62,20 +62,20 @@ namespace CqlSharp.Protocol
         }
 
         /// <summary>
-        ///   Initialize frame contents from the stream
+        /// Initialize frame contents from the stream
         /// </summary>
         /// <param name=""></param>
         protected override async Task InitializeAsync()
         {
             EventType = await Reader.ReadStringAsync().AutoConfigureAwait();
 
-            if (EventType.Equals("TOPOLOGY_CHANGE", StringComparison.InvariantCultureIgnoreCase) ||
-                EventType.Equals("STATUS_CHANGE", StringComparison.InvariantCultureIgnoreCase))
+            if(EventType.Equals("TOPOLOGY_CHANGE", StringComparison.InvariantCultureIgnoreCase) ||
+               EventType.Equals("STATUS_CHANGE", StringComparison.InvariantCultureIgnoreCase))
             {
                 Change = await Reader.ReadStringAsync().AutoConfigureAwait();
                 Node = await Reader.ReadInetAsync().AutoConfigureAwait();
             }
-            else if (EventType.Equals("TOPOLOGY_CHANGE", StringComparison.InvariantCultureIgnoreCase))
+            else if(EventType.Equals("TOPOLOGY_CHANGE", StringComparison.InvariantCultureIgnoreCase))
             {
                 Change = await Reader.ReadStringAsync().AutoConfigureAwait();
                 KeySpace = await Reader.ReadStringAsync().AutoConfigureAwait();

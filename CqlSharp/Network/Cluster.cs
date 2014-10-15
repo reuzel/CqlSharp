@@ -16,6 +16,7 @@
 using System;
 using System.Collections.Concurrent;
 using System.Collections.Generic;
+using System.Configuration;
 using System.IO;
 using System.Linq;
 using System.Net;
@@ -189,10 +190,7 @@ namespace CqlSharp.Network
                 try
                 {
                     if(_nodes != null)
-                    {
-                        foreach(var node in _nodes)
-                            node.Dispose();
-                    }
+                        _nodes.Dispose();
 
                     if(_maintenanceConnection != null)
                         _maintenanceConnection.Dispose();
@@ -205,6 +203,17 @@ namespace CqlSharp.Network
         }
 
         #endregion
+
+        /// <summary>
+        /// Gets a value indicating whether this cluster instance is open for handling queries.
+        /// </summary>
+        /// <value>
+        /// <c>true</c> if this instance is open; otherwise, <c>false</c>.
+        /// </value>
+        internal bool IsOpen
+        {
+            get { return _openTask != null && _openTask.IsCompleted && !_openTask.IsFaulted && !_openTask.IsCanceled; }
+        }
 
         /// <summary>
         /// Opens the cluster for queries.
@@ -241,35 +250,43 @@ namespace CqlSharp.Network
             //initialize the ring
             _nodes = new Ring();
 
-            //try to connect to the seeds in turn
-            foreach(IPAddress seedAddress in _config.ServerAddresses)
+            //retry a few times to deal with bad network conditions
+            for(int attempt = 0; attempt<=_config.MaxQueryRetries && _nodes.Count==0; attempt++)
             {
-                try
+                //try to connect to the seeds in turn
+                foreach(IPAddress seedAddress in _config.ServerAddresses)
                 {
-                    var seed = new Node(seedAddress, this);
+                    try
+                    {
+                        var seed = new Node(seedAddress, this);
 
-                    await GetClusterInfoAsync(seed, logger, token).AutoConfigureAwait();
-                }
-                catch(OperationCanceledException)
-                {
-                    logger.LogWarning("Opening connection to cluster was cancelled");
-                    throw;
-                }
-                catch(ProtocolException pex)
-                {
-                    //node is not available, or starting up, try next, otherwise throw error
-                    if(pex.Code != ErrorCode.Overloaded && pex.Code != ErrorCode.IsBootstrapping)
+                        await GetClusterInfoAsync(seed, logger, token).AutoConfigureAwait();
+
+                        //break from the loop as it seems we are done
+                        if(_nodes.Count>0)
+                            break;
+                    }
+                    catch(OperationCanceledException)
+                    {
+                        logger.LogWarning("Opening connection to cluster was cancelled");
                         throw;
-                }
-                catch(SocketException ex)
-                {
-                    //seed not reachable, try next
-                    logger.LogWarning("Could not open TCP connection to seed {0}: {1}", seedAddress, ex);
-                }
-                catch(IOException ex)
-                {
-                    //seed not reachable, try next
-                    logger.LogWarning("Could not discover nodes via seed {0}: {1}", seedAddress, ex);
+                    }
+                    catch(ProtocolException pex)
+                    {
+                        //node is not available, or starting up, try next, otherwise throw error
+                        if(pex.Code != ErrorCode.Overloaded && pex.Code != ErrorCode.IsBootstrapping)
+                            throw;
+                    }
+                    catch(SocketException ex)
+                    {
+                        //seed not reachable, try next
+                        logger.LogWarning("Could not open TCP connection to seed {0}: {1}", seedAddress, ex);
+                    }
+                    catch(IOException ex)
+                    {
+                        //seed not reachable, try next
+                        logger.LogWarning("Could not discover nodes via seed {0}: {1}", seedAddress, ex);
+                    }
                 }
             }
 
@@ -386,7 +403,6 @@ namespace CqlSharp.Network
         /// <param name="seed"> The reference. </param>
         /// <param name="logger"> logger used to log progress </param>
         /// <param name="token"> The token. </param>
-        /// <param name=""></param>
         /// <returns> </returns>
         /// <exception cref="CqlException">
         /// Could not detect datacenter or rack information from the reference specified in the
@@ -399,7 +415,7 @@ namespace CqlSharp.Network
             {
                 //get a connection
                 if(seed != null && seed.IsUp)
-                    c = seed.GetOrCreateConnection(null);
+                    c = seed.GetOrCreateConnection();
                 else if(_maintenanceConnection != null && _maintenanceConnection.IsConnected)
                 {
                     c = _maintenanceConnection;
@@ -419,7 +435,7 @@ namespace CqlSharp.Network
                                                "select cluster_name, cql_version, release_version, partitioner, data_center, rack, tokens from system.local",
                                                logger,
                                                token
-                                               ).AutoConfigureAwait())
+                ).AutoConfigureAwait())
             {
                 if(! await result.ReadAsyncInternal(token).AutoConfigureAwait())
                     throw new CqlException("Could not fetch configuration data from seed");
@@ -445,7 +461,9 @@ namespace CqlSharp.Network
             using(
                 var result =
                     await
-                        ExecQuery(c, "select peer, rpc_address, data_center, rack, tokens from system.peers", logger,
+                        ExecQuery(c,
+                                  "select peer, rpc_address, data_center, rack, tokens, release_version from system.peers",
+                                  logger,
                                   token).AutoConfigureAwait())
             {
                 //iterate over the peers
@@ -485,12 +503,12 @@ namespace CqlSharp.Network
         private Node GetNodeFromDataReader(CqlDataReader reader, Logger logger)
         {
             //get address of new node, and fallback to listen_address when address is set to any
-            var address = reader["rpc_address"] as IPAddress;
+            var address = reader.GetIPAddress(reader.GetOrdinal("rpc_address"));
             if(address == null || address.Equals(IPAddress.Any))
-                address = reader["peer"] as IPAddress;
+                address = reader.GetIPAddress(reader.GetOrdinal("peer"));
 
-            var dc = reader["data_center"] as string;
-            var rack = reader["rack"] as string;
+            var dc = reader.GetString(reader.GetOrdinal("data_center"));
+            var rack = reader.GetString(reader.GetOrdinal("rack"));
 
             //check if we have an address, otherwise ignore
             if(address == null || dc == null || rack == null)
@@ -503,15 +521,52 @@ namespace CqlSharp.Network
                 return null;
             }
 
-            var tokens = (reader["tokens"] as ISet<string>) ?? new HashSet<string>();
+            //get tokens
+            var tokens = (reader.GetSet<string>(reader.GetOrdinal("tokens"))) ?? new HashSet<string>();
+
+            //distill protocol version from release version
+            var release = reader.GetString(reader.GetOrdinal("release_version"));
+            byte protocolVersion = DistillProtocolVersion(release);
 
             //create a new node
             return new Node(address, this)
             {
                 DataCenter = dc,
                 Rack = rack,
-                Tokens = tokens
+                Tokens = tokens,
+                ProtocolVersion = protocolVersion
             };
+        }
+
+        /// <summary>
+        /// Distills the protocol version.
+        /// </summary>
+        /// <param name="release">The release</param>
+        /// <returns></returns>
+        private byte DistillProtocolVersion(string release)
+        {
+            const byte highestSupported = 3;
+            try
+            {
+                //split the release. We expect something in form of major.minor.patch
+                int[] versionParts = release.Split('.').Select(int.Parse).ToArray();
+
+                //return version 1 for nodes older than 2.0.0
+                if(versionParts[0] < 2)
+                    return 1;
+
+                //return version 2 for nodes running than 2.0.x
+                if(versionParts[1] == 0)
+                    return 2;
+
+                //return highest supported protocol version for all other nodes
+                return highestSupported;
+            }
+            catch
+            {
+                //parse error, return highest supported protocol version
+                return highestSupported;
+            }
         }
 
         /// <summary>
@@ -521,7 +576,6 @@ namespace CqlSharp.Network
         /// <param name="cql"> The CQL. </param>
         /// <param name="logger"> The logger. </param>
         /// <param name="token"> The token. </param>
-        /// <param name=""></param>
         /// <returns> A CqlDataReader that can be used to access the query results </returns>
         private async Task<CqlDataReader> ExecQuery(Connection connection, string cql, Logger logger,
                                                     CancellationToken token)
@@ -535,7 +589,7 @@ namespace CqlSharp.Network
             var result =
                 (ResultFrame)
                     await
-                        connection.SendRequestAsync(query, logger, 1, false, token)
+                        connection.SendRequestAsync(query, logger, 1, token)
                                   .AutoConfigureAwait();
             var reader = new CqlDataReader(null, result, null);
 
@@ -595,7 +649,7 @@ namespace CqlSharp.Network
 
                     //refetch the cluster configuration
                     await Task.Delay(5000).AutoConfigureAwait();
-                        //delay as Add is typically send a bit too early (and therefore no tokens are distributed)
+                    //delay as Add is typically send a bit too early (and therefore no tokens are distributed)
                     await
                         GetClusterInfoAsync(node, logger, CancellationToken.None)
                             .AutoConfigureAwait();
@@ -609,7 +663,7 @@ namespace CqlSharp.Network
                         using(logger.ThreadBinding())
                         {
                             await Task.Delay(5000).AutoConfigureAwait();
-                                //delay as Up is typically send a bit too early
+                            //delay as Up is typically send a bit too early
                             upNode.Reactivate();
                         }
                     }

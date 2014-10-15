@@ -1,5 +1,5 @@
 // CqlSharp - CqlSharp
-// Copyright (c) 2013 Joost Reuzel
+// Copyright (c) 2014 Joost Reuzel
 //   
 // Licensed under the Apache License, Version 2.0 (the "License");
 // you may not use this file except in compliance with the License.
@@ -20,7 +20,7 @@ namespace CqlSharp.Protocol
     internal class QueryFrame : QueryFrameBase
     {
         /// <summary>
-        ///   Initializes a new instance of the <see cref="QueryFrame" /> class.
+        /// Initializes a new instance of the <see cref="QueryFrame" /> class.
         /// </summary>
         /// <param name="cql"> The CQL. </param>
         /// <param name="cqlConsistency"> The CQL consistency. </param>
@@ -30,7 +30,7 @@ namespace CqlSharp.Protocol
             Cql = cql;
             CqlConsistency = cqlConsistency;
 
-            Version = FrameVersion.Request;
+            IsRequest = true;
             Flags = FrameFlags.None;
             Stream = 0;
             OpCode = FrameOpcode.Query;
@@ -39,7 +39,7 @@ namespace CqlSharp.Protocol
         }
 
         /// <summary>
-        ///   Gets or sets the CQL query string.
+        /// Gets or sets the CQL query string.
         /// </summary>
         /// <value> The CQL. </value>
         public string Cql { get; set; }
@@ -48,7 +48,7 @@ namespace CqlSharp.Protocol
         {
             buffer.WriteLongString(Cql);
 
-            if ((Version & FrameVersion.ProtocolVersionMask) == FrameVersion.ProtocolVersion1)
+            if(ProtocolVersion == 1)
                 buffer.WriteConsistency(CqlConsistency);
             else
                 WriteQueryParameters(buffer);

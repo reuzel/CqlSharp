@@ -43,7 +43,7 @@ namespace CqlSharp.Threading
             return Task.Factory.StartNew(task, CancellationToken.None, TaskCreationOptions.DenyChildAttach, IOScheduler)
                        .Unwrap();
         }
-        
+
         /// <summary>
         /// Runs a task as much as possible on the current thread. This can be regarded as an aggressive form of inlining.
         /// </summary>
@@ -163,7 +163,7 @@ namespace CqlSharp.Threading
         /// Automatically the configures the await depending on the type of scheduler
         /// </summary>
         /// <param name="task">The task "to be awaited".</param>
-        /// <returns></returns>        
+        /// <returns></returns>
         public static AutoConfiguredAwaitable<T> AutoConfigureAwait<T>(this Task<T> task)
         {
             return new AutoConfiguredAwaitable<T>(task);

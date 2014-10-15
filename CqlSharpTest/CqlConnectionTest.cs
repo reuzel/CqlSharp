@@ -1,5 +1,5 @@
 ﻿// CqlSharp - CqlSharp.Test
-// Copyright (c) 2013 Joost Reuzel
+// Copyright (c) 2014 Joost Reuzel
 //   
 // Licensed under the Apache License, Version 2.0 (the "License");
 // you may not use this file except in compliance with the License.
@@ -13,11 +13,11 @@
 // See the License for the specific language governing permissions and
 // limitations under the License.
 
-using CqlSharp.Protocol;
-using Microsoft.VisualStudio.TestTools.UnitTesting;
 using System;
 using System.Diagnostics;
 using System.Threading.Tasks;
+using CqlSharp.Protocol;
+using Microsoft.VisualStudio.TestTools.UnitTesting;
 
 namespace CqlSharp.Test
 {
@@ -35,16 +35,20 @@ namespace CqlSharp.Test
         {
             try
             {
-                using (var connection = new CqlConnection("Servers=localhost;username=doesNotExist;password=too;loggerfactory=debug;loglevel=verbose"))
+                using(
+                    var connection =
+                        new CqlConnection(
+                            "Servers=localhost;username=doesNotExist;password=too;loggerfactory=debug;loglevel=verbose")
+                    )
                 {
                     connection.Open();
                 }
             }
-            catch (AuthenticationException uex)
+            catch(AuthenticationException uex)
             {
                 Debug.WriteLine("Expected Unauthenticated exception: {0}", uex);
             }
-            catch (Exception ex)
+            catch(Exception ex)
             {
                 Assert.Fail("Wrong exception thrown: {0}", ex.GetType().Name);
             }
@@ -54,7 +58,7 @@ namespace CqlSharp.Test
         public void DefaultDatabaseSet()
         {
             //Act
-            using (var connection = new CqlConnection("Servers=localhost;Database=test2"))
+            using(var connection = new CqlConnection("Servers=localhost;Database=test2"))
             {
                 Assert.AreEqual("test2", connection.Database);
             }
@@ -66,7 +70,11 @@ namespace CqlSharp.Test
             try
             {
                 //Act
-                using (var connection = new CqlConnection("Servers=localhost;Database=DoesNotExist;username=cassandra;password=cassandra;loggerfactory=debug;loglevel=verbose"))
+                using(
+                    var connection =
+                        new CqlConnection(
+                            "Servers=localhost;Database=DoesNotExist;username=cassandra;password=cassandra;loggerfactory=debug;loglevel=verbose")
+                    )
                 {
                     connection.Open();
 
@@ -74,10 +82,9 @@ namespace CqlSharp.Test
                     var command = new CqlCommand(connection, "select * from randomTable;");
                     var reader = command.ExecuteReader();
                     reader.Dispose();
-
                 }
             }
-            catch (Exception ex)
+            catch(Exception ex)
             {
                 Assert.IsInstanceOfType(ex, typeof(InvalidException));
                 return;
@@ -90,7 +97,11 @@ namespace CqlSharp.Test
         [ExpectedException(typeof(CqlException))]
         public async Task ConnectTimeoutThrowsProperException()
         {
-            using (var connection = new CqlConnection("servers=192.168.100.100,192.168.100.101;SocketConnectTimeout=3000;Logger=Debug;LogLevel=Verbose"))
+            using(
+                var connection =
+                    new CqlConnection(
+                        "servers=192.168.100.100,192.168.100.101;SocketConnectTimeout=1000;Logger=Debug;LogLevel=Verbose")
+                )
             {
                 await connection.OpenAsync();
             }
@@ -99,7 +110,9 @@ namespace CqlSharp.Test
         [TestMethod]
         public void TestConnectionStringValueSerialization()
         {
-            var builder = new CqlConnectionStringBuilder("servers=ip1,ip2;SocketKeepAlive=off;SocketSoLinger=10;SocketConnectTimeout=-10");
+            var builder =
+                new CqlConnectionStringBuilder(
+                    "servers=ip1,ip2;SocketKeepAlive=off;SocketSoLinger=10;SocketConnectTimeout=-10");
 
             Assert.AreEqual(-1, builder.SocketKeepAlive);
             Assert.AreEqual(10, builder.SocketSoLinger);
@@ -109,24 +122,41 @@ namespace CqlSharp.Test
         [TestMethod]
         public void TrySetKeepAlive()
         {
-            var builder = new CqlConnectionStringBuilder("node=localhost;Logger=Debug;LogLevel=Verbose;Username=cassandra;password=cassandra");
-            builder.SocketKeepAlive = 10 * 60 * 1000; //10 mins
+            var builder =
+                new CqlConnectionStringBuilder(
+                    "node=localhost;Logger=Debug;LogLevel=Verbose;Username=cassandra;password=cassandra");
+            builder.SocketKeepAlive = 10*60*1000; //10 mins
 
-            using (var connection = new CqlConnection(builder))
+            using(var connection = new CqlConnection(builder))
             {
                 connection.Open();
             }
-
         }
 
         [TestMethod]
         public async Task OpenAsync()
         {
-            using (var connection = new CqlConnection("servers=localhost;username=cassandra;password=cassandra;MaxConnectionIdleTime=1200;Logger=Debug;LogLevel=Verbose"))
+            using(
+                var connection =
+                    new CqlConnection(
+                        "servers=localhost;username=cassandra;password=cassandra;MaxConnectionIdleTime=1200;Logger=Debug;LogLevel=Verbose;DiscoveryScope=Cluster")
+                )
             {
                 await connection.OpenAsync();
             }
+        }
 
+        [TestMethod]
+        public async Task OpenAsyncNoRetry()
+        {
+            using (
+                var connection =
+                    new CqlConnection(
+                        "servers=localhost;username=cassandra;password=cassandra;MaxConnectionIdleTime=1200;Logger=Debug;LogLevel=Verbose;DiscoveryScope=Cluster;MaxQueryRetries=0;CommandTimeout=1")
+                )
+            {
+                await connection.OpenAsync();
+            }
         }
     }
 }

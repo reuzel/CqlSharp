@@ -1,5 +1,5 @@
 ﻿// CqlSharp - CqlSharp
-// Copyright (c) 2013 Joost Reuzel
+// Copyright (c) 2014 Joost Reuzel
 //   
 // Licensed under the Apache License, Version 2.0 (the "License");
 // you may not use this file except in compliance with the License.
@@ -13,19 +13,21 @@
 // See the License for the specific language governing permissions and
 // limitations under the License.
 
-using CqlSharp.Network.Partition;
 using System;
 using System.Collections.Concurrent;
 using System.Linq;
 using System.Threading;
+using CqlSharp.Network.Partition;
 
 namespace CqlSharp.Network
 {
     /// <summary>
-    ///   This strategy will provide connections that are not shared between CqlConnection, or CqlCommand instances. This makes
-    ///   interference between sequences of queries not possible. This may be of importance when "use" queries are applied. Because of
-    ///   the exclusive use of connections, connections may not be used fully, and the chance that the application will run out of 
-    ///   available connections is not unlikely under stress.
+    /// This strategy will provide connections that are not shared between CqlConnection, or CqlCommand instances. This makes
+    /// interference between sequences of queries not possible. This may be of importance when "use" queries are applied.
+    /// Because of
+    /// the exclusive use of connections, connections may not be used fully, and the chance that the application will run out
+    /// of
+    /// available connections is not unlikely under stress.
     /// </summary>
     internal class ExclusiveConnectionStrategy : IConnectionStrategy
     {
@@ -37,7 +39,7 @@ namespace CqlSharp.Network
         private int _connectionCount;
 
         /// <summary>
-        ///   Initializes the strategy with the specified nodes and cluster configuration
+        /// Initializes the strategy with the specified nodes and cluster configuration
         /// </summary>
         /// <param name="nodes"> The nodes. </param>
         /// <param name="config"> The config. </param>
@@ -48,7 +50,7 @@ namespace CqlSharp.Network
             _connections = new ConcurrentStack<Connection>();
             _rndGen = new Random((int)DateTime.UtcNow.Ticks);
             _connectionCount = _nodes.Sum(n => n.ConnectionCount);
-            if (_connectionCount > 0)
+            if(_connectionCount > 0)
                 _connections.PushRange(_nodes.SelectMany(n => n).ToArray());
         }
 
@@ -59,20 +61,20 @@ namespace CqlSharp.Network
             Connection connection = null;
 
             //provide connections on connection level only
-            if (scope == ConnectionScope.Command)
+            if(scope == ConnectionScope.Command)
                 return null;
 
-            if (scope == ConnectionScope.Infrastructure)
+            if(scope == ConnectionScope.Infrastructure)
             {
                 //connection exist, go and find random one
-                if (_connectionCount > 0)
+                if(_connectionCount > 0)
                 {
                     int count = _nodes.Count;
                     int offset = _rndGen.Next(count);
-                    for (int i = 0; i < count; i++)
+                    for(int i = 0; i < count; i++)
                     {
-                        connection = _nodes[(offset + i) % count].GetConnection();
-                        if (connection != null)
+                        connection = _nodes[(offset + i)%count].GetConnection();
+                        if(connection != null)
                             return connection;
                     }
                 }
@@ -80,9 +82,9 @@ namespace CqlSharp.Network
             else
             {
                 //try pick an unused connection
-                while (_connections.TryPop(out connection))
+                while(_connections.TryPop(out connection))
                 {
-                    if (connection.IsConnected)
+                    if(connection.IsConnected)
                     {
                         connection.AllowCleanup = false;
                         return connection;
@@ -91,25 +93,25 @@ namespace CqlSharp.Network
             }
 
             //check if we may create another connection if we didn't find a connection yet
-            if (_config.MaxConnections <= 0 || _connectionCount < _config.MaxConnections)
+            if(_config.MaxConnections <= 0 || _connectionCount < _config.MaxConnections)
             {
                 //all connections in use, or non available, go and create one at random node
                 int count = _nodes.Count;
                 int offset = _rndGen.Next(count);
-                for (int i = 0; i < count; i++)
+                for(int i = 0; i < count; i++)
                 {
-                    connection = _nodes[(offset + i) % count].CreateConnection();
-                    if (connection != null)
+                    connection = _nodes[(offset + i)%count].CreateConnection();
+                    if(connection != null)
                     {
                         Interlocked.Increment(ref _connectionCount);
                         connection.OnConnectionChange += (src, ev) =>
-                                                             {
-                                                                 if (!ev.Connected)
-                                                                     Interlocked.Decrement(ref _connectionCount);
-                                                             };
+                        {
+                            if(!ev.Connected)
+                                Interlocked.Decrement(ref _connectionCount);
+                        };
 
                         //if infrastructure scope, push connection to list of available connections for other use
-                        if (scope == ConnectionScope.Infrastructure)
+                        if(scope == ConnectionScope.Infrastructure)
                             _connections.Push(connection);
                         else
                             //disable cleanup of this connection while it is in reserved for exclusive use

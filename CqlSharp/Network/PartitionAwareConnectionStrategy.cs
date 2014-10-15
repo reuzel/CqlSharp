@@ -1,5 +1,5 @@
 ﻿// CqlSharp - CqlSharp
-// Copyright (c) 2013 Joost Reuzel
+// Copyright (c) 2014 Joost Reuzel
 //   
 // Licensed under the Apache License, Version 2.0 (the "License");
 // you may not use this file except in compliance with the License.
@@ -13,8 +13,8 @@
 // See the License for the specific language governing permissions and
 // limitations under the License.
 
-using CqlSharp.Network.Partition;
 using System.Linq;
+using CqlSharp.Network.Partition;
 
 namespace CqlSharp.Network
 {
@@ -24,7 +24,7 @@ namespace CqlSharp.Network
         private readonly Ring _nodes;
 
         /// <summary>
-        ///   Initializes the strategy with the specified nodes and cluster configuration
+        /// Initializes the strategy with the specified nodes and cluster configuration
         /// </summary>
         /// <param name="nodes"> The nodes. </param>
         /// <param name="config"> The config. </param>
@@ -37,27 +37,30 @@ namespace CqlSharp.Network
         #region Implementation of IConnectionStrategy
 
         /// <summary>
-        ///   Gets or creates connection to the cluster.
+        /// Gets or creates connection to the cluster.
         /// </summary>
         /// <param name="scope"> The scope. </param>
         /// <param name="partitionKey"> The partition key. </param>
         /// <returns> </returns>
-        /// <exception cref="CqlException">Can not connect to any node of the cluster! All connectivity to the cluster seems to be lost</exception>
+        /// <exception cref="CqlException">
+        /// Can not connect to any node of the cluster! All connectivity to the cluster seems to be
+        /// lost
+        /// </exception>
         public Connection GetOrCreateConnection(ConnectionScope scope, PartitionKey partitionKey)
         {
             //provide connections on command level only
-            if (scope == ConnectionScope.Connection)
+            if(scope == ConnectionScope.Connection)
                 return null;
 
             //try based on partition first
-            if (partitionKey != null && partitionKey.IsSet)
+            if(partitionKey != null && partitionKey.IsSet)
             {
                 var nodes = _nodes.GetResponsibleNodes(partitionKey).Where(n => n.IsUp).OrderBy(n => n.Load);
 
-                foreach (Node node in nodes)
+                foreach(Node node in nodes)
                 {
-                    Connection connection = node.GetOrCreateConnection(partitionKey);
-                    if (connection != null)
+                    Connection connection = node.GetOrCreateConnection();
+                    if(connection != null)
                         return connection;
                 }
             }
@@ -66,7 +69,7 @@ namespace CqlSharp.Network
         }
 
         /// <summary>
-        ///   Invoked when a connection is no longer in use by the application
+        /// Invoked when a connection is no longer in use by the application
         /// </summary>
         /// <param name="connection"> The connection no longer used. </param>
         /// <param name="scope"> The scope. </param>

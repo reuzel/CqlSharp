@@ -1,5 +1,5 @@
 // CqlSharp - CqlSharp
-// Copyright (c) 2013 Joost Reuzel
+// Copyright (c) 2014 Joost Reuzel
 //   
 // Licensed under the Apache License, Version 2.0 (the "License");
 // you may not use this file except in compliance with the License.
@@ -16,27 +16,27 @@
 namespace CqlSharp
 {
     /// <summary>
-    ///   Defines the scope of the nodes to be discovered when connection to the cluster
+    /// Defines the scope of the nodes to be discovered when connection to the cluster
     /// </summary>
     public enum DiscoveryScope
     {
         /// <summary>
-        ///   Find all nodes in the Cassandra cluster
+        /// Find all nodes in the Cassandra cluster
         /// </summary>
         Cluster,
 
         /// <summary>
-        ///   Find all nodes in the racks that the configured nodes are part of
+        /// Find all nodes in the racks that the configured nodes are part of
         /// </summary>
         Rack,
 
         /// <summary>
-        ///   Find all nodes in the datacenters that the configured nodes are part of
+        /// Find all nodes in the datacenters that the configured nodes are part of
         /// </summary>
         DataCenter,
 
         /// <summary>
-        ///   Do not search for additional nodes
+        /// Do not search for additional nodes
         /// </summary>
         None
     }

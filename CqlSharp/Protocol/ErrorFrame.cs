@@ -1,5 +1,5 @@
 // CqlSharp - CqlSharp
-// Copyright (c) 2013 Joost Reuzel
+// Copyright (c) 2014 Joost Reuzel
 //   
 // Licensed under the Apache License, Version 2.0 (the "License");
 // you may not use this file except in compliance with the License.
@@ -46,74 +46,73 @@ namespace CqlSharp.Protocol
         /// <summary>
         /// Initialize frame contents from the stream
         /// </summary>
-        /// <param name=""></param>
         /// <returns></returns>
         protected override async Task InitializeAsync()
         {
             FrameReader stream = Reader;
-            var code = (ErrorCode) await stream.ReadIntAsync().AutoConfigureAwait();
+            var code = (ErrorCode)await stream.ReadIntAsync().AutoConfigureAwait();
             string msg = await stream.ReadStringAsync().AutoConfigureAwait();
 
-            switch (code)
+            switch(code)
             {
                 case ErrorCode.Unavailable:
-                    {
-                        var cl = (CqlConsistency)await stream.ReadShortAsync().AutoConfigureAwait();
-                        int required = await stream.ReadIntAsync().AutoConfigureAwait();
-                        int alive = await stream.ReadIntAsync().AutoConfigureAwait(); 
-                        Exception = new UnavailableException(msg, cl, required, alive, TracingId);
-                        break;
-                    }
+                {
+                    var cl = (CqlConsistency)await stream.ReadShortAsync().AutoConfigureAwait();
+                    int required = await stream.ReadIntAsync().AutoConfigureAwait();
+                    int alive = await stream.ReadIntAsync().AutoConfigureAwait();
+                    Exception = new UnavailableException(ProtocolVersion, msg, cl, required, alive, TracingId);
+                    break;
+                }
 
                 case ErrorCode.WriteTimeout:
-                    {
-                        var cl = (CqlConsistency)await stream.ReadShortAsync().AutoConfigureAwait();
-                        int received = await stream.ReadIntAsync().AutoConfigureAwait();
-                        int blockFor = await stream.ReadIntAsync().AutoConfigureAwait();
-                        string writeType = await stream.ReadStringAsync().AutoConfigureAwait();
-                        Exception = new WriteTimeOutException(msg, cl, received, blockFor, writeType, TracingId);
-                        break;
-                    }
+                {
+                    var cl = (CqlConsistency)await stream.ReadShortAsync().AutoConfigureAwait();
+                    int received = await stream.ReadIntAsync().AutoConfigureAwait();
+                    int blockFor = await stream.ReadIntAsync().AutoConfigureAwait();
+                    string writeType = await stream.ReadStringAsync().AutoConfigureAwait();
+                    Exception = new WriteTimeOutException(ProtocolVersion, msg, cl, received, blockFor, writeType, TracingId);
+                    break;
+                }
 
                 case ErrorCode.ReadTimeout:
-                    {
-                        var cl = (CqlConsistency)await stream.ReadShortAsync().AutoConfigureAwait();
-                        int received = await stream.ReadIntAsync().AutoConfigureAwait();
-                        int blockFor = await stream.ReadIntAsync().AutoConfigureAwait();
-                        bool dataPresent = 0 != await stream.ReadByteAsync().AutoConfigureAwait();
-                        Exception = new ReadTimeOutException(msg, cl, received, blockFor, dataPresent, TracingId);
-                        break;
-                    }
+                {
+                    var cl = (CqlConsistency)await stream.ReadShortAsync().AutoConfigureAwait();
+                    int received = await stream.ReadIntAsync().AutoConfigureAwait();
+                    int blockFor = await stream.ReadIntAsync().AutoConfigureAwait();
+                    bool dataPresent = 0 != await stream.ReadByteAsync().AutoConfigureAwait();
+                    Exception = new ReadTimeOutException(ProtocolVersion, msg, cl, received, blockFor, dataPresent, TracingId);
+                    break;
+                }
 
                 case ErrorCode.Syntax:
-                    Exception = new SyntaxException(msg, TracingId);
+                Exception = new SyntaxException(ProtocolVersion, msg, TracingId);
                     break;
 
                 case ErrorCode.BadCredentials:
-                    Exception = new AuthenticationException(msg, TracingId);
+                    Exception = new AuthenticationException(ProtocolVersion, msg, TracingId);
                     break;
 
                 case ErrorCode.Unauthorized:
-                    Exception = new UnauthorizedException(msg, TracingId);
+                    Exception = new UnauthorizedException(ProtocolVersion, msg, TracingId);
                     break;
 
                 case ErrorCode.Invalid:
-                    Exception = new InvalidException(msg, TracingId);
+                    Exception = new InvalidException(ProtocolVersion, msg, TracingId);
                     break;
 
                 case ErrorCode.AlreadyExists:
                     string keyspace = await stream.ReadStringAsync().AutoConfigureAwait();
                     string table = await stream.ReadStringAsync().AutoConfigureAwait();
-                    Exception = new AlreadyExistsException(msg, keyspace, table, TracingId);
+                    Exception = new AlreadyExistsException(ProtocolVersion, msg, keyspace, table, TracingId);
                     break;
 
                 case ErrorCode.Unprepared:
                     byte[] unknownId = await stream.ReadShortBytesAsync().AutoConfigureAwait();
-                    Exception = new UnpreparedException(msg, unknownId, TracingId);
+                    Exception = new UnpreparedException(ProtocolVersion, msg, unknownId, TracingId);
                     break;
 
                 default:
-                    Exception = new ProtocolException(code, msg, TracingId);
+                    Exception = new ProtocolException(ProtocolVersion, code, msg, TracingId);
                     break;
             }
         }

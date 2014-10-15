@@ -20,10 +20,7 @@ using System.Collections.Generic;
 using System.Linq;
 using System.Net;
 using System.Threading;
-using System.Threading.Tasks;
 using CqlSharp.Logging;
-using CqlSharp.Network.Partition;
-using CqlSharp.Protocol;
 using CqlSharp.Threading;
 
 namespace CqlSharp.Network
@@ -113,7 +110,7 @@ namespace CqlSharp.Network
             _status = HostState.Up; //assume up
             Tokens = new HashSet<string>();
             _counter = 0;
-            FrameVersion = FrameVersion.ProtocolVersion2;
+            ProtocolVersion = 3;
         }
 
         /// <summary>
@@ -177,7 +174,7 @@ namespace CqlSharp.Network
         /// Gets the frame (protocol) version supported by this node
         /// </summary>
         /// <value> The frame version. </value>
-        internal FrameVersion FrameVersion { get; set; }
+        internal byte ProtocolVersion { get; set; }
 
         /// <summary>
         /// Gets the prepared query ids.
@@ -253,9 +250,8 @@ namespace CqlSharp.Network
         /// <summary>
         /// Gets an existing connection, or creates one if treshold is reached.
         /// </summary>
-        /// <param name="partitionKey"> ignored </param>
         /// <returns> </returns>
-        public Connection GetOrCreateConnection(PartitionKey partitionKey)
+        public Connection GetOrCreateConnection()
         {
             if(_disposed)
                 throw new ObjectDisposedException(ToString());
@@ -391,7 +387,7 @@ namespace CqlSharp.Network
                     {
                         if(connection.IsIdle)
                         {
-                            logger.LogInfo("Closing {0} as it is idle", this);
+                            logger.LogInfo("Closing {0} as it is idle", connection);
                             connection.Dispose();
                             _connections.Remove(connection);
                         }
@@ -427,7 +423,7 @@ namespace CqlSharp.Network
             {
                 if(evt.Connected)
                 {
-                    if(!IsUp) Logger.Current.LogInfo("Node {0} is back online", Address);
+                    if(!IsUp) Logger.Current.LogInfo("{0} is back online", this);
 
                     _status = HostState.Up;
                     _failureCount = 0;
@@ -510,7 +506,7 @@ namespace CqlSharp.Network
                 //clear all prepared id state, when first reconnect fails as we can assume the node really went down.
                 //In case state is not cleared here, preparedQueryIds will be cleared with first prepared query that 
                 //fails with unprepared error
-                if(_failureCount==1)
+                if(_failureCount == 1)
                     PreparedQueryIds.Clear();
 
                 //calculate the time, before retry
@@ -572,7 +568,9 @@ namespace CqlSharp.Network
                                 {
                                     await connection.OpenAsync(logger).AutoConfigureAwait();
                                     using(logger.ThreadBinding())
+                                    {
                                         connection.Dispose();
+                                    }
                                 }
                                 catch(Exception)
                                 {
