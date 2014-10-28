@@ -1,0 +1,39 @@
+<?xml version="1.0"?>
+<package >
+  <metadata>
+    <id>$id$</id>
+    <version>$version$</version>
+    <title>CQLSharp.Linq - Linq-2-Cql provider for interacting with a Apache Cassandra database</title>
+    <authors>Joost Reuzel</authors>
+    <owners>Joost Reuzel</owners>
+    <licenseUrl>http://www.apache.org/licenses/LICENSE-2.0</licenseUrl>
+    <projectUrl>https://github.com/reuzel/CqlSharp.Linq</projectUrl>
+    <iconUrl>https://raw.github.com/reuzel/CqlSharp/master/logo.png</iconUrl>
+    <requireLicenseAcceptance>false</requireLicenseAcceptance>
+    <summary>
+    </summary>
+    <description>
+      CqlSharp.Linq contains a Linq-to-Cql provider for use with the Apache Cassandra database.
+
+      Main features are:
+      * Translation of Linq queries to CQL select statements.
+      * All CQL functions are supported, as well as tokens and the allow filtering clause.
+      * Consistency and Paging query behaviour can be set per query via IQueryable extensions
+      * Linq projections (IQueryable.Select statements) can become arbitrarily complex
+      * Generated mapping of query results to objects is extremely fast, through compiled expressions
+      * Linq queries can be (pre-)compiled for increased performance
+      * Snapshot-based entity change tracking is supported, allowing for easy insert, change and updates of entities
+      * Change tracking can be switched off globally or per query
+      * CqlSharp.Linq provides an EntityFramework like interface
+
+      CqlSharp is a high performance, asynchronous Cassandra CQL binary protocol client implementing the ADO.NET data provider interfaces. See https://github.com/reuzel/CqlSharp/wiki/Features for an extensive feature list.
+    </description>
+    <releaseNotes>
+      Version 0.36.0 - Initial Release
+      * number chosen to match corresponding CqlSharp package version
+      
+    </releaseNotes>
+    <copyright>Copyright 2014 Joost Reuzel</copyright>
+    <tags>Cassandra CQL Linq client database provider nosql net45 CqlSharp</tags>
+</metadata>
+</package>

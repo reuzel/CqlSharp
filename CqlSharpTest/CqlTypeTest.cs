@@ -77,6 +77,20 @@ namespace CqlSharp.Test
             Assert.AreEqual(type.GetType().GetGenericTypeDefinition(), typeof(UserDefinedType<>));
         }
 
+        private class StringList : List<string>
+        { }
+
+        [TestMethod]
+        public void TypeOfStringList()
+        {
+            var type = typeof(StringList);
+
+            var cqlType = CqlType.CreateType(type);
+
+            Assert.AreEqual(CqlTypeCode.List, cqlType.CqlTypeCode);
+            Assert.AreEqual(typeof(List<string>), cqlType.Type);
+        }
+
         [TestMethod]
         public void TypeOfUDTClass()
         {

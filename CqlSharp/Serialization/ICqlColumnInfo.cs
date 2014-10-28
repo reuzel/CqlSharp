@@ -15,6 +15,7 @@
 
 using System;
 using System.Reflection;
+using CqlSharp.Annotations;
 
 namespace CqlSharp.Serialization
 {
@@ -62,6 +63,15 @@ namespace CqlSharp.Serialization
         /// <param name="target">The target.</param>
         /// <param name="column">The column.</param>
         void CopyValue<TTarget>(TTable source, TTarget target, ICqlColumnInfo<TTarget> column);
+
+        /// <summary>
+        /// Determines whether the column value of the specified source is equal to
+        /// the column value of the comparand
+        /// </summary>
+        /// <param name="source">The source.</param>
+        /// <param name="comperand">The comperand.</param>
+        /// <returns></returns>
+        bool IsEqual(TTable source, TTable comperand);
     }
 
     public interface ICqlColumnInfo

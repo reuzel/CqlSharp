@@ -165,53 +165,58 @@ namespace CqlSharp
         {
             return Type2CqlType.GetOrAdd(type, newType =>
             {
-                if(newType.IsGenericType)
+                if (newType.IsGenericType)
                 {
                     var genericType = type.GetGenericTypeDefinition();
 
                     //check for nullable types
-                    if(genericType == typeof(Nullable<>))
+                    if (genericType == typeof(Nullable<>))
                         return CreateType(newType.GetGenericArguments()[0]);
 
-                    var interfaces =
-                        newType.GetInterfaces()
-                               .Where(i => i.IsGenericType)
-                               .Select(i => i.GetGenericTypeDefinition())
-                               .ToArray();
-
-                    //check for map types
-                    if(interfaces.Any(i => i == typeof(IDictionary<,>)))
-                        return new MapTypeFactory().CreateType(newType);
-
-                    //check for set types
-                    if(interfaces.Any(i => i == typeof(ISet<>)))
-                        return new SetTypeFactory().CreateType(newType);
-
-                    //check for list types
-                    if(interfaces.Any(i => i == typeof(IList<>)))
-                        return new ListTypeFactory().CreateType(newType);
-
                     //check for tupleTypes
-                    if(TypeExtensions.TupleTypes.Contains(genericType))
+                    if (TypeExtensions.TupleTypes.Contains(genericType))
                         return new TupleTypeFactory().CreateType(newType);
                 }
+
+               
+                //get all generic interfaces the type implements
+                var interfaces = newType.GetInterfaces()
+                           .Where(i => i.IsGenericType)
+                           .Select(i => i.GetGenericTypeDefinition())
+                           .ToList();
+
+                //add the type self if it's a generic interface itself
+                if(newType.IsInterface && newType.IsGenericType)
+                    interfaces.Add(newType.GetGenericTypeDefinition());
+    
+                //check for map types
+                if (interfaces.Any(i => i == typeof(IDictionary<,>)))
+                    return new MapTypeFactory().CreateType(newType);
+
+                //check for set types
+                if (interfaces.Any(i => i == typeof(ISet<>)))
+                    return new SetTypeFactory().CreateType(newType);
+
+                //check for list types
+                if (interfaces.Any(i => i == typeof(IList<>) || i == typeof(IEnumerable<>)))
+                    return new ListTypeFactory().CreateType(newType);
 
                 //check for user types
                 var userTypeAttribute =
                     Attribute.GetCustomAttribute(newType, typeof(CqlUserTypeAttribute)) as CqlUserTypeAttribute;
-                if(userTypeAttribute != null)
+                if (userTypeAttribute != null)
                     return new UserDefinedTypeFactory().CreateType(newType);
 
                 //check for custom types
                 var customAttribute =
                     Attribute.GetCustomAttribute(newType, typeof(CqlCustomTypeAttribute)) as CqlCustomTypeAttribute;
-                if(customAttribute != null)
+                if (customAttribute != null)
                     return customAttribute.CreateFactory().CreateType(newType);
 
-                if(newType.IsAnonymous())
+                if (newType.IsAnonymous())
                     return new AnonymousTypeFactory().CreateType(newType);
 
-                throw new Exception("Unsupported type");
+                throw new CqlException(string.Format("Unable to map type {0} to a CqlType", newType.ToString()));
             });
         }
 
@@ -233,7 +238,7 @@ namespace CqlSharp
         {
             get
             {
-                if(_typeName == null)
+                if (_typeName == null)
                 {
                     var builder = new StringBuilder();
                     AppendTypeName(builder);
@@ -280,13 +285,13 @@ namespace CqlSharp
                 var parameter = Expression.Parameter(typeof(object));
                 var version = Expression.Parameter(typeof(byte));
                 var instance = Expression.Parameter(typeof(CqlType));
-                var call = Expression.Call(instance, "Serialize", new[] {type}, Expression.Convert(parameter, type),
+                var call = Expression.Call(instance, "Serialize", new[] { type }, Expression.Convert(parameter, type),
                                            version);
                 var lambda = Expression.Lambda<Func<CqlType, object, byte, byte[]>>(call,
                                                                                     string.Format(
                                                                                         "CqlType.Serialize<{0}>",
                                                                                         type.Name),
-                                                                                    new[] {instance, parameter, version});
+                                                                                    new[] { instance, parameter, version });
                 return lambda.Compile();
             });
 
@@ -328,7 +333,7 @@ namespace CqlSharp
         {
             CqlType cqlType;
 
-            if(DbType2CqlType.TryGetValue(type, out cqlType))
+            if (DbType2CqlType.TryGetValue(type, out cqlType))
                 return cqlType;
 
             throw new ArgumentOutOfRangeException("type", type, "CqlType can not be derived from the given DbType");
@@ -349,10 +354,10 @@ namespace CqlSharp
         /// </returns>
         public virtual bool Equals(CqlType other)
         {
-            if(CqlTypeCode != other.CqlTypeCode)
+            if (CqlTypeCode != other.CqlTypeCode)
                 return false;
 
-            if(CqlTypeCode == CqlTypeCode.Custom)
+            if (CqlTypeCode == CqlTypeCode.Custom)
                 return other.TypeName.Equals(TypeName, StringComparison.OrdinalIgnoreCase);
 
             return true;
@@ -367,9 +372,9 @@ namespace CqlSharp
         /// </returns>
         public override bool Equals(object obj)
         {
-            if(ReferenceEquals(null, obj)) return false;
-            if(ReferenceEquals(this, obj)) return true;
-            if(!(obj is CqlType)) return false;
+            if (ReferenceEquals(null, obj)) return false;
+            if (ReferenceEquals(this, obj)) return true;
+            if (!(obj is CqlType)) return false;
             return Equals((CqlType)obj);
         }
 
@@ -418,7 +423,7 @@ namespace CqlSharp
         /// </returns>
         public override string ToString()
         {
-            if(CqlTypeCode == CqlTypeCode.Custom)
+            if (CqlTypeCode == CqlTypeCode.Custom)
                 return TypeName;
 
             return CqlTypeCode.ToString().ToLower();
@@ -451,7 +456,7 @@ namespace CqlSharp
         public override byte[] Serialize<TSource>(TSource source, byte protocolVersion)
         {
             // ReSharper disable once CompareNonConstrainedGenericWithNull
-            if(source == null)
+            if (source == null)
                 return null;
 
             T value = Converter.ChangeType<TSource, T>(source);
@@ -468,7 +473,7 @@ namespace CqlSharp
         /// <remarks>The result may be type converted version of the actual deserialized value</remarks>
         public override TTarget Deserialize<TTarget>(byte[] data, byte protocolVersion)
         {
-            if(data == null)
+            if (data == null)
                 return default(TTarget);
 
             T value = Deserialize(data, protocolVersion);

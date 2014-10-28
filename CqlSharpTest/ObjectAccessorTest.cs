@@ -159,6 +159,38 @@ namespace CqlSharp.Test
             Assert.AreEqual(info3, accessor.ClusteringKeys[0]);
         }
 
+        [TestMethod]
+        public void CheckEqualsDictionary()
+        {
+            var a1 = new A() {Entries = new Dictionary<string, Guid> {{"1", Guid.Empty}, {"2", Guid.Empty}}};
+            var a2 = new A() { Entries = new Dictionary<string, Guid> { { "1", Guid.Empty }, { "2", Guid.Empty } } };
+
+            var accessor = ObjectAccessor<A>.Instance;
+            Assert.IsTrue(accessor.ColumnsByName["entries"].IsEqual(a1, a2));
+        }
+
+        [TestMethod]
+        public void CheckEqualsDictionaryFalse()
+        {
+            var a1 = new A() { Entries = new Dictionary<string, Guid> { { "1", Guid.Empty }, { "2", Guid.Empty } } };
+            var a2 = new A() { Entries = new Dictionary<string, Guid> { { "1", Guid.Empty }, { "3", Guid.Empty } } };
+
+            var accessor = ObjectAccessor<A>.Instance;
+            Assert.IsFalse(accessor.ColumnsByName["entries"].IsEqual(a1, a2));
+        }
+
+        [TestMethod]
+        public void CheckEqualsDictionaryFalse2()
+        {
+            var a1 = new A() { Entries = new Dictionary<string, Guid> { { "1", Guid.Empty }, { "2", Guid.Empty } } };
+            var a2 = new A() { Entries = new Dictionary<string, Guid> { { "1", Guid.Empty }, { "2", Guid.Empty }, { "3", Guid.Empty } } };
+
+            var accessor = ObjectAccessor<A>.Instance;
+            Assert.IsFalse(accessor.ColumnsByName["entries"].IsEqual(a1, a2));
+        }
+
+        
+
         #region Nested typeCode: A
 
         private class A

@@ -14,7 +14,10 @@
 // limitations under the License.
 
 using System;
+using System.Collections;
 using System.Collections.Concurrent;
+using System.Collections.Generic;
+using System.Linq;
 
 namespace CqlSharp.Serialization.Marshal
 {
@@ -64,7 +67,13 @@ namespace CqlSharp.Serialization.Marshal
 
         public CqlType CreateType(Type type)
         {
-            var typeArgs = type.GetGenericArguments();
+            var iface = type.GetInterfaces().FirstOrDefault(i => i.IsGenericType && i.GetGenericTypeDefinition() == typeof(IDictionary<,>));
+            
+            if(iface==null)
+                throw new CqlException(string.Format("Type {0} can not be mapped to a Cql map type", type));
+
+
+            var typeArgs = iface.GetGenericArguments();
             return CreateType(CqlType.CreateType(typeArgs[0]), CqlType.CreateType(typeArgs[1]));
         }
     }

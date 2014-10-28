@@ -68,11 +68,11 @@ namespace CqlSharp.Serialization
             {
                 var src = Expression.Parameter(typeof(object));
                 var converted = Expression.Convert(src, ts.Item1);
-                var call = Expression.Call(typeof(Converter), "ChangeType", new[] {ts.Item1, ts.Item2}, converted);
+                var call = Expression.Call(typeof(Converter), "ChangeType", new[] { ts.Item1, ts.Item2 }, converted);
                 var result = Expression.Convert(call, typeof(object));
                 var lambda = Expression.Lambda<Func<object, object>>(result,
                                                                      string.Format("ChangeType<{0},{1}>", ts.Item1.Name,
-                                                                                   ts.Item2.Name), new[] {src});
+                                                                                   ts.Item2.Name), new[] { src });
                 return lambda.Compile();
             });
 
@@ -120,7 +120,7 @@ namespace CqlSharp.Serialization
                 //translate the call into a lamda and compile it
                 var lambda = Expression.Lambda<Func<TSource, TTarget>>(call,
                                                                        "Convert" + srcType.Name + "To" + targetType.Name,
-                                                                       new[] {src});
+                                                                       new[] { src });
 
                 //Debug.WriteLine(lambda.Name + " : " + lambda);
 
@@ -168,15 +168,15 @@ namespace CqlSharp.Serialization
 
                 Expression call = null;
 
-                if(nonNullableSource == typeof(DateTime) && nonNullableTargetType == typeof(long))
+                if (nonNullableSource == typeof(DateTime) && nonNullableTargetType == typeof(long))
                     call = Expression.Call(typeof(TypeExtensions), "ToTimestamp", null, src);
-                else if(nonNullableSource == typeof(long) && nonNullableTargetType == typeof(DateTime))
+                else if (nonNullableSource == typeof(long) && nonNullableTargetType == typeof(DateTime))
                     call = Expression.Call(typeof(TypeExtensions), "ToDateTime", null, src);
                 else
                     return null;
 
                 //convert result back to nullable value if necessary
-                if(nonNullableTargetType != targetType)
+                if (nonNullableTargetType != targetType)
                     call = Expression.Convert(call, targetType);
 
                 //add null check
@@ -195,20 +195,20 @@ namespace CqlSharp.Serialization
                 Expression call = null;
 
                 //Check if type implements IConvertible
-                if(typeof(IConvertible).IsAssignableFrom(srcType))
+                if (typeof(IConvertible).IsAssignableFrom(srcType))
                 {
                     //remove any nullable wrappers on the target, increasing the chance of finding the right conversion method
                     var nonNullableTargetType = Nullable.GetUnderlyingType(targetType) ?? targetType;
 
                     //check if one of the conversion methods can be used
                     MethodInfo method;
-                    if(ConversionMethods.TryGetValue(nonNullableTargetType, out method))
+                    if (ConversionMethods.TryGetValue(nonNullableTargetType, out method))
                     {
                         // ReSharper disable once PossiblyMistakenUseOfParamsMethod
                         call = Expression.Call(src, method, Expression.Constant(null, typeof(IFormatProvider)));
 
                         //convert result back to nullable value if necessary
-                        if(nonNullableTargetType != targetType)
+                        if (nonNullableTargetType != targetType)
                             call = Expression.Convert(call, targetType);
                     }
                     else
@@ -234,11 +234,11 @@ namespace CqlSharp.Serialization
                     Attribute.GetCustomAttribute(srcType, typeof(CqlTypeConverterAttribute)) as
                         CqlTypeConverterAttribute;
 
-                if(converterAttribute != null)
+                if (converterAttribute != null)
                 {
                     var converterType = converterAttribute.Converter;
                     var converter = Expression.Constant(Activator.CreateInstance(converterType));
-                    var call = Expression.Call(converter, "ConvertTo", new[] {targetType}, src);
+                    var call = Expression.Call(converter, "ConvertTo", new[] { targetType }, src);
                     return AddNullCheck(srcType, targetType, src, call);
                 }
 
@@ -247,11 +247,11 @@ namespace CqlSharp.Serialization
                     Attribute.GetCustomAttribute(targetType, typeof(CqlTypeConverterAttribute)) as
                         CqlTypeConverterAttribute;
 
-                if(converterAttribute != null)
+                if (converterAttribute != null)
                 {
                     var converterType = converterAttribute.Converter;
                     var converter = Expression.Constant(Activator.CreateInstance(converterType));
-                    var call = Expression.Call(converter, "ConvertFrom", new[] {srcType}, src);
+                    var call = Expression.Call(converter, "ConvertFrom", new[] { srcType }, src);
                     return AddNullCheck(srcType, targetType, src, call);
                 }
 
@@ -261,11 +261,11 @@ namespace CqlSharp.Serialization
             private static Expression GetTupleConversion(Type srcType, Type targetType, ParameterExpression src)
             {
                 //tuple types are generic types
-                if(!srcType.IsGenericType && !targetType.IsGenericType)
+                if (!srcType.IsGenericType && !targetType.IsGenericType)
                     return null;
 
                 //are they tuple types?
-                if(!TypeExtensions.TupleTypes.Contains(srcType.GetGenericTypeDefinition()) ||
+                if (!TypeExtensions.TupleTypes.Contains(srcType.GetGenericTypeDefinition()) ||
                    !TypeExtensions.TupleTypes.Contains(targetType.GetGenericTypeDefinition()))
                     return null;
 
@@ -273,19 +273,19 @@ namespace CqlSharp.Serialization
                 var targetArguments = targetType.GetGenericArguments();
 
                 //conversion only possible if target has equal or smaller number of fields
-                if(targetArguments.Length > srcArguments.Length)
+                if (targetArguments.Length > srcArguments.Length)
                     return null;
 
                 //iterate over all items and convert the values
                 var expressions = new Expression[targetArguments.Length];
-                for(int i = 0; i < targetArguments.Length; i++)
+                for (int i = 0; i < targetArguments.Length; i++)
                 {
                     var sourceMember = srcType.GetProperty("Item" + (i + 1));
 
                     var value = Expression.Property(src, sourceMember);
                     expressions[i] = Expression.Call(typeof(Converter),
                                                      "ChangeType",
-                                                     new[] {value.Type, targetArguments[i]},
+                                                     new[] { value.Type, targetArguments[i] },
                                                      value);
                 }
 
@@ -307,24 +307,43 @@ namespace CqlSharp.Serialization
                                             i =>
                                                 i.IsGenericType && i.GetGenericTypeDefinition() == typeof(IEnumerable<>));
 
-                if(enumerable != null)
+                //check if source is IEnumerable
+                if (enumerable != null)
                 {
-                    var collection = targetType.GetInterfaces()
-                                               .FirstOrDefault(
-                                                   i =>
-                                                       i.IsGenericType &&
-                                                       i.GetGenericTypeDefinition() == typeof(ICollection<>));
+                    Expression call = null;
 
-                    if(collection != null)
+                    //check if target is array
+                    if (targetType.IsArray)
                     {
-                        var call = Expression.Call(typeof(TypeConverter<TSource, TTarget>), "CopyCollection",
+                        call = Expression.Call(typeof(TypeConverter<TSource, TTarget>), "CopyToArray",
                                                    new[]
                                                    {
-                                                       enumerable.GetGenericArguments()[0], targetType,
-                                                       collection.GetGenericArguments()[0]
+                                                       enumerable.GetGenericArguments()[0], targetType.GetElementType()
                                                    }, src);
-                        return AddNullCheck(srcType, targetType, src, call);
                     }
+                    else
+                    {
+                        //check if target implement ICollection
+                        var collection = targetType.GetInterfaces()
+                                                   .FirstOrDefault(
+                                                       i =>
+                                                           i.IsGenericType &&
+                                                           i.GetGenericTypeDefinition() == typeof(ICollection<>));
+
+                        if (collection != null)
+                        {
+                            call = Expression.Call(typeof(TypeConverter<TSource, TTarget>), "CopyCollection",
+                                                       new[]
+                                                       {
+                                                           enumerable.GetGenericArguments()[0], targetType,
+                                                           collection.GetGenericArguments()[0]
+                                                       }, src);
+                        }
+                    }
+
+                    if (call != null)
+                        return AddNullCheck(srcType, targetType, src, call);
+
                 }
 
                 return null;
@@ -343,10 +362,30 @@ namespace CqlSharp.Serialization
                 IEnumerable<TSourceElement> source) where TCollection : ICollection<TCollectionElement>, new()
             {
                 var result = new TCollection();
-                foreach(TSourceElement elem in source)
+                foreach (TSourceElement elem in source)
                     result.Add(ChangeType<TSourceElement, TCollectionElement>(elem));
 
                 return result;
+            }
+
+            /// <summary>
+            /// Copies the collection.
+            /// </summary>
+            /// <typeparam name="TSourceElement">The type of the source.</typeparam>
+            /// <typeparam name="TArrayElement">The type of the array element.</typeparam>
+            /// <param name="source">The source.</param>
+            /// <returns></returns>
+            [UsedImplicitly]
+            private static TArrayElement[] CopyToArray<TSourceElement, TArrayElement>(
+                IEnumerable<TSourceElement> source)
+            {
+                //TODO: check if source is ICollection and if so enumerate to array directly
+                
+                var list = new List<TArrayElement>();
+                foreach (TSourceElement elem in source)
+                    list.Add(ChangeType<TSourceElement, TArrayElement>(elem));
+
+                return list.ToArray();
             }
 
             /// <summary>
@@ -364,7 +403,7 @@ namespace CqlSharp.Serialization
                                                    i.IsGenericType &&
                                                    i.GetGenericTypeDefinition() == typeof(IDictionary<,>));
 
-                if(srcDictionary != null)
+                if (srcDictionary != null)
                 {
                     var targetDictionary = targetType.GetInterfaces()
                                                      .FirstOrDefault(
@@ -372,7 +411,7 @@ namespace CqlSharp.Serialization
                                                              i.IsGenericType &&
                                                              i.GetGenericTypeDefinition() == typeof(IDictionary<,>));
 
-                    if(targetDictionary != null)
+                    if (targetDictionary != null)
                     {
                         var call = Expression.Call(typeof(TypeConverter<TSource, TTarget>), "CopyDictionary",
                                                    new[]
@@ -409,7 +448,7 @@ namespace CqlSharp.Serialization
                 where TTargetD : IDictionary<TTargetKey, TTargetVal>, new()
             {
                 var result = new TTargetD();
-                foreach(var kvp in source)
+                foreach (var kvp in source)
                 {
                     result.Add(ChangeType<TSourceKey, TTargetKey>(kvp.Key),
                                ChangeType<TSourceVal, TTargetVal>(kvp.Value));
@@ -428,7 +467,7 @@ namespace CqlSharp.Serialization
             /// <returns> </returns>
             private static Expression GetToStringConversion(Type srcType, Type targetType, ParameterExpression src)
             {
-                if(targetType == typeof(string))
+                if (targetType == typeof(string))
                 {
                     MethodInfo method = srcType.GetMethod("ToString", Type.EmptyTypes);
                     return AddNullCheck(srcType, targetType, src, Expression.Call(src, method));
@@ -463,7 +502,7 @@ namespace CqlSharp.Serialization
             private static Expression AddNullCheck(Type srcType, Type targetType, Expression src, Expression call)
             {
                 //check if src can be null, and if not, return immediatly
-                if(srcType.IsValueType)
+                if (srcType.IsValueType)
                     return call;
 
                 return Expression.Condition(

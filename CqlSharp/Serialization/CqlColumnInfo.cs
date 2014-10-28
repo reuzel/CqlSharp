@@ -14,8 +14,13 @@
 // limitations under the License.
 
 using System;
+using System.Collections;
+using System.Collections.Generic;
+using System.ComponentModel;
+using System.Linq;
 using System.Linq.Expressions;
 using System.Reflection;
+using System.Runtime.Remoting;
 
 namespace CqlSharp.Serialization
 {
@@ -79,6 +84,11 @@ namespace CqlSharp.Serialization
         /// The function to read the member (compiled expression for performance reasons)
         /// </summary>
         private Func<TTable, TMember> _readFunction;
+
+        /// <summary>
+        /// function to use to compare two instance values of this column
+        /// </summary>
+        private Func<TMember, TMember, bool> _equalFunction;
 
         /// <summary>
         /// Gets the column name.
@@ -275,6 +285,58 @@ namespace CqlSharp.Serialization
             column.Write(target, value);
         }
 
+        /// <summary>
+        /// Determines whether the column value of the specified source is equal to
+        /// the column value of the comparand
+        /// </summary>
+        /// <param name="source">The source.</param>
+        /// <param name="comperand">The comperand.</param>
+        /// <returns></returns>
+        public bool IsEqual(TTable source, TTable comperand)
+        {
+            var sourceValue = ReadFunction(source);
+            var comperandValue = ReadFunction(comperand);
+
+            return (sourceValue == null && comperandValue == null) ||
+                   (sourceValue != null && EqualFunction(sourceValue, comperandValue));
+        }
+
+        private Func<TMember, TMember, bool> EqualFunction
+        {
+            get
+            {
+
+                if(_equalFunction == null)
+                {
+                    if(CqlType.CqlTypeCode == CqlTypeCode.Map ||
+                       CqlType.CqlTypeCode == CqlTypeCode.Set ||
+                       CqlType.CqlTypeCode == CqlTypeCode.List)
+                    {
+                        Type enumerable = typeof(TMember)
+                            .GetInterfaces()
+                            .FirstOrDefault(
+                                i => i.IsGenericType && i.GetGenericTypeDefinition() == typeof(IEnumerable<>));
+
+                        var source = Expression.Parameter(typeof(TMember), "source");
+                        var comperand = Expression.Parameter(typeof(TMember), "comperand");
+                        var call = Expression.Call(typeof(Enumerable),
+                                                   "SequenceEqual",
+                                                   new[] {enumerable.GetGenericArguments()[0]},
+                                                   Expression.Convert(source, enumerable),
+                                                   Expression.Convert(comperand, enumerable));
+                        var lambda = Expression.Lambda<Func<TMember, TMember, bool>>(call, source, comperand);
+                        _equalFunction = lambda.Compile();
+                    }
+                    else
+                    {
+                        _equalFunction = (source, target) => source.Equals(target);
+                    }
+                }
+
+                return _equalFunction;
+            }
+        }
+        
         /// <summary>
         /// Writes a value to the member belonging to this column on the specified target.
         /// </summary>

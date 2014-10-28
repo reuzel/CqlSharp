@@ -138,6 +138,24 @@ namespace CqlSharp.Test
         }
 
         [TestMethod]
+        public void ConvertListIntToArrayInt()
+        {
+            var source = new List<int> { 1, 2, 3 };
+            int[] value = Converter.ChangeType<List<int>, int[]>(source);
+
+            Assert.AreEqual(3, value.Length);
+        }
+
+        [TestMethod]
+        public void ConvertArrayIntToListInt()
+        {
+            var source = new int[] { 1, 2, 3 };
+            List<int> value = Converter.ChangeType<int[], List<int>>(source);
+
+            Assert.AreEqual(3, value.Count);
+        }
+
+        [TestMethod]
         public void ConvertListIntWithDoubleEntriesToSetInt()
         {
             var source = new List<int> {1, 2, 2, 3, 3};

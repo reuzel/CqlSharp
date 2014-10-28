@@ -1,0 +1,115 @@
+﻿<?xml version="1.0" encoding="utf-8"?>
+<Project ToolsVersion="4.0" DefaultTargets="Build" xmlns="http://schemas.microsoft.com/developer/msbuild/2003">
+  <Import Project="$(MSBuildExtensionsPath)\$(MSBuildToolsVersion)\Microsoft.Common.props" Condition="Exists('$(MSBuildExtensionsPath)\$(MSBuildToolsVersion)\Microsoft.Common.props')" />
+  <PropertyGroup>
+    <Configuration Condition=" '$(Configuration)' == '' ">Debug</Configuration>
+    <Platform Condition=" '$(Platform)' == '' ">AnyCPU</Platform>
+    <ProjectGuid>{29CF6A0D-F5DE-49C3-97E4-C2E574FE7797}</ProjectGuid>
+    <OutputType>Library</OutputType>
+    <AppDesignerFolder>Properties</AppDesignerFolder>
+    <RootNamespace>CqlSharp.Linq</RootNamespace>
+    <AssemblyName>CqlSharp.Linq</AssemblyName>
+    <TargetFrameworkVersion>v4.5</TargetFrameworkVersion>
+    <FileAlignment>512</FileAlignment>
+  </PropertyGroup>
+  <PropertyGroup Condition=" '$(Configuration)|$(Platform)' == 'Debug|AnyCPU' ">
+    <DebugSymbols>true</DebugSymbols>
+    <DebugType>full</DebugType>
+    <Optimize>false</Optimize>
+    <OutputPath>bin\Debug\</OutputPath>
+    <DefineConstants>DEBUG;TRACE</DefineConstants>
+    <ErrorReport>prompt</ErrorReport>
+    <WarningLevel>4</WarningLevel>
+  </PropertyGroup>
+  <PropertyGroup Condition=" '$(Configuration)|$(Platform)' == 'Release|AnyCPU' ">
+    <DebugType>pdbonly</DebugType>
+    <Optimize>true</Optimize>
+    <OutputPath>bin\Release\</OutputPath>
+    <DefineConstants>TRACE</DefineConstants>
+    <ErrorReport>prompt</ErrorReport>
+    <WarningLevel>4</WarningLevel>
+  </PropertyGroup>
+  <ItemGroup>
+    <Reference Include="System" />
+    <Reference Include="System.Core" />
+    <Reference Include="System.Numerics" />
+    <Reference Include="System.Data.DataSetExtensions" />
+    <Reference Include="System.Data" />
+    <Reference Include="System.Xml" />
+  </ItemGroup>
+  <ItemGroup>
+    <Compile Include="CqlContext.cs" />
+    <Compile Include="CqlContextBatchTransaction.cs" />
+    <Compile Include="CqlDatabase.cs" />
+    <Compile Include="CqlFunctions.cs" />
+    <Compile Include="CqlLinqException.cs" />
+    <Compile Include="CqlTable.cs" />
+    <Compile Include="CqlToken.cs" />
+    <Compile Include="Expressions\CqlExpressionType.cs" />
+    <Compile Include="Expressions\CqlExpressionVisitor.cs" />
+    <Compile Include="Expressions\DatabaseExpression.cs" />
+    <Compile Include="Expressions\OrderingExpression.cs" />
+    <Compile Include="Expressions\ProjectionExpression.cs" />
+    <Compile Include="Expressions\ExpressionCollectionExtensions.cs" />
+    <Compile Include="Expressions\RelationExpression.cs" />
+    <Compile Include="Expressions\SelectClauseExpression.cs" />
+    <Compile Include="Expressions\SelectorExpression.cs" />
+    <Compile Include="Expressions\SelectStatementExpression.cs" />
+    <Compile Include="Expressions\TermExpression.cs" />
+    <Compile Include="ICqlTable.cs" />
+    <Compile Include="Mutations\CqlBuilder.cs" />
+    <Compile Include="Mutations\CqlEntityComparer.cs" />
+    <Compile Include="Mutations\EntityHelper.cs" />
+    <Compile Include="Mutations\EntityKey.cs" />
+    <Compile Include="Mutations\IEntityKey.cs" />
+    <Compile Include="Mutations\ITableChangeTracker.cs" />
+    <Compile Include="Mutations\IEntityEntry.cs" />
+    <Compile Include="Mutations\ObjectReferenceEqualityComparer.cs" />
+    <Compile Include="Mutations\TableChangeTracker.cs" />
+    <Compile Include="Mutations\EntityEntry.cs" />
+    <Compile Include="Mutations\EntityState.cs" />
+    <Compile Include="Mutations\CqlChangeTracker.cs" />
+    <Compile Include="Properties\AssemblyInfo.cs" />
+    <Compile Include="CqlQueryable.cs" />
+    <Compile Include="Query\BuilderBase.cs" />
+    <Compile Include="Query\CompiledQuery.cs" />
+    <Compile Include="Query\IQueryPlan.cs" />
+    <Compile Include="Query\VariableMapBuilder.cs" />
+    <Compile Include="Query\CqlQuery.cs" />
+    <Compile Include="Query\CqlQueryProvider.cs" />
+    <Compile Include="Query\CqlTextBuilder.cs" />
+    <Compile Include="Query\ExpressionExtensions.cs" />
+    <Compile Include="Query\ExpressionTranslator.cs" />
+    <Compile Include="Query\OrderBuilder.cs" />
+    <Compile Include="Query\PartialEvaluator.cs" />
+    <Compile Include="Query\ProjectionReader.cs" />
+    <Compile Include="Query\ProjectorBuilder.cs" />
+    <Compile Include="Query\QueryPlan.cs" />
+    <Compile Include="Query\SelectBuilder.cs" />
+    <Compile Include="Query\TrackingReader.cs" />
+    <Compile Include="Query\WhereBuilder.cs" />
+    <Compile Include="TypeSystem.cs" />
+  </ItemGroup>
+  <ItemGroup>
+    <None Include="BuildPackage.cmd" />
+    <None Include="CqlSharp.Linq.nuspec" />
+    <None Include="packages.config" />
+  </ItemGroup>
+  <ItemGroup>
+    <ProjectReference Include="..\CqlSharp\CqlSharp.csproj">
+      <Project>{45f69fdc-eef6-43da-a457-95ee553c68a1}</Project>
+      <Name>CqlSharp</Name>
+    </ProjectReference>
+  </ItemGroup>
+  <Import Project="$(MSBuildToolsPath)\Microsoft.CSharp.targets" />
+  <PropertyGroup>
+    <PostBuildEvent>$(ProjectDir)BuildPackage.cmd $(ConfigurationName)</PostBuildEvent>
+  </PropertyGroup>
+  <!-- To modify your build process, add your task inside one of the targets below and uncomment it. 
+       Other similar extension points exist, see Microsoft.Common.targets.
+  <Target Name="BeforeBuild">
+  </Target>
+  <Target Name="AfterBuild">
+  </Target>
+  -->
+</Project>
