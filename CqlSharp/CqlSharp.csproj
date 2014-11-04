@@ -70,6 +70,7 @@
     <Compile Include="DiscoveryScope.cs" />
     <Compile Include="Extensions\Loader.cs" />
     <Compile Include="Properties\Annotations.cs" />
+    <Compile Include="Properties\Version.cs" />
     <Compile Include="Serialization\CqlCustomTypeAttribute.cs" />
     <Compile Include="Serialization\CqlEntityAttribute.cs" />
     <Compile Include="Serialization\CqlTypeConverterAttribute.cs" />

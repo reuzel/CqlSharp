@@ -278,7 +278,7 @@ namespace CqlSharp
                 if(_openTask == null || _openTask.IsCanceled)
                     return ConnectionState.Closed;
 
-                if(_openTask.IsFaulted || (_connection != null && !_connection.IsConnected))
+                if(_openTask.IsFaulted || (_connection != null && !_connection.IsAvailable))
                     return ConnectionState.Broken;
 
                 if(!_openTask.IsCompleted)

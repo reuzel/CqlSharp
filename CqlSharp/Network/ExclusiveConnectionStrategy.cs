@@ -84,7 +84,7 @@ namespace CqlSharp.Network
                 //try pick an unused connection
                 while(_connections.TryPop(out connection))
                 {
-                    if(connection.IsConnected)
+                    if(connection.IsAvailable)
                     {
                         connection.AllowCleanup = false;
                         return connection;

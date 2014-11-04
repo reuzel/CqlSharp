@@ -30,7 +30,7 @@ namespace CqlSharp.Protocol
         /// <param name="code">The error code.</param>
         /// <param name="message">The message.</param>
         internal ProtocolException(byte protocolVersion, ErrorCode code, string message)
-            : base(message)
+            : base(code + ": "+message)
         {
             Code = code;
             ProtocolVersion = protocolVersion;
@@ -44,7 +44,7 @@ namespace CqlSharp.Protocol
         /// <param name="message">The message.</param>
         /// <param name="tracingId">The tracing identifier.</param>
         internal ProtocolException(byte protocolVersion, ErrorCode code, string message, Guid? tracingId)
-            : base(message)
+            : base(code + ": " + message)
         {
             Code = code;
             ProtocolVersion = protocolVersion;
@@ -76,15 +76,15 @@ namespace CqlSharp.Protocol
         /// </value>
         public Guid? TracingId { get; private set; }
 
-        /// <summary>
-        /// Returns a <see cref="System.String" /> that represents this instance.
-        /// </summary>
-        /// <returns>
-        /// A <see cref="System.String" /> that represents this instance.
-        /// </returns>
-        public override string ToString()
-        {
-            return string.Format("code {0} : {1}", Code, base.ToString());
-        }
+        ///// <summary>
+        ///// Returns a <see cref="System.String" /> that represents this instance.
+        ///// </summary>
+        ///// <returns>
+        ///// A <see cref="System.String" /> that represents this instance.
+        ///// </returns>
+        //public override string ToString()
+        //{
+        //    return string.Format("code {0} : {1}", Code, base.ToString());
+        //}
     }
 }

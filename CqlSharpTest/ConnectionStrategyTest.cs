@@ -408,7 +408,7 @@ namespace CqlSharp.Test
                 connection.LoadGet = () => connLoad;
 
                 //set some default properties
-                connection.IsConnectedGet = () => true;
+                connection.IsAvailableGet = () => true;
                 connection.IsIdleGet = () => false;
             };
         }

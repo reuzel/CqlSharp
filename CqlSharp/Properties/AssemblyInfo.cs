@@ -40,20 +40,6 @@ using System.Runtime.InteropServices;
 
 [assembly: Guid("c4c03972-5840-4c9c-b11f-876a69db3338")]
 
-// Version information for an assembly consists of the following four values:
-//
-//      Major Version
-//      Minor Version 
-//      Build Number
-//      Revision
-//
-// You can specify all the values or you can default the Build and Revision Numbers 
-// by using the '*' as shown below:
-// [assembly: AssemblyVersion("1.0.*")]
-
-[assembly: AssemblyVersion("0.40.1.0")]
-[assembly: AssemblyFileVersion("0.40.1.0")]
-
 #if DEBUG
 [assembly: InternalsVisibleTo("CqlSharp.Fakes")]
 [assembly: InternalsVisibleTo("CqlSharp.Test")]

@@ -273,14 +273,17 @@ namespace CqlSharp.Network
                     }
                     catch(ProtocolException pex)
                     {
+                        logger.LogWarning("Could not open cluster via {0}: {1}",seedAddress, pex.Message);
+
                         //node is not available, or starting up, try next, otherwise throw error
                         if(pex.Code != ErrorCode.Overloaded && pex.Code != ErrorCode.IsBootstrapping)
                             throw;
+
                     }
                     catch(SocketException ex)
                     {
                         //seed not reachable, try next
-                        logger.LogWarning("Could not open TCP connection to seed {0}: {1}", seedAddress, ex);
+                        logger.LogWarning("Could not open TCP connection to seed {0}: {1}", seedAddress, ex.Message);
                     }
                     catch(IOException ex)
                     {
@@ -295,6 +298,7 @@ namespace CqlSharp.Network
             {
                 foreach(var node in _nodes)
                     node.Dispose();
+
                 throw new ObjectDisposedException("Cluster", "Cluster was disposed while opening");
             }
 
@@ -347,7 +351,7 @@ namespace CqlSharp.Network
 
             try
             {
-                if(_maintenanceConnection == null || !_maintenanceConnection.IsConnected)
+                if(_maintenanceConnection == null || !_maintenanceConnection.IsAvailable)
                 {
                     //setup maintenance connection
                     logger.LogVerbose("Creating new maintenance connection");
@@ -363,15 +367,15 @@ namespace CqlSharp.Network
                     if(connection == null)
                         throw new CqlException("Can not obtain connection for maintenance channel");
 
+                    //register for events
+                    await connection.RegisterForClusterChangesAsync(logger).AutoConfigureAwait();
+
                     //setup event handlers
-                    connection.OnConnectionChange += (src, ev) => SetupMaintenanceConnection(logger);
+                    connection.OnConnectionChange += (src, ev) => Scheduler.RunOnThreadPool(() => SetupMaintenanceConnection(logger));
                     connection.OnClusterChange += OnClusterChange;
 
                     //store the new connection
                     _maintenanceConnection = connection;
-
-                    //register for events
-                    await connection.RegisterForClusterChangesAsync(logger).AutoConfigureAwait();
 
                     logger.LogInfo("Registered for cluster changes using {0}", connection);
                 }
@@ -391,8 +395,8 @@ namespace CqlSharp.Network
                 return;
 
             //wait a moment, try again
-            logger.LogVerbose("Waiting 2secs before retrying setup maintenance connection");
-            await Task.Delay(2000).AutoConfigureAwait();
+            logger.LogVerbose("Waiting 5secs before retrying setup maintenance connection");
+            await Task.Delay(5000).AutoConfigureAwait();
 
             SetupMaintenanceConnection(logger);
         }
@@ -416,7 +420,7 @@ namespace CqlSharp.Network
                 //get a connection
                 if(seed != null && seed.IsUp)
                     c = seed.GetOrCreateConnection();
-                else if(_maintenanceConnection != null && _maintenanceConnection.IsConnected)
+                else if(_maintenanceConnection != null && _maintenanceConnection.IsAvailable)
                 {
                     c = _maintenanceConnection;
                     seed = c.Node;
@@ -641,6 +645,9 @@ namespace CqlSharp.Network
             {
                 if(args.Change.Equals(ClusterChange.New) || args.Change.Equals(ClusterChange.Removed))
                 {
+                    //delay as Cassandra is typically to early with sending these changes (Gossip needs to settle)
+                    await Task.Delay(5000).AutoConfigureAwait();
+                
                     logger.LogVerbose("Cluster changed: {0} is {1}", args.Node, args.Change);
 
                     //get the connection from which we received the event
@@ -648,8 +655,6 @@ namespace CqlSharp.Network
                     var node = connection.Node;
 
                     //refetch the cluster configuration
-                    await Task.Delay(5000).AutoConfigureAwait();
-                    //delay as Add is typically send a bit too early (and therefore no tokens are distributed)
                     await
                         GetClusterInfoAsync(node, logger, CancellationToken.None)
                             .AutoConfigureAwait();
@@ -660,10 +665,11 @@ namespace CqlSharp.Network
 
                     if(upNode != null)
                     {
+                        //delay as Cassandra is typically to early with sending these changes (Gossip needs to settle)
+                        await Task.Delay(5000).AutoConfigureAwait();
+
                         using(logger.ThreadBinding())
                         {
-                            await Task.Delay(5000).AutoConfigureAwait();
-                            //delay as Up is typically send a bit too early
                             upNode.Reactivate();
                         }
                     }

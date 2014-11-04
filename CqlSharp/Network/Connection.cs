@@ -59,6 +59,8 @@ namespace CqlSharp.Network
         private readonly object _syncLock = new object();
 
         private readonly SemaphoreSlim _writeLock;
+        private readonly SemaphoreSlim _readLock;
+
         private int _activeRequests;
         private bool _allowCompression;
         private TcpClient _client;
@@ -68,8 +70,7 @@ namespace CqlSharp.Network
         private int _load;
         private Stream _readStream;
         private Stream _writeStream;
-
-
+        
         /// <summary>
         /// Initializes a new instance of the <see cref="Connection" /> class.
         /// </summary>
@@ -81,7 +82,6 @@ namespace CqlSharp.Network
             _nr = nr;
             _config = node.Cluster.Config;
 
-
             //setup support for multiple queries
             _availableQueryIds = new Queue<short>();
             _usedQueryIds = 0;
@@ -89,7 +89,8 @@ namespace CqlSharp.Network
 
             //setup locks
             _writeLock = new SemaphoreSlim(1);
-            _readLoopCompleted = new ManualResetEventSlim(false);
+            _readLock = new SemaphoreSlim(0, int.MaxValue);
+            _readLoopCompleted = new ManualResetEventSlim(true);
             //_frameSubmitLock is initialized later when protocol version is known
 
             //setup state
@@ -98,10 +99,10 @@ namespace CqlSharp.Network
             _connectionState = ConnectionState.Created;
             _lastActivity = DateTime.UtcNow.Ticks;
 
-            Logger.Current.LogVerbose("{0} created", this);
             _maxIdleTicks = TimeSpan.FromSeconds(_config.MaxConnectionIdleTime).Ticks;
-
             AllowCleanup = true;
+
+            Logger.Current.LogVerbose("{0} created", this);
         }
 
         /// <summary>
@@ -130,18 +131,18 @@ namespace CqlSharp.Network
 
         /// <summary>
         /// Gets a value indicating whether this instance is idle. An connection is idle if it
-        /// has failed or was disconnected, or when the load is zero and the last activity is older
-        /// than the configured MaxConnectionIdleTime, cleanup is allowed and the connection is actually
-        /// connected to a server.
+        /// is connected and when the load is zero and the last activity is older
+        /// than the configured MaxConnectionIdleTime, and cleanup is allowed.
         /// </summary>
         /// <value> <c>true</c> if this instance is idle; otherwise, <c>false</c> . </value>
         public bool IsIdle
         {
             get
             {
-                return _connectionState == ConnectionState.Closed ||
-                       (AllowCleanup && _connectionState == ConnectionState.Connected && _activeRequests == 0 &&
-                        (DateTime.UtcNow.Ticks - Interlocked.Read(ref _lastActivity)) > _maxIdleTicks);
+                return _connectionState == ConnectionState.Connected &&
+                       AllowCleanup && 
+                       _activeRequests == 0 &&
+                       (DateTime.UtcNow.Ticks - Interlocked.Read(ref _lastActivity)) > _maxIdleTicks;
             }
         }
 
@@ -155,12 +156,18 @@ namespace CqlSharp.Network
         }
 
         /// <summary>
-        /// Gets a value indicating whether this instance is connected.
+        /// Gets a value indicating whether this instance is available for executing queries.
         /// </summary>
-        /// <value> <c>true</c> if this instance is connected; otherwise, <c>false</c> . </value>
-        public bool IsConnected
+        /// <value> <c>true</c> if this instance is available; otherwise, <c>false</c> . </value>
+        public bool IsAvailable
         {
-            get { return _connectionState == ConnectionState.Created || _connectionState == ConnectionState.Connecting || _connectionState == ConnectionState.Connected; }
+            get
+            {
+                var state = _connectionState;
+                return state == ConnectionState.Created || 
+                       state == ConnectionState.Connecting ||
+                       state == ConnectionState.Connected;
+            }
         }
 
         /// <summary>
@@ -225,47 +232,62 @@ namespace CqlSharp.Network
         /// </summary>
         public void Dispose()
         {
-            Close();
-
-            //dispose remaining locks
-            _writeLock.Dispose();
-            _readLoopCompleted.Dispose();
-
-            //clear callbacks
-            OnConnectionChange = null;
-            OnLoadChange = null;
+            //close the connection
+            Close(false, true);
         }
 
         /// <summary>
-        /// Closes this connection
+        /// Closes the TCP connection underlying this connection if any
         /// </summary>
-        /// <param name="error">The error that forces this connection to be closed.</param>
-        protected void Close(Exception error = null)
+        private void Disconnect()
+        {
+            //close client if it exists
+            TcpClient client = Interlocked.Exchange(ref _client, null);
+            if (client != null)
+            {
+                //close client
+                client.Close();
+
+                //signal that this connection is closed
+                Logger.Current.LogVerbose("TCP connection of {0} closed.", this);
+
+                //signal readLock to allow readloop to cleanup
+                _readLock.Release();
+            }
+        }
+
+        /// <summary>
+        /// Closes this connection and moves it into closed state
+        /// </summary>
+        /// <param name="failed">if set to <c>true</c> [failed].</param>
+        /// <param name="suppressEvent">indicate wether the closed event needs to be suppressed</param>
+        private void Close(bool failed, bool suppressEvent=false)
         {
             int previousState = Interlocked.Exchange(ref _connectionState, ConnectionState.Closed);
             if (previousState != ConnectionState.Closed)
             {
-                //dispose frame submit lock
-                if (_frameSubmitLock != null)
-                    _frameSubmitLock.Dispose();
+                //Disconnect the connection
+                Disconnect();
 
-                //close client if it exists, and its inner socket exists
-                if (_client != null && _client.Client != null && _client.Client.Connected)
+                //signal that connection closed
+                if (OnConnectionChange != null && !suppressEvent)
                 {
-                    if (error != null)
-                    {
-                        _client.LingerState = new LingerOption(true, 0); //TCP reset
-                        Logger.Current.LogWarning("Resetting {0} because of error {1}", this, error);
-                    }
-
-                    _client.Close();
-                    _client = null;
+                    OnConnectionChange(this, new ConnectionChangeEvent { Failure = failed, Connected = false });
                 }
 
+                //dispose remaining locks
+                if (_frameSubmitLock != null) _frameSubmitLock.Dispose();
+                _writeLock.Dispose();
+                _readLoopCompleted.Dispose();
+
+                //clear callbacks
+                OnConnectionChange = null;
+                OnLoadChange = null;
+                OnClusterChange = null;
+
+                //log closing of connection
                 Logger.Current.LogInfo("{0} closed.", this);
 
-                if(previousState == ConnectionState.Connected && OnConnectionChange != null)
-                    OnConnectionChange(this, new ConnectionChangeEvent { Exception = error, Connected = false });
             }
         }
 
@@ -273,8 +295,11 @@ namespace CqlSharp.Network
         /// Opens the connection. The actual open sequence will be executed at most once.
         /// </summary>
         /// <returns> Task that represents the open procedure for this connection </returns>
-        internal Task OpenAsync(Logger logger)
+        public Task OpenAsync(Logger logger)
         {
+            if (_connectionState == ConnectionState.Closed)
+                throw new ObjectDisposedException(ToString());
+
             if (_connectTask == null)
             {
                 lock (_syncLock)
@@ -288,31 +313,36 @@ namespace CqlSharp.Network
         }
 
         /// <summary>
-        /// Opens the connection
+        /// Opens the connection. Called once per connection only
         /// </summary>
         private async Task OpenAsyncInternal(Logger logger)
         {
-            if (_connectionState == ConnectionState.Closed)
-                throw new ObjectDisposedException("Connection disposed before opening!");
-            
+            //set state to connecting
+            int previousState = Interlocked.CompareExchange(ref _connectionState, ConnectionState.Connecting, ConnectionState.Created);
+
+            if (previousState == ConnectionState.Closed)
+                throw new ObjectDisposedException(ToString());
+
+            if (previousState != ConnectionState.Created)
+                throw new InvalidOperationException("Opening a connection that is already connected!");
+
             try
             {
                 while(true)
                 {
-                    //set state to connecting
-                    Interlocked.Exchange(ref _connectionState, ConnectionState.Connecting);
-
                     //connect
                     await ConnectAsync().AutoConfigureAwait();
-                    
-                    _writeStream = _client.GetStream();
-                    _readStream = _client.GetStream();
-                    
+
+                    //get streams
+                    Stream tcpStream = _client.GetStream();
+                    _writeStream = tcpStream;
+                    _readStream = tcpStream;
+
                     logger.LogVerbose("TCP connection for {0} is opened", this);
 
                     //start readloop
-                    Scheduler.RunOnIOThread((Action)StartReadingAsync);
-                    
+                    Scheduler.RunOnIOThread((Action)ReadFramesAsync);
+
                     try
                     {
                         logger.LogVerbose("Attempting to connect using protocol version {0}", Node.ProtocolVersion);
@@ -320,7 +350,7 @@ namespace CqlSharp.Network
                         await NegotiateConnectionOptionsAsync(logger).AutoConfigureAwait();
                         break;
                     }
-                    catch (ProtocolException pex)
+                    catch(ProtocolException pex)
                     {
                         //In case of a protocol version mismatch, Cassandra will reply with an error 
                         //using the supported protocol version. If we are using the correct version 
@@ -329,17 +359,18 @@ namespace CqlSharp.Network
                         if(Node.ProtocolVersion == pex.ProtocolVersion)
                             throw;
 
-                        logger.LogVerbose("Failed connecting using protocol version {0}, retrying with protocol version {1}...",
-                                            Node.ProtocolVersion, pex.ProtocolVersion);
-                        
+                        logger.LogVerbose(
+                            "Failed connecting using protocol version {0}, retrying with protocol version {1}...",
+                            Node.ProtocolVersion, pex.ProtocolVersion);
+
                         //set protocol version to the one received
                         Node.ProtocolVersion = pex.ProtocolVersion;
 
                         //close the connection (required as protocols are not backwards compatible, so stream may be corrupt now)
                         using(logger.ThreadBinding())
-                            Close();
+                            Disconnect();
 
-                        //wait until readloop finishes
+                        //wait until the readloop has stopped
                         _readLoopCompleted.Wait();
                     }
                 }
@@ -348,22 +379,24 @@ namespace CqlSharp.Network
                 await StartupAsync(logger).AutoConfigureAwait();
 
                 //yeah, connected
-                Interlocked.Exchange(ref _connectionState, ConnectionState.Connected);
+                previousState = Interlocked.CompareExchange(ref _connectionState, ConnectionState.Connected, ConnectionState.Connecting);
+                if(previousState!=ConnectionState.Connecting)
+                    throw new ObjectDisposedException(ToString(), "Connection closed while opening");
 
                 //notify connection changed
-                using (logger.ThreadBinding())
+                using(logger.ThreadBinding())
                 {
-                    if (OnConnectionChange != null)
-                        OnConnectionChange(this, new ConnectionChangeEvent { Connected = true });
+                    if(OnConnectionChange != null)
+                        OnConnectionChange(this, new ConnectionChangeEvent {Connected = true});
                 }
 
                 logger.LogInfo("{0} is opened using Cql Protocol v{1}", this, Node.ProtocolVersion);
             }
-            catch (Exception ex)
+            catch (Exception)
             {
                 using (logger.ThreadBinding())
                 {
-                    Close(ex);
+                    Close(true);
                     throw;
                 }
             }
@@ -409,8 +442,8 @@ namespace CqlSharp.Network
 
             var frame =
                 await SendRequestAsyncInternal(options, logger, 1, CancellationToken.None).AutoConfigureAwait();
+            
             var supported = frame as SupportedFrame;
-
             if (supported == null)
                 throw new ProtocolException(frame.ProtocolVersion, 0, "Expected Supported frame not received");
 
@@ -584,8 +617,11 @@ namespace CqlSharp.Network
         /// <param name="load"> the load indication of the request. Used for balancing queries over nodes and connections </param>
         /// <param name="token"> The token. </param>
         /// <returns> </returns>
-        internal Task<Frame> SendRequestAsync(Frame frame, Logger logger, int load, CancellationToken token)
+        public Task<Frame> SendRequestAsync(Frame frame, Logger logger, int load, CancellationToken token)
         {
+            if (_connectionState == ConnectionState.Closed)
+                throw new ObjectDisposedException(ToString());
+
             if(_connectionState == ConnectionState.Connected && !token.CanBeCanceled)
                 return SendRequestAsyncInternal(frame, logger, load, token);
 
@@ -655,9 +691,9 @@ namespace CqlSharp.Network
         {
             try
             {
-                //make sure we are connected
-                if (_connectionState == ConnectionState.Closed)
-                    throw new IOException("Can't send request to a closed connection.");     
+                //make sure we aren't disposed
+                if(_connectionState == ConnectionState.Closed)
+                    throw new ObjectDisposedException(ToString());
 
                 //count the operation
                 Interlocked.Increment(ref _activeRequests);
@@ -706,9 +742,9 @@ namespace CqlSharp.Network
 
                     try
                     {
-                        //final check to make sure we're connected
+                        //make very sure we aren't disposed
                         if (_connectionState == ConnectionState.Closed)
-                            throw new IOException("Connection closed before request could be send.");
+                            throw new ObjectDisposedException(ToString());
 
                         logger.LogVerbose("Sending {0} Frame with Id {1} over {2}", frame.OpCode, id, this);
 
@@ -717,6 +753,9 @@ namespace CqlSharp.Network
                             frameBytes.CopyTo(_writeStream);
                         else
                             await frameBytes.CopyToAsync(_writeStream).AutoConfigureAwait();
+
+                        //unblock readloop to read result
+                        _readLock.Release();
                     }
                     finally
                     {
@@ -798,7 +837,7 @@ namespace CqlSharp.Network
                         using (logger.ThreadBinding())
                         {
                             //IO or node status related error, dispose this connection
-                            Close(pex);
+                            Close(true);
                             throw;
                         }
 
@@ -811,12 +850,12 @@ namespace CqlSharp.Network
             {
                 throw new IOException("Connection closed while processing request", odex);
             }
-            catch (Exception ex)
+            catch (Exception)
             {
                 using (logger.ThreadBinding())
                 {
                     //connection collapsed, dispose this connection
-                    Close(ex);
+                    Close(true);
                     throw;
                 }
             }
@@ -825,7 +864,7 @@ namespace CqlSharp.Network
         /// <summary>
         /// Starts a readloop
         /// </summary>
-        private async void StartReadingAsync()
+        private async void ReadFramesAsync()
         {
             var logger = _node.Cluster.LoggerManager.GetLogger("CqlSharp.Connection.ReadLoop");
 
@@ -839,6 +878,16 @@ namespace CqlSharp.Network
                 {
                     //logger.LogVerbose("Waiting for new frame to arrive on {0}", this);
 
+                    //wait until signal that reading can commence
+                    await _readLock.WaitAsync().AutoConfigureAwait();
+
+                    //check if we are still connected, if not exit
+                    if(_client==null)
+                    {
+                        logger.LogVerbose("Exiting readloop of {0} as TCP connection is disposed", this);
+                        break;
+                    }
+
                     //read next frame from stream
                     Frame frame = await Frame.FromStream(_readStream).AutoConfigureAwait();
 
@@ -847,7 +896,7 @@ namespace CqlSharp.Network
                     {
                         using(logger.ThreadBinding())
                         {
-                            Close();
+                            Close(false);
                             break;
                         }
                     }
@@ -890,12 +939,12 @@ namespace CqlSharp.Network
                     //logger.LogVerbose("Waiting for frame content to be read from {0}", this);
                     await frame.WaitOnBodyRead().AutoConfigureAwait();
                 }
-                catch (Exception ex)
+                catch (Exception)
                 {
                     using (logger.ThreadBinding())
                     {
                         //error occured during read operaton, assume connection is dead, switch state
-                        Close(ex);
+                        Close(true);
                     }
                 }
             }
@@ -928,15 +977,26 @@ namespace CqlSharp.Network
         /// <exception cref="CqlException">Could not register for cluster changes!</exception>
         public async Task RegisterForClusterChangesAsync(Logger logger)
         {
+            if (_connectionState == ConnectionState.Closed)
+                throw new ObjectDisposedException(ToString());
+
+            //make sure the connection is open
+            await OpenAsync(logger);
+
+            //send the register frame
             var registerframe = new RegisterFrame(new List<string> { "TOPOLOGY_CHANGE", "STATUS_CHANGE" });
             Frame result =
                 await SendRequestAsyncInternal(registerframe, logger, 1, CancellationToken.None).AutoConfigureAwait();
 
+            //check result
             if (!(result is ReadyFrame))
                 throw new CqlException("Could not register for cluster changes!");
 
             //increase request count to prevent connection to go in Idle state
             Interlocked.Increment(ref _activeRequests);
+
+            //release readLock to have readloop read the next event
+            _readLock.Release();
         }
 
         /// <summary>
@@ -945,6 +1005,9 @@ namespace CqlSharp.Network
         /// <param name="frame"> The frame. </param>
         private void ProcessEvent(EventFrame frame)
         {
+            //allow next event to arrive on readloop
+            _readLock.Release();
+
             if (frame.EventType.Equals("TOPOLOGY_CHANGE", StringComparison.InvariantCultureIgnoreCase) ||
                frame.EventType.Equals("STATUS_CHANGE", StringComparison.InvariantCultureIgnoreCase))
             {

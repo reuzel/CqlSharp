@@ -1,3 +1,7 @@
+## Version 0.41.0 Linq upgrade
+* Improved type system: support for arrays in value conversion (from/to list types)
+* adding IsEqual to CqlColumnInfo to compare column values of two entities
+
 ## Version 0.40.1 - Fix CqlConnection.Open retry bug
 * Solves issue with connection to 2.0 and 1.x clusters when MaxQueryRetries=0
 * Retries CqlConnection.Open up to MaxQueryRetries + 1, when opening connections to the cluster fails

@@ -177,8 +177,7 @@ namespace CqlSharp
                     if (TypeExtensions.TupleTypes.Contains(genericType))
                         return new TupleTypeFactory().CreateType(newType);
                 }
-
-               
+                
                 //get all generic interfaces the type implements
                 var interfaces = newType.GetInterfaces()
                            .Where(i => i.IsGenericType)
@@ -198,7 +197,7 @@ namespace CqlSharp
                     return new SetTypeFactory().CreateType(newType);
 
                 //check for list types
-                if (interfaces.Any(i => i == typeof(IList<>) || i == typeof(IEnumerable<>)))
+                if (interfaces.Any(i => i == typeof(IEnumerable<>)))
                     return new ListTypeFactory().CreateType(newType);
 
                 //check for user types

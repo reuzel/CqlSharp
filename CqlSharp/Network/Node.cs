@@ -85,11 +85,6 @@ namespace CqlSharp.Network
         private int _load;
 
         /// <summary>
-        /// The number of open/created connections
-        /// </summary>
-        private int _openConnections;
-
-        /// <summary>
         /// The timer used to restore the node to up status
         /// </summary>
         private Timer _reactivateTimer;
@@ -149,7 +144,7 @@ namespace CqlSharp.Network
         /// <value> <c>true</c> if this instance is up; otherwise, <c>false</c> . </value>
         public bool IsUp
         {
-            get { return _status == HostState.Up; }
+            get { return !_disposed && _status == HostState.Up; }
         }
 
         /// <summary>
@@ -161,13 +156,25 @@ namespace CqlSharp.Network
             get { return _load; }
         }
 
+
         /// <summary>
         /// Gets the connection count.
         /// </summary>
         /// <value> The connection count. </value>
         public int ConnectionCount
         {
-            get { return _openConnections; }
+            get
+            {
+                _connectionLock.EnterReadLock();
+                try
+                {
+                    return _connections.Count;
+                }
+                finally
+                {
+                    _connectionLock.ExitReadLock();
+                }
+            }
         }
 
         /// <summary>
@@ -193,16 +200,21 @@ namespace CqlSharp.Network
             {
                 _disposed = true;
 
-                foreach(var connection in _connections)
-                    connection.Dispose();
+                //dispose the lock
+                _connectionLock.Dispose();
 
-                if(_connectionCleanupTimer != null)
-                    _connectionCleanupTimer.Dispose();
-
+                //dispose reactivation timer
                 if(_reactivateTimer != null)
                     _reactivateTimer.Dispose();
 
-                _connectionLock.Dispose();
+                //dispose all remaining connections
+                foreach(var connection in _connections)
+                    connection.Dispose();
+                _connections.Clear();
+
+                //remove all load, and mark this node as down
+                _load = 0;
+                _status = HostState.Down;
             }
         }
 
@@ -287,8 +299,7 @@ namespace CqlSharp.Network
                 _connectionLock.EnterReadLock();
                 try
                 {
-                    if(_openConnections > 0)
-                        return _connections.Where(c => c.IsConnected).SmallestOrDefault(c => c.Load);
+                    return _connections.Where(c => c.IsAvailable).SmallestOrDefault(c => c.Load);
                 }
                 finally
                 {
@@ -308,61 +319,70 @@ namespace CqlSharp.Network
             if(_disposed)
                 throw new ObjectDisposedException(ToString());
 
-            Connection connection = null;
-
-            if(IsUp && _openConnections < Cluster.Config.MaxConnectionsPerNode)
+            _connectionLock.EnterWriteLock();
+            try
             {
-                _connectionLock.EnterWriteLock();
-                try
+                //don't add if maximum of connections are reached
+                if(_connections.Count > Cluster.Config.MaxConnectionsPerNode)
+                    return null;
+
+                //create new connection
+                var connection = new Connection(this, _counter++);
+
+                //register to connection and load changes
+                connection.OnConnectionChange += ConnectionChange;
+                connection.OnLoadChange += LoadChange;
+
+                //add connection to list of open connections
+                _connections.Add(connection);
+
+                //create cleanup timer if it does not exist yet
+                if(_connectionCleanupTimer == null)
                 {
-                    //double check, we may have been raced for a new connection
-                    if(IsUp && _openConnections < Cluster.Config.MaxConnectionsPerNode)
-                        connection = AddConnection();
+                    _connectionCleanupTimer = new Timer(RemoveIdleConnections, null,
+                                                        TimeSpan.FromSeconds(
+                                                            Cluster.Config.MaxConnectionIdleTime),
+                                                        TimeSpan.FromSeconds(
+                                                            Cluster.Config.MaxConnectionIdleTime));
                 }
-                finally
-                {
-                    _connectionLock.ExitWriteLock();
-                }
+
+                return connection;
             }
-
-            //dispose just created connection, when dispose is called just when connection is created
-            if(connection != null && _disposed)
-                connection.Dispose();
-
-            //return connection (if any)
-            return connection;
+            finally
+            {
+                _connectionLock.ExitWriteLock();
+            }
         }
 
         /// <summary>
-        /// Adds a new connection to this host's pool of connections.
+        /// Removes the connection from the node.
         /// </summary>
-        /// <returns></returns>
-        private Connection AddConnection()
+        /// <param name="connection">The connection.</param>
+        private int RemoveConnection(Connection connection)
         {
-            //create new connection
-            var connection = new Connection(this, _counter++);
-
-            //register to connection and load changes
-            connection.OnConnectionChange += ConnectionChange;
-            connection.OnLoadChange += LoadChange;
-
-            //assume it will succesfully open (to avoid too many connections to be opened)
-            _openConnections++;
-
-            //add connection to list of open connections
-            _connections.Add(connection);
-
-            //create cleanup timer if it does not exist yet
-            if(_connectionCleanupTimer == null)
+            //reduce number of open connections
+            _connectionLock.EnterWriteLock();
+            try
             {
-                _connectionCleanupTimer = new Timer(RemoveIdleConnections, null,
-                                                    TimeSpan.FromSeconds(
-                                                        Cluster.Config.MaxConnectionIdleTime),
-                                                    TimeSpan.FromSeconds(
-                                                        Cluster.Config.MaxConnectionIdleTime));
-            }
+                //dispose the connection
+                connection.Dispose();
 
-            return connection;
+                //remove it from the list
+                _connections.Remove(connection);
+
+                //dispose cleanup timer if this was the last connection
+                if(_connections.Count == 0 && _connectionCleanupTimer != null)
+                {
+                    _connectionCleanupTimer.Dispose();
+                    _connectionCleanupTimer = null;
+                }
+
+                return _connections.Count;
+            }
+            finally
+            {
+                _connectionLock.ExitWriteLock();
+            }
         }
 
         /// <summary>
@@ -378,35 +398,27 @@ namespace CqlSharp.Network
             var logger = Cluster.LoggerManager.GetLogger("CqlSharp.Node.IdleTimer");
             using(logger.ThreadBinding())
             {
-                _connectionLock.EnterWriteLock();
-                try
+                //iterate over connections and remove idle ones
+                foreach(Connection connection in this)
                 {
-                    //iterate over connections and remove idle ones
-                    var conns = new List<Connection>(_connections);
-                    foreach(Connection connection in conns)
+                    if(connection.IsIdle)
                     {
-                        if(connection.IsIdle)
-                        {
-                            logger.LogInfo("Closing {0} as it is idle", connection);
-                            connection.Dispose();
-                            _connections.Remove(connection);
-                        }
+                        logger.LogInfo("Closing {0} as it is idle", connection);
+                        RemoveConnection(connection);
                     }
-
-                    //remove clean up timer when this node does not have any connections left
-                    if(_connections.Count == 0 && _connectionCleanupTimer != null)
-                    {
-                        _connectionCleanupTimer.Dispose();
-                        _connectionCleanupTimer = null;
-                    }
-                }
-                finally
-                {
-                    _connectionLock.ExitWriteLock();
                 }
             }
         }
 
+        /// <summary>
+        /// Invoked as event handler when the load of connection changes
+        /// </summary>
+        /// <param name="sender"> The sender. </param>
+        /// <param name="evt"> The evt. </param>
+        private void LoadChange(Object sender, LoadChangeEvent evt)
+        {
+            Interlocked.Add(ref _load, evt.LoadDelta);
+        }
 
         /// <summary>
         /// Invoked as handler when the status of a connection changes.
@@ -430,8 +442,8 @@ namespace CqlSharp.Network
                 }
                 else
                 {
-                    //reduce number of open connections
-                    int active = Interlocked.Decrement(ref _openConnections);
+                    var connection = (Connection)sender;
+                    int active = RemoveConnection(connection);
                     if(active == 0 && evt.Failure)
                     {
                         //signal node failure, if this was the last open connection
@@ -442,15 +454,115 @@ namespace CqlSharp.Network
         }
 
         /// <summary>
-        /// Invoked as event handler when the load of connection changes
+        /// Fails this instance. Triggers the reactivation timer
         /// </summary>
-        /// <param name="sender"> The sender. </param>
-        /// <param name="evt"> The evt. </param>
-        private void LoadChange(Object sender, LoadChangeEvent evt)
+        private void Fail(bool reactivate = true)
         {
-            Interlocked.Add(ref _load, evt.LoadDelta);
+            if(_disposed)
+                return;
+
+            lock(_statusLock)
+            {
+                //check if not already down
+                if(_status == HostState.Down)
+                    return;
+
+                //we're down
+                _status = HostState.Down;
+
+                //check if we want to reactivate
+                if(!reactivate)
+                    return;
+
+                //clear all prepared id state, when first reconnect fails as we can assume the node really went down.
+                //In case state is not cleared here, preparedQueryIds will be cleared with first prepared query that 
+                //fails with unprepared error
+                if(_failureCount == 1)
+                    PreparedQueryIds.Clear();
+
+                //calculate the time, before retry
+                int due = Math.Min(Cluster.Config.MaxDownTime,
+                                   (int)Math.Pow(2, _failureCount)*Cluster.Config.MinDownTime);
+
+                //next time wait a bit longer before accepting new connections (but not too long)
+                if(due < Cluster.Config.MaxDownTime) _failureCount++;
+
+
+                Logger.Current.LogInfo("{0} down, reactivating in {1}ms.", this, due);
+
+                //set the reactivation timer
+                if(_reactivateTimer == null)
+                    _reactivateTimer = new Timer(state => Reactivate(), this, due, Timeout.Infinite);
+                else
+                    _reactivateTimer.Change(due, Timeout.Infinite);
+            }
         }
 
+        /// <summary>
+        /// Reactivates this instance.
+        /// </summary>
+        internal void Reactivate()
+        {
+            var logger = Cluster.LoggerManager.GetLogger("CqlSharp.Node.Reactivate");
+
+            //only reactivate if host is marked down, when state is unknown, another party is already checking
+            //necessary as up notifications sometimes come in trains and the reactivation timer and up notifications
+            //may race eachother
+            if(_status == HostState.Down)
+            {
+                lock(_statusLock)
+                {
+                    if(_status != HostState.Down)
+                        return;
+
+                    //move to checking state
+                    _status = HostState.Checking;
+
+                    //dispose of any reactivation timer first
+                    if(_reactivateTimer != null)
+                    {
+                        _reactivateTimer.Dispose();
+                        _reactivateTimer = null;
+                    }
+
+                    logger.LogInfo("Verifying if {0} is available again.", this);
+
+                    //check state by creating a new connection, when that succeeds the node will be marked as up
+                    //through the connection change event handler. The connection will be closed directly afterwards
+                    //to make sure it does not interfere with any load-balancing policies as they are normally in 
+                    //control which connections get created.
+                    Scheduler.RunOnThreadPool(async () =>
+                    {
+                        try
+                        {
+                            //create correction
+                            Connection connection;
+                            using(logger.ThreadBinding())
+                            {
+                                connection = CreateConnection();
+                            }
+
+                            //open it
+                            await connection.OpenAsync(logger).AutoConfigureAwait();
+
+                            //dispose it
+                            using(logger.ThreadBinding())
+                            {
+                                connection.Dispose();
+                            }
+                        }
+                        catch(Exception)
+                        {
+                            logger.LogVerbose("Connection attempt failed: a next round of retry is introduced");
+                            using(logger.ThreadBinding())
+                            {
+                                Fail();
+                            }
+                        }
+                    });
+                }
+            }
+        }
 
         /// <summary>
         /// Determines whether the specified <see cref="System.Object" /> is equal to this instance.
@@ -487,99 +599,6 @@ namespace CqlSharp.Network
             unchecked
             {
                 return ((Address != null ? Address.GetHashCode() : 0)*397) ^ Cluster.Config.Port;
-            }
-        }
-
-        /// <summary>
-        /// Fails this instance. Triggers the reactivation timer
-        /// </summary>
-        private void Fail()
-        {
-            if(_disposed)
-                return;
-
-            lock(_statusLock)
-            {
-                //we're down
-                _status = HostState.Down;
-
-                //clear all prepared id state, when first reconnect fails as we can assume the node really went down.
-                //In case state is not cleared here, preparedQueryIds will be cleared with first prepared query that 
-                //fails with unprepared error
-                if(_failureCount == 1)
-                    PreparedQueryIds.Clear();
-
-                //calculate the time, before retry
-                int due = Math.Min(Cluster.Config.MaxDownTime,
-                                   (int)Math.Pow(2, _failureCount)*Cluster.Config.MinDownTime);
-
-                //next time wait a bit longer before accepting new connections (but not too long)
-                if(due < Cluster.Config.MaxDownTime) _failureCount++;
-
-                Logger.Current.LogInfo("{0} down, reactivating in {1}ms.", this, due);
-
-                //set the reactivation timer
-                if(_reactivateTimer == null)
-                    _reactivateTimer = new Timer(state => Reactivate(), this, due, Timeout.Infinite);
-                else
-                    _reactivateTimer.Change(due, Timeout.Infinite);
-            }
-        }
-
-        /// <summary>
-        /// Reactivates this instance.
-        /// </summary>
-        internal void Reactivate()
-        {
-            var logger = Cluster.LoggerManager.GetLogger("CqlSharp.Node.Reactivate");
-
-            //only reactivate if host is marked down, when state is unknown, another party is already checking
-            //necessary as up notifications sometimes come in trains and the reactivation timer and up notifications
-            //may race eachother
-            if(_status == HostState.Down)
-            {
-                lock(_statusLock)
-                {
-                    if(_status == HostState.Down)
-                    {
-                        //move to checking state
-                        _status = HostState.Checking;
-
-                        //dispose of any reactivation timer first
-                        if(_reactivateTimer != null)
-                        {
-                            _reactivateTimer.Dispose();
-                            _reactivateTimer = null;
-                        }
-
-                        logger.LogInfo("Verifying if {0} is available again.", this);
-
-                        //check state by creating a new connection, when that succeeds the node will be marked as up
-                        //through the connection change event handler. The connection will be closed directly afterwards
-                        //to make sure it does not interfere with any load-balancing policies as they are normally in 
-                        //control which connections get created.
-                        using(logger.ThreadBinding())
-                        {
-                            var connection = AddConnection();
-
-                            Scheduler.RunOnThreadPool(async () =>
-                            {
-                                try
-                                {
-                                    await connection.OpenAsync(logger).AutoConfigureAwait();
-                                    using(logger.ThreadBinding())
-                                    {
-                                        connection.Dispose();
-                                    }
-                                }
-                                catch(Exception)
-                                {
-                                    logger.LogVerbose("Connection attempt failed: a next round of retry is introduced");
-                                }
-                            });
-                        }
-                    }
-                }
             }
         }
 
