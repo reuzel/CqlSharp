@@ -233,7 +233,7 @@ namespace CqlSharp.Network
         public void Dispose()
         {
             //close the connection
-            Close(false, true);
+            Close(false);
         }
 
         /// <summary>
@@ -260,8 +260,7 @@ namespace CqlSharp.Network
         /// Closes this connection and moves it into closed state
         /// </summary>
         /// <param name="failed">if set to <c>true</c> [failed].</param>
-        /// <param name="suppressEvent">indicate wether the closed event needs to be suppressed</param>
-        private void Close(bool failed, bool suppressEvent=false)
+        private void Close(bool failed)
         {
             int previousState = Interlocked.Exchange(ref _connectionState, ConnectionState.Closed);
             if (previousState != ConnectionState.Closed)
@@ -270,10 +269,13 @@ namespace CqlSharp.Network
                 Disconnect();
 
                 //signal that connection closed
-                if (OnConnectionChange != null && !suppressEvent)
+                if (OnConnectionChange != null)
                 {
                     OnConnectionChange(this, new ConnectionChangeEvent { Failure = failed, Connected = false });
                 }
+
+                //update load figures of the parent
+                UpdateLoad(-Load, Logger.Current);
 
                 //dispose remaining locks
                 if (_frameSubmitLock != null) _frameSubmitLock.Dispose();

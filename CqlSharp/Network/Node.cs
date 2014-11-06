@@ -364,6 +364,9 @@ namespace CqlSharp.Network
             _connectionLock.EnterWriteLock();
             try
             {
+                //unregister from connection changes. We are going to dispose/close it
+                connection.OnConnectionChange -= ConnectionChange;
+
                 //dispose the connection
                 connection.Dispose();
 
