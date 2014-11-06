@@ -323,7 +323,7 @@ namespace CqlSharp.Network
             try
             {
                 //don't add if maximum of connections are reached
-                if(_connections.Count > Cluster.Config.MaxConnectionsPerNode)
+                if(_connections.Count >= Cluster.Config.MaxConnectionsPerNode)
                     return null;
 
                 //create new connection

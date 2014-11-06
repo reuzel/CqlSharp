@@ -1,4 +1,5 @@
-## Version 0.41.0 Linq upgrade
+## Version 0.41.0 Array support and Node restart fixes
+* Fix: Solve issue where CqlSharp can't reconnect when a Cassandra node is restarted 
 * Improved type system: support for arrays in value conversion (from/to list types)
 * adding IsEqual to CqlColumnInfo to compare column values of two entities
 

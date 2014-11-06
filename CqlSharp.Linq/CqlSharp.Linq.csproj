@@ -38,6 +38,9 @@
     <Reference Include="System.Xml" />
   </ItemGroup>
   <ItemGroup>
+    <Compile Include="..\CqlSharp\Properties\Version.cs">
+      <Link>Properties\Version.cs</Link>
+    </Compile>
     <Compile Include="CqlContext.cs" />
     <Compile Include="CqlContextBatchTransaction.cs" />
     <Compile Include="CqlDatabase.cs" />
