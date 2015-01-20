@@ -1005,5 +1005,16 @@ namespace CqlSharp
             _currentCreated = false;
             return base.ReadAsync(cancellationToken);
         }
+
+        /// <summary>
+        /// Forwards the reader to the next row.
+        /// </summary>
+        /// <returns> true if there are more rows; otherwise, false. </returns>
+        public override bool Read()
+        {
+            _current = default(T);
+            _currentCreated = false;
+            return base.Read();
+        }
     }
 }

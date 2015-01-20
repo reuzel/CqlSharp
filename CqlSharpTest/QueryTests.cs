@@ -680,6 +680,54 @@ namespace CqlSharp.Test
         }
 
         [TestMethod]
+        public void SelectTypedMultiple()
+        {
+            //Assume
+            const string insertCql = @"insert into Test.BasicFlow (id,value) values (?,?);";
+            const string retrieveCql = @"select * from Test.BasicFlow;";
+
+            //Act
+            using (var connection = new CqlConnection(ConnectionString))
+            {
+                connection.Open();
+
+                //insert data
+                var cmd = new CqlCommand(connection, insertCql, CqlConsistency.One);
+                cmd.Prepare();
+
+                for (int i = 0; i < 100; i++)
+                {
+                    cmd.Parameters[0].Value = i;
+                    cmd.Parameters[1].Value = "Hello " + i;
+                    cmd.ExecuteNonQuery();
+                }
+
+                //select data
+                var selectCmd = new CqlCommand(connection, retrieveCql, CqlConsistency.One);
+                
+                using (var reader = selectCmd.ExecuteReader<BasicFlowData>())
+                {
+                    Assert.AreEqual(100, reader.Count);
+
+                    var results = new bool[100];
+                    for (int i = 0; i < 100; i++)
+                    {
+                        if (reader.Read())
+                        {
+                            var current = reader.Current;
+                            results[current.Id] = true;
+                            Assert.AreEqual("Hello " + current.Id, current.Data);
+                        }
+                        else
+                            Assert.Fail("Read should have succeeded");
+                    }
+                    Assert.IsFalse(reader.Read());
+                    Assert.IsTrue(results.All(p => p), "Not all expected entries are returned");
+                }
+            }
+        }
+
+        [TestMethod]
         public async Task PrepareNoArguments()
         {
             //Assume
