@@ -1,5 +1,5 @@
 ﻿// CqlSharp - CqlSharp
-// Copyright (c) 2014 Joost Reuzel
+// Copyright (c) 2015 Joost Reuzel
 //   
 // Licensed under the Apache License, Version 2.0 (the "License");
 // you may not use this file except in compliance with the License.
@@ -16,7 +16,6 @@
 using System;
 using System.Collections.Concurrent;
 using System.Collections.Generic;
-using System.Configuration;
 using System.IO;
 using System.Linq;
 using System.Net;
@@ -251,7 +250,7 @@ namespace CqlSharp.Network
             _nodes = new Ring();
 
             //retry a few times to deal with bad network conditions
-            for(int attempt = 0; attempt<=_config.MaxQueryRetries && _nodes.Count==0; attempt++)
+            for(int attempt = 0; attempt <= _config.MaxQueryRetries && _nodes.Count == 0; attempt++)
             {
                 //try to connect to the seeds in turn
                 foreach(IPAddress seedAddress in _config.ServerAddresses)
@@ -263,7 +262,7 @@ namespace CqlSharp.Network
                         await GetClusterInfoAsync(seed, logger, token).AutoConfigureAwait();
 
                         //break from the loop as it seems we are done
-                        if(_nodes.Count>0)
+                        if(_nodes.Count > 0)
                             break;
                     }
                     catch(OperationCanceledException)
@@ -273,12 +272,11 @@ namespace CqlSharp.Network
                     }
                     catch(ProtocolException pex)
                     {
-                        logger.LogWarning("Could not open cluster via {0}: {1}",seedAddress, pex.Message);
+                        logger.LogWarning("Could not open cluster via {0}: {1}", seedAddress, pex.Message);
 
                         //node is not available, or starting up, try next, otherwise throw error
                         if(pex.Code != ErrorCode.Overloaded && pex.Code != ErrorCode.IsBootstrapping)
                             throw;
-
                     }
                     catch(SocketException ex)
                     {
@@ -324,9 +322,11 @@ namespace CqlSharp.Network
                     break;
                 case CqlSharp.ConnectionStrategy.PartitionAware:
                     _connectionStrategy = new PartitionAwareConnectionStrategy(_nodes, _config);
-                    if(_config.DiscoveryScope != DiscoveryScope.Cluster && _config.DiscoveryScope != DiscoveryScope.DataCenter)
+                    if(_config.DiscoveryScope != DiscoveryScope.Cluster &&
+                       _config.DiscoveryScope != DiscoveryScope.DataCenter)
                     {
-                        logger.LogWarning("PartitionAware connection strategy performs best if DiscoveryScope is set to cluster or datacenter");
+                        logger.LogWarning(
+                            "PartitionAware connection strategy performs best if DiscoveryScope is set to cluster or datacenter");
                     }
                     break;
             }
@@ -369,7 +369,8 @@ namespace CqlSharp.Network
                     await connection.RegisterForClusterChangesAsync(logger).AutoConfigureAwait();
 
                     //setup event handlers
-                    connection.OnConnectionChange += (src, ev) => Scheduler.RunOnThreadPool(() => SetupMaintenanceConnection(logger));
+                    connection.OnConnectionChange +=
+                        (src, ev) => Scheduler.RunOnThreadPool(() => SetupMaintenanceConnection(logger));
                     connection.OnClusterChange += OnClusterChange;
 
                     //store the new connection
@@ -645,7 +646,7 @@ namespace CqlSharp.Network
                 {
                     //delay as Cassandra is typically to early with sending these changes (Gossip needs to settle)
                     await Task.Delay(5000).AutoConfigureAwait();
-                
+
                     logger.LogVerbose("Cluster changed: {0} is {1}", args.Node, args.Change);
 
                     //get the connection from which we received the event

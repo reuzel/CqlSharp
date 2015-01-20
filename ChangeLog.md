@@ -1,3 +1,7 @@
+## Version 0.41.1 CqlDataReader bug fix
+* Fix: make sure latest value is deserialized in Current property of CqlDataReader{T}
+* Fix: remove redundant logging when PartitionAwareStrategy is used
+
 ## Version 0.41.0 Array support and Node restart fixes
 * Fix: Solve issue where CqlSharp can't reconnect when a Cassandra node is restarted 
 * Improved type system: support for arrays in value conversion (from/to list types)

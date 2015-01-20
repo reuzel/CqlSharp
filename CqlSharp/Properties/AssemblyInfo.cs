@@ -26,7 +26,7 @@ using System.Runtime.InteropServices;
 [assembly: AssemblyConfiguration("")]
 [assembly: AssemblyCompany("Joost Reuzel")]
 [assembly: AssemblyProduct("CqlSharp")]
-[assembly: AssemblyCopyright("Copyright Joost Reuzel ©  2014")]
+[assembly: AssemblyCopyright("Copyright Joost Reuzel ©  2015")]
 [assembly: AssemblyTrademark("")]
 [assembly: AssemblyCulture("")]
 

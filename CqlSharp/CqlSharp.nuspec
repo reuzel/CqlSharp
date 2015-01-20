@@ -32,6 +32,10 @@
       See https://github.com/reuzel/CqlSharp/wiki/Features for an extensive feature list.
     </description>
     <releaseNotes>
+      ## Version 0.41.1 CqlDataReader bug fix
+      * Fix: make sure latest value is deserialized in Current property of CqlDataReader{T}
+      * Fix: remove redundant logging when PartitionAwareStrategy is used
+
       ## Version 0.41.0 Array support and Node restart fixes
       * Fix: Solve issue where CqlSharp can't reconnect when a Cassandra node is restarted
       * Improved type system: support for arrays in value conversion (from/to list types)
@@ -48,17 +52,11 @@
       * Supports User Defined Types. Annotate your class with CqlUserType and CqlColumn to have it correctly mapped to a Cassandra User Defined Type
       * Guesses protocol version from release_version shortening connection setup times for older clusters
 
-      ## Version 0.39.0 - Performance of sync operations
-      * Many changes to have synchronous API really execute synchronously, it is no longer a sync-over-async wrapper
-      * Improved exception generation in case of query cancellation or timeout
-      * Logging cancelled queries
-      * Fix: Adding LocalOne consistency level
-
       ...
 
       See https://github.com/reuzel/CqlSharp/blob/master/ChangeLog.md for the full changelog.
     </releaseNotes>
-    <copyright>Copyright 2014 Joost Reuzel</copyright>
+    <copyright>Copyright 2015 Joost Reuzel</copyright>
     <tags>Cassandra CQL ADO.NET client database provider driver nosql net45 TPL async high-performance CqlSharp</tags>
   </metadata>
 </package>
